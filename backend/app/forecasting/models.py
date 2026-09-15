@@ -75,3 +75,11 @@ class ForecastRow(BaseModel):
     training_cutoff_date: date
     dimension_type: DimensionType
     dimension_value: str
+
+
+class ForecastLookupResult(BaseModel):
+    status: Literal["ok", "FORECAST_NOT_AVAILABLE"]
+    requested_period: date
+    latest_forecast_period: date | None = None
+    latest_actual_period: date | None = None
+    rows: list[ForecastRow] = Field(default_factory=list)

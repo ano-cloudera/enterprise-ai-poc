@@ -104,13 +104,26 @@ def train_forecast_model(features: list[FeatureRow], artifact_dir: Path) -> Trai
         sort_keys=True,
     ).encode()
     version = hashlib.sha256(identity).hexdigest()[:12]
+    final_matrix = xgb.DMatrix(
+        feature_matrix(features, type_codes, value_codes),
+        label=[row.target for row in features],
+        feature_names=FEATURE_NAMES,
+    )
+    booster = xgb.train(
+        {
+            "objective": "reg:squarederror", "tree_method": "hist", "max_depth": 3,
+            "eta": 0.05, "subsample": 1.0, "colsample_bytree": 1.0, "seed": 42, "nthread": 1,
+        },
+        final_matrix,
+        num_boost_round=120,
+    )
     metadata = TrainingMetadata(
         model_version=version,
         trained_at=datetime.now(timezone.utc),
         training_start_date=min(row.month for row in train),
-        training_end_date=max(row.month for row in train),
+        training_end_date=max(row.month for row in features),
         validation_period=validation[0].month,
-        training_rows=len(train),
+        training_rows=len(features),
         feature_names=FEATURE_NAMES,
         baseline_metrics=baseline_metrics,
         model_metrics=model_metrics,

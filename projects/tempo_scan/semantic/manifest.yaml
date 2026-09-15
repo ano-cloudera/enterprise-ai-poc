@@ -1,0 +1,14 @@
+dataset_files:
+  - sales.yaml
+  - inventory.yaml
+  - forecast.yaml
+business_terms_file: business_terms.yaml
+resolution_file: resolution.yaml
+golden_questions_file: golden_questions.yaml
+allowed_questions:
+  - Kenapa sales Jawa Barat turun bulan ini?
+  - Produk mana yang paling berkontribusi terhadap penurunan Jawa Barat?
+  - Channel mana yang paling terdampak?
+  - Apakah ada masalah inventory?
+  - Bandingkan Jawa Barat dengan Jawa Timur.
+  - Forecast sales Jawa Barat bulan depan.

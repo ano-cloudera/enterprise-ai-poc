@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-from datetime import date
+from datetime import date, datetime, timezone
 
 import pytest
 
@@ -9,7 +9,11 @@ from app.forecasting.data import supported_series
 from app.forecasting.evaluation import calculate_metrics, select_model
 from app.forecasting.features import build_training_features
 from app.forecasting.models import MonthlySales
+from app.forecasting.inference import generate_forecasts
+from app.forecasting.persistence import LocalForecastWriter, TrinoForecastWriter, ForecastWriteSafetyError
+from app.forecasting.repository import ForecastRepository
 from app.forecasting.training import chronological_split, train_forecast_model
+from app.services.query import QueryResult
 
 
 def test_forecast_history_has_24_chronological_months():
@@ -87,7 +91,7 @@ def test_training_evaluates_baseline_and_xgboost_and_writes_metadata(tmp_path):
     assert result.metadata.baseline_metrics.mae >= 0
     assert result.metadata.model_metrics.rmse >= 0
     assert result.metadata.selected_model in {"naive_baseline", "xgboost"}
-    assert result.metadata.training_end_date == date(2024, 2, 1)
+    assert result.metadata.training_end_date == date(2024, 3, 1)
     assert result.metadata.feature_names
 
 
@@ -98,3 +102,92 @@ def test_training_is_reproducible(tmp_path):
     assert first.metadata.baseline_metrics == second.metadata.baseline_metrics
     assert first.metadata.model_metrics == second.metadata.model_metrics
     assert first.metadata.selected_model == second.metadata.selected_model
+
+
+def trained(tmp_path):
+    features = build_training_features(supported_series(load_monthly_sales()))
+    return train_forecast_model(features, tmp_path)
+
+
+def test_forecast_generation_is_one_month_ahead_and_grounded(tmp_path):
+    result = trained(tmp_path)
+    generated = datetime(2026, 9, 15, tzinfo=timezone.utc)
+    rows = generate_forecasts(result.model_path, result.metadata_path, load_monthly_sales(), generated_at=generated)
+    assert {row.forecast_date for row in rows} == {date(2024, 4, 1)}
+    assert len(rows) == 16
+    assert all(row.lower_bound <= row.forecast_sales <= row.upper_bound for row in rows)
+    assert all(row.model_version == result.metadata.model_version for row in rows)
+    assert all(row.training_cutoff_date == date(2024, 3, 1) for row in rows)
+
+
+def test_forecast_inference_is_deterministic_for_same_artifact(tmp_path):
+    result = trained(tmp_path)
+    generated = datetime(2026, 9, 15, tzinfo=timezone.utc)
+    first = generate_forecasts(result.model_path, result.metadata_path, load_monthly_sales(), generated_at=generated)
+    second = generate_forecasts(result.model_path, result.metadata_path, load_monthly_sales(), generated_at=generated)
+    assert first == second
+
+
+def test_local_forecast_persistence_replaces_version_idempotently(tmp_path):
+    result = trained(tmp_path / "artifacts")
+    rows = generate_forecasts(result.model_path, result.metadata_path, load_monthly_sales())
+    writer = LocalForecastWriter(tmp_path / "forecast.duckdb")
+    writer.write(rows)
+    writer.write(rows)
+    assert writer.count() == len(rows)
+
+
+class FakeQueryService:
+    def __init__(self, rows):
+        self.rows = rows
+        self.sql = []
+
+    def execute_validated(self, sql, context):
+        self.sql.append(sql)
+        return QueryResult(sql=sql, columns=list(self.rows[0]) if self.rows else [], rows=self.rows)
+
+
+FORECAST_RECORD = {
+    "forecast_date": "2024-04-01",
+    "forecast_sales": 82400.5,
+    "lower_bound": 78100.2,
+    "upper_bound": 86700.8,
+    "model_name": "xgboost",
+    "model_version": "v1",
+    "training_cutoff_date": "2024-03-01",
+    "dimension_type": "total",
+    "dimension_value": "ALL",
+    "generated_at": "2026-09-15T00:00:00+00:00",
+    "forecast_horizon": 1,
+}
+
+
+@pytest.mark.parametrize(
+    ("dimension_type", "dimension_value"),
+    [("total", "ALL"), ("region", "Jawa Barat"), ("product", "Bodrex Flu & Batuk"), ("channel", "Modern Trade")],
+)
+def test_repository_builds_bounded_dimension_queries(dimension_type, dimension_value):
+    service = FakeQueryService([FORECAST_RECORD])
+    result = ForecastRepository(service).find(date(2024, 4, 1), dimension_type, dimension_value)
+    assert result.status == "ok"
+    assert dimension_type in service.sql[0]
+    assert dimension_value.replace("'", "''") in service.sql[0]
+
+
+def test_repository_returns_controlled_missing_forecast():
+    result = ForecastRepository(FakeQueryService([])).find(date(2025, 1, 1), "region", "Jawa Barat")
+    assert result.status == "FORECAST_NOT_AVAILABLE"
+    assert result.rows == []
+
+
+def test_latest_generated_forecast_version_is_selected():
+    service = FakeQueryService([FORECAST_RECORD])
+    ForecastRepository(service).find(date(2024, 4, 1), "total", "ALL")
+    assert "ORDER BY generated_at DESC" in service.sql[0]
+    assert "LIMIT 1" in service.sql[0]
+
+
+def test_trino_forecast_writer_rejects_arbitrary_table():
+    with pytest.raises(ForecastWriteSafetyError):
+        TrinoForecastWriter.validate_target("tempo", "commercial", "users")
+    assert TrinoForecastWriter.validate_target("tempo", "commercial", "commercial_sales_forecast").endswith("commercial_sales_forecast")

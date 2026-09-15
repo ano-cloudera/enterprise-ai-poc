@@ -1,0 +1,52 @@
+name: commercial_sales_forecast
+source: commercial_sales_forecast
+trino:
+  table: commercial_sales_forecast
+description: Persisted offline one-month sales forecasts. The online application never trains or infers this dataset.
+primary_key: [forecast_date, model_version, dimension_type, dimension_value]
+metrics:
+  forecast_sales:
+    label: Forecast Sales
+    expression: forecast_sales
+    aggregation: sum
+    type: currency_million_idr
+    aliases: [forecast, prediksi, proyeksi]
+  lower_bound:
+    label: Forecast Lower Bound
+    expression: lower_bound
+    aggregation: sum
+  upper_bound:
+    label: Forecast Upper Bound
+    expression: upper_bound
+    aggregation: sum
+dimensions:
+  dimension_type:
+    label: Forecast Dimension Type
+    column: dimension_type
+  dimension_value:
+    label: Forecast Dimension Value
+    column: dimension_value
+time_dimensions:
+  forecast_date:
+    label: Forecast Date
+    column: forecast_date
+    grains: [month]
+query_rules:
+  allowed_fields:
+    - forecast_date
+    - generated_at
+    - forecast_horizon
+    - forecast_sales
+    - lower_bound
+    - upper_bound
+    - model_name
+    - model_version
+    - training_cutoff_date
+    - dimension_type
+    - dimension_value
+  default_limit: 50
+  max_limit: 500
+  require_date_filter: true
+  notes:
+    - Values must be produced by the approved offline forecast pipeline.
+    - Online components may retrieve but never create or modify forecasts.
