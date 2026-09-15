@@ -1,0 +1,2521 @@
+sales_month,region_name,product_name,channel_name,sales_amount
+2022-04-01,Jawa Barat,Tempra,General Trade,6729.401
+2022-04-01,Jawa Barat,Tempra,Modern Trade,5872.501
+2022-04-01,Jawa Barat,Tempra,E-commerce,4000.826
+2022-04-01,Jawa Barat,Tempra,Hospitals & Institutions,2605.496
+2022-04-01,Jawa Barat,Bodrex Flu & Batuk,General Trade,7549.743
+2022-04-01,Jawa Barat,Bodrex Flu & Batuk,Modern Trade,6439.203
+2022-04-01,Jawa Barat,Bodrex Flu & Batuk,E-commerce,4483.421
+2022-04-01,Jawa Barat,Bodrex Flu & Batuk,Hospitals & Institutions,3012.76
+2022-04-01,Jawa Barat,Hemaviton C1000,General Trade,5867.478
+2022-04-01,Jawa Barat,Hemaviton C1000,Modern Trade,5149.648
+2022-04-01,Jawa Barat,Hemaviton C1000,E-commerce,3386.489
+2022-04-01,Jawa Barat,Hemaviton C1000,Hospitals & Institutions,2277.252
+2022-04-01,Jawa Barat,Vidoran Smart,General Trade,4853.948
+2022-04-01,Jawa Barat,Vidoran Smart,Modern Trade,4246.066
+2022-04-01,Jawa Barat,Vidoran Smart,E-commerce,2845.368
+2022-04-01,Jawa Barat,Vidoran Smart,Hospitals & Institutions,2010.252
+2022-04-01,Jawa Barat,Marina Skin Care,General Trade,4436.997
+2022-04-01,Jawa Barat,Marina Skin Care,Modern Trade,3919.588
+2022-04-01,Jawa Barat,Marina Skin Care,E-commerce,2628.952
+2022-04-01,Jawa Barat,Marina Skin Care,Hospitals & Institutions,1771.29
+2022-04-01,Jawa Timur,Tempra,General Trade,4017.478
+2022-04-01,Jawa Timur,Tempra,Modern Trade,3385.226
+2022-04-01,Jawa Timur,Tempra,E-commerce,2293.484
+2022-04-01,Jawa Timur,Tempra,Hospitals & Institutions,1555.64
+2022-04-01,Jawa Timur,Bodrex Flu & Batuk,General Trade,4575.681
+2022-04-01,Jawa Timur,Bodrex Flu & Batuk,Modern Trade,3867.737
+2022-04-01,Jawa Timur,Bodrex Flu & Batuk,E-commerce,2604.433
+2022-04-01,Jawa Timur,Bodrex Flu & Batuk,Hospitals & Institutions,1761.324
+2022-04-01,Jawa Timur,Hemaviton C1000,General Trade,3348.135
+2022-04-01,Jawa Timur,Hemaviton C1000,Modern Trade,2969.477
+2022-04-01,Jawa Timur,Hemaviton C1000,E-commerce,1996.714
+2022-04-01,Jawa Timur,Hemaviton C1000,Hospitals & Institutions,1408.847
+2022-04-01,Jawa Timur,Vidoran Smart,General Trade,2873.54
+2022-04-01,Jawa Timur,Vidoran Smart,Modern Trade,2551.603
+2022-04-01,Jawa Timur,Vidoran Smart,E-commerce,1744.297
+2022-04-01,Jawa Timur,Vidoran Smart,Hospitals & Institutions,1187.604
+2022-04-01,Jawa Timur,Marina Skin Care,General Trade,2643.059
+2022-04-01,Jawa Timur,Marina Skin Care,Modern Trade,2246.827
+2022-04-01,Jawa Timur,Marina Skin Care,E-commerce,1519.382
+2022-04-01,Jawa Timur,Marina Skin Care,Hospitals & Institutions,1030.578
+2022-04-01,Jawa Tengah,Tempra,General Trade,2868.208
+2022-04-01,Jawa Tengah,Tempra,Modern Trade,2530.872
+2022-04-01,Jawa Tengah,Tempra,E-commerce,1673.708
+2022-04-01,Jawa Tengah,Tempra,Hospitals & Institutions,1115.238
+2022-04-01,Jawa Tengah,Bodrex Flu & Batuk,General Trade,3326.179
+2022-04-01,Jawa Tengah,Bodrex Flu & Batuk,Modern Trade,2936.354
+2022-04-01,Jawa Tengah,Bodrex Flu & Batuk,E-commerce,1994.74
+2022-04-01,Jawa Tengah,Bodrex Flu & Batuk,Hospitals & Institutions,1324.584
+2022-04-01,Jawa Tengah,Hemaviton C1000,General Trade,2456.09
+2022-04-01,Jawa Tengah,Hemaviton C1000,Modern Trade,2123.895
+2022-04-01,Jawa Tengah,Hemaviton C1000,E-commerce,1460.84
+2022-04-01,Jawa Tengah,Hemaviton C1000,Hospitals & Institutions,987.519
+2022-04-01,Jawa Tengah,Vidoran Smart,General Trade,2193.443
+2022-04-01,Jawa Tengah,Vidoran Smart,Modern Trade,1896.074
+2022-04-01,Jawa Tengah,Vidoran Smart,E-commerce,1250.15
+2022-04-01,Jawa Tengah,Vidoran Smart,Hospitals & Institutions,836.069
+2022-04-01,Jawa Tengah,Marina Skin Care,General Trade,1907.142
+2022-04-01,Jawa Tengah,Marina Skin Care,Modern Trade,1672.556
+2022-04-01,Jawa Tengah,Marina Skin Care,E-commerce,1142.384
+2022-04-01,Jawa Tengah,Marina Skin Care,Hospitals & Institutions,777.577
+2022-04-01,Sumatera,Tempra,General Trade,2441.444
+2022-04-01,Sumatera,Tempra,Modern Trade,2060.956
+2022-04-01,Sumatera,Tempra,E-commerce,1433.638
+2022-04-01,Sumatera,Tempra,Hospitals & Institutions,959.628
+2022-04-01,Sumatera,Bodrex Flu & Batuk,General Trade,2825.991
+2022-04-01,Sumatera,Bodrex Flu & Batuk,Modern Trade,2456.188
+2022-04-01,Sumatera,Bodrex Flu & Batuk,E-commerce,1632.692
+2022-04-01,Sumatera,Bodrex Flu & Batuk,Hospitals & Institutions,1085.597
+2022-04-01,Sumatera,Hemaviton C1000,General Trade,2117.967
+2022-04-01,Sumatera,Hemaviton C1000,Modern Trade,1808.19
+2022-04-01,Sumatera,Hemaviton C1000,E-commerce,1211.305
+2022-04-01,Sumatera,Hemaviton C1000,Hospitals & Institutions,857.497
+2022-04-01,Sumatera,Vidoran Smart,General Trade,1777.47
+2022-04-01,Sumatera,Vidoran Smart,Modern Trade,1517.908
+2022-04-01,Sumatera,Vidoran Smart,E-commerce,1033.618
+2022-04-01,Sumatera,Vidoran Smart,Hospitals & Institutions,702.647
+2022-04-01,Sumatera,Marina Skin Care,General Trade,1638.453
+2022-04-01,Sumatera,Marina Skin Care,Modern Trade,1386.494
+2022-04-01,Sumatera,Marina Skin Care,E-commerce,965.27
+2022-04-01,Sumatera,Marina Skin Care,Hospitals & Institutions,632.34
+2022-04-01,Kalimantan,Tempra,General Trade,1841.691
+2022-04-01,Kalimantan,Tempra,Modern Trade,1623.438
+2022-04-01,Kalimantan,Tempra,E-commerce,1091.712
+2022-04-01,Kalimantan,Tempra,Hospitals & Institutions,725.273
+2022-04-01,Kalimantan,Bodrex Flu & Batuk,General Trade,2048.224
+2022-04-01,Kalimantan,Bodrex Flu & Batuk,Modern Trade,1829.658
+2022-04-01,Kalimantan,Bodrex Flu & Batuk,E-commerce,1205.566
+2022-04-01,Kalimantan,Bodrex Flu & Batuk,Hospitals & Institutions,845.248
+2022-04-01,Kalimantan,Hemaviton C1000,General Trade,1620.69
+2022-04-01,Kalimantan,Hemaviton C1000,Modern Trade,1357.368
+2022-04-01,Kalimantan,Hemaviton C1000,E-commerce,933.052
+2022-04-01,Kalimantan,Hemaviton C1000,Hospitals & Institutions,627.225
+2022-04-01,Kalimantan,Vidoran Smart,General Trade,1374.949
+2022-04-01,Kalimantan,Vidoran Smart,Modern Trade,1180.078
+2022-04-01,Kalimantan,Vidoran Smart,E-commerce,797.182
+2022-04-01,Kalimantan,Vidoran Smart,Hospitals & Institutions,549.046
+2022-04-01,Kalimantan,Marina Skin Care,General Trade,1230.341
+2022-04-01,Kalimantan,Marina Skin Care,Modern Trade,1050.034
+2022-04-01,Kalimantan,Marina Skin Care,E-commerce,722.352
+2022-04-01,Kalimantan,Marina Skin Care,Hospitals & Institutions,494.431
+2022-04-01,Sulawesi,Tempra,General Trade,1518.331
+2022-04-01,Sulawesi,Tempra,Modern Trade,1373.669
+2022-04-01,Sulawesi,Tempra,E-commerce,897.702
+2022-04-01,Sulawesi,Tempra,Hospitals & Institutions,602.874
+2022-04-01,Sulawesi,Bodrex Flu & Batuk,General Trade,1756.74
+2022-04-01,Sulawesi,Bodrex Flu & Batuk,Modern Trade,1490.391
+2022-04-01,Sulawesi,Bodrex Flu & Batuk,E-commerce,1012.171
+2022-04-01,Sulawesi,Bodrex Flu & Batuk,Hospitals & Institutions,702.807
+2022-04-01,Sulawesi,Hemaviton C1000,General Trade,1357.599
+2022-04-01,Sulawesi,Hemaviton C1000,Modern Trade,1135.538
+2022-04-01,Sulawesi,Hemaviton C1000,E-commerce,806.396
+2022-04-01,Sulawesi,Hemaviton C1000,Hospitals & Institutions,531.317
+2022-04-01,Sulawesi,Vidoran Smart,General Trade,1171.174
+2022-04-01,Sulawesi,Vidoran Smart,Modern Trade,996.844
+2022-04-01,Sulawesi,Vidoran Smart,E-commerce,655.128
+2022-04-01,Sulawesi,Vidoran Smart,Hospitals & Institutions,446.754
+2022-04-01,Sulawesi,Marina Skin Care,General Trade,1016.87
+2022-04-01,Sulawesi,Marina Skin Care,Modern Trade,872.499
+2022-04-01,Sulawesi,Marina Skin Care,E-commerce,602.207
+2022-04-01,Sulawesi,Marina Skin Care,Hospitals & Institutions,401.846
+2022-05-01,Jawa Barat,Tempra,General Trade,6997.569
+2022-05-01,Jawa Barat,Tempra,Modern Trade,6147.174
+2022-05-01,Jawa Barat,Tempra,E-commerce,4149.473
+2022-05-01,Jawa Barat,Tempra,Hospitals & Institutions,2819.942
+2022-05-01,Jawa Barat,Bodrex Flu & Batuk,General Trade,8072.818
+2022-05-01,Jawa Barat,Bodrex Flu & Batuk,Modern Trade,6873.883
+2022-05-01,Jawa Barat,Bodrex Flu & Batuk,E-commerce,4582.559
+2022-05-01,Jawa Barat,Bodrex Flu & Batuk,Hospitals & Institutions,3088.292
+2022-05-01,Jawa Barat,Hemaviton C1000,General Trade,6154.924
+2022-05-01,Jawa Barat,Hemaviton C1000,Modern Trade,5263.631
+2022-05-01,Jawa Barat,Hemaviton C1000,E-commerce,3560.818
+2022-05-01,Jawa Barat,Hemaviton C1000,Hospitals & Institutions,2486.721
+2022-05-01,Jawa Barat,Vidoran Smart,General Trade,5094.763
+2022-05-01,Jawa Barat,Vidoran Smart,Modern Trade,4529.183
+2022-05-01,Jawa Barat,Vidoran Smart,E-commerce,3117.883
+2022-05-01,Jawa Barat,Vidoran Smart,Hospitals & Institutions,2054.982
+2022-05-01,Jawa Barat,Marina Skin Care,General Trade,4676.726
+2022-05-01,Jawa Barat,Marina Skin Care,Modern Trade,4114.092
+2022-05-01,Jawa Barat,Marina Skin Care,E-commerce,2759.782
+2022-05-01,Jawa Barat,Marina Skin Care,Hospitals & Institutions,1837.288
+2022-05-01,Jawa Timur,Tempra,General Trade,4054.832
+2022-05-01,Jawa Timur,Tempra,Modern Trade,3562.067
+2022-05-01,Jawa Timur,Tempra,E-commerce,2334.606
+2022-05-01,Jawa Timur,Tempra,Hospitals & Institutions,1619.331
+2022-05-01,Jawa Timur,Bodrex Flu & Batuk,General Trade,4717.722
+2022-05-01,Jawa Timur,Bodrex Flu & Batuk,Modern Trade,4124.415
+2022-05-01,Jawa Timur,Bodrex Flu & Batuk,E-commerce,2780.353
+2022-05-01,Jawa Timur,Bodrex Flu & Batuk,Hospitals & Institutions,1824.172
+2022-05-01,Jawa Timur,Hemaviton C1000,General Trade,3635.995
+2022-05-01,Jawa Timur,Hemaviton C1000,Modern Trade,3115.317
+2022-05-01,Jawa Timur,Hemaviton C1000,E-commerce,2070.547
+2022-05-01,Jawa Timur,Hemaviton C1000,Hospitals & Institutions,1437.05
+2022-05-01,Jawa Timur,Vidoran Smart,General Trade,2972.251
+2022-05-01,Jawa Timur,Vidoran Smart,Modern Trade,2630.37
+2022-05-01,Jawa Timur,Vidoran Smart,E-commerce,1826.987
+2022-05-01,Jawa Timur,Vidoran Smart,Hospitals & Institutions,1214.796
+2022-05-01,Jawa Timur,Marina Skin Care,General Trade,2708.579
+2022-05-01,Jawa Timur,Marina Skin Care,Modern Trade,2287.045
+2022-05-01,Jawa Timur,Marina Skin Care,E-commerce,1579.789
+2022-05-01,Jawa Timur,Marina Skin Care,Hospitals & Institutions,1059.479
+2022-05-01,Jawa Tengah,Tempra,General Trade,2920.329
+2022-05-01,Jawa Tengah,Tempra,Modern Trade,2621.188
+2022-05-01,Jawa Tengah,Tempra,E-commerce,1790.775
+2022-05-01,Jawa Tengah,Tempra,Hospitals & Institutions,1188.671
+2022-05-01,Jawa Tengah,Bodrex Flu & Batuk,General Trade,3432.027
+2022-05-01,Jawa Tengah,Bodrex Flu & Batuk,Modern Trade,2985.952
+2022-05-01,Jawa Tengah,Bodrex Flu & Batuk,E-commerce,1951.592
+2022-05-01,Jawa Tengah,Bodrex Flu & Batuk,Hospitals & Institutions,1395.499
+2022-05-01,Jawa Tengah,Hemaviton C1000,General Trade,2664.105
+2022-05-01,Jawa Tengah,Hemaviton C1000,Modern Trade,2202.324
+2022-05-01,Jawa Tengah,Hemaviton C1000,E-commerce,1564.283
+2022-05-01,Jawa Tengah,Hemaviton C1000,Hospitals & Institutions,1044.5
+2022-05-01,Jawa Tengah,Vidoran Smart,General Trade,2170.415
+2022-05-01,Jawa Tengah,Vidoran Smart,Modern Trade,1879.824
+2022-05-01,Jawa Tengah,Vidoran Smart,E-commerce,1306.235
+2022-05-01,Jawa Tengah,Vidoran Smart,Hospitals & Institutions,878.744
+2022-05-01,Jawa Tengah,Marina Skin Care,General Trade,1968.987
+2022-05-01,Jawa Tengah,Marina Skin Care,Modern Trade,1679.122
+2022-05-01,Jawa Tengah,Marina Skin Care,E-commerce,1186.711
+2022-05-01,Jawa Tengah,Marina Skin Care,Hospitals & Institutions,810.185
+2022-05-01,Sumatera,Tempra,General Trade,2491.937
+2022-05-01,Sumatera,Tempra,Modern Trade,2144.166
+2022-05-01,Sumatera,Tempra,E-commerce,1504.998
+2022-05-01,Sumatera,Tempra,Hospitals & Institutions,994.138
+2022-05-01,Sumatera,Bodrex Flu & Batuk,General Trade,2858.267
+2022-05-01,Sumatera,Bodrex Flu & Batuk,Modern Trade,2477.465
+2022-05-01,Sumatera,Bodrex Flu & Batuk,E-commerce,1679.511
+2022-05-01,Sumatera,Bodrex Flu & Batuk,Hospitals & Institutions,1165.363
+2022-05-01,Sumatera,Hemaviton C1000,General Trade,2131.025
+2022-05-01,Sumatera,Hemaviton C1000,Modern Trade,1893.965
+2022-05-01,Sumatera,Hemaviton C1000,E-commerce,1254.523
+2022-05-01,Sumatera,Hemaviton C1000,Hospitals & Institutions,860.102
+2022-05-01,Sumatera,Vidoran Smart,General Trade,1849.64
+2022-05-01,Sumatera,Vidoran Smart,Modern Trade,1600.352
+2022-05-01,Sumatera,Vidoran Smart,E-commerce,1089.911
+2022-05-01,Sumatera,Vidoran Smart,Hospitals & Institutions,740.193
+2022-05-01,Sumatera,Marina Skin Care,General Trade,1650.565
+2022-05-01,Sumatera,Marina Skin Care,Modern Trade,1409.935
+2022-05-01,Sumatera,Marina Skin Care,E-commerce,960.459
+2022-05-01,Sumatera,Marina Skin Care,Hospitals & Institutions,678.415
+2022-05-01,Kalimantan,Tempra,General Trade,1891.479
+2022-05-01,Kalimantan,Tempra,Modern Trade,1645.133
+2022-05-01,Kalimantan,Tempra,E-commerce,1141.871
+2022-05-01,Kalimantan,Tempra,Hospitals & Institutions,753.92
+2022-05-01,Kalimantan,Bodrex Flu & Batuk,General Trade,2112.438
+2022-05-01,Kalimantan,Bodrex Flu & Batuk,Modern Trade,1906.147
+2022-05-01,Kalimantan,Bodrex Flu & Batuk,E-commerce,1305.238
+2022-05-01,Kalimantan,Bodrex Flu & Batuk,Hospitals & Institutions,863.031
+2022-05-01,Kalimantan,Hemaviton C1000,General Trade,1633.278
+2022-05-01,Kalimantan,Hemaviton C1000,Modern Trade,1442.629
+2022-05-01,Kalimantan,Hemaviton C1000,E-commerce,988.761
+2022-05-01,Kalimantan,Hemaviton C1000,Hospitals & Institutions,653.86
+2022-05-01,Kalimantan,Vidoran Smart,General Trade,1391.26
+2022-05-01,Kalimantan,Vidoran Smart,Modern Trade,1189.716
+2022-05-01,Kalimantan,Vidoran Smart,E-commerce,810.559
+2022-05-01,Kalimantan,Vidoran Smart,Hospitals & Institutions,566.248
+2022-05-01,Kalimantan,Marina Skin Care,General Trade,1257.638
+2022-05-01,Kalimantan,Marina Skin Care,Modern Trade,1103.104
+2022-05-01,Kalimantan,Marina Skin Care,E-commerce,745.96
+2022-05-01,Kalimantan,Marina Skin Care,Hospitals & Institutions,514.572
+2022-05-01,Sulawesi,Tempra,General Trade,1543.092
+2022-05-01,Sulawesi,Tempra,Modern Trade,1407.748
+2022-05-01,Sulawesi,Tempra,E-commerce,954.239
+2022-05-01,Sulawesi,Tempra,Hospitals & Institutions,647.652
+2022-05-01,Sulawesi,Bodrex Flu & Batuk,General Trade,1852.744
+2022-05-01,Sulawesi,Bodrex Flu & Batuk,Modern Trade,1619.845
+2022-05-01,Sulawesi,Bodrex Flu & Batuk,E-commerce,1074.682
+2022-05-01,Sulawesi,Bodrex Flu & Batuk,Hospitals & Institutions,723.434
+2022-05-01,Sulawesi,Hemaviton C1000,General Trade,1418.606
+2022-05-01,Sulawesi,Hemaviton C1000,Modern Trade,1180.823
+2022-05-01,Sulawesi,Hemaviton C1000,E-commerce,817.914
+2022-05-01,Sulawesi,Hemaviton C1000,Hospitals & Institutions,563.903
+2022-05-01,Sulawesi,Vidoran Smart,General Trade,1178.305
+2022-05-01,Sulawesi,Vidoran Smart,Modern Trade,1053.182
+2022-05-01,Sulawesi,Vidoran Smart,E-commerce,713.009
+2022-05-01,Sulawesi,Vidoran Smart,Hospitals & Institutions,466.651
+2022-05-01,Sulawesi,Marina Skin Care,General Trade,1083.021
+2022-05-01,Sulawesi,Marina Skin Care,Modern Trade,935.515
+2022-05-01,Sulawesi,Marina Skin Care,E-commerce,638.914
+2022-05-01,Sulawesi,Marina Skin Care,Hospitals & Institutions,428.975
+2022-06-01,Jawa Barat,Tempra,General Trade,6406.506
+2022-06-01,Jawa Barat,Tempra,Modern Trade,5865.967
+2022-06-01,Jawa Barat,Tempra,E-commerce,3765.765
+2022-06-01,Jawa Barat,Tempra,Hospitals & Institutions,2692.102
+2022-06-01,Jawa Barat,Bodrex Flu & Batuk,General Trade,7443.258
+2022-06-01,Jawa Barat,Bodrex Flu & Batuk,Modern Trade,6432.996
+2022-06-01,Jawa Barat,Bodrex Flu & Batuk,E-commerce,4519.326
+2022-06-01,Jawa Barat,Bodrex Flu & Batuk,Hospitals & Institutions,3031.962
+2022-06-01,Jawa Barat,Hemaviton C1000,General Trade,5827.047
+2022-06-01,Jawa Barat,Hemaviton C1000,Modern Trade,4898.389
+2022-06-01,Jawa Barat,Hemaviton C1000,E-commerce,3390.885
+2022-06-01,Jawa Barat,Hemaviton C1000,Hospitals & Institutions,2245.739
+2022-06-01,Jawa Barat,Vidoran Smart,General Trade,4964.63
+2022-06-01,Jawa Barat,Vidoran Smart,Modern Trade,4320.475
+2022-06-01,Jawa Barat,Vidoran Smart,E-commerce,2887.803
+2022-06-01,Jawa Barat,Vidoran Smart,Hospitals & Institutions,1905.701
+2022-06-01,Jawa Barat,Marina Skin Care,General Trade,4259.132
+2022-06-01,Jawa Barat,Marina Skin Care,Modern Trade,3846.2
+2022-06-01,Jawa Barat,Marina Skin Care,E-commerce,2514.929
+2022-06-01,Jawa Barat,Marina Skin Care,Hospitals & Institutions,1730.13
+2022-06-01,Jawa Timur,Tempra,General Trade,3921.113
+2022-06-01,Jawa Timur,Tempra,Modern Trade,3452.582
+2022-06-01,Jawa Timur,Tempra,E-commerce,2280.173
+2022-06-01,Jawa Timur,Tempra,Hospitals & Institutions,1566.119
+2022-06-01,Jawa Timur,Bodrex Flu & Batuk,General Trade,4359.929
+2022-06-01,Jawa Timur,Bodrex Flu & Batuk,Modern Trade,3901.817
+2022-06-01,Jawa Timur,Bodrex Flu & Batuk,E-commerce,2563.156
+2022-06-01,Jawa Timur,Bodrex Flu & Batuk,Hospitals & Institutions,1799.076
+2022-06-01,Jawa Timur,Hemaviton C1000,General Trade,3286.553
+2022-06-01,Jawa Timur,Hemaviton C1000,Modern Trade,2874.217
+2022-06-01,Jawa Timur,Hemaviton C1000,E-commerce,1947.677
+2022-06-01,Jawa Timur,Hemaviton C1000,Hospitals & Institutions,1332.036
+2022-06-01,Jawa Timur,Vidoran Smart,General Trade,2861.432
+2022-06-01,Jawa Timur,Vidoran Smart,Modern Trade,2512.922
+2022-06-01,Jawa Timur,Vidoran Smart,E-commerce,1696.241
+2022-06-01,Jawa Timur,Vidoran Smart,Hospitals & Institutions,1141.825
+2022-06-01,Jawa Timur,Marina Skin Care,General Trade,2513.151
+2022-06-01,Jawa Timur,Marina Skin Care,Modern Trade,2178.497
+2022-06-01,Jawa Timur,Marina Skin Care,E-commerce,1515.196
+2022-06-01,Jawa Timur,Marina Skin Care,Hospitals & Institutions,1014.499
+2022-06-01,Jawa Tengah,Tempra,General Trade,2734.962
+2022-06-01,Jawa Tengah,Tempra,Modern Trade,2486.409
+2022-06-01,Jawa Tengah,Tempra,E-commerce,1653.149
+2022-06-01,Jawa Tengah,Tempra,Hospitals & Institutions,1147.113
+2022-06-01,Jawa Tengah,Bodrex Flu & Batuk,General Trade,3138.709
+2022-06-01,Jawa Tengah,Bodrex Flu & Batuk,Modern Trade,2775.773
+2022-06-01,Jawa Tengah,Bodrex Flu & Batuk,E-commerce,1949.768
+2022-06-01,Jawa Tengah,Bodrex Flu & Batuk,Hospitals & Institutions,1304.137
+2022-06-01,Jawa Tengah,Hemaviton C1000,General Trade,2405.192
+2022-06-01,Jawa Tengah,Hemaviton C1000,Modern Trade,2150.195
+2022-06-01,Jawa Tengah,Hemaviton C1000,E-commerce,1479.613
+2022-06-01,Jawa Tengah,Hemaviton C1000,Hospitals & Institutions,986.221
+2022-06-01,Jawa Tengah,Vidoran Smart,General Trade,2093.398
+2022-06-01,Jawa Tengah,Vidoran Smart,Modern Trade,1794.83
+2022-06-01,Jawa Tengah,Vidoran Smart,E-commerce,1231.709
+2022-06-01,Jawa Tengah,Vidoran Smart,Hospitals & Institutions,853.593
+2022-06-01,Jawa Tengah,Marina Skin Care,General Trade,1912.043
+2022-06-01,Jawa Tengah,Marina Skin Care,Modern Trade,1614.636
+2022-06-01,Jawa Tengah,Marina Skin Care,E-commerce,1080.221
+2022-06-01,Jawa Tengah,Marina Skin Care,Hospitals & Institutions,771.925
+2022-06-01,Sumatera,Tempra,General Trade,2334.645
+2022-06-01,Sumatera,Tempra,Modern Trade,1996.596
+2022-06-01,Sumatera,Tempra,E-commerce,1374.131
+2022-06-01,Sumatera,Tempra,Hospitals & Institutions,959.319
+2022-06-01,Sumatera,Bodrex Flu & Batuk,General Trade,2722.788
+2022-06-01,Sumatera,Bodrex Flu & Batuk,Modern Trade,2358.849
+2022-06-01,Sumatera,Bodrex Flu & Batuk,E-commerce,1610.367
+2022-06-01,Sumatera,Bodrex Flu & Batuk,Hospitals & Institutions,1061.822
+2022-06-01,Sumatera,Hemaviton C1000,General Trade,2048.465
+2022-06-01,Sumatera,Hemaviton C1000,Modern Trade,1796.297
+2022-06-01,Sumatera,Hemaviton C1000,E-commerce,1201.572
+2022-06-01,Sumatera,Hemaviton C1000,Hospitals & Institutions,802.344
+2022-06-01,Sumatera,Vidoran Smart,General Trade,1712.242
+2022-06-01,Sumatera,Vidoran Smart,Modern Trade,1495.622
+2022-06-01,Sumatera,Vidoran Smart,E-commerce,1039.682
+2022-06-01,Sumatera,Vidoran Smart,Hospitals & Institutions,721.284
+2022-06-01,Sumatera,Marina Skin Care,General Trade,1583.397
+2022-06-01,Sumatera,Marina Skin Care,Modern Trade,1386.953
+2022-06-01,Sumatera,Marina Skin Care,E-commerce,923.309
+2022-06-01,Sumatera,Marina Skin Care,Hospitals & Institutions,636.325
+2022-06-01,Kalimantan,Tempra,General Trade,1816.097
+2022-06-01,Kalimantan,Tempra,Modern Trade,1552.107
+2022-06-01,Kalimantan,Tempra,E-commerce,1048.932
+2022-06-01,Kalimantan,Tempra,Hospitals & Institutions,718.848
+2022-06-01,Kalimantan,Bodrex Flu & Batuk,General Trade,2050.087
+2022-06-01,Kalimantan,Bodrex Flu & Batuk,Modern Trade,1828.919
+2022-06-01,Kalimantan,Bodrex Flu & Batuk,E-commerce,1251.917
+2022-06-01,Kalimantan,Bodrex Flu & Batuk,Hospitals & Institutions,817.161
+2022-06-01,Kalimantan,Hemaviton C1000,General Trade,1624.687
+2022-06-01,Kalimantan,Hemaviton C1000,Modern Trade,1341.581
+2022-06-01,Kalimantan,Hemaviton C1000,E-commerce,938.516
+2022-06-01,Kalimantan,Hemaviton C1000,Hospitals & Institutions,640.596
+2022-06-01,Kalimantan,Vidoran Smart,General Trade,1309.526
+2022-06-01,Kalimantan,Vidoran Smart,Modern Trade,1198.307
+2022-06-01,Kalimantan,Vidoran Smart,E-commerce,808.878
+2022-06-01,Kalimantan,Vidoran Smart,Hospitals & Institutions,540.886
+2022-06-01,Kalimantan,Marina Skin Care,General Trade,1172.349
+2022-06-01,Kalimantan,Marina Skin Care,Modern Trade,1031.421
+2022-06-01,Kalimantan,Marina Skin Care,E-commerce,717.584
+2022-06-01,Kalimantan,Marina Skin Care,Hospitals & Institutions,481.888
+2022-06-01,Sulawesi,Tempra,General Trade,1497.208
+2022-06-01,Sulawesi,Tempra,Modern Trade,1315.251
+2022-06-01,Sulawesi,Tempra,E-commerce,908.778
+2022-06-01,Sulawesi,Tempra,Hospitals & Institutions,598.578
+2022-06-01,Sulawesi,Bodrex Flu & Batuk,General Trade,1754.947
+2022-06-01,Sulawesi,Bodrex Flu & Batuk,Modern Trade,1499.656
+2022-06-01,Sulawesi,Bodrex Flu & Batuk,E-commerce,1022.369
+2022-06-01,Sulawesi,Bodrex Flu & Batuk,Hospitals & Institutions,676.379
+2022-06-01,Sulawesi,Hemaviton C1000,General Trade,1314.849
+2022-06-01,Sulawesi,Hemaviton C1000,Modern Trade,1138.27
+2022-06-01,Sulawesi,Hemaviton C1000,E-commerce,761.646
+2022-06-01,Sulawesi,Hemaviton C1000,Hospitals & Institutions,538.639
+2022-06-01,Sulawesi,Vidoran Smart,General Trade,1118.822
+2022-06-01,Sulawesi,Vidoran Smart,Modern Trade,975.106
+2022-06-01,Sulawesi,Vidoran Smart,E-commerce,670.136
+2022-06-01,Sulawesi,Vidoran Smart,Hospitals & Institutions,439.79
+2022-06-01,Sulawesi,Marina Skin Care,General Trade,1003.458
+2022-06-01,Sulawesi,Marina Skin Care,Modern Trade,861.089
+2022-06-01,Sulawesi,Marina Skin Care,E-commerce,587.07
+2022-06-01,Sulawesi,Marina Skin Care,Hospitals & Institutions,405.216
+2022-07-01,Jawa Barat,Tempra,General Trade,6446.849
+2022-07-01,Jawa Barat,Tempra,Modern Trade,5667.473
+2022-07-01,Jawa Barat,Tempra,E-commerce,3979.272
+2022-07-01,Jawa Barat,Tempra,Hospitals & Institutions,2585.82
+2022-07-01,Jawa Barat,Bodrex Flu & Batuk,General Trade,7647.322
+2022-07-01,Jawa Barat,Bodrex Flu & Batuk,Modern Trade,6412.158
+2022-07-01,Jawa Barat,Bodrex Flu & Batuk,E-commerce,4493.414
+2022-07-01,Jawa Barat,Bodrex Flu & Batuk,Hospitals & Institutions,3089.986
+2022-07-01,Jawa Barat,Hemaviton C1000,General Trade,5886.194
+2022-07-01,Jawa Barat,Hemaviton C1000,Modern Trade,4938.529
+2022-07-01,Jawa Barat,Hemaviton C1000,E-commerce,3381.2
+2022-07-01,Jawa Barat,Hemaviton C1000,Hospitals & Institutions,2347.833
+2022-07-01,Jawa Barat,Vidoran Smart,General Trade,4963.607
+2022-07-01,Jawa Barat,Vidoran Smart,Modern Trade,4262.758
+2022-07-01,Jawa Barat,Vidoran Smart,E-commerce,2966.246
+2022-07-01,Jawa Barat,Vidoran Smart,Hospitals & Institutions,1974.972
+2022-07-01,Jawa Barat,Marina Skin Care,General Trade,4478.063
+2022-07-01,Jawa Barat,Marina Skin Care,Modern Trade,3847.496
+2022-07-01,Jawa Barat,Marina Skin Care,E-commerce,2646.572
+2022-07-01,Jawa Barat,Marina Skin Care,Hospitals & Institutions,1754.418
+2022-07-01,Jawa Timur,Tempra,General Trade,3774.699
+2022-07-01,Jawa Timur,Tempra,Modern Trade,3453.291
+2022-07-01,Jawa Timur,Tempra,E-commerce,2274.967
+2022-07-01,Jawa Timur,Tempra,Hospitals & Institutions,1558.465
+2022-07-01,Jawa Timur,Bodrex Flu & Batuk,General Trade,4462.788
+2022-07-01,Jawa Timur,Bodrex Flu & Batuk,Modern Trade,3955.98
+2022-07-01,Jawa Timur,Bodrex Flu & Batuk,E-commerce,2573.406
+2022-07-01,Jawa Timur,Bodrex Flu & Batuk,Hospitals & Institutions,1744.693
+2022-07-01,Jawa Timur,Hemaviton C1000,General Trade,3405.241
+2022-07-01,Jawa Timur,Hemaviton C1000,Modern Trade,2867.432
+2022-07-01,Jawa Timur,Hemaviton C1000,E-commerce,2046.193
+2022-07-01,Jawa Timur,Hemaviton C1000,Hospitals & Institutions,1370.699
+2022-07-01,Jawa Timur,Vidoran Smart,General Trade,2853.362
+2022-07-01,Jawa Timur,Vidoran Smart,Modern Trade,2462.517
+2022-07-01,Jawa Timur,Vidoran Smart,E-commerce,1750.524
+2022-07-01,Jawa Timur,Vidoran Smart,Hospitals & Institutions,1124.267
+2022-07-01,Jawa Timur,Marina Skin Care,General Trade,2600.866
+2022-07-01,Jawa Timur,Marina Skin Care,Modern Trade,2223.757
+2022-07-01,Jawa Timur,Marina Skin Care,E-commerce,1532.915
+2022-07-01,Jawa Timur,Marina Skin Care,Hospitals & Institutions,1027.738
+2022-07-01,Jawa Tengah,Tempra,General Trade,2827.99
+2022-07-01,Jawa Tengah,Tempra,Modern Trade,2524.217
+2022-07-01,Jawa Tengah,Tempra,E-commerce,1716.56
+2022-07-01,Jawa Tengah,Tempra,Hospitals & Institutions,1116.764
+2022-07-01,Jawa Tengah,Bodrex Flu & Batuk,General Trade,3181.026
+2022-07-01,Jawa Tengah,Bodrex Flu & Batuk,Modern Trade,2743.022
+2022-07-01,Jawa Tengah,Bodrex Flu & Batuk,E-commerce,1924.225
+2022-07-01,Jawa Tengah,Bodrex Flu & Batuk,Hospitals & Institutions,1295.412
+2022-07-01,Jawa Tengah,Hemaviton C1000,General Trade,2473.585
+2022-07-01,Jawa Tengah,Hemaviton C1000,Modern Trade,2158.654
+2022-07-01,Jawa Tengah,Hemaviton C1000,E-commerce,1420.152
+2022-07-01,Jawa Tengah,Hemaviton C1000,Hospitals & Institutions,964.524
+2022-07-01,Jawa Tengah,Vidoran Smart,General Trade,2098.607
+2022-07-01,Jawa Tengah,Vidoran Smart,Modern Trade,1826.723
+2022-07-01,Jawa Tengah,Vidoran Smart,E-commerce,1258.377
+2022-07-01,Jawa Tengah,Vidoran Smart,Hospitals & Institutions,837.648
+2022-07-01,Jawa Tengah,Marina Skin Care,General Trade,1932.824
+2022-07-01,Jawa Tengah,Marina Skin Care,Modern Trade,1640.634
+2022-07-01,Jawa Tengah,Marina Skin Care,E-commerce,1127.577
+2022-07-01,Jawa Tengah,Marina Skin Care,Hospitals & Institutions,772.097
+2022-07-01,Sumatera,Tempra,General Trade,2360.701
+2022-07-01,Sumatera,Tempra,Modern Trade,2013.455
+2022-07-01,Sumatera,Tempra,E-commerce,1362.51
+2022-07-01,Sumatera,Tempra,Hospitals & Institutions,919.459
+2022-07-01,Sumatera,Bodrex Flu & Batuk,General Trade,2638.656
+2022-07-01,Sumatera,Bodrex Flu & Batuk,Modern Trade,2363.312
+2022-07-01,Sumatera,Bodrex Flu & Batuk,E-commerce,1572.228
+2022-07-01,Sumatera,Bodrex Flu & Batuk,Hospitals & Institutions,1050.579
+2022-07-01,Sumatera,Hemaviton C1000,General Trade,2134.081
+2022-07-01,Sumatera,Hemaviton C1000,Modern Trade,1769.275
+2022-07-01,Sumatera,Hemaviton C1000,E-commerce,1219.425
+2022-07-01,Sumatera,Hemaviton C1000,Hospitals & Institutions,818.659
+2022-07-01,Sumatera,Vidoran Smart,General Trade,1748.512
+2022-07-01,Sumatera,Vidoran Smart,Modern Trade,1524.41
+2022-07-01,Sumatera,Vidoran Smart,E-commerce,1064.992
+2022-07-01,Sumatera,Vidoran Smart,Hospitals & Institutions,712.527
+2022-07-01,Sumatera,Marina Skin Care,General Trade,1603.658
+2022-07-01,Sumatera,Marina Skin Care,Modern Trade,1403.331
+2022-07-01,Sumatera,Marina Skin Care,E-commerce,928.651
+2022-07-01,Sumatera,Marina Skin Care,Hospitals & Institutions,616.09
+2022-07-01,Kalimantan,Tempra,General Trade,1791.494
+2022-07-01,Kalimantan,Tempra,Modern Trade,1609.4
+2022-07-01,Kalimantan,Tempra,E-commerce,1061.557
+2022-07-01,Kalimantan,Tempra,Hospitals & Institutions,732.715
+2022-07-01,Kalimantan,Bodrex Flu & Batuk,General Trade,2103.45
+2022-07-01,Kalimantan,Bodrex Flu & Batuk,Modern Trade,1849.245
+2022-07-01,Kalimantan,Bodrex Flu & Batuk,E-commerce,1227.714
+2022-07-01,Kalimantan,Bodrex Flu & Batuk,Hospitals & Institutions,834.416
+2022-07-01,Kalimantan,Hemaviton C1000,General Trade,1556.996
+2022-07-01,Kalimantan,Hemaviton C1000,Modern Trade,1345.248
+2022-07-01,Kalimantan,Hemaviton C1000,E-commerce,917.907
+2022-07-01,Kalimantan,Hemaviton C1000,Hospitals & Institutions,621.581
+2022-07-01,Kalimantan,Vidoran Smart,General Trade,1361.108
+2022-07-01,Kalimantan,Vidoran Smart,Modern Trade,1179.81
+2022-07-01,Kalimantan,Vidoran Smart,E-commerce,810.289
+2022-07-01,Kalimantan,Vidoran Smart,Hospitals & Institutions,550.96
+2022-07-01,Kalimantan,Marina Skin Care,General Trade,1170.231
+2022-07-01,Kalimantan,Marina Skin Care,Modern Trade,1073.457
+2022-07-01,Kalimantan,Marina Skin Care,E-commerce,715.393
+2022-07-01,Kalimantan,Marina Skin Care,Hospitals & Institutions,488.609
+2022-07-01,Sulawesi,Tempra,General Trade,1536.573
+2022-07-01,Sulawesi,Tempra,Modern Trade,1338.846
+2022-07-01,Sulawesi,Tempra,E-commerce,881.321
+2022-07-01,Sulawesi,Tempra,Hospitals & Institutions,596.594
+2022-07-01,Sulawesi,Bodrex Flu & Batuk,General Trade,1769.22
+2022-07-01,Sulawesi,Bodrex Flu & Batuk,Modern Trade,1533.591
+2022-07-01,Sulawesi,Bodrex Flu & Batuk,E-commerce,1012.026
+2022-07-01,Sulawesi,Bodrex Flu & Batuk,Hospitals & Institutions,694.891
+2022-07-01,Sulawesi,Hemaviton C1000,General Trade,1318.515
+2022-07-01,Sulawesi,Hemaviton C1000,Modern Trade,1119.965
+2022-07-01,Sulawesi,Hemaviton C1000,E-commerce,794.316
+2022-07-01,Sulawesi,Hemaviton C1000,Hospitals & Institutions,535.421
+2022-07-01,Sulawesi,Vidoran Smart,General Trade,1116.345
+2022-07-01,Sulawesi,Vidoran Smart,Modern Trade,971.493
+2022-07-01,Sulawesi,Vidoran Smart,E-commerce,647.367
+2022-07-01,Sulawesi,Vidoran Smart,Hospitals & Institutions,442.829
+2022-07-01,Sulawesi,Marina Skin Care,General Trade,1020.421
+2022-07-01,Sulawesi,Marina Skin Care,Modern Trade,870.973
+2022-07-01,Sulawesi,Marina Skin Care,E-commerce,601.837
+2022-07-01,Sulawesi,Marina Skin Care,Hospitals & Institutions,409.922
+2022-08-01,Jawa Barat,Tempra,General Trade,6201.279
+2022-08-01,Jawa Barat,Tempra,Modern Trade,5645.201
+2022-08-01,Jawa Barat,Tempra,E-commerce,3803.698
+2022-08-01,Jawa Barat,Tempra,Hospitals & Institutions,2507.739
+2022-08-01,Jawa Barat,Bodrex Flu & Batuk,General Trade,7100.679
+2022-08-01,Jawa Barat,Bodrex Flu & Batuk,Modern Trade,6156.693
+2022-08-01,Jawa Barat,Bodrex Flu & Batuk,E-commerce,4301.076
+2022-08-01,Jawa Barat,Bodrex Flu & Batuk,Hospitals & Institutions,2954.715
+2022-08-01,Jawa Barat,Hemaviton C1000,General Trade,5559.31
+2022-08-01,Jawa Barat,Hemaviton C1000,Modern Trade,4764.523
+2022-08-01,Jawa Barat,Hemaviton C1000,E-commerce,3384.078
+2022-08-01,Jawa Barat,Hemaviton C1000,Hospitals & Institutions,2175.034
+2022-08-01,Jawa Barat,Vidoran Smart,General Trade,4613.335
+2022-08-01,Jawa Barat,Vidoran Smart,Modern Trade,4071.506
+2022-08-01,Jawa Barat,Vidoran Smart,E-commerce,2797.726
+2022-08-01,Jawa Barat,Vidoran Smart,Hospitals & Institutions,1895.66
+2022-08-01,Jawa Barat,Marina Skin Care,General Trade,4136.579
+2022-08-01,Jawa Barat,Marina Skin Care,Modern Trade,3794.093
+2022-08-01,Jawa Barat,Marina Skin Care,E-commerce,2435.564
+2022-08-01,Jawa Barat,Marina Skin Care,Hospitals & Institutions,1731.959
+2022-08-01,Jawa Timur,Tempra,General Trade,3864.356
+2022-08-01,Jawa Timur,Tempra,Modern Trade,3321.856
+2022-08-01,Jawa Timur,Tempra,E-commerce,2283.306
+2022-08-01,Jawa Timur,Tempra,Hospitals & Institutions,1547.036
+2022-08-01,Jawa Timur,Bodrex Flu & Batuk,General Trade,4400.308
+2022-08-01,Jawa Timur,Bodrex Flu & Batuk,Modern Trade,3842.381
+2022-08-01,Jawa Timur,Bodrex Flu & Batuk,E-commerce,2605.598
+2022-08-01,Jawa Timur,Bodrex Flu & Batuk,Hospitals & Institutions,1730.762
+2022-08-01,Jawa Timur,Hemaviton C1000,General Trade,3309.312
+2022-08-01,Jawa Timur,Hemaviton C1000,Modern Trade,2866.594
+2022-08-01,Jawa Timur,Hemaviton C1000,E-commerce,1962.422
+2022-08-01,Jawa Timur,Hemaviton C1000,Hospitals & Institutions,1309.937
+2022-08-01,Jawa Timur,Vidoran Smart,General Trade,2796.661
+2022-08-01,Jawa Timur,Vidoran Smart,Modern Trade,2405.54
+2022-08-01,Jawa Timur,Vidoran Smart,E-commerce,1605.042
+2022-08-01,Jawa Timur,Vidoran Smart,Hospitals & Institutions,1094.084
+2022-08-01,Jawa Timur,Marina Skin Care,General Trade,2528.187
+2022-08-01,Jawa Timur,Marina Skin Care,Modern Trade,2194.558
+2022-08-01,Jawa Timur,Marina Skin Care,E-commerce,1456.205
+2022-08-01,Jawa Timur,Marina Skin Care,Hospitals & Institutions,986.579
+2022-08-01,Jawa Tengah,Tempra,General Trade,2784.69
+2022-08-01,Jawa Tengah,Tempra,Modern Trade,2362.495
+2022-08-01,Jawa Tengah,Tempra,E-commerce,1657.087
+2022-08-01,Jawa Tengah,Tempra,Hospitals & Institutions,1081.558
+2022-08-01,Jawa Tengah,Bodrex Flu & Batuk,General Trade,3192.63
+2022-08-01,Jawa Tengah,Bodrex Flu & Batuk,Modern Trade,2666.708
+2022-08-01,Jawa Tengah,Bodrex Flu & Batuk,E-commerce,1884.024
+2022-08-01,Jawa Tengah,Bodrex Flu & Batuk,Hospitals & Institutions,1268.628
+2022-08-01,Jawa Tengah,Hemaviton C1000,General Trade,2423.658
+2022-08-01,Jawa Tengah,Hemaviton C1000,Modern Trade,2134.23
+2022-08-01,Jawa Tengah,Hemaviton C1000,E-commerce,1376.175
+2022-08-01,Jawa Tengah,Hemaviton C1000,Hospitals & Institutions,980.469
+2022-08-01,Jawa Tengah,Vidoran Smart,General Trade,2010.916
+2022-08-01,Jawa Tengah,Vidoran Smart,Modern Trade,1744.488
+2022-08-01,Jawa Tengah,Vidoran Smart,E-commerce,1172.697
+2022-08-01,Jawa Tengah,Vidoran Smart,Hospitals & Institutions,834.219
+2022-08-01,Jawa Tengah,Marina Skin Care,General Trade,1787.112
+2022-08-01,Jawa Tengah,Marina Skin Care,Modern Trade,1606.186
+2022-08-01,Jawa Tengah,Marina Skin Care,E-commerce,1047.406
+2022-08-01,Jawa Tengah,Marina Skin Care,Hospitals & Institutions,726.49
+2022-08-01,Sumatera,Tempra,General Trade,2301.638
+2022-08-01,Sumatera,Tempra,Modern Trade,1951.558
+2022-08-01,Sumatera,Tempra,E-commerce,1384.809
+2022-08-01,Sumatera,Tempra,Hospitals & Institutions,901.883
+2022-08-01,Sumatera,Bodrex Flu & Batuk,General Trade,2605.696
+2022-08-01,Sumatera,Bodrex Flu & Batuk,Modern Trade,2309.493
+2022-08-01,Sumatera,Bodrex Flu & Batuk,E-commerce,1532.188
+2022-08-01,Sumatera,Bodrex Flu & Batuk,Hospitals & Institutions,1029.947
+2022-08-01,Sumatera,Hemaviton C1000,General Trade,1955.041
+2022-08-01,Sumatera,Hemaviton C1000,Modern Trade,1746.807
+2022-08-01,Sumatera,Hemaviton C1000,E-commerce,1165.215
+2022-08-01,Sumatera,Hemaviton C1000,Hospitals & Institutions,800.289
+2022-08-01,Sumatera,Vidoran Smart,General Trade,1748.869
+2022-08-01,Sumatera,Vidoran Smart,Modern Trade,1443.69
+2022-08-01,Sumatera,Vidoran Smart,E-commerce,986.103
+2022-08-01,Sumatera,Vidoran Smart,Hospitals & Institutions,670.243
+2022-08-01,Sumatera,Marina Skin Care,General Trade,1490.397
+2022-08-01,Sumatera,Marina Skin Care,Modern Trade,1339.442
+2022-08-01,Sumatera,Marina Skin Care,E-commerce,884.06
+2022-08-01,Sumatera,Marina Skin Care,Hospitals & Institutions,615.889
+2022-08-01,Kalimantan,Tempra,General Trade,1747.63
+2022-08-01,Kalimantan,Tempra,Modern Trade,1505.616
+2022-08-01,Kalimantan,Tempra,E-commerce,1061.001
+2022-08-01,Kalimantan,Tempra,Hospitals & Institutions,694.454
+2022-08-01,Kalimantan,Bodrex Flu & Batuk,General Trade,1990.017
+2022-08-01,Kalimantan,Bodrex Flu & Batuk,Modern Trade,1768.754
+2022-08-01,Kalimantan,Bodrex Flu & Batuk,E-commerce,1214.065
+2022-08-01,Kalimantan,Bodrex Flu & Batuk,Hospitals & Institutions,786.656
+2022-08-01,Kalimantan,Hemaviton C1000,General Trade,1560.381
+2022-08-01,Kalimantan,Hemaviton C1000,Modern Trade,1330.166
+2022-08-01,Kalimantan,Hemaviton C1000,E-commerce,913.968
+2022-08-01,Kalimantan,Hemaviton C1000,Hospitals & Institutions,617.093
+2022-08-01,Kalimantan,Vidoran Smart,General Trade,1320.342
+2022-08-01,Kalimantan,Vidoran Smart,Modern Trade,1139.677
+2022-08-01,Kalimantan,Vidoran Smart,E-commerce,776.339
+2022-08-01,Kalimantan,Vidoran Smart,Hospitals & Institutions,525.142
+2022-08-01,Kalimantan,Marina Skin Care,General Trade,1191.636
+2022-08-01,Kalimantan,Marina Skin Care,Modern Trade,1020.954
+2022-08-01,Kalimantan,Marina Skin Care,E-commerce,696.234
+2022-08-01,Kalimantan,Marina Skin Care,Hospitals & Institutions,466.189
+2022-08-01,Sulawesi,Tempra,General Trade,1452.699
+2022-08-01,Sulawesi,Tempra,Modern Trade,1302.424
+2022-08-01,Sulawesi,Tempra,E-commerce,872.274
+2022-08-01,Sulawesi,Tempra,Hospitals & Institutions,576.965
+2022-08-01,Sulawesi,Bodrex Flu & Batuk,General Trade,1671.881
+2022-08-01,Sulawesi,Bodrex Flu & Batuk,Modern Trade,1471.49
+2022-08-01,Sulawesi,Bodrex Flu & Batuk,E-commerce,1001.202
+2022-08-01,Sulawesi,Bodrex Flu & Batuk,Hospitals & Institutions,651.637
+2022-08-01,Sulawesi,Hemaviton C1000,General Trade,1300.245
+2022-08-01,Sulawesi,Hemaviton C1000,Modern Trade,1108.008
+2022-08-01,Sulawesi,Hemaviton C1000,E-commerce,775.433
+2022-08-01,Sulawesi,Hemaviton C1000,Hospitals & Institutions,500.664
+2022-08-01,Sulawesi,Vidoran Smart,General Trade,1104.584
+2022-08-01,Sulawesi,Vidoran Smart,Modern Trade,959.954
+2022-08-01,Sulawesi,Vidoran Smart,E-commerce,636.992
+2022-08-01,Sulawesi,Vidoran Smart,Hospitals & Institutions,427.967
+2022-08-01,Sulawesi,Marina Skin Care,General Trade,968.467
+2022-08-01,Sulawesi,Marina Skin Care,Modern Trade,871.242
+2022-08-01,Sulawesi,Marina Skin Care,E-commerce,561.285
+2022-08-01,Sulawesi,Marina Skin Care,Hospitals & Institutions,387.934
+2022-09-01,Jawa Barat,Tempra,General Trade,5997.899
+2022-09-01,Jawa Barat,Tempra,Modern Trade,5100.778
+2022-09-01,Jawa Barat,Tempra,E-commerce,3609.795
+2022-09-01,Jawa Barat,Tempra,Hospitals & Institutions,2396.933
+2022-09-01,Jawa Barat,Bodrex Flu & Batuk,General Trade,6973.958
+2022-09-01,Jawa Barat,Bodrex Flu & Batuk,Modern Trade,6048.411
+2022-09-01,Jawa Barat,Bodrex Flu & Batuk,E-commerce,4003.674
+2022-09-01,Jawa Barat,Bodrex Flu & Batuk,Hospitals & Institutions,2683.438
+2022-09-01,Jawa Barat,Hemaviton C1000,General Trade,5323.005
+2022-09-01,Jawa Barat,Hemaviton C1000,Modern Trade,4662.297
+2022-09-01,Jawa Barat,Hemaviton C1000,E-commerce,3108.957
+2022-09-01,Jawa Barat,Hemaviton C1000,Hospitals & Institutions,2106.601
+2022-09-01,Jawa Barat,Vidoran Smart,General Trade,4505.114
+2022-09-01,Jawa Barat,Vidoran Smart,Modern Trade,3943.542
+2022-09-01,Jawa Barat,Vidoran Smart,E-commerce,2696.341
+2022-09-01,Jawa Barat,Vidoran Smart,Hospitals & Institutions,1750.739
+2022-09-01,Jawa Barat,Marina Skin Care,General Trade,4015.949
+2022-09-01,Jawa Barat,Marina Skin Care,Modern Trade,3409.404
+2022-09-01,Jawa Barat,Marina Skin Care,E-commerce,2391.401
+2022-09-01,Jawa Barat,Marina Skin Care,Hospitals & Institutions,1578.189
+2022-09-01,Jawa Timur,Tempra,General Trade,3604.324
+2022-09-01,Jawa Timur,Tempra,Modern Trade,3006.688
+2022-09-01,Jawa Timur,Tempra,E-commerce,2146.338
+2022-09-01,Jawa Timur,Tempra,Hospitals & Institutions,1402.673
+2022-09-01,Jawa Timur,Bodrex Flu & Batuk,General Trade,4100.767
+2022-09-01,Jawa Timur,Bodrex Flu & Batuk,Modern Trade,3584.683
+2022-09-01,Jawa Timur,Bodrex Flu & Batuk,E-commerce,2460.029
+2022-09-01,Jawa Timur,Bodrex Flu & Batuk,Hospitals & Institutions,1645.988
+2022-09-01,Jawa Timur,Hemaviton C1000,General Trade,3174.527
+2022-09-01,Jawa Timur,Hemaviton C1000,Modern Trade,2782.36
+2022-09-01,Jawa Timur,Hemaviton C1000,E-commerce,1861.268
+2022-09-01,Jawa Timur,Hemaviton C1000,Hospitals & Institutions,1260.085
+2022-09-01,Jawa Timur,Vidoran Smart,General Trade,2602.422
+2022-09-01,Jawa Timur,Vidoran Smart,Modern Trade,2304.033
+2022-09-01,Jawa Timur,Vidoran Smart,E-commerce,1545.634
+2022-09-01,Jawa Timur,Vidoran Smart,Hospitals & Institutions,1028.827
+2022-09-01,Jawa Timur,Marina Skin Care,General Trade,2398.279
+2022-09-01,Jawa Timur,Marina Skin Care,Modern Trade,2060.936
+2022-09-01,Jawa Timur,Marina Skin Care,E-commerce,1423.606
+2022-09-01,Jawa Timur,Marina Skin Care,Hospitals & Institutions,971.095
+2022-09-01,Jawa Tengah,Tempra,General Trade,2520.526
+2022-09-01,Jawa Tengah,Tempra,Modern Trade,2249.762
+2022-09-01,Jawa Tengah,Tempra,E-commerce,1571.823
+2022-09-01,Jawa Tengah,Tempra,Hospitals & Institutions,1020.177
+2022-09-01,Jawa Tengah,Bodrex Flu & Batuk,General Trade,2937.051
+2022-09-01,Jawa Tengah,Bodrex Flu & Batuk,Modern Trade,2622.716
+2022-09-01,Jawa Tengah,Bodrex Flu & Batuk,E-commerce,1721.47
+2022-09-01,Jawa Tengah,Bodrex Flu & Batuk,Hospitals & Institutions,1168.327
+2022-09-01,Jawa Tengah,Hemaviton C1000,General Trade,2207.111
+2022-09-01,Jawa Tengah,Hemaviton C1000,Modern Trade,2001.015
+2022-09-01,Jawa Tengah,Hemaviton C1000,E-commerce,1331.385
+2022-09-01,Jawa Tengah,Hemaviton C1000,Hospitals & Institutions,899.294
+2022-09-01,Jawa Tengah,Vidoran Smart,General Trade,1903.966
+2022-09-01,Jawa Tengah,Vidoran Smart,Modern Trade,1720.453
+2022-09-01,Jawa Tengah,Vidoran Smart,E-commerce,1162.98
+2022-09-01,Jawa Tengah,Vidoran Smart,Hospitals & Institutions,749.072
+2022-09-01,Jawa Tengah,Marina Skin Care,General Trade,1691.406
+2022-09-01,Jawa Tengah,Marina Skin Care,Modern Trade,1546.689
+2022-09-01,Jawa Tengah,Marina Skin Care,E-commerce,1038.945
+2022-09-01,Jawa Tengah,Marina Skin Care,Hospitals & Institutions,692.394
+2022-09-01,Sumatera,Tempra,General Trade,2135.403
+2022-09-01,Sumatera,Tempra,Modern Trade,1883.656
+2022-09-01,Sumatera,Tempra,E-commerce,1298.986
+2022-09-01,Sumatera,Tempra,Hospitals & Institutions,851.14
+2022-09-01,Sumatera,Bodrex Flu & Batuk,General Trade,2422.972
+2022-09-01,Sumatera,Bodrex Flu & Batuk,Modern Trade,2108.477
+2022-09-01,Sumatera,Bodrex Flu & Batuk,E-commerce,1446.363
+2022-09-01,Sumatera,Bodrex Flu & Batuk,Hospitals & Institutions,987.334
+2022-09-01,Sumatera,Hemaviton C1000,General Trade,1920.653
+2022-09-01,Sumatera,Hemaviton C1000,Modern Trade,1687.064
+2022-09-01,Sumatera,Hemaviton C1000,E-commerce,1123.879
+2022-09-01,Sumatera,Hemaviton C1000,Hospitals & Institutions,749.007
+2022-09-01,Sumatera,Vidoran Smart,General Trade,1575.331
+2022-09-01,Sumatera,Vidoran Smart,Modern Trade,1439.636
+2022-09-01,Sumatera,Vidoran Smart,E-commerce,929.839
+2022-09-01,Sumatera,Vidoran Smart,Hospitals & Institutions,656.343
+2022-09-01,Sumatera,Marina Skin Care,General Trade,1426.932
+2022-09-01,Sumatera,Marina Skin Care,Modern Trade,1280.791
+2022-09-01,Sumatera,Marina Skin Care,E-commerce,838.688
+2022-09-01,Sumatera,Marina Skin Care,Hospitals & Institutions,575.424
+2022-09-01,Kalimantan,Tempra,General Trade,1672.179
+2022-09-01,Kalimantan,Tempra,Modern Trade,1448.183
+2022-09-01,Kalimantan,Tempra,E-commerce,953.282
+2022-09-01,Kalimantan,Tempra,Hospitals & Institutions,651.165
+2022-09-01,Kalimantan,Bodrex Flu & Batuk,General Trade,1911.39
+2022-09-01,Kalimantan,Bodrex Flu & Batuk,Modern Trade,1622.609
+2022-09-01,Kalimantan,Bodrex Flu & Batuk,E-commerce,1137.995
+2022-09-01,Kalimantan,Bodrex Flu & Batuk,Hospitals & Institutions,746.703
+2022-09-01,Kalimantan,Hemaviton C1000,General Trade,1420.092
+2022-09-01,Kalimantan,Hemaviton C1000,Modern Trade,1230.988
+2022-09-01,Kalimantan,Hemaviton C1000,E-commerce,869.316
+2022-09-01,Kalimantan,Hemaviton C1000,Hospitals & Institutions,567.583
+2022-09-01,Kalimantan,Vidoran Smart,General Trade,1207.905
+2022-09-01,Kalimantan,Vidoran Smart,Modern Trade,1054.484
+2022-09-01,Kalimantan,Vidoran Smart,E-commerce,741.332
+2022-09-01,Kalimantan,Vidoran Smart,Hospitals & Institutions,486.998
+2022-09-01,Kalimantan,Marina Skin Care,General Trade,1107.091
+2022-09-01,Kalimantan,Marina Skin Care,Modern Trade,987.201
+2022-09-01,Kalimantan,Marina Skin Care,E-commerce,664.517
+2022-09-01,Kalimantan,Marina Skin Care,Hospitals & Institutions,433.844
+2022-09-01,Sulawesi,Tempra,General Trade,1356.096
+2022-09-01,Sulawesi,Tempra,Modern Trade,1179.599
+2022-09-01,Sulawesi,Tempra,E-commerce,798.88
+2022-09-01,Sulawesi,Tempra,Hospitals & Institutions,565.326
+2022-09-01,Sulawesi,Bodrex Flu & Batuk,General Trade,1609.492
+2022-09-01,Sulawesi,Bodrex Flu & Batuk,Modern Trade,1347.009
+2022-09-01,Sulawesi,Bodrex Flu & Batuk,E-commerce,941.509
+2022-09-01,Sulawesi,Bodrex Flu & Batuk,Hospitals & Institutions,628.173
+2022-09-01,Sulawesi,Hemaviton C1000,General Trade,1189.135
+2022-09-01,Sulawesi,Hemaviton C1000,Modern Trade,1034.564
+2022-09-01,Sulawesi,Hemaviton C1000,E-commerce,731.971
+2022-09-01,Sulawesi,Hemaviton C1000,Hospitals & Institutions,477.383
+2022-09-01,Sulawesi,Vidoran Smart,General Trade,1001.118
+2022-09-01,Sulawesi,Vidoran Smart,Modern Trade,878.355
+2022-09-01,Sulawesi,Vidoran Smart,E-commerce,614.004
+2022-09-01,Sulawesi,Vidoran Smart,Hospitals & Institutions,401.144
+2022-09-01,Sulawesi,Marina Skin Care,General Trade,926.344
+2022-09-01,Sulawesi,Marina Skin Care,Modern Trade,804.522
+2022-09-01,Sulawesi,Marina Skin Care,E-commerce,548.435
+2022-09-01,Sulawesi,Marina Skin Care,Hospitals & Institutions,368.409
+2022-10-01,Jawa Barat,Tempra,General Trade,6078.091
+2022-10-01,Jawa Barat,Tempra,Modern Trade,5258.36
+2022-10-01,Jawa Barat,Tempra,E-commerce,3784.67
+2022-10-01,Jawa Barat,Tempra,Hospitals & Institutions,2533.652
+2022-10-01,Jawa Barat,Bodrex Flu & Batuk,General Trade,7072.274
+2022-10-01,Jawa Barat,Bodrex Flu & Batuk,Modern Trade,6294.756
+2022-10-01,Jawa Barat,Bodrex Flu & Batuk,E-commerce,4289.723
+2022-10-01,Jawa Barat,Bodrex Flu & Batuk,Hospitals & Institutions,2812.088
+2022-10-01,Jawa Barat,Hemaviton C1000,General Trade,5408.977
+2022-10-01,Jawa Barat,Hemaviton C1000,Modern Trade,4619.67
+2022-10-01,Jawa Barat,Hemaviton C1000,E-commerce,3286.961
+2022-10-01,Jawa Barat,Hemaviton C1000,Hospitals & Institutions,2196.967
+2022-10-01,Jawa Barat,Vidoran Smart,General Trade,4568.409
+2022-10-01,Jawa Barat,Vidoran Smart,Modern Trade,4070.969
+2022-10-01,Jawa Barat,Vidoran Smart,E-commerce,2736.682
+2022-10-01,Jawa Barat,Vidoran Smart,Hospitals & Institutions,1881.735
+2022-10-01,Jawa Barat,Marina Skin Care,General Trade,4206.437
+2022-10-01,Jawa Barat,Marina Skin Care,Modern Trade,3637.112
+2022-10-01,Jawa Barat,Marina Skin Care,E-commerce,2508.315
+2022-10-01,Jawa Barat,Marina Skin Care,Hospitals & Institutions,1617.334
+2022-10-01,Jawa Timur,Tempra,General Trade,3740.509
+2022-10-01,Jawa Timur,Tempra,Modern Trade,3205.459
+2022-10-01,Jawa Timur,Tempra,E-commerce,2207.094
+2022-10-01,Jawa Timur,Tempra,Hospitals & Institutions,1498.3
+2022-10-01,Jawa Timur,Bodrex Flu & Batuk,General Trade,4106.81
+2022-10-01,Jawa Timur,Bodrex Flu & Batuk,Modern Trade,3688.484
+2022-10-01,Jawa Timur,Bodrex Flu & Batuk,E-commerce,2547.032
+2022-10-01,Jawa Timur,Bodrex Flu & Batuk,Hospitals & Institutions,1665.668
+2022-10-01,Jawa Timur,Hemaviton C1000,General Trade,3228.48
+2022-10-01,Jawa Timur,Hemaviton C1000,Modern Trade,2799.233
+2022-10-01,Jawa Timur,Hemaviton C1000,E-commerce,1913.683
+2022-10-01,Jawa Timur,Hemaviton C1000,Hospitals & Institutions,1305.885
+2022-10-01,Jawa Timur,Vidoran Smart,General Trade,2720.191
+2022-10-01,Jawa Timur,Vidoran Smart,Modern Trade,2407.506
+2022-10-01,Jawa Timur,Vidoran Smart,E-commerce,1604.302
+2022-10-01,Jawa Timur,Vidoran Smart,Hospitals & Institutions,1109.79
+2022-10-01,Jawa Timur,Marina Skin Care,General Trade,2374.622
+2022-10-01,Jawa Timur,Marina Skin Care,Modern Trade,2072.244
+2022-10-01,Jawa Timur,Marina Skin Care,E-commerce,1425.757
+2022-10-01,Jawa Timur,Marina Skin Care,Hospitals & Institutions,989.833
+2022-10-01,Jawa Tengah,Tempra,General Trade,2655.585
+2022-10-01,Jawa Tengah,Tempra,Modern Trade,2263.202
+2022-10-01,Jawa Tengah,Tempra,E-commerce,1546.578
+2022-10-01,Jawa Tengah,Tempra,Hospitals & Institutions,1039.841
+2022-10-01,Jawa Tengah,Bodrex Flu & Batuk,General Trade,2990.479
+2022-10-01,Jawa Tengah,Bodrex Flu & Batuk,Modern Trade,2717.824
+2022-10-01,Jawa Tengah,Bodrex Flu & Batuk,E-commerce,1840.06
+2022-10-01,Jawa Tengah,Bodrex Flu & Batuk,Hospitals & Institutions,1208.814
+2022-10-01,Jawa Tengah,Hemaviton C1000,General Trade,2404.981
+2022-10-01,Jawa Tengah,Hemaviton C1000,Modern Trade,2018.239
+2022-10-01,Jawa Tengah,Hemaviton C1000,E-commerce,1352.281
+2022-10-01,Jawa Tengah,Hemaviton C1000,Hospitals & Institutions,951.36
+2022-10-01,Jawa Tengah,Vidoran Smart,General Trade,2000.883
+2022-10-01,Jawa Tengah,Vidoran Smart,Modern Trade,1713.687
+2022-10-01,Jawa Tengah,Vidoran Smart,E-commerce,1160.832
+2022-10-01,Jawa Tengah,Vidoran Smart,Hospitals & Institutions,813.694
+2022-10-01,Jawa Tengah,Marina Skin Care,General Trade,1764.989
+2022-10-01,Jawa Tengah,Marina Skin Care,Modern Trade,1577.912
+2022-10-01,Jawa Tengah,Marina Skin Care,E-commerce,1055.223
+2022-10-01,Jawa Tengah,Marina Skin Care,Hospitals & Institutions,699.498
+2022-10-01,Sumatera,Tempra,General Trade,2180.654
+2022-10-01,Sumatera,Tempra,Modern Trade,1937.534
+2022-10-01,Sumatera,Tempra,E-commerce,1328.729
+2022-10-01,Sumatera,Tempra,Hospitals & Institutions,902.252
+2022-10-01,Sumatera,Bodrex Flu & Batuk,General Trade,2519.099
+2022-10-01,Sumatera,Bodrex Flu & Batuk,Modern Trade,2219.705
+2022-10-01,Sumatera,Bodrex Flu & Batuk,E-commerce,1478.745
+2022-10-01,Sumatera,Bodrex Flu & Batuk,Hospitals & Institutions,1002.302
+2022-10-01,Sumatera,Hemaviton C1000,General Trade,1906.811
+2022-10-01,Sumatera,Hemaviton C1000,Modern Trade,1661.968
+2022-10-01,Sumatera,Hemaviton C1000,E-commerce,1141.058
+2022-10-01,Sumatera,Hemaviton C1000,Hospitals & Institutions,790.644
+2022-10-01,Sumatera,Vidoran Smart,General Trade,1698.113
+2022-10-01,Sumatera,Vidoran Smart,Modern Trade,1458.942
+2022-10-01,Sumatera,Vidoran Smart,E-commerce,1004.758
+2022-10-01,Sumatera,Vidoran Smart,Hospitals & Institutions,645.215
+2022-10-01,Sumatera,Marina Skin Care,General Trade,1536.509
+2022-10-01,Sumatera,Marina Skin Care,Modern Trade,1276.236
+2022-10-01,Sumatera,Marina Skin Care,E-commerce,862.886
+2022-10-01,Sumatera,Marina Skin Care,Hospitals & Institutions,585.645
+2022-10-01,Kalimantan,Tempra,General Trade,1664.443
+2022-10-01,Kalimantan,Tempra,Modern Trade,1473.544
+2022-10-01,Kalimantan,Tempra,E-commerce,1039.306
+2022-10-01,Kalimantan,Tempra,Hospitals & Institutions,674.51
+2022-10-01,Kalimantan,Bodrex Flu & Batuk,General Trade,1941.966
+2022-10-01,Kalimantan,Bodrex Flu & Batuk,Modern Trade,1732.193
+2022-10-01,Kalimantan,Bodrex Flu & Batuk,E-commerce,1125.318
+2022-10-01,Kalimantan,Bodrex Flu & Batuk,Hospitals & Institutions,774.551
+2022-10-01,Kalimantan,Hemaviton C1000,General Trade,1458.724
+2022-10-01,Kalimantan,Hemaviton C1000,Modern Trade,1323.073
+2022-10-01,Kalimantan,Hemaviton C1000,E-commerce,866.857
+2022-10-01,Kalimantan,Hemaviton C1000,Hospitals & Institutions,598.132
+2022-10-01,Kalimantan,Vidoran Smart,General Trade,1280.492
+2022-10-01,Kalimantan,Vidoran Smart,Modern Trade,1095.403
+2022-10-01,Kalimantan,Vidoran Smart,E-commerce,737.97
+2022-10-01,Kalimantan,Vidoran Smart,Hospitals & Institutions,494.78
+2022-10-01,Kalimantan,Marina Skin Care,General Trade,1145.136
+2022-10-01,Kalimantan,Marina Skin Care,Modern Trade,973.278
+2022-10-01,Kalimantan,Marina Skin Care,E-commerce,686.31
+2022-10-01,Kalimantan,Marina Skin Care,Hospitals & Institutions,449.751
+2022-10-01,Sulawesi,Tempra,General Trade,1407.272
+2022-10-01,Sulawesi,Tempra,Modern Trade,1230.817
+2022-10-01,Sulawesi,Tempra,E-commerce,822.509
+2022-10-01,Sulawesi,Tempra,Hospitals & Institutions,577.543
+2022-10-01,Sulawesi,Bodrex Flu & Batuk,General Trade,1622.392
+2022-10-01,Sulawesi,Bodrex Flu & Batuk,Modern Trade,1439.697
+2022-10-01,Sulawesi,Bodrex Flu & Batuk,E-commerce,976.193
+2022-10-01,Sulawesi,Bodrex Flu & Batuk,Hospitals & Institutions,659.793
+2022-10-01,Sulawesi,Hemaviton C1000,General Trade,1229.93
+2022-10-01,Sulawesi,Hemaviton C1000,Modern Trade,1088.57
+2022-10-01,Sulawesi,Hemaviton C1000,E-commerce,751.409
+2022-10-01,Sulawesi,Hemaviton C1000,Hospitals & Institutions,492.671
+2022-10-01,Sulawesi,Vidoran Smart,General Trade,1088.265
+2022-10-01,Sulawesi,Vidoran Smart,Modern Trade,950.53
+2022-10-01,Sulawesi,Vidoran Smart,E-commerce,634.446
+2022-10-01,Sulawesi,Vidoran Smart,Hospitals & Institutions,429.184
+2022-10-01,Sulawesi,Marina Skin Care,General Trade,968.843
+2022-10-01,Sulawesi,Marina Skin Care,Modern Trade,818.602
+2022-10-01,Sulawesi,Marina Skin Care,E-commerce,556.854
+2022-10-01,Sulawesi,Marina Skin Care,Hospitals & Institutions,374.074
+2022-11-01,Jawa Barat,Tempra,General Trade,6077.335
+2022-11-01,Jawa Barat,Tempra,Modern Trade,5441.118
+2022-11-01,Jawa Barat,Tempra,E-commerce,3683.457
+2022-11-01,Jawa Barat,Tempra,Hospitals & Institutions,2397.089
+2022-11-01,Jawa Barat,Bodrex Flu & Batuk,General Trade,6838.628
+2022-11-01,Jawa Barat,Bodrex Flu & Batuk,Modern Trade,6170.645
+2022-11-01,Jawa Barat,Bodrex Flu & Batuk,E-commerce,4268.309
+2022-11-01,Jawa Barat,Bodrex Flu & Batuk,Hospitals & Institutions,2789.105
+2022-11-01,Jawa Barat,Hemaviton C1000,General Trade,5493.289
+2022-11-01,Jawa Barat,Hemaviton C1000,Modern Trade,4559.495
+2022-11-01,Jawa Barat,Hemaviton C1000,E-commerce,3214.949
+2022-11-01,Jawa Barat,Hemaviton C1000,Hospitals & Institutions,2134.586
+2022-11-01,Jawa Barat,Vidoran Smart,General Trade,4486.746
+2022-11-01,Jawa Barat,Vidoran Smart,Modern Trade,3852.247
+2022-11-01,Jawa Barat,Vidoran Smart,E-commerce,2619.323
+2022-11-01,Jawa Barat,Vidoran Smart,Hospitals & Institutions,1873.827
+2022-11-01,Jawa Barat,Marina Skin Care,General Trade,4119.294
+2022-11-01,Jawa Barat,Marina Skin Care,Modern Trade,3667.45
+2022-11-01,Jawa Barat,Marina Skin Care,E-commerce,2493.816
+2022-11-01,Jawa Barat,Marina Skin Care,Hospitals & Institutions,1593.113
+2022-11-01,Jawa Timur,Tempra,General Trade,3673.383
+2022-11-01,Jawa Timur,Tempra,Modern Trade,3175.436
+2022-11-01,Jawa Timur,Tempra,E-commerce,2126.524
+2022-11-01,Jawa Timur,Tempra,Hospitals & Institutions,1424.158
+2022-11-01,Jawa Timur,Bodrex Flu & Batuk,General Trade,4092.898
+2022-11-01,Jawa Timur,Bodrex Flu & Batuk,Modern Trade,3521.651
+2022-11-01,Jawa Timur,Bodrex Flu & Batuk,E-commerce,2408.17
+2022-11-01,Jawa Timur,Bodrex Flu & Batuk,Hospitals & Institutions,1665.297
+2022-11-01,Jawa Timur,Hemaviton C1000,General Trade,3112.495
+2022-11-01,Jawa Timur,Hemaviton C1000,Modern Trade,2697.059
+2022-11-01,Jawa Timur,Hemaviton C1000,E-commerce,1851.673
+2022-11-01,Jawa Timur,Hemaviton C1000,Hospitals & Institutions,1270.753
+2022-11-01,Jawa Timur,Vidoran Smart,General Trade,2755.786
+2022-11-01,Jawa Timur,Vidoran Smart,Modern Trade,2392.063
+2022-11-01,Jawa Timur,Vidoran Smart,E-commerce,1564.206
+2022-11-01,Jawa Timur,Vidoran Smart,Hospitals & Institutions,1094.931
+2022-11-01,Jawa Timur,Marina Skin Care,General Trade,2486.115
+2022-11-01,Jawa Timur,Marina Skin Care,Modern Trade,2139.673
+2022-11-01,Jawa Timur,Marina Skin Care,E-commerce,1446.512
+2022-11-01,Jawa Timur,Marina Skin Care,Hospitals & Institutions,957.12
+2022-11-01,Jawa Tengah,Tempra,General Trade,2570.637
+2022-11-01,Jawa Tengah,Tempra,Modern Trade,2235.102
+2022-11-01,Jawa Tengah,Tempra,E-commerce,1606.628
+2022-11-01,Jawa Tengah,Tempra,Hospitals & Institutions,1076.834
+2022-11-01,Jawa Tengah,Bodrex Flu & Batuk,General Trade,2965.469
+2022-11-01,Jawa Tengah,Bodrex Flu & Batuk,Modern Trade,2684.951
+2022-11-01,Jawa Tengah,Bodrex Flu & Batuk,E-commerce,1822.243
+2022-11-01,Jawa Tengah,Bodrex Flu & Batuk,Hospitals & Institutions,1191.696
+2022-11-01,Jawa Tengah,Hemaviton C1000,General Trade,2318.602
+2022-11-01,Jawa Tengah,Hemaviton C1000,Modern Trade,2018.889
+2022-11-01,Jawa Tengah,Hemaviton C1000,E-commerce,1370.059
+2022-11-01,Jawa Tengah,Hemaviton C1000,Hospitals & Institutions,934.017
+2022-11-01,Jawa Tengah,Vidoran Smart,General Trade,1910.741
+2022-11-01,Jawa Tengah,Vidoran Smart,Modern Trade,1725.851
+2022-11-01,Jawa Tengah,Vidoran Smart,E-commerce,1194.043
+2022-11-01,Jawa Tengah,Vidoran Smart,Hospitals & Institutions,779.004
+2022-11-01,Jawa Tengah,Marina Skin Care,General Trade,1800.962
+2022-11-01,Jawa Tengah,Marina Skin Care,Modern Trade,1502.488
+2022-11-01,Jawa Tengah,Marina Skin Care,E-commerce,1028.295
+2022-11-01,Jawa Tengah,Marina Skin Care,Hospitals & Institutions,722.476
+2022-11-01,Sumatera,Tempra,General Trade,2168.106
+2022-11-01,Sumatera,Tempra,Modern Trade,1888.207
+2022-11-01,Sumatera,Tempra,E-commerce,1276.513
+2022-11-01,Sumatera,Tempra,Hospitals & Institutions,888.068
+2022-11-01,Sumatera,Bodrex Flu & Batuk,General Trade,2540.74
+2022-11-01,Sumatera,Bodrex Flu & Batuk,Modern Trade,2201.49
+2022-11-01,Sumatera,Bodrex Flu & Batuk,E-commerce,1463.46
+2022-11-01,Sumatera,Bodrex Flu & Batuk,Hospitals & Institutions,1029.768
+2022-11-01,Sumatera,Hemaviton C1000,General Trade,1965.271
+2022-11-01,Sumatera,Hemaviton C1000,Modern Trade,1714.389
+2022-11-01,Sumatera,Hemaviton C1000,E-commerce,1115.43
+2022-11-01,Sumatera,Hemaviton C1000,Hospitals & Institutions,791.082
+2022-11-01,Sumatera,Vidoran Smart,General Trade,1672.256
+2022-11-01,Sumatera,Vidoran Smart,Modern Trade,1438.094
+2022-11-01,Sumatera,Vidoran Smart,E-commerce,942.579
+2022-11-01,Sumatera,Vidoran Smart,Hospitals & Institutions,669.096
+2022-11-01,Sumatera,Marina Skin Care,General Trade,1432.573
+2022-11-01,Sumatera,Marina Skin Care,Modern Trade,1296.15
+2022-11-01,Sumatera,Marina Skin Care,E-commerce,865.485
+2022-11-01,Sumatera,Marina Skin Care,Hospitals & Institutions,580.041
+2022-11-01,Kalimantan,Tempra,General Trade,1715.066
+2022-11-01,Kalimantan,Tempra,Modern Trade,1507.977
+2022-11-01,Kalimantan,Tempra,E-commerce,1022.697
+2022-11-01,Kalimantan,Tempra,Hospitals & Institutions,660.152
+2022-11-01,Kalimantan,Bodrex Flu & Batuk,General Trade,1942.15
+2022-11-01,Kalimantan,Bodrex Flu & Batuk,Modern Trade,1657.254
+2022-11-01,Kalimantan,Bodrex Flu & Batuk,E-commerce,1165.057
+2022-11-01,Kalimantan,Bodrex Flu & Batuk,Hospitals & Institutions,755.538
+2022-11-01,Kalimantan,Hemaviton C1000,General Trade,1480.112
+2022-11-01,Kalimantan,Hemaviton C1000,Modern Trade,1287.074
+2022-11-01,Kalimantan,Hemaviton C1000,E-commerce,892.846
+2022-11-01,Kalimantan,Hemaviton C1000,Hospitals & Institutions,579.53
+2022-11-01,Kalimantan,Vidoran Smart,General Trade,1261.793
+2022-11-01,Kalimantan,Vidoran Smart,Modern Trade,1062.38
+2022-11-01,Kalimantan,Vidoran Smart,E-commerce,752.289
+2022-11-01,Kalimantan,Vidoran Smart,Hospitals & Institutions,510.84
+2022-11-01,Kalimantan,Marina Skin Care,General Trade,1098.11
+2022-11-01,Kalimantan,Marina Skin Care,Modern Trade,1007.136
+2022-11-01,Kalimantan,Marina Skin Care,E-commerce,649.722
+2022-11-01,Kalimantan,Marina Skin Care,Hospitals & Institutions,445.148
+2022-11-01,Sulawesi,Tempra,General Trade,1415.719
+2022-11-01,Sulawesi,Tempra,Modern Trade,1233.345
+2022-11-01,Sulawesi,Tempra,E-commerce,847.314
+2022-11-01,Sulawesi,Tempra,Hospitals & Institutions,553.06
+2022-11-01,Sulawesi,Bodrex Flu & Batuk,General Trade,1620.091
+2022-11-01,Sulawesi,Bodrex Flu & Batuk,Modern Trade,1445.157
+2022-11-01,Sulawesi,Bodrex Flu & Batuk,E-commerce,958.419
+2022-11-01,Sulawesi,Bodrex Flu & Batuk,Hospitals & Institutions,627.568
+2022-11-01,Sulawesi,Hemaviton C1000,General Trade,1248.324
+2022-11-01,Sulawesi,Hemaviton C1000,Modern Trade,1090.418
+2022-11-01,Sulawesi,Hemaviton C1000,E-commerce,753.623
+2022-11-01,Sulawesi,Hemaviton C1000,Hospitals & Institutions,502.403
+2022-11-01,Sulawesi,Vidoran Smart,General Trade,1055.266
+2022-11-01,Sulawesi,Vidoran Smart,Modern Trade,911.993
+2022-11-01,Sulawesi,Vidoran Smart,E-commerce,628.001
+2022-11-01,Sulawesi,Vidoran Smart,Hospitals & Institutions,412.334
+2022-11-01,Sulawesi,Marina Skin Care,General Trade,937.248
+2022-11-01,Sulawesi,Marina Skin Care,Modern Trade,803.965
+2022-11-01,Sulawesi,Marina Skin Care,E-commerce,569.686
+2022-11-01,Sulawesi,Marina Skin Care,Hospitals & Institutions,378.623
+2022-12-01,Jawa Barat,Tempra,General Trade,6692.476
+2022-12-01,Jawa Barat,Tempra,Modern Trade,5673.1
+2022-12-01,Jawa Barat,Tempra,E-commerce,3940.993
+2022-12-01,Jawa Barat,Tempra,Hospitals & Institutions,2606.577
+2022-12-01,Jawa Barat,Bodrex Flu & Batuk,General Trade,7390.566
+2022-12-01,Jawa Barat,Bodrex Flu & Batuk,Modern Trade,6420.236
+2022-12-01,Jawa Barat,Bodrex Flu & Batuk,E-commerce,4478.387
+2022-12-01,Jawa Barat,Bodrex Flu & Batuk,Hospitals & Institutions,2992.683
+2022-12-01,Jawa Barat,Hemaviton C1000,General Trade,5847.947
+2022-12-01,Jawa Barat,Hemaviton C1000,Modern Trade,5088.059
+2022-12-01,Jawa Barat,Hemaviton C1000,E-commerce,3385.339
+2022-12-01,Jawa Barat,Hemaviton C1000,Hospitals & Institutions,2311.606
+2022-12-01,Jawa Barat,Vidoran Smart,General Trade,4841.542
+2022-12-01,Jawa Barat,Vidoran Smart,Modern Trade,4257.158
+2022-12-01,Jawa Barat,Vidoran Smart,E-commerce,2866.63
+2022-12-01,Jawa Barat,Vidoran Smart,Hospitals & Institutions,1987.715
+2022-12-01,Jawa Barat,Marina Skin Care,General Trade,4351.415
+2022-12-01,Jawa Barat,Marina Skin Care,Modern Trade,3797.128
+2022-12-01,Jawa Barat,Marina Skin Care,E-commerce,2571.852
+2022-12-01,Jawa Barat,Marina Skin Care,Hospitals & Institutions,1790.983
+2022-12-01,Jawa Timur,Tempra,General Trade,3909.959
+2022-12-01,Jawa Timur,Tempra,Modern Trade,3449.962
+2022-12-01,Jawa Timur,Tempra,E-commerce,2374.238
+2022-12-01,Jawa Timur,Tempra,Hospitals & Institutions,1551.855
+2022-12-01,Jawa Timur,Bodrex Flu & Batuk,General Trade,4510.76
+2022-12-01,Jawa Timur,Bodrex Flu & Batuk,Modern Trade,3970.704
+2022-12-01,Jawa Timur,Bodrex Flu & Batuk,E-commerce,2689.243
+2022-12-01,Jawa Timur,Bodrex Flu & Batuk,Hospitals & Institutions,1759.374
+2022-12-01,Jawa Timur,Hemaviton C1000,General Trade,3458.888
+2022-12-01,Jawa Timur,Hemaviton C1000,Modern Trade,2969.887
+2022-12-01,Jawa Timur,Hemaviton C1000,E-commerce,1961.391
+2022-12-01,Jawa Timur,Hemaviton C1000,Hospitals & Institutions,1389.533
+2022-12-01,Jawa Timur,Vidoran Smart,General Trade,2844.071
+2022-12-01,Jawa Timur,Vidoran Smart,Modern Trade,2553.741
+2022-12-01,Jawa Timur,Vidoran Smart,E-commerce,1694.055
+2022-12-01,Jawa Timur,Vidoran Smart,Hospitals & Institutions,1125.117
+2022-12-01,Jawa Timur,Marina Skin Care,General Trade,2669.928
+2022-12-01,Jawa Timur,Marina Skin Care,Modern Trade,2255.81
+2022-12-01,Jawa Timur,Marina Skin Care,E-commerce,1497.516
+2022-12-01,Jawa Timur,Marina Skin Care,Hospitals & Institutions,1022.487
+2022-12-01,Jawa Tengah,Tempra,General Trade,2773.989
+2022-12-01,Jawa Tengah,Tempra,Modern Trade,2441.882
+2022-12-01,Jawa Tengah,Tempra,E-commerce,1668.307
+2022-12-01,Jawa Tengah,Tempra,Hospitals & Institutions,1160.61
+2022-12-01,Jawa Tengah,Bodrex Flu & Batuk,General Trade,3225.358
+2022-12-01,Jawa Tengah,Bodrex Flu & Batuk,Modern Trade,2843.171
+2022-12-01,Jawa Tengah,Bodrex Flu & Batuk,E-commerce,1905.783
+2022-12-01,Jawa Tengah,Bodrex Flu & Batuk,Hospitals & Institutions,1327.961
+2022-12-01,Jawa Tengah,Hemaviton C1000,General Trade,2535.668
+2022-12-01,Jawa Tengah,Hemaviton C1000,Modern Trade,2128.058
+2022-12-01,Jawa Tengah,Hemaviton C1000,E-commerce,1465.637
+2022-12-01,Jawa Tengah,Hemaviton C1000,Hospitals & Institutions,972.26
+2022-12-01,Jawa Tengah,Vidoran Smart,General Trade,2127.163
+2022-12-01,Jawa Tengah,Vidoran Smart,Modern Trade,1795.528
+2022-12-01,Jawa Tengah,Vidoran Smart,E-commerce,1258.059
+2022-12-01,Jawa Tengah,Vidoran Smart,Hospitals & Institutions,854.755
+2022-12-01,Jawa Tengah,Marina Skin Care,General Trade,1926.308
+2022-12-01,Jawa Tengah,Marina Skin Care,Modern Trade,1600.47
+2022-12-01,Jawa Tengah,Marina Skin Care,E-commerce,1138.762
+2022-12-01,Jawa Tengah,Marina Skin Care,Hospitals & Institutions,778.709
+2022-12-01,Sumatera,Tempra,General Trade,2419.743
+2022-12-01,Sumatera,Tempra,Modern Trade,2071.353
+2022-12-01,Sumatera,Tempra,E-commerce,1370.832
+2022-12-01,Sumatera,Tempra,Hospitals & Institutions,952.863
+2022-12-01,Sumatera,Bodrex Flu & Batuk,General Trade,2726.187
+2022-12-01,Sumatera,Bodrex Flu & Batuk,Modern Trade,2427.712
+2022-12-01,Sumatera,Bodrex Flu & Batuk,E-commerce,1606.383
+2022-12-01,Sumatera,Bodrex Flu & Batuk,Hospitals & Institutions,1107.655
+2022-12-01,Sumatera,Hemaviton C1000,General Trade,2086.403
+2022-12-01,Sumatera,Hemaviton C1000,Modern Trade,1856.215
+2022-12-01,Sumatera,Hemaviton C1000,E-commerce,1224.298
+2022-12-01,Sumatera,Hemaviton C1000,Hospitals & Institutions,816.899
+2022-12-01,Sumatera,Vidoran Smart,General Trade,1800.29
+2022-12-01,Sumatera,Vidoran Smart,Modern Trade,1580.594
+2022-12-01,Sumatera,Vidoran Smart,E-commerce,1035.721
+2022-12-01,Sumatera,Vidoran Smart,Hospitals & Institutions,705.669
+2022-12-01,Sumatera,Marina Skin Care,General Trade,1575.172
+2022-12-01,Sumatera,Marina Skin Care,Modern Trade,1392.823
+2022-12-01,Sumatera,Marina Skin Care,E-commerce,911.561
+2022-12-01,Sumatera,Marina Skin Care,Hospitals & Institutions,651.341
+2022-12-01,Kalimantan,Tempra,General Trade,1808.562
+2022-12-01,Kalimantan,Tempra,Modern Trade,1586.072
+2022-12-01,Kalimantan,Tempra,E-commerce,1057.618
+2022-12-01,Kalimantan,Tempra,Hospitals & Institutions,745.348
+2022-12-01,Kalimantan,Bodrex Flu & Batuk,General Trade,2058.853
+2022-12-01,Kalimantan,Bodrex Flu & Batuk,Modern Trade,1798.694
+2022-12-01,Kalimantan,Bodrex Flu & Batuk,E-commerce,1223.778
+2022-12-01,Kalimantan,Bodrex Flu & Batuk,Hospitals & Institutions,845.974
+2022-12-01,Kalimantan,Hemaviton C1000,General Trade,1566.582
+2022-12-01,Kalimantan,Hemaviton C1000,Modern Trade,1421.259
+2022-12-01,Kalimantan,Hemaviton C1000,E-commerce,941.185
+2022-12-01,Kalimantan,Hemaviton C1000,Hospitals & Institutions,620.364
+2022-12-01,Kalimantan,Vidoran Smart,General Trade,1385.978
+2022-12-01,Kalimantan,Vidoran Smart,Modern Trade,1170.081
+2022-12-01,Kalimantan,Vidoran Smart,E-commerce,818.681
+2022-12-01,Kalimantan,Vidoran Smart,Hospitals & Institutions,550.94
+2022-12-01,Kalimantan,Marina Skin Care,General Trade,1180.144
+2022-12-01,Kalimantan,Marina Skin Care,Modern Trade,1081.893
+2022-12-01,Kalimantan,Marina Skin Care,E-commerce,698.138
+2022-12-01,Kalimantan,Marina Skin Care,Hospitals & Institutions,473.947
+2022-12-01,Sulawesi,Tempra,General Trade,1483.866
+2022-12-01,Sulawesi,Tempra,Modern Trade,1348.446
+2022-12-01,Sulawesi,Tempra,E-commerce,907.389
+2022-12-01,Sulawesi,Tempra,Hospitals & Institutions,620.532
+2022-12-01,Sulawesi,Bodrex Flu & Batuk,General Trade,1754.652
+2022-12-01,Sulawesi,Bodrex Flu & Batuk,Modern Trade,1485.435
+2022-12-01,Sulawesi,Bodrex Flu & Batuk,E-commerce,1036.967
+2022-12-01,Sulawesi,Bodrex Flu & Batuk,Hospitals & Institutions,699.057
+2022-12-01,Sulawesi,Hemaviton C1000,General Trade,1299.358
+2022-12-01,Sulawesi,Hemaviton C1000,Modern Trade,1172.205
+2022-12-01,Sulawesi,Hemaviton C1000,E-commerce,778.904
+2022-12-01,Sulawesi,Hemaviton C1000,Hospitals & Institutions,536.945
+2022-12-01,Sulawesi,Vidoran Smart,General Trade,1113.096
+2022-12-01,Sulawesi,Vidoran Smart,Modern Trade,952.5
+2022-12-01,Sulawesi,Vidoran Smart,E-commerce,678.898
+2022-12-01,Sulawesi,Vidoran Smart,Hospitals & Institutions,462.734
+2022-12-01,Sulawesi,Marina Skin Care,General Trade,1029.316
+2022-12-01,Sulawesi,Marina Skin Care,Modern Trade,859.468
+2022-12-01,Sulawesi,Marina Skin Care,E-commerce,603.194
+2022-12-01,Sulawesi,Marina Skin Care,Hospitals & Institutions,398.833
+2023-01-01,Jawa Barat,Tempra,General Trade,6752.866
+2023-01-01,Jawa Barat,Tempra,Modern Trade,6160.61
+2023-01-01,Jawa Barat,Tempra,E-commerce,4217.763
+2023-01-01,Jawa Barat,Tempra,Hospitals & Institutions,2814.96
+2023-01-01,Jawa Barat,Bodrex Flu & Batuk,General Trade,7854.99
+2023-01-01,Jawa Barat,Bodrex Flu & Batuk,Modern Trade,6951.452
+2023-01-01,Jawa Barat,Bodrex Flu & Batuk,E-commerce,4732.395
+2023-01-01,Jawa Barat,Bodrex Flu & Batuk,Hospitals & Institutions,3189.089
+2023-01-01,Jawa Barat,Hemaviton C1000,General Trade,5907.422
+2023-01-01,Jawa Barat,Hemaviton C1000,Modern Trade,5307.912
+2023-01-01,Jawa Barat,Hemaviton C1000,E-commerce,3499.405
+2023-01-01,Jawa Barat,Hemaviton C1000,Hospitals & Institutions,2476.078
+2023-01-01,Jawa Barat,Vidoran Smart,General Trade,5214.27
+2023-01-01,Jawa Barat,Vidoran Smart,Modern Trade,4448.13
+2023-01-01,Jawa Barat,Vidoran Smart,E-commerce,3134.261
+2023-01-01,Jawa Barat,Vidoran Smart,Hospitals & Institutions,2083.851
+2023-01-01,Jawa Barat,Marina Skin Care,General Trade,4691.875
+2023-01-01,Jawa Barat,Marina Skin Care,Modern Trade,4052.695
+2023-01-01,Jawa Barat,Marina Skin Care,E-commerce,2780.444
+2023-01-01,Jawa Barat,Marina Skin Care,Hospitals & Institutions,1821.195
+2023-01-01,Jawa Timur,Tempra,General Trade,4008.886
+2023-01-01,Jawa Timur,Tempra,Modern Trade,3519.062
+2023-01-01,Jawa Timur,Tempra,E-commerce,2424.756
+2023-01-01,Jawa Timur,Tempra,Hospitals & Institutions,1623.205
+2023-01-01,Jawa Timur,Bodrex Flu & Batuk,General Trade,4556.43
+2023-01-01,Jawa Timur,Bodrex Flu & Batuk,Modern Trade,3954.549
+2023-01-01,Jawa Timur,Bodrex Flu & Batuk,E-commerce,2773.943
+2023-01-01,Jawa Timur,Bodrex Flu & Batuk,Hospitals & Institutions,1819.113
+2023-01-01,Jawa Timur,Hemaviton C1000,General Trade,3593.234
+2023-01-01,Jawa Timur,Hemaviton C1000,Modern Trade,3045.875
+2023-01-01,Jawa Timur,Hemaviton C1000,E-commerce,2108.209
+2023-01-01,Jawa Timur,Hemaviton C1000,Hospitals & Institutions,1455.717
+2023-01-01,Jawa Timur,Vidoran Smart,General Trade,3096.017
+2023-01-01,Jawa Timur,Vidoran Smart,Modern Trade,2607.392
+2023-01-01,Jawa Timur,Vidoran Smart,E-commerce,1802.215
+2023-01-01,Jawa Timur,Vidoran Smart,Hospitals & Institutions,1188.844
+2023-01-01,Jawa Timur,Marina Skin Care,General Trade,2711.034
+2023-01-01,Jawa Timur,Marina Skin Care,Modern Trade,2373.345
+2023-01-01,Jawa Timur,Marina Skin Care,E-commerce,1655.672
+2023-01-01,Jawa Timur,Marina Skin Care,Hospitals & Institutions,1115.412
+2023-01-01,Jawa Tengah,Tempra,General Trade,2940.673
+2023-01-01,Jawa Tengah,Tempra,Modern Trade,2590.617
+2023-01-01,Jawa Tengah,Tempra,E-commerce,1767.797
+2023-01-01,Jawa Tengah,Tempra,Hospitals & Institutions,1215.371
+2023-01-01,Jawa Tengah,Bodrex Flu & Batuk,General Trade,3313.553
+2023-01-01,Jawa Tengah,Bodrex Flu & Batuk,Modern Trade,3002.997
+2023-01-01,Jawa Tengah,Bodrex Flu & Batuk,E-commerce,2051.283
+2023-01-01,Jawa Tengah,Bodrex Flu & Batuk,Hospitals & Institutions,1372.183
+2023-01-01,Jawa Tengah,Hemaviton C1000,General Trade,2579.851
+2023-01-01,Jawa Tengah,Hemaviton C1000,Modern Trade,2315.181
+2023-01-01,Jawa Tengah,Hemaviton C1000,E-commerce,1592.082
+2023-01-01,Jawa Tengah,Hemaviton C1000,Hospitals & Institutions,1026.718
+2023-01-01,Jawa Tengah,Vidoran Smart,General Trade,2235.512
+2023-01-01,Jawa Tengah,Vidoran Smart,Modern Trade,1916.554
+2023-01-01,Jawa Tengah,Vidoran Smart,E-commerce,1315.215
+2023-01-01,Jawa Tengah,Vidoran Smart,Hospitals & Institutions,872.773
+2023-01-01,Jawa Tengah,Marina Skin Care,General Trade,1990.094
+2023-01-01,Jawa Tengah,Marina Skin Care,Modern Trade,1724.603
+2023-01-01,Jawa Tengah,Marina Skin Care,E-commerce,1204.016
+2023-01-01,Jawa Tengah,Marina Skin Care,Hospitals & Institutions,803.886
+2023-01-01,Sumatera,Tempra,General Trade,2505.995
+2023-01-01,Sumatera,Tempra,Modern Trade,2213.169
+2023-01-01,Sumatera,Tempra,E-commerce,1456.287
+2023-01-01,Sumatera,Tempra,Hospitals & Institutions,983.976
+2023-01-01,Sumatera,Bodrex Flu & Batuk,General Trade,2822.429
+2023-01-01,Sumatera,Bodrex Flu & Batuk,Modern Trade,2513.978
+2023-01-01,Sumatera,Bodrex Flu & Batuk,E-commerce,1705.32
+2023-01-01,Sumatera,Bodrex Flu & Batuk,Hospitals & Institutions,1168.142
+2023-01-01,Sumatera,Hemaviton C1000,General Trade,2222.662
+2023-01-01,Sumatera,Hemaviton C1000,Modern Trade,1865.666
+2023-01-01,Sumatera,Hemaviton C1000,E-commerce,1318.914
+2023-01-01,Sumatera,Hemaviton C1000,Hospitals & Institutions,890.216
+2023-01-01,Sumatera,Vidoran Smart,General Trade,1891.403
+2023-01-01,Sumatera,Vidoran Smart,Modern Trade,1645.479
+2023-01-01,Sumatera,Vidoran Smart,E-commerce,1112.946
+2023-01-01,Sumatera,Vidoran Smart,Hospitals & Institutions,734.794
+2023-01-01,Sumatera,Marina Skin Care,General Trade,1652.521
+2023-01-01,Sumatera,Marina Skin Care,Modern Trade,1478.226
+2023-01-01,Sumatera,Marina Skin Care,E-commerce,1013.577
+2023-01-01,Sumatera,Marina Skin Care,Hospitals & Institutions,685.764
+2023-01-01,Kalimantan,Tempra,General Trade,1948.575
+2023-01-01,Kalimantan,Tempra,Modern Trade,1614.8
+2023-01-01,Kalimantan,Tempra,E-commerce,1141.434
+2023-01-01,Kalimantan,Tempra,Hospitals & Institutions,741.045
+2023-01-01,Kalimantan,Bodrex Flu & Batuk,General Trade,2194.329
+2023-01-01,Kalimantan,Bodrex Flu & Batuk,Modern Trade,1896.718
+2023-01-01,Kalimantan,Bodrex Flu & Batuk,E-commerce,1313.268
+2023-01-01,Kalimantan,Bodrex Flu & Batuk,Hospitals & Institutions,863.666
+2023-01-01,Kalimantan,Hemaviton C1000,General Trade,1638.052
+2023-01-01,Kalimantan,Hemaviton C1000,Modern Trade,1455.287
+2023-01-01,Kalimantan,Hemaviton C1000,E-commerce,1013.92
+2023-01-01,Kalimantan,Hemaviton C1000,Hospitals & Institutions,681.455
+2023-01-01,Kalimantan,Vidoran Smart,General Trade,1409.648
+2023-01-01,Kalimantan,Vidoran Smart,Modern Trade,1262.008
+2023-01-01,Kalimantan,Vidoran Smart,E-commerce,836.105
+2023-01-01,Kalimantan,Vidoran Smart,Hospitals & Institutions,562.97
+2023-01-01,Kalimantan,Marina Skin Care,General Trade,1241.923
+2023-01-01,Kalimantan,Marina Skin Care,Modern Trade,1122.014
+2023-01-01,Kalimantan,Marina Skin Care,E-commerce,767.466
+2023-01-01,Kalimantan,Marina Skin Care,Hospitals & Institutions,506.515
+2023-01-01,Sulawesi,Tempra,General Trade,1623.026
+2023-01-01,Sulawesi,Tempra,Modern Trade,1418.381
+2023-01-01,Sulawesi,Tempra,E-commerce,951.651
+2023-01-01,Sulawesi,Tempra,Hospitals & Institutions,645.417
+2023-01-01,Sulawesi,Bodrex Flu & Batuk,General Trade,1783.388
+2023-01-01,Sulawesi,Bodrex Flu & Batuk,Modern Trade,1620.083
+2023-01-01,Sulawesi,Bodrex Flu & Batuk,E-commerce,1103.249
+2023-01-01,Sulawesi,Bodrex Flu & Batuk,Hospitals & Institutions,747.953
+2023-01-01,Sulawesi,Hemaviton C1000,General Trade,1396.4
+2023-01-01,Sulawesi,Hemaviton C1000,Modern Trade,1245.797
+2023-01-01,Sulawesi,Hemaviton C1000,E-commerce,819.301
+2023-01-01,Sulawesi,Hemaviton C1000,Hospitals & Institutions,564.248
+2023-01-01,Sulawesi,Vidoran Smart,General Trade,1174.338
+2023-01-01,Sulawesi,Vidoran Smart,Modern Trade,1017.725
+2023-01-01,Sulawesi,Vidoran Smart,E-commerce,699.044
+2023-01-01,Sulawesi,Vidoran Smart,Hospitals & Institutions,486.447
+2023-01-01,Sulawesi,Marina Skin Care,General Trade,1052.171
+2023-01-01,Sulawesi,Marina Skin Care,Modern Trade,925.634
+2023-01-01,Sulawesi,Marina Skin Care,E-commerce,631.071
+2023-01-01,Sulawesi,Marina Skin Care,Hospitals & Institutions,437.603
+2023-02-01,Jawa Barat,Tempra,General Trade,6445.623
+2023-02-01,Jawa Barat,Tempra,Modern Trade,5712.203
+2023-02-01,Jawa Barat,Tempra,E-commerce,3937.655
+2023-02-01,Jawa Barat,Tempra,Hospitals & Institutions,2630.098
+2023-02-01,Jawa Barat,Bodrex Flu & Batuk,General Trade,7458.557
+2023-02-01,Jawa Barat,Bodrex Flu & Batuk,Modern Trade,6574.119
+2023-02-01,Jawa Barat,Bodrex Flu & Batuk,E-commerce,4526.927
+2023-02-01,Jawa Barat,Bodrex Flu & Batuk,Hospitals & Institutions,2997.422
+2023-02-01,Jawa Barat,Hemaviton C1000,General Trade,5917.02
+2023-02-01,Jawa Barat,Hemaviton C1000,Modern Trade,4929.107
+2023-02-01,Jawa Barat,Hemaviton C1000,E-commerce,3427.333
+2023-02-01,Jawa Barat,Hemaviton C1000,Hospitals & Institutions,2356.17
+2023-02-01,Jawa Barat,Vidoran Smart,General Trade,4964.594
+2023-02-01,Jawa Barat,Vidoran Smart,Modern Trade,4210.274
+2023-02-01,Jawa Barat,Vidoran Smart,E-commerce,2914.898
+2023-02-01,Jawa Barat,Vidoran Smart,Hospitals & Institutions,1952.341
+2023-02-01,Jawa Barat,Marina Skin Care,General Trade,4369.216
+2023-02-01,Jawa Barat,Marina Skin Care,Modern Trade,3704.983
+2023-02-01,Jawa Barat,Marina Skin Care,E-commerce,2596.182
+2023-02-01,Jawa Barat,Marina Skin Care,Hospitals & Institutions,1760.483
+2023-02-01,Jawa Timur,Tempra,General Trade,3938.101
+2023-02-01,Jawa Timur,Tempra,Modern Trade,3355.293
+2023-02-01,Jawa Timur,Tempra,E-commerce,2314.657
+2023-02-01,Jawa Timur,Tempra,Hospitals & Institutions,1599.872
+2023-02-01,Jawa Timur,Bodrex Flu & Batuk,General Trade,4430.088
+2023-02-01,Jawa Timur,Bodrex Flu & Batuk,Modern Trade,3773.967
+2023-02-01,Jawa Timur,Bodrex Flu & Batuk,E-commerce,2676.175
+2023-02-01,Jawa Timur,Bodrex Flu & Batuk,Hospitals & Institutions,1790.506
+2023-02-01,Jawa Timur,Hemaviton C1000,General Trade,3313.102
+2023-02-01,Jawa Timur,Hemaviton C1000,Modern Trade,2957.721
+2023-02-01,Jawa Timur,Hemaviton C1000,E-commerce,2039.19
+2023-02-01,Jawa Timur,Hemaviton C1000,Hospitals & Institutions,1392.796
+2023-02-01,Jawa Timur,Vidoran Smart,General Trade,2887.646
+2023-02-01,Jawa Timur,Vidoran Smart,Modern Trade,2539.858
+2023-02-01,Jawa Timur,Vidoran Smart,E-commerce,1719.746
+2023-02-01,Jawa Timur,Vidoran Smart,Hospitals & Institutions,1142.463
+2023-02-01,Jawa Timur,Marina Skin Care,General Trade,2635.857
+2023-02-01,Jawa Timur,Marina Skin Care,Modern Trade,2236.294
+2023-02-01,Jawa Timur,Marina Skin Care,E-commerce,1554.306
+2023-02-01,Jawa Timur,Marina Skin Care,Hospitals & Institutions,1047.418
+2023-02-01,Jawa Tengah,Tempra,General Trade,2774.379
+2023-02-01,Jawa Tengah,Tempra,Modern Trade,2535.022
+2023-02-01,Jawa Tengah,Tempra,E-commerce,1653.721
+2023-02-01,Jawa Tengah,Tempra,Hospitals & Institutions,1124.465
+2023-02-01,Jawa Tengah,Bodrex Flu & Batuk,General Trade,3254.96
+2023-02-01,Jawa Tengah,Bodrex Flu & Batuk,Modern Trade,2889.256
+2023-02-01,Jawa Tengah,Bodrex Flu & Batuk,E-commerce,1901.435
+2023-02-01,Jawa Tengah,Bodrex Flu & Batuk,Hospitals & Institutions,1317.67
+2023-02-01,Jawa Tengah,Hemaviton C1000,General Trade,2435.357
+2023-02-01,Jawa Tengah,Hemaviton C1000,Modern Trade,2139.439
+2023-02-01,Jawa Tengah,Hemaviton C1000,E-commerce,1499.646
+2023-02-01,Jawa Tengah,Hemaviton C1000,Hospitals & Institutions,966.537
+2023-02-01,Jawa Tengah,Vidoran Smart,General Trade,2159.077
+2023-02-01,Jawa Tengah,Vidoran Smart,Modern Trade,1774.258
+2023-02-01,Jawa Tengah,Vidoran Smart,E-commerce,1226.524
+2023-02-01,Jawa Tengah,Vidoran Smart,Hospitals & Institutions,839.383
+2023-02-01,Jawa Tengah,Marina Skin Care,General Trade,1859.996
+2023-02-01,Jawa Tengah,Marina Skin Care,Modern Trade,1596.813
+2023-02-01,Jawa Tengah,Marina Skin Care,E-commerce,1141.968
+2023-02-01,Jawa Tengah,Marina Skin Care,Hospitals & Institutions,745.181
+2023-02-01,Sumatera,Tempra,General Trade,2386.363
+2023-02-01,Sumatera,Tempra,Modern Trade,2000.448
+2023-02-01,Sumatera,Tempra,E-commerce,1440.264
+2023-02-01,Sumatera,Tempra,Hospitals & Institutions,948.174
+2023-02-01,Sumatera,Bodrex Flu & Batuk,General Trade,2674.601
+2023-02-01,Sumatera,Bodrex Flu & Batuk,Modern Trade,2292.177
+2023-02-01,Sumatera,Bodrex Flu & Batuk,E-commerce,1588.43
+2023-02-01,Sumatera,Bodrex Flu & Batuk,Hospitals & Institutions,1051.885
+2023-02-01,Sumatera,Hemaviton C1000,General Trade,2109.328
+2023-02-01,Sumatera,Hemaviton C1000,Modern Trade,1762.575
+2023-02-01,Sumatera,Hemaviton C1000,E-commerce,1223.962
+2023-02-01,Sumatera,Hemaviton C1000,Hospitals & Institutions,840.69
+2023-02-01,Sumatera,Vidoran Smart,General Trade,1773.418
+2023-02-01,Sumatera,Vidoran Smart,Modern Trade,1562.053
+2023-02-01,Sumatera,Vidoran Smart,E-commerce,1025.738
+2023-02-01,Sumatera,Vidoran Smart,Hospitals & Institutions,720.89
+2023-02-01,Sumatera,Marina Skin Care,General Trade,1612.202
+2023-02-01,Sumatera,Marina Skin Care,Modern Trade,1359.031
+2023-02-01,Sumatera,Marina Skin Care,E-commerce,909.377
+2023-02-01,Sumatera,Marina Skin Care,Hospitals & Institutions,635.251
+2023-02-01,Kalimantan,Tempra,General Trade,1777.49
+2023-02-01,Kalimantan,Tempra,Modern Trade,1549.918
+2023-02-01,Kalimantan,Tempra,E-commerce,1079.272
+2023-02-01,Kalimantan,Tempra,Hospitals & Institutions,719.284
+2023-02-01,Kalimantan,Bodrex Flu & Batuk,General Trade,2040.085
+2023-02-01,Kalimantan,Bodrex Flu & Batuk,Modern Trade,1815.178
+2023-02-01,Kalimantan,Bodrex Flu & Batuk,E-commerce,1237.584
+2023-02-01,Kalimantan,Bodrex Flu & Batuk,Hospitals & Institutions,804.04
+2023-02-01,Kalimantan,Hemaviton C1000,General Trade,1547.735
+2023-02-01,Kalimantan,Hemaviton C1000,Modern Trade,1411.806
+2023-02-01,Kalimantan,Hemaviton C1000,E-commerce,938.268
+2023-02-01,Kalimantan,Hemaviton C1000,Hospitals & Institutions,650.177
+2023-02-01,Kalimantan,Vidoran Smart,General Trade,1313.374
+2023-02-01,Kalimantan,Vidoran Smart,Modern Trade,1161.267
+2023-02-01,Kalimantan,Vidoran Smart,E-commerce,794.609
+2023-02-01,Kalimantan,Vidoran Smart,Hospitals & Institutions,532.811
+2023-02-01,Kalimantan,Marina Skin Care,General Trade,1222.136
+2023-02-01,Kalimantan,Marina Skin Care,Modern Trade,1055.158
+2023-02-01,Kalimantan,Marina Skin Care,E-commerce,700.918
+2023-02-01,Kalimantan,Marina Skin Care,Hospitals & Institutions,481.381
+2023-02-01,Sulawesi,Tempra,General Trade,1484.052
+2023-02-01,Sulawesi,Tempra,Modern Trade,1279.533
+2023-02-01,Sulawesi,Tempra,E-commerce,911.549
+2023-02-01,Sulawesi,Tempra,Hospitals & Institutions,592.159
+2023-02-01,Sulawesi,Bodrex Flu & Batuk,General Trade,1691.16
+2023-02-01,Sulawesi,Bodrex Flu & Batuk,Modern Trade,1475.533
+2023-02-01,Sulawesi,Bodrex Flu & Batuk,E-commerce,1047.63
+2023-02-01,Sulawesi,Bodrex Flu & Batuk,Hospitals & Institutions,673.653
+2023-02-01,Sulawesi,Hemaviton C1000,General Trade,1318.216
+2023-02-01,Sulawesi,Hemaviton C1000,Modern Trade,1181.39
+2023-02-01,Sulawesi,Hemaviton C1000,E-commerce,805.351
+2023-02-01,Sulawesi,Hemaviton C1000,Hospitals & Institutions,539.678
+2023-02-01,Sulawesi,Vidoran Smart,General Trade,1141.05
+2023-02-01,Sulawesi,Vidoran Smart,Modern Trade,1000.961
+2023-02-01,Sulawesi,Vidoran Smart,E-commerce,660.7
+2023-02-01,Sulawesi,Vidoran Smart,Hospitals & Institutions,439.356
+2023-02-01,Sulawesi,Marina Skin Care,General Trade,1006.99
+2023-02-01,Sulawesi,Marina Skin Care,Modern Trade,889.906
+2023-02-01,Sulawesi,Marina Skin Care,E-commerce,595.982
+2023-02-01,Sulawesi,Marina Skin Care,Hospitals & Institutions,413.047
+2023-03-01,Jawa Barat,Tempra,General Trade,7370.46
+2023-03-01,Jawa Barat,Tempra,Modern Trade,6694.508
+2023-03-01,Jawa Barat,Tempra,E-commerce,4579.961
+2023-03-01,Jawa Barat,Tempra,Hospitals & Institutions,3057.854
+2023-03-01,Jawa Barat,Bodrex Flu & Batuk,General Trade,8869.56
+2023-03-01,Jawa Barat,Bodrex Flu & Batuk,Modern Trade,7447.775
+2023-03-01,Jawa Barat,Bodrex Flu & Batuk,E-commerce,5120.856
+2023-03-01,Jawa Barat,Bodrex Flu & Batuk,Hospitals & Institutions,3555.46
+2023-03-01,Jawa Barat,Hemaviton C1000,General Trade,6800.716
+2023-03-01,Jawa Barat,Hemaviton C1000,Modern Trade,5761.418
+2023-03-01,Jawa Barat,Hemaviton C1000,E-commerce,3813.737
+2023-03-01,Jawa Barat,Hemaviton C1000,Hospitals & Institutions,2651.656
+2023-03-01,Jawa Barat,Vidoran Smart,General Trade,5684.614
+2023-03-01,Jawa Barat,Vidoran Smart,Modern Trade,4777.166
+2023-03-01,Jawa Barat,Vidoran Smart,E-commerce,3303.47
+2023-03-01,Jawa Barat,Vidoran Smart,Hospitals & Institutions,2202.204
+2023-03-01,Jawa Barat,Marina Skin Care,General Trade,4976.546
+2023-03-01,Jawa Barat,Marina Skin Care,Modern Trade,4452.603
+2023-03-01,Jawa Barat,Marina Skin Care,E-commerce,3028.726
+2023-03-01,Jawa Barat,Marina Skin Care,Hospitals & Institutions,2027.21
+2023-03-01,Jawa Timur,Tempra,General Trade,4580.925
+2023-03-01,Jawa Timur,Tempra,Modern Trade,3868.019
+2023-03-01,Jawa Timur,Tempra,E-commerce,2699.371
+2023-03-01,Jawa Timur,Tempra,Hospitals & Institutions,1780.377
+2023-03-01,Jawa Timur,Bodrex Flu & Batuk,General Trade,5075.445
+2023-03-01,Jawa Timur,Bodrex Flu & Batuk,Modern Trade,4437.702
+2023-03-01,Jawa Timur,Bodrex Flu & Batuk,E-commerce,3068.036
+2023-03-01,Jawa Timur,Bodrex Flu & Batuk,Hospitals & Institutions,2088.95
+2023-03-01,Jawa Timur,Hemaviton C1000,General Trade,3809.229
+2023-03-01,Jawa Timur,Hemaviton C1000,Modern Trade,3323.731
+2023-03-01,Jawa Timur,Hemaviton C1000,E-commerce,2284.066
+2023-03-01,Jawa Timur,Hemaviton C1000,Hospitals & Institutions,1571.107
+2023-03-01,Jawa Timur,Vidoran Smart,General Trade,3245.514
+2023-03-01,Jawa Timur,Vidoran Smart,Modern Trade,2841.11
+2023-03-01,Jawa Timur,Vidoran Smart,E-commerce,1963.579
+2023-03-01,Jawa Timur,Vidoran Smart,Hospitals & Institutions,1306.226
+2023-03-01,Jawa Timur,Marina Skin Care,General Trade,3060.882
+2023-03-01,Jawa Timur,Marina Skin Care,Modern Trade,2549.874
+2023-03-01,Jawa Timur,Marina Skin Care,E-commerce,1793.793
+2023-03-01,Jawa Timur,Marina Skin Care,Hospitals & Institutions,1159.727
+2023-03-01,Jawa Tengah,Tempra,General Trade,3317.906
+2023-03-01,Jawa Tengah,Tempra,Modern Trade,2828.432
+2023-03-01,Jawa Tengah,Tempra,E-commerce,1952.463
+2023-03-01,Jawa Tengah,Tempra,Hospitals & Institutions,1269.086
+2023-03-01,Jawa Tengah,Bodrex Flu & Batuk,General Trade,3772.039
+2023-03-01,Jawa Tengah,Bodrex Flu & Batuk,Modern Trade,3290.269
+2023-03-01,Jawa Tengah,Bodrex Flu & Batuk,E-commerce,2179.296
+2023-03-01,Jawa Tengah,Bodrex Flu & Batuk,Hospitals & Institutions,1484.147
+2023-03-01,Jawa Tengah,Hemaviton C1000,General Trade,2914.128
+2023-03-01,Jawa Tengah,Hemaviton C1000,Modern Trade,2452.128
+2023-03-01,Jawa Tengah,Hemaviton C1000,E-commerce,1706.466
+2023-03-01,Jawa Tengah,Hemaviton C1000,Hospitals & Institutions,1107.276
+2023-03-01,Jawa Tengah,Vidoran Smart,General Trade,2487.066
+2023-03-01,Jawa Tengah,Vidoran Smart,Modern Trade,2104.308
+2023-03-01,Jawa Tengah,Vidoran Smart,E-commerce,1407.668
+2023-03-01,Jawa Tengah,Vidoran Smart,Hospitals & Institutions,993.18
+2023-03-01,Jawa Tengah,Marina Skin Care,General Trade,2141.101
+2023-03-01,Jawa Tengah,Marina Skin Care,Modern Trade,1893.363
+2023-03-01,Jawa Tengah,Marina Skin Care,E-commerce,1252.086
+2023-03-01,Jawa Tengah,Marina Skin Care,Hospitals & Institutions,890.797
+2023-03-01,Sumatera,Tempra,General Trade,2655.831
+2023-03-01,Sumatera,Tempra,Modern Trade,2352.616
+2023-03-01,Sumatera,Tempra,E-commerce,1577.455
+2023-03-01,Sumatera,Tempra,Hospitals & Institutions,1080.726
+2023-03-01,Sumatera,Bodrex Flu & Batuk,General Trade,3142.998
+2023-03-01,Sumatera,Bodrex Flu & Batuk,Modern Trade,2757.359
+2023-03-01,Sumatera,Bodrex Flu & Batuk,E-commerce,1863.927
+2023-03-01,Sumatera,Bodrex Flu & Batuk,Hospitals & Institutions,1252.75
+2023-03-01,Sumatera,Hemaviton C1000,General Trade,2365.364
+2023-03-01,Sumatera,Hemaviton C1000,Modern Trade,2096.761
+2023-03-01,Sumatera,Hemaviton C1000,E-commerce,1380.747
+2023-03-01,Sumatera,Hemaviton C1000,Hospitals & Institutions,931.774
+2023-03-01,Sumatera,Vidoran Smart,General Trade,2082.048
+2023-03-01,Sumatera,Vidoran Smart,Modern Trade,1796.493
+2023-03-01,Sumatera,Vidoran Smart,E-commerce,1210.666
+2023-03-01,Sumatera,Vidoran Smart,Hospitals & Institutions,828.105
+2023-03-01,Sumatera,Marina Skin Care,General Trade,1833.397
+2023-03-01,Sumatera,Marina Skin Care,Modern Trade,1597.036
+2023-03-01,Sumatera,Marina Skin Care,E-commerce,1059.144
+2023-03-01,Sumatera,Marina Skin Care,Hospitals & Institutions,740.758
+2023-03-01,Kalimantan,Tempra,General Trade,2085.612
+2023-03-01,Kalimantan,Tempra,Modern Trade,1763.232
+2023-03-01,Kalimantan,Tempra,E-commerce,1252.108
+2023-03-01,Kalimantan,Tempra,Hospitals & Institutions,810.041
+2023-03-01,Kalimantan,Bodrex Flu & Batuk,General Trade,2420.131
+2023-03-01,Kalimantan,Bodrex Flu & Batuk,Modern Trade,2048.952
+2023-03-01,Kalimantan,Bodrex Flu & Batuk,E-commerce,1433.904
+2023-03-01,Kalimantan,Bodrex Flu & Batuk,Hospitals & Institutions,967.401
+2023-03-01,Kalimantan,Hemaviton C1000,General Trade,1860.443
+2023-03-01,Kalimantan,Hemaviton C1000,Modern Trade,1562.627
+2023-03-01,Kalimantan,Hemaviton C1000,E-commerce,1085.653
+2023-03-01,Kalimantan,Hemaviton C1000,Hospitals & Institutions,710.856
+2023-03-01,Kalimantan,Vidoran Smart,General Trade,1542.318
+2023-03-01,Kalimantan,Vidoran Smart,Modern Trade,1319.78
+2023-03-01,Kalimantan,Vidoran Smart,E-commerce,917.438
+2023-03-01,Kalimantan,Vidoran Smart,Hospitals & Institutions,611.304
+2023-03-01,Kalimantan,Marina Skin Care,General Trade,1388.632
+2023-03-01,Kalimantan,Marina Skin Care,Modern Trade,1182.972
+2023-03-01,Kalimantan,Marina Skin Care,E-commerce,834.664
+2023-03-01,Kalimantan,Marina Skin Care,Hospitals & Institutions,566.701
+2023-03-01,Sulawesi,Tempra,General Trade,1695.525
+2023-03-01,Sulawesi,Tempra,Modern Trade,1495.181
+2023-03-01,Sulawesi,Tempra,E-commerce,1022.647
+2023-03-01,Sulawesi,Tempra,Hospitals & Institutions,715.065
+2023-03-01,Sulawesi,Bodrex Flu & Batuk,General Trade,1974.997
+2023-03-01,Sulawesi,Bodrex Flu & Batuk,Modern Trade,1708.843
+2023-03-01,Sulawesi,Bodrex Flu & Batuk,E-commerce,1196.55
+2023-03-01,Sulawesi,Bodrex Flu & Batuk,Hospitals & Institutions,781.911
+2023-03-01,Sulawesi,Hemaviton C1000,General Trade,1524.468
+2023-03-01,Sulawesi,Hemaviton C1000,Modern Trade,1324.739
+2023-03-01,Sulawesi,Hemaviton C1000,E-commerce,923.81
+2023-03-01,Sulawesi,Hemaviton C1000,Hospitals & Institutions,624.913
+2023-03-01,Sulawesi,Vidoran Smart,General Trade,1309.02
+2023-03-01,Sulawesi,Vidoran Smart,Modern Trade,1097.495
+2023-03-01,Sulawesi,Vidoran Smart,E-commerce,763.596
+2023-03-01,Sulawesi,Vidoran Smart,Hospitals & Institutions,526.977
+2023-03-01,Sulawesi,Marina Skin Care,General Trade,1135.605
+2023-03-01,Sulawesi,Marina Skin Care,Modern Trade,1017.041
+2023-03-01,Sulawesi,Marina Skin Care,E-commerce,668.003
+2023-03-01,Sulawesi,Marina Skin Care,Hospitals & Institutions,470.382
+2023-04-01,Jawa Barat,Tempra,General Trade,7635.65
+2023-04-01,Jawa Barat,Tempra,Modern Trade,6624.392
+2023-04-01,Jawa Barat,Tempra,E-commerce,4294.751
+2023-04-01,Jawa Barat,Tempra,Hospitals & Institutions,3052.19
+2023-04-01,Jawa Barat,Bodrex Flu & Batuk,General Trade,8760.318
+2023-04-01,Jawa Barat,Bodrex Flu & Batuk,Modern Trade,7386.519
+2023-04-01,Jawa Barat,Bodrex Flu & Batuk,E-commerce,5128.62
+2023-04-01,Jawa Barat,Bodrex Flu & Batuk,Hospitals & Institutions,3376.437
+2023-04-01,Jawa Barat,Hemaviton C1000,General Trade,6351.941
+2023-04-01,Jawa Barat,Hemaviton C1000,Modern Trade,5753.281
+2023-04-01,Jawa Barat,Hemaviton C1000,E-commerce,3844.563
+2023-04-01,Jawa Barat,Hemaviton C1000,Hospitals & Institutions,2589.394
+2023-04-01,Jawa Barat,Vidoran Smart,General Trade,5421.944
+2023-04-01,Jawa Barat,Vidoran Smart,Modern Trade,4880.608
+2023-04-01,Jawa Barat,Vidoran Smart,E-commerce,3357.388
+2023-04-01,Jawa Barat,Vidoran Smart,Hospitals & Institutions,2213.087
+2023-04-01,Jawa Barat,Marina Skin Care,General Trade,4982.221
+2023-04-01,Jawa Barat,Marina Skin Care,Modern Trade,4294.712
+2023-04-01,Jawa Barat,Marina Skin Care,E-commerce,2985.9
+2023-04-01,Jawa Barat,Marina Skin Care,Hospitals & Institutions,1994.399
+2023-04-01,Jawa Timur,Tempra,General Trade,4462.635
+2023-04-01,Jawa Timur,Tempra,Modern Trade,3727.682
+2023-04-01,Jawa Timur,Tempra,E-commerce,2549.298
+2023-04-01,Jawa Timur,Tempra,Hospitals & Institutions,1753.9
+2023-04-01,Jawa Timur,Bodrex Flu & Batuk,General Trade,4962.319
+2023-04-01,Jawa Timur,Bodrex Flu & Batuk,Modern Trade,4437.975
+2023-04-01,Jawa Timur,Bodrex Flu & Batuk,E-commerce,2934.185
+2023-04-01,Jawa Timur,Bodrex Flu & Batuk,Hospitals & Institutions,1982.402
+2023-04-01,Jawa Timur,Hemaviton C1000,General Trade,3740.843
+2023-04-01,Jawa Timur,Hemaviton C1000,Modern Trade,3306.258
+2023-04-01,Jawa Timur,Hemaviton C1000,E-commerce,2339.151
+2023-04-01,Jawa Timur,Hemaviton C1000,Hospitals & Institutions,1543.671
+2023-04-01,Jawa Timur,Vidoran Smart,General Trade,3179.184
+2023-04-01,Jawa Timur,Vidoran Smart,Modern Trade,2789.973
+2023-04-01,Jawa Timur,Vidoran Smart,E-commerce,1979.659
+2023-04-01,Jawa Timur,Vidoran Smart,Hospitals & Institutions,1318.449
+2023-04-01,Jawa Timur,Marina Skin Care,General Trade,2877.214
+2023-04-01,Jawa Timur,Marina Skin Care,Modern Trade,2542.948
+2023-04-01,Jawa Timur,Marina Skin Care,E-commerce,1698.142
+2023-04-01,Jawa Timur,Marina Skin Care,Hospitals & Institutions,1182.593
+2023-04-01,Jawa Tengah,Tempra,General Trade,3140.936
+2023-04-01,Jawa Tengah,Tempra,Modern Trade,2799.514
+2023-04-01,Jawa Tengah,Tempra,E-commerce,1908.156
+2023-04-01,Jawa Tengah,Tempra,Hospitals & Institutions,1276.836
+2023-04-01,Jawa Tengah,Bodrex Flu & Batuk,General Trade,3574.325
+2023-04-01,Jawa Tengah,Bodrex Flu & Batuk,Modern Trade,3280.646
+2023-04-01,Jawa Tengah,Bodrex Flu & Batuk,E-commerce,2183.125
+2023-04-01,Jawa Tengah,Bodrex Flu & Batuk,Hospitals & Institutions,1427.877
+2023-04-01,Jawa Tengah,Hemaviton C1000,General Trade,2775.804
+2023-04-01,Jawa Tengah,Hemaviton C1000,Modern Trade,2482.939
+2023-04-01,Jawa Tengah,Hemaviton C1000,E-commerce,1618.84
+2023-04-01,Jawa Tengah,Hemaviton C1000,Hospitals & Institutions,1104.976
+2023-04-01,Jawa Tengah,Vidoran Smart,General Trade,2434.272
+2023-04-01,Jawa Tengah,Vidoran Smart,Modern Trade,2012.606
+2023-04-01,Jawa Tengah,Vidoran Smart,E-commerce,1420.031
+2023-04-01,Jawa Tengah,Vidoran Smart,Hospitals & Institutions,931.368
+2023-04-01,Jawa Tengah,Marina Skin Care,General Trade,2158.674
+2023-04-01,Jawa Tengah,Marina Skin Care,Modern Trade,1830.511
+2023-04-01,Jawa Tengah,Marina Skin Care,E-commerce,1259.144
+2023-04-01,Jawa Tengah,Marina Skin Care,Hospitals & Institutions,864.995
+2023-04-01,Sumatera,Tempra,General Trade,2719.087
+2023-04-01,Sumatera,Tempra,Modern Trade,2379.0
+2023-04-01,Sumatera,Tempra,E-commerce,1614.914
+2023-04-01,Sumatera,Tempra,Hospitals & Institutions,1058.271
+2023-04-01,Sumatera,Bodrex Flu & Batuk,General Trade,3020.161
+2023-04-01,Sumatera,Bodrex Flu & Batuk,Modern Trade,2643.979
+2023-04-01,Sumatera,Bodrex Flu & Batuk,E-commerce,1842.55
+2023-04-01,Sumatera,Bodrex Flu & Batuk,Hospitals & Institutions,1196.403
+2023-04-01,Sumatera,Hemaviton C1000,General Trade,2393.725
+2023-04-01,Sumatera,Hemaviton C1000,Modern Trade,2022.085
+2023-04-01,Sumatera,Hemaviton C1000,E-commerce,1404.742
+2023-04-01,Sumatera,Hemaviton C1000,Hospitals & Institutions,941.741
+2023-04-01,Sumatera,Vidoran Smart,General Trade,1982.913
+2023-04-01,Sumatera,Vidoran Smart,Modern Trade,1732.598
+2023-04-01,Sumatera,Vidoran Smart,E-commerce,1204.732
+2023-04-01,Sumatera,Vidoran Smart,Hospitals & Institutions,819.096
+2023-04-01,Sumatera,Marina Skin Care,General Trade,1821.554
+2023-04-01,Sumatera,Marina Skin Care,Modern Trade,1543.938
+2023-04-01,Sumatera,Marina Skin Care,E-commerce,1054.584
+2023-04-01,Sumatera,Marina Skin Care,Hospitals & Institutions,735.251
+2023-04-01,Kalimantan,Tempra,General Trade,2018.732
+2023-04-01,Kalimantan,Tempra,Modern Trade,1785.758
+2023-04-01,Kalimantan,Tempra,E-commerce,1188.828
+2023-04-01,Kalimantan,Tempra,Hospitals & Institutions,821.347
+2023-04-01,Kalimantan,Bodrex Flu & Batuk,General Trade,2306.803
+2023-04-01,Kalimantan,Bodrex Flu & Batuk,Modern Trade,2090.377
+2023-04-01,Kalimantan,Bodrex Flu & Batuk,E-commerce,1418.451
+2023-04-01,Kalimantan,Bodrex Flu & Batuk,Hospitals & Institutions,935.666
+2023-04-01,Kalimantan,Hemaviton C1000,General Trade,1806.911
+2023-04-01,Kalimantan,Hemaviton C1000,Modern Trade,1536.629
+2023-04-01,Kalimantan,Hemaviton C1000,E-commerce,1043.02
+2023-04-01,Kalimantan,Hemaviton C1000,Hospitals & Institutions,717.061
+2023-04-01,Kalimantan,Vidoran Smart,General Trade,1492.488
+2023-04-01,Kalimantan,Vidoran Smart,Modern Trade,1296.996
+2023-04-01,Kalimantan,Vidoran Smart,E-commerce,895.524
+2023-04-01,Kalimantan,Vidoran Smart,Hospitals & Institutions,622.362
+2023-04-01,Kalimantan,Marina Skin Care,General Trade,1348.686
+2023-04-01,Kalimantan,Marina Skin Care,Modern Trade,1215.266
+2023-04-01,Kalimantan,Marina Skin Care,E-commerce,809.993
+2023-04-01,Kalimantan,Marina Skin Care,Hospitals & Institutions,534.179
+2023-04-01,Sulawesi,Tempra,General Trade,1674.428
+2023-04-01,Sulawesi,Tempra,Modern Trade,1528.571
+2023-04-01,Sulawesi,Tempra,E-commerce,986.379
+2023-04-01,Sulawesi,Tempra,Hospitals & Institutions,666.16
+2023-04-01,Sulawesi,Bodrex Flu & Batuk,General Trade,1972.512
+2023-04-01,Sulawesi,Bodrex Flu & Batuk,Modern Trade,1697.313
+2023-04-01,Sulawesi,Bodrex Flu & Batuk,E-commerce,1183.089
+2023-04-01,Sulawesi,Bodrex Flu & Batuk,Hospitals & Institutions,797.134
+2023-04-01,Sulawesi,Hemaviton C1000,General Trade,1471.735
+2023-04-01,Sulawesi,Hemaviton C1000,Modern Trade,1315.992
+2023-04-01,Sulawesi,Hemaviton C1000,E-commerce,874.941
+2023-04-01,Sulawesi,Hemaviton C1000,Hospitals & Institutions,613.611
+2023-04-01,Sulawesi,Vidoran Smart,General Trade,1262.169
+2023-04-01,Sulawesi,Vidoran Smart,Modern Trade,1121.018
+2023-04-01,Sulawesi,Vidoran Smart,E-commerce,732.402
+2023-04-01,Sulawesi,Vidoran Smart,Hospitals & Institutions,515.912
+2023-04-01,Sulawesi,Marina Skin Care,General Trade,1126.44
+2023-04-01,Sulawesi,Marina Skin Care,Modern Trade,1006.907
+2023-04-01,Sulawesi,Marina Skin Care,E-commerce,673.832
+2023-04-01,Sulawesi,Marina Skin Care,Hospitals & Institutions,455.729
+2023-05-01,Jawa Barat,Tempra,General Trade,7826.154
+2023-05-01,Jawa Barat,Tempra,Modern Trade,6610.838
+2023-05-01,Jawa Barat,Tempra,E-commerce,4480.641
+2023-05-01,Jawa Barat,Tempra,Hospitals & Institutions,3064.704
+2023-05-01,Jawa Barat,Bodrex Flu & Batuk,General Trade,8952.427
+2023-05-01,Jawa Barat,Bodrex Flu & Batuk,Modern Trade,7577.389
+2023-05-01,Jawa Barat,Bodrex Flu & Batuk,E-commerce,5161.278
+2023-05-01,Jawa Barat,Bodrex Flu & Batuk,Hospitals & Institutions,3559.363
+2023-05-01,Jawa Barat,Hemaviton C1000,General Trade,6570.165
+2023-05-01,Jawa Barat,Hemaviton C1000,Modern Trade,5757.14
+2023-05-01,Jawa Barat,Hemaviton C1000,E-commerce,3939.373
+2023-05-01,Jawa Barat,Hemaviton C1000,Hospitals & Institutions,2753.263
+2023-05-01,Jawa Barat,Vidoran Smart,General Trade,5777.163
+2023-05-01,Jawa Barat,Vidoran Smart,Modern Trade,4989.397
+2023-05-01,Jawa Barat,Vidoran Smart,E-commerce,3450.704
+2023-05-01,Jawa Barat,Vidoran Smart,Hospitals & Institutions,2264.964
+2023-05-01,Jawa Barat,Marina Skin Care,General Trade,5082.382
+2023-05-01,Jawa Barat,Marina Skin Care,Modern Trade,4354.125
+2023-05-01,Jawa Barat,Marina Skin Care,E-commerce,3054.23
+2023-05-01,Jawa Barat,Marina Skin Care,Hospitals & Institutions,2049.158
+2023-05-01,Jawa Timur,Tempra,General Trade,4456.955
+2023-05-01,Jawa Timur,Tempra,Modern Trade,4034.204
+2023-05-01,Jawa Timur,Tempra,E-commerce,2702.12
+2023-05-01,Jawa Timur,Tempra,Hospitals & Institutions,1848.531
+2023-05-01,Jawa Timur,Bodrex Flu & Batuk,General Trade,5074.873
+2023-05-01,Jawa Timur,Bodrex Flu & Batuk,Modern Trade,4534.384
+2023-05-01,Jawa Timur,Bodrex Flu & Batuk,E-commerce,3132.928
+2023-05-01,Jawa Timur,Bodrex Flu & Batuk,Hospitals & Institutions,2057.664
+2023-05-01,Jawa Timur,Hemaviton C1000,General Trade,4094.46
+2023-05-01,Jawa Timur,Hemaviton C1000,Modern Trade,3394.264
+2023-05-01,Jawa Timur,Hemaviton C1000,E-commerce,2364.49
+2023-05-01,Jawa Timur,Hemaviton C1000,Hospitals & Institutions,1626.332
+2023-05-01,Jawa Timur,Vidoran Smart,General Trade,3421.68
+2023-05-01,Jawa Timur,Vidoran Smart,Modern Trade,2879.665
+2023-05-01,Jawa Timur,Vidoran Smart,E-commerce,2045.943
+2023-05-01,Jawa Timur,Vidoran Smart,Hospitals & Institutions,1375.504
+2023-05-01,Jawa Timur,Marina Skin Care,General Trade,3036.363
+2023-05-01,Jawa Timur,Marina Skin Care,Modern Trade,2678.472
+2023-05-01,Jawa Timur,Marina Skin Care,E-commerce,1778.377
+2023-05-01,Jawa Timur,Marina Skin Care,Hospitals & Institutions,1210.951
+2023-05-01,Jawa Tengah,Tempra,General Trade,3248.898
+2023-05-01,Jawa Tengah,Tempra,Modern Trade,2846.472
+2023-05-01,Jawa Tengah,Tempra,E-commerce,1963.044
+2023-05-01,Jawa Tengah,Tempra,Hospitals & Institutions,1322.721
+2023-05-01,Jawa Tengah,Bodrex Flu & Batuk,General Trade,3789.397
+2023-05-01,Jawa Tengah,Bodrex Flu & Batuk,Modern Trade,3310.07
+2023-05-01,Jawa Tengah,Bodrex Flu & Batuk,E-commerce,2274.421
+2023-05-01,Jawa Tengah,Bodrex Flu & Batuk,Hospitals & Institutions,1521.606
+2023-05-01,Jawa Tengah,Hemaviton C1000,General Trade,2910.539
+2023-05-01,Jawa Tengah,Hemaviton C1000,Modern Trade,2548.755
+2023-05-01,Jawa Tengah,Hemaviton C1000,E-commerce,1687.466
+2023-05-01,Jawa Tengah,Hemaviton C1000,Hospitals & Institutions,1125.842
+2023-05-01,Jawa Tengah,Vidoran Smart,General Trade,2388.825
+2023-05-01,Jawa Tengah,Vidoran Smart,Modern Trade,2105.136
+2023-05-01,Jawa Tengah,Vidoran Smart,E-commerce,1475.631
+2023-05-01,Jawa Tengah,Vidoran Smart,Hospitals & Institutions,978.527
+2023-05-01,Jawa Tengah,Marina Skin Care,General Trade,2264.857
+2023-05-01,Jawa Tengah,Marina Skin Care,Modern Trade,1880.106
+2023-05-01,Jawa Tengah,Marina Skin Care,E-commerce,1309.444
+2023-05-01,Jawa Tengah,Marina Skin Care,Hospitals & Institutions,862.949
+2023-05-01,Sumatera,Tempra,General Trade,2704.974
+2023-05-01,Sumatera,Tempra,Modern Trade,2364.767
+2023-05-01,Sumatera,Tempra,E-commerce,1652.069
+2023-05-01,Sumatera,Tempra,Hospitals & Institutions,1135.702
+2023-05-01,Sumatera,Bodrex Flu & Batuk,General Trade,3163.87
+2023-05-01,Sumatera,Bodrex Flu & Batuk,Modern Trade,2740.87
+2023-05-01,Sumatera,Bodrex Flu & Batuk,E-commerce,1862.616
+2023-05-01,Sumatera,Bodrex Flu & Batuk,Hospitals & Institutions,1297.211
+2023-05-01,Sumatera,Hemaviton C1000,General Trade,2466.518
+2023-05-01,Sumatera,Hemaviton C1000,Modern Trade,2076.093
+2023-05-01,Sumatera,Hemaviton C1000,E-commerce,1426.089
+2023-05-01,Sumatera,Hemaviton C1000,Hospitals & Institutions,991.522
+2023-05-01,Sumatera,Vidoran Smart,General Trade,2054.161
+2023-05-01,Sumatera,Vidoran Smart,Modern Trade,1820.427
+2023-05-01,Sumatera,Vidoran Smart,E-commerce,1206.229
+2023-05-01,Sumatera,Vidoran Smart,Hospitals & Institutions,836.011
+2023-05-01,Sumatera,Marina Skin Care,General Trade,1795.049
+2023-05-01,Sumatera,Marina Skin Care,Modern Trade,1590.454
+2023-05-01,Sumatera,Marina Skin Care,E-commerce,1101.383
+2023-05-01,Sumatera,Marina Skin Care,Hospitals & Institutions,747.816
+2023-05-01,Kalimantan,Tempra,General Trade,2170.826
+2023-05-01,Kalimantan,Tempra,Modern Trade,1793.004
+2023-05-01,Kalimantan,Tempra,E-commerce,1275.713
+2023-05-01,Kalimantan,Tempra,Hospitals & Institutions,829.317
+2023-05-01,Kalimantan,Bodrex Flu & Batuk,General Trade,2438.183
+2023-05-01,Kalimantan,Bodrex Flu & Batuk,Modern Trade,2108.159
+2023-05-01,Kalimantan,Bodrex Flu & Batuk,E-commerce,1423.303
+2023-05-01,Kalimantan,Bodrex Flu & Batuk,Hospitals & Institutions,992.208
+2023-05-01,Kalimantan,Hemaviton C1000,General Trade,1800.084
+2023-05-01,Kalimantan,Hemaviton C1000,Modern Trade,1586.291
+2023-05-01,Kalimantan,Hemaviton C1000,E-commerce,1123.566
+2023-05-01,Kalimantan,Hemaviton C1000,Hospitals & Institutions,730.406
+2023-05-01,Kalimantan,Vidoran Smart,General Trade,1563.089
+2023-05-01,Kalimantan,Vidoran Smart,Modern Trade,1362.325
+2023-05-01,Kalimantan,Vidoran Smart,E-commerce,932.077
+2023-05-01,Kalimantan,Vidoran Smart,Hospitals & Institutions,635.621
+2023-05-01,Kalimantan,Marina Skin Care,General Trade,1435.754
+2023-05-01,Kalimantan,Marina Skin Care,Modern Trade,1240.783
+2023-05-01,Kalimantan,Marina Skin Care,E-commerce,841.23
+2023-05-01,Kalimantan,Marina Skin Care,Hospitals & Institutions,568.702
+2023-05-01,Sulawesi,Tempra,General Trade,1750.187
+2023-05-01,Sulawesi,Tempra,Modern Trade,1495.937
+2023-05-01,Sulawesi,Tempra,E-commerce,1021.988
+2023-05-01,Sulawesi,Tempra,Hospitals & Institutions,692.812
+2023-05-01,Sulawesi,Bodrex Flu & Batuk,General Trade,1990.686
+2023-05-01,Sulawesi,Bodrex Flu & Batuk,Modern Trade,1756.744
+2023-05-01,Sulawesi,Bodrex Flu & Batuk,E-commerce,1176.329
+2023-05-01,Sulawesi,Bodrex Flu & Batuk,Hospitals & Institutions,789.759
+2023-05-01,Sulawesi,Hemaviton C1000,General Trade,1553.373
+2023-05-01,Sulawesi,Hemaviton C1000,Modern Trade,1375.909
+2023-05-01,Sulawesi,Hemaviton C1000,E-commerce,927.326
+2023-05-01,Sulawesi,Hemaviton C1000,Hospitals & Institutions,636.033
+2023-05-01,Sulawesi,Vidoran Smart,General Trade,1294.017
+2023-05-01,Sulawesi,Vidoran Smart,Modern Trade,1134.685
+2023-05-01,Sulawesi,Vidoran Smart,E-commerce,793.531
+2023-05-01,Sulawesi,Vidoran Smart,Hospitals & Institutions,521.827
+2023-05-01,Sulawesi,Marina Skin Care,General Trade,1171.318
+2023-05-01,Sulawesi,Marina Skin Care,Modern Trade,999.694
+2023-05-01,Sulawesi,Marina Skin Care,E-commerce,698.146
+2023-05-01,Sulawesi,Marina Skin Care,Hospitals & Institutions,458.538
+2023-06-01,Jawa Barat,Tempra,General Trade,7368.069
+2023-06-01,Jawa Barat,Tempra,Modern Trade,6383.279
+2023-06-01,Jawa Barat,Tempra,E-commerce,4232.728
+2023-06-01,Jawa Barat,Tempra,Hospitals & Institutions,2913.697
+2023-06-01,Jawa Barat,Bodrex Flu & Batuk,General Trade,8149.604
+2023-06-01,Jawa Barat,Bodrex Flu & Batuk,Modern Trade,7394.999
+2023-06-01,Jawa Barat,Bodrex Flu & Batuk,E-commerce,5038.682
+2023-06-01,Jawa Barat,Bodrex Flu & Batuk,Hospitals & Institutions,3361.194
+2023-06-01,Jawa Barat,Hemaviton C1000,General Trade,6245.968
+2023-06-01,Jawa Barat,Hemaviton C1000,Modern Trade,5633.958
+2023-06-01,Jawa Barat,Hemaviton C1000,E-commerce,3864.936
+2023-06-01,Jawa Barat,Hemaviton C1000,Hospitals & Institutions,2605.576
+2023-06-01,Jawa Barat,Vidoran Smart,General Trade,5567.556
+2023-06-01,Jawa Barat,Vidoran Smart,Modern Trade,4743.992
+2023-06-01,Jawa Barat,Vidoran Smart,E-commerce,3215.817
+2023-06-01,Jawa Barat,Vidoran Smart,Hospitals & Institutions,2224.783
+2023-06-01,Jawa Barat,Marina Skin Care,General Trade,4824.167
+2023-06-01,Jawa Barat,Marina Skin Care,Modern Trade,4329.06
+2023-06-01,Jawa Barat,Marina Skin Care,E-commerce,2862.542
+2023-06-01,Jawa Barat,Marina Skin Care,Hospitals & Institutions,1993.456
+2023-06-01,Jawa Timur,Tempra,General Trade,4218.897
+2023-06-01,Jawa Timur,Tempra,Modern Trade,3729.014
+2023-06-01,Jawa Timur,Tempra,E-commerce,2524.179
+2023-06-01,Jawa Timur,Tempra,Hospitals & Institutions,1721.598
+2023-06-01,Jawa Timur,Bodrex Flu & Batuk,General Trade,4887.752
+2023-06-01,Jawa Timur,Bodrex Flu & Batuk,Modern Trade,4352.672
+2023-06-01,Jawa Timur,Bodrex Flu & Batuk,E-commerce,2839.251
+2023-06-01,Jawa Timur,Bodrex Flu & Batuk,Hospitals & Institutions,1993.007
+2023-06-01,Jawa Timur,Hemaviton C1000,General Trade,3887.189
+2023-06-01,Jawa Timur,Hemaviton C1000,Modern Trade,3228.744
+2023-06-01,Jawa Timur,Hemaviton C1000,E-commerce,2262.622
+2023-06-01,Jawa Timur,Hemaviton C1000,Hospitals & Institutions,1505.342
+2023-06-01,Jawa Timur,Vidoran Smart,General Trade,3276.977
+2023-06-01,Jawa Timur,Vidoran Smart,Modern Trade,2730.514
+2023-06-01,Jawa Timur,Vidoran Smart,E-commerce,1895.287
+2023-06-01,Jawa Timur,Vidoran Smart,Hospitals & Institutions,1301.307
+2023-06-01,Jawa Timur,Marina Skin Care,General Trade,2912.756
+2023-06-01,Jawa Timur,Marina Skin Care,Modern Trade,2528.505
+2023-06-01,Jawa Timur,Marina Skin Care,E-commerce,1742.673
+2023-06-01,Jawa Timur,Marina Skin Care,Hospitals & Institutions,1152.882
+2023-06-01,Jawa Tengah,Tempra,General Trade,3108.47
+2023-06-01,Jawa Tengah,Tempra,Modern Trade,2753.758
+2023-06-01,Jawa Tengah,Tempra,E-commerce,1889.753
+2023-06-01,Jawa Tengah,Tempra,Hospitals & Institutions,1223.011
+2023-06-01,Jawa Tengah,Bodrex Flu & Batuk,General Trade,3625.947
+2023-06-01,Jawa Tengah,Bodrex Flu & Batuk,Modern Trade,3170.506
+2023-06-01,Jawa Tengah,Bodrex Flu & Batuk,E-commerce,2165.789
+2023-06-01,Jawa Tengah,Bodrex Flu & Batuk,Hospitals & Institutions,1394.065
+2023-06-01,Jawa Tengah,Hemaviton C1000,General Trade,2693.072
+2023-06-01,Jawa Tengah,Hemaviton C1000,Modern Trade,2375.113
+2023-06-01,Jawa Tengah,Hemaviton C1000,E-commerce,1647.248
+2023-06-01,Jawa Tengah,Hemaviton C1000,Hospitals & Institutions,1121.269
+2023-06-01,Jawa Tengah,Vidoran Smart,General Trade,2350.447
+2023-06-01,Jawa Tengah,Vidoran Smart,Modern Trade,1970.64
+2023-06-01,Jawa Tengah,Vidoran Smart,E-commerce,1391.353
+2023-06-01,Jawa Tengah,Vidoran Smart,Hospitals & Institutions,919.866
+2023-06-01,Jawa Tengah,Marina Skin Care,General Trade,2106.235
+2023-06-01,Jawa Tengah,Marina Skin Care,Modern Trade,1807.41
+2023-06-01,Jawa Tengah,Marina Skin Care,E-commerce,1213.099
+2023-06-01,Jawa Tengah,Marina Skin Care,Hospitals & Institutions,832.679
+2023-06-01,Sumatera,Tempra,General Trade,2702.762
+2023-06-01,Sumatera,Tempra,Modern Trade,2221.575
+2023-06-01,Sumatera,Tempra,E-commerce,1518.853
+2023-06-01,Sumatera,Tempra,Hospitals & Institutions,1058.797
+2023-06-01,Sumatera,Bodrex Flu & Batuk,General Trade,2993.038
+2023-06-01,Sumatera,Bodrex Flu & Batuk,Modern Trade,2585.554
+2023-06-01,Sumatera,Bodrex Flu & Batuk,E-commerce,1766.673
+2023-06-01,Sumatera,Bodrex Flu & Batuk,Hospitals & Institutions,1222.792
+2023-06-01,Sumatera,Hemaviton C1000,General Trade,2332.308
+2023-06-01,Sumatera,Hemaviton C1000,Modern Trade,2036.315
+2023-06-01,Sumatera,Hemaviton C1000,E-commerce,1363.627
+2023-06-01,Sumatera,Hemaviton C1000,Hospitals & Institutions,938.7
+2023-06-01,Sumatera,Vidoran Smart,General Trade,1934.983
+2023-06-01,Sumatera,Vidoran Smart,Modern Trade,1710.37
+2023-06-01,Sumatera,Vidoran Smart,E-commerce,1183.495
+2023-06-01,Sumatera,Vidoran Smart,Hospitals & Institutions,787.106
+2023-06-01,Sumatera,Marina Skin Care,General Trade,1759.182
+2023-06-01,Sumatera,Marina Skin Care,Modern Trade,1514.219
+2023-06-01,Sumatera,Marina Skin Care,E-commerce,1054.423
+2023-06-01,Sumatera,Marina Skin Care,Hospitals & Institutions,710.293
+2023-06-01,Kalimantan,Tempra,General Trade,2028.474
+2023-06-01,Kalimantan,Tempra,Modern Trade,1695.263
+2023-06-01,Kalimantan,Tempra,E-commerce,1193.164
+2023-06-01,Kalimantan,Tempra,Hospitals & Institutions,796.12
+2023-06-01,Kalimantan,Bodrex Flu & Batuk,General Trade,2282.421
+2023-06-01,Kalimantan,Bodrex Flu & Batuk,Modern Trade,2052.536
+2023-06-01,Kalimantan,Bodrex Flu & Batuk,E-commerce,1378.573
+2023-06-01,Kalimantan,Bodrex Flu & Batuk,Hospitals & Institutions,927.598
+2023-06-01,Kalimantan,Hemaviton C1000,General Trade,1743.377
+2023-06-01,Kalimantan,Hemaviton C1000,Modern Trade,1524.894
+2023-06-01,Kalimantan,Hemaviton C1000,E-commerce,1068.836
+2023-06-01,Kalimantan,Hemaviton C1000,Hospitals & Institutions,685.763
+2023-06-01,Kalimantan,Vidoran Smart,General Trade,1510.082
+2023-06-01,Kalimantan,Vidoran Smart,Modern Trade,1277.927
+2023-06-01,Kalimantan,Vidoran Smart,E-commerce,857.655
+2023-06-01,Kalimantan,Vidoran Smart,Hospitals & Institutions,597.617
+2023-06-01,Kalimantan,Marina Skin Care,General Trade,1336.035
+2023-06-01,Kalimantan,Marina Skin Care,Modern Trade,1185.081
+2023-06-01,Kalimantan,Marina Skin Care,E-commerce,771.931
+2023-06-01,Kalimantan,Marina Skin Care,Hospitals & Institutions,521.068
+2023-06-01,Sulawesi,Tempra,General Trade,1674.894
+2023-06-01,Sulawesi,Tempra,Modern Trade,1441.869
+2023-06-01,Sulawesi,Tempra,E-commerce,978.934
+2023-06-01,Sulawesi,Tempra,Hospitals & Institutions,691.992
+2023-06-01,Sulawesi,Bodrex Flu & Batuk,General Trade,1941.887
+2023-06-01,Sulawesi,Bodrex Flu & Batuk,Modern Trade,1689.932
+2023-06-01,Sulawesi,Bodrex Flu & Batuk,E-commerce,1135.058
+2023-06-01,Sulawesi,Bodrex Flu & Batuk,Hospitals & Institutions,765.438
+2023-06-01,Sulawesi,Hemaviton C1000,General Trade,1489.816
+2023-06-01,Sulawesi,Hemaviton C1000,Modern Trade,1241.841
+2023-06-01,Sulawesi,Hemaviton C1000,E-commerce,854.803
+2023-06-01,Sulawesi,Hemaviton C1000,Hospitals & Institutions,605.631
+2023-06-01,Sulawesi,Vidoran Smart,General Trade,1213.166
+2023-06-01,Sulawesi,Vidoran Smart,Modern Trade,1068.841
+2023-06-01,Sulawesi,Vidoran Smart,E-commerce,716.824
+2023-06-01,Sulawesi,Vidoran Smart,Hospitals & Institutions,500.014
+2023-06-01,Sulawesi,Marina Skin Care,General Trade,1151.619
+2023-06-01,Sulawesi,Marina Skin Care,Modern Trade,962.435
+2023-06-01,Sulawesi,Marina Skin Care,E-commerce,679.196
+2023-06-01,Sulawesi,Marina Skin Care,Hospitals & Institutions,449.678
+2023-07-01,Jawa Barat,Tempra,General Trade,7165.795
+2023-07-01,Jawa Barat,Tempra,Modern Trade,6537.634
+2023-07-01,Jawa Barat,Tempra,E-commerce,4202.712
+2023-07-01,Jawa Barat,Tempra,Hospitals & Institutions,2902.226
+2023-07-01,Jawa Barat,Bodrex Flu & Batuk,General Trade,8446.949
+2023-07-01,Jawa Barat,Bodrex Flu & Batuk,Modern Trade,7472.907
+2023-07-01,Jawa Barat,Bodrex Flu & Batuk,E-commerce,4907.555
+2023-07-01,Jawa Barat,Bodrex Flu & Batuk,Hospitals & Institutions,3377.351
+2023-07-01,Jawa Barat,Hemaviton C1000,General Trade,6323.004
+2023-07-01,Jawa Barat,Hemaviton C1000,Modern Trade,5557.968
+2023-07-01,Jawa Barat,Hemaviton C1000,E-commerce,3689.082
+2023-07-01,Jawa Barat,Hemaviton C1000,Hospitals & Institutions,2573.222
+2023-07-01,Jawa Barat,Vidoran Smart,General Trade,5318.805
+2023-07-01,Jawa Barat,Vidoran Smart,Modern Trade,4651.957
+2023-07-01,Jawa Barat,Vidoran Smart,E-commerce,3220.181
+2023-07-01,Jawa Barat,Vidoran Smart,Hospitals & Institutions,2225.699
+2023-07-01,Jawa Barat,Marina Skin Care,General Trade,4835.069
+2023-07-01,Jawa Barat,Marina Skin Care,Modern Trade,4141.394
+2023-07-01,Jawa Barat,Marina Skin Care,E-commerce,2945.452
+2023-07-01,Jawa Barat,Marina Skin Care,Hospitals & Institutions,1943.176
+2023-07-01,Jawa Timur,Tempra,General Trade,4394.37
+2023-07-01,Jawa Timur,Tempra,Modern Trade,3784.179
+2023-07-01,Jawa Timur,Tempra,E-commerce,2588.124
+2023-07-01,Jawa Timur,Tempra,Hospitals & Institutions,1763.141
+2023-07-01,Jawa Timur,Bodrex Flu & Batuk,General Trade,4839.235
+2023-07-01,Jawa Timur,Bodrex Flu & Batuk,Modern Trade,4185.286
+2023-07-01,Jawa Timur,Bodrex Flu & Batuk,E-commerce,2919.062
+2023-07-01,Jawa Timur,Bodrex Flu & Batuk,Hospitals & Institutions,1937.193
+2023-07-01,Jawa Timur,Hemaviton C1000,General Trade,3784.588
+2023-07-01,Jawa Timur,Hemaviton C1000,Modern Trade,3234.797
+2023-07-01,Jawa Timur,Hemaviton C1000,E-commerce,2259.764
+2023-07-01,Jawa Timur,Hemaviton C1000,Hospitals & Institutions,1499.675
+2023-07-01,Jawa Timur,Vidoran Smart,General Trade,3200.877
+2023-07-01,Jawa Timur,Vidoran Smart,Modern Trade,2750.248
+2023-07-01,Jawa Timur,Vidoran Smart,E-commerce,1888.703
+2023-07-01,Jawa Timur,Vidoran Smart,Hospitals & Institutions,1293.546
+2023-07-01,Jawa Timur,Marina Skin Care,General Trade,2898.827
+2023-07-01,Jawa Timur,Marina Skin Care,Modern Trade,2438.82
+2023-07-01,Jawa Timur,Marina Skin Care,E-commerce,1740.017
+2023-07-01,Jawa Timur,Marina Skin Care,Hospitals & Institutions,1175.507
+2023-07-01,Jawa Tengah,Tempra,General Trade,3211.922
+2023-07-01,Jawa Tengah,Tempra,Modern Trade,2770.497
+2023-07-01,Jawa Tengah,Tempra,E-commerce,1813.072
+2023-07-01,Jawa Tengah,Tempra,Hospitals & Institutions,1282.772
+2023-07-01,Jawa Tengah,Bodrex Flu & Batuk,General Trade,3553.918
+2023-07-01,Jawa Tengah,Bodrex Flu & Batuk,Modern Trade,3132.769
+2023-07-01,Jawa Tengah,Bodrex Flu & Batuk,E-commerce,2115.662
+2023-07-01,Jawa Tengah,Bodrex Flu & Batuk,Hospitals & Institutions,1415.89
+2023-07-01,Jawa Tengah,Hemaviton C1000,General Trade,2731.919
+2023-07-01,Jawa Tengah,Hemaviton C1000,Modern Trade,2376.926
+2023-07-01,Jawa Tengah,Hemaviton C1000,E-commerce,1642.954
+2023-07-01,Jawa Tengah,Hemaviton C1000,Hospitals & Institutions,1126.637
+2023-07-01,Jawa Tengah,Vidoran Smart,General Trade,2268.267
+2023-07-01,Jawa Tengah,Vidoran Smart,Modern Trade,2083.367
+2023-07-01,Jawa Tengah,Vidoran Smart,E-commerce,1419.218
+2023-07-01,Jawa Tengah,Vidoran Smart,Hospitals & Institutions,918.05
+2023-07-01,Jawa Tengah,Marina Skin Care,General Trade,2040.095
+2023-07-01,Jawa Tengah,Marina Skin Care,Modern Trade,1866.956
+2023-07-01,Jawa Tengah,Marina Skin Care,E-commerce,1233.508
+2023-07-01,Jawa Tengah,Marina Skin Care,Hospitals & Institutions,820.986
+2023-07-01,Sumatera,Tempra,General Trade,2692.909
+2023-07-01,Sumatera,Tempra,Modern Trade,2302.709
+2023-07-01,Sumatera,Tempra,E-commerce,1533.223
+2023-07-01,Sumatera,Tempra,Hospitals & Institutions,1027.651
+2023-07-01,Sumatera,Bodrex Flu & Batuk,General Trade,3032.809
+2023-07-01,Sumatera,Bodrex Flu & Batuk,Modern Trade,2543.263
+2023-07-01,Sumatera,Bodrex Flu & Batuk,E-commerce,1742.077
+2023-07-01,Sumatera,Bodrex Flu & Batuk,Hospitals & Institutions,1208.754
+2023-07-01,Sumatera,Hemaviton C1000,General Trade,2357.546
+2023-07-01,Sumatera,Hemaviton C1000,Modern Trade,2024.255
+2023-07-01,Sumatera,Hemaviton C1000,E-commerce,1359.145
+2023-07-01,Sumatera,Hemaviton C1000,Hospitals & Institutions,907.21
+2023-07-01,Sumatera,Vidoran Smart,General Trade,1990.865
+2023-07-01,Sumatera,Vidoran Smart,Modern Trade,1708.261
+2023-07-01,Sumatera,Vidoran Smart,E-commerce,1164.693
+2023-07-01,Sumatera,Vidoran Smart,Hospitals & Institutions,777.39
+2023-07-01,Sumatera,Marina Skin Care,General Trade,1732.138
+2023-07-01,Sumatera,Marina Skin Care,Modern Trade,1560.872
+2023-07-01,Sumatera,Marina Skin Care,E-commerce,1012.137
+2023-07-01,Sumatera,Marina Skin Care,Hospitals & Institutions,717.368
+2023-07-01,Kalimantan,Tempra,General Trade,2004.294
+2023-07-01,Kalimantan,Tempra,Modern Trade,1743.277
+2023-07-01,Kalimantan,Tempra,E-commerce,1207.787
+2023-07-01,Kalimantan,Tempra,Hospitals & Institutions,806.159
+2023-07-01,Kalimantan,Bodrex Flu & Batuk,General Trade,2232.489
+2023-07-01,Kalimantan,Bodrex Flu & Batuk,Modern Trade,1996.377
+2023-07-01,Kalimantan,Bodrex Flu & Batuk,E-commerce,1392.133
+2023-07-01,Kalimantan,Bodrex Flu & Batuk,Hospitals & Institutions,900.573
+2023-07-01,Kalimantan,Hemaviton C1000,General Trade,1712.789
+2023-07-01,Kalimantan,Hemaviton C1000,Modern Trade,1568.8
+2023-07-01,Kalimantan,Hemaviton C1000,E-commerce,1072.881
+2023-07-01,Kalimantan,Hemaviton C1000,Hospitals & Institutions,689.538
+2023-07-01,Kalimantan,Vidoran Smart,General Trade,1510.766
+2023-07-01,Kalimantan,Vidoran Smart,Modern Trade,1286.109
+2023-07-01,Kalimantan,Vidoran Smart,E-commerce,900.002
+2023-07-01,Kalimantan,Vidoran Smart,Hospitals & Institutions,611.131
+2023-07-01,Kalimantan,Marina Skin Care,General Trade,1379.691
+2023-07-01,Kalimantan,Marina Skin Care,Modern Trade,1165.239
+2023-07-01,Kalimantan,Marina Skin Care,E-commerce,770.758
+2023-07-01,Kalimantan,Marina Skin Care,Hospitals & Institutions,548.256
+2023-07-01,Sulawesi,Tempra,General Trade,1640.882
+2023-07-01,Sulawesi,Tempra,Modern Trade,1454.022
+2023-07-01,Sulawesi,Tempra,E-commerce,1009.963
+2023-07-01,Sulawesi,Tempra,Hospitals & Institutions,671.466
+2023-07-01,Sulawesi,Bodrex Flu & Batuk,General Trade,1933.156
+2023-07-01,Sulawesi,Bodrex Flu & Batuk,Modern Trade,1702.289
+2023-07-01,Sulawesi,Bodrex Flu & Batuk,E-commerce,1106.467
+2023-07-01,Sulawesi,Bodrex Flu & Batuk,Hospitals & Institutions,753.106
+2023-07-01,Sulawesi,Hemaviton C1000,General Trade,1497.215
+2023-07-01,Sulawesi,Hemaviton C1000,Modern Trade,1285.187
+2023-07-01,Sulawesi,Hemaviton C1000,E-commerce,881.279
+2023-07-01,Sulawesi,Hemaviton C1000,Hospitals & Institutions,594.437
+2023-07-01,Sulawesi,Vidoran Smart,General Trade,1214.99
+2023-07-01,Sulawesi,Vidoran Smart,Modern Trade,1097.097
+2023-07-01,Sulawesi,Vidoran Smart,E-commerce,739.321
+2023-07-01,Sulawesi,Vidoran Smart,Hospitals & Institutions,505.321
+2023-07-01,Sulawesi,Marina Skin Care,General Trade,1123.822
+2023-07-01,Sulawesi,Marina Skin Care,Modern Trade,981.684
+2023-07-01,Sulawesi,Marina Skin Care,E-commerce,644.076
+2023-07-01,Sulawesi,Marina Skin Care,Hospitals & Institutions,456.754
+2023-08-01,Jawa Barat,Tempra,General Trade,7182.939
+2023-08-01,Jawa Barat,Tempra,Modern Trade,6001.426
+2023-08-01,Jawa Barat,Tempra,E-commerce,4085.539
+2023-08-01,Jawa Barat,Tempra,Hospitals & Institutions,2809.988
+2023-08-01,Jawa Barat,Bodrex Flu & Batuk,General Trade,7884.328
+2023-08-01,Jawa Barat,Bodrex Flu & Batuk,Modern Trade,6888.741
+2023-08-01,Jawa Barat,Bodrex Flu & Batuk,E-commerce,4831.47
+2023-08-01,Jawa Barat,Bodrex Flu & Batuk,Hospitals & Institutions,3230.104
+2023-08-01,Jawa Barat,Hemaviton C1000,General Trade,6066.698
+2023-08-01,Jawa Barat,Hemaviton C1000,Modern Trade,5379.288
+2023-08-01,Jawa Barat,Hemaviton C1000,E-commerce,3720.593
+2023-08-01,Jawa Barat,Hemaviton C1000,Hospitals & Institutions,2464.655
+2023-08-01,Jawa Barat,Vidoran Smart,General Trade,5268.597
+2023-08-01,Jawa Barat,Vidoran Smart,Modern Trade,4548.716
+2023-08-01,Jawa Barat,Vidoran Smart,E-commerce,3129.535
+2023-08-01,Jawa Barat,Vidoran Smart,Hospitals & Institutions,2069.651
+2023-08-01,Jawa Barat,Marina Skin Care,General Trade,4668.192
+2023-08-01,Jawa Barat,Marina Skin Care,Modern Trade,4151.497
+2023-08-01,Jawa Barat,Marina Skin Care,E-commerce,2842.596
+2023-08-01,Jawa Barat,Marina Skin Care,Hospitals & Institutions,1879.539
+2023-08-01,Jawa Timur,Tempra,General Trade,4143.869
+2023-08-01,Jawa Timur,Tempra,Modern Trade,3661.574
+2023-08-01,Jawa Timur,Tempra,E-commerce,2544.291
+2023-08-01,Jawa Timur,Tempra,Hospitals & Institutions,1721.88
+2023-08-01,Jawa Timur,Bodrex Flu & Batuk,General Trade,4811.77
+2023-08-01,Jawa Timur,Bodrex Flu & Batuk,Modern Trade,4147.417
+2023-08-01,Jawa Timur,Bodrex Flu & Batuk,E-commerce,2874.931
+2023-08-01,Jawa Timur,Bodrex Flu & Batuk,Hospitals & Institutions,1892.809
+2023-08-01,Jawa Timur,Hemaviton C1000,General Trade,3641.78
+2023-08-01,Jawa Timur,Hemaviton C1000,Modern Trade,3105.023
+2023-08-01,Jawa Timur,Hemaviton C1000,E-commerce,2114.796
+2023-08-01,Jawa Timur,Hemaviton C1000,Hospitals & Institutions,1435.612
+2023-08-01,Jawa Timur,Vidoran Smart,General Trade,3137.354
+2023-08-01,Jawa Timur,Vidoran Smart,Modern Trade,2632.243
+2023-08-01,Jawa Timur,Vidoran Smart,E-commerce,1881.897
+2023-08-01,Jawa Timur,Vidoran Smart,Hospitals & Institutions,1242.768
+2023-08-01,Jawa Timur,Marina Skin Care,General Trade,2754.745
+2023-08-01,Jawa Timur,Marina Skin Care,Modern Trade,2443.306
+2023-08-01,Jawa Timur,Marina Skin Care,E-commerce,1654.684
+2023-08-01,Jawa Timur,Marina Skin Care,Hospitals & Institutions,1145.202
+2023-08-01,Jawa Tengah,Tempra,General Trade,3126.099
+2023-08-01,Jawa Tengah,Tempra,Modern Trade,2617.134
+2023-08-01,Jawa Tengah,Tempra,E-commerce,1783.84
+2023-08-01,Jawa Tengah,Tempra,Hospitals & Institutions,1195.498
+2023-08-01,Jawa Tengah,Bodrex Flu & Batuk,General Trade,3572.32
+2023-08-01,Jawa Tengah,Bodrex Flu & Batuk,Modern Trade,2991.931
+2023-08-01,Jawa Tengah,Bodrex Flu & Batuk,E-commerce,2050.742
+2023-08-01,Jawa Tengah,Bodrex Flu & Batuk,Hospitals & Institutions,1408.697
+2023-08-01,Jawa Tengah,Hemaviton C1000,General Trade,2683.851
+2023-08-01,Jawa Tengah,Hemaviton C1000,Modern Trade,2377.026
+2023-08-01,Jawa Tengah,Hemaviton C1000,E-commerce,1578.593
+2023-08-01,Jawa Tengah,Hemaviton C1000,Hospitals & Institutions,1097.707
+2023-08-01,Jawa Tengah,Vidoran Smart,General Trade,2279.006
+2023-08-01,Jawa Tengah,Vidoran Smart,Modern Trade,1964.901
+2023-08-01,Jawa Tengah,Vidoran Smart,E-commerce,1326.722
+2023-08-01,Jawa Tengah,Vidoran Smart,Hospitals & Institutions,931.979
+2023-08-01,Jawa Tengah,Marina Skin Care,General Trade,2039.376
+2023-08-01,Jawa Tengah,Marina Skin Care,Modern Trade,1797.764
+2023-08-01,Jawa Tengah,Marina Skin Care,E-commerce,1188.431
+2023-08-01,Jawa Tengah,Marina Skin Care,Hospitals & Institutions,819.919
+2023-08-01,Sumatera,Tempra,General Trade,2612.305
+2023-08-01,Sumatera,Tempra,Modern Trade,2158.479
+2023-08-01,Sumatera,Tempra,E-commerce,1523.368
+2023-08-01,Sumatera,Tempra,Hospitals & Institutions,1036.055
+2023-08-01,Sumatera,Bodrex Flu & Batuk,General Trade,2916.191
+2023-08-01,Sumatera,Bodrex Flu & Batuk,Modern Trade,2544.509
+2023-08-01,Sumatera,Bodrex Flu & Batuk,E-commerce,1711.393
+2023-08-01,Sumatera,Bodrex Flu & Batuk,Hospitals & Institutions,1171.739
+2023-08-01,Sumatera,Hemaviton C1000,General Trade,2242.421
+2023-08-01,Sumatera,Hemaviton C1000,Modern Trade,1895.571
+2023-08-01,Sumatera,Hemaviton C1000,E-commerce,1295.615
+2023-08-01,Sumatera,Hemaviton C1000,Hospitals & Institutions,880.28
+2023-08-01,Sumatera,Vidoran Smart,General Trade,1909.52
+2023-08-01,Sumatera,Vidoran Smart,Modern Trade,1651.104
+2023-08-01,Sumatera,Vidoran Smart,E-commerce,1100.084
+2023-08-01,Sumatera,Vidoran Smart,Hospitals & Institutions,747.108
+2023-08-01,Sumatera,Marina Skin Care,General Trade,1660.984
+2023-08-01,Sumatera,Marina Skin Care,Modern Trade,1434.539
+2023-08-01,Sumatera,Marina Skin Care,E-commerce,1006.426
+2023-08-01,Sumatera,Marina Skin Care,Hospitals & Institutions,678.871
+2023-08-01,Kalimantan,Tempra,General Trade,1974.938
+2023-08-01,Kalimantan,Tempra,Modern Trade,1732.894
+2023-08-01,Kalimantan,Tempra,E-commerce,1177.01
+2023-08-01,Kalimantan,Tempra,Hospitals & Institutions,769.7
+2023-08-01,Kalimantan,Bodrex Flu & Batuk,General Trade,2266.778
+2023-08-01,Kalimantan,Bodrex Flu & Batuk,Modern Trade,1987.097
+2023-08-01,Kalimantan,Bodrex Flu & Batuk,E-commerce,1323.897
+2023-08-01,Kalimantan,Bodrex Flu & Batuk,Hospitals & Institutions,893.538
+2023-08-01,Kalimantan,Hemaviton C1000,General Trade,1758.3
+2023-08-01,Kalimantan,Hemaviton C1000,Modern Trade,1467.236
+2023-08-01,Kalimantan,Hemaviton C1000,E-commerce,979.889
+2023-08-01,Kalimantan,Hemaviton C1000,Hospitals & Institutions,669.803
+2023-08-01,Kalimantan,Vidoran Smart,General Trade,1415.856
+2023-08-01,Kalimantan,Vidoran Smart,Modern Trade,1261.518
+2023-08-01,Kalimantan,Vidoran Smart,E-commerce,866.214
+2023-08-01,Kalimantan,Vidoran Smart,Hospitals & Institutions,567.103
+2023-08-01,Kalimantan,Marina Skin Care,General Trade,1286.677
+2023-08-01,Kalimantan,Marina Skin Care,Modern Trade,1135.675
+2023-08-01,Kalimantan,Marina Skin Care,E-commerce,757.186
+2023-08-01,Kalimantan,Marina Skin Care,Hospitals & Institutions,525.944
+2023-08-01,Sulawesi,Tempra,General Trade,1591.86
+2023-08-01,Sulawesi,Tempra,Modern Trade,1433.565
+2023-08-01,Sulawesi,Tempra,E-commerce,983.748
+2023-08-01,Sulawesi,Tempra,Hospitals & Institutions,667.466
+2023-08-01,Sulawesi,Bodrex Flu & Batuk,General Trade,1880.198
+2023-08-01,Sulawesi,Bodrex Flu & Batuk,Modern Trade,1599.304
+2023-08-01,Sulawesi,Bodrex Flu & Batuk,E-commerce,1127.301
+2023-08-01,Sulawesi,Bodrex Flu & Batuk,Hospitals & Institutions,747.82
+2023-08-01,Sulawesi,Hemaviton C1000,General Trade,1401.781
+2023-08-01,Sulawesi,Hemaviton C1000,Modern Trade,1232.528
+2023-08-01,Sulawesi,Hemaviton C1000,E-commerce,822.035
+2023-08-01,Sulawesi,Hemaviton C1000,Hospitals & Institutions,583.927
+2023-08-01,Sulawesi,Vidoran Smart,General Trade,1175.691
+2023-08-01,Sulawesi,Vidoran Smart,Modern Trade,1025.797
+2023-08-01,Sulawesi,Vidoran Smart,E-commerce,710.572
+2023-08-01,Sulawesi,Vidoran Smart,Hospitals & Institutions,482.925
+2023-08-01,Sulawesi,Marina Skin Care,General Trade,1077.362
+2023-08-01,Sulawesi,Marina Skin Care,Modern Trade,927.116
+2023-08-01,Sulawesi,Marina Skin Care,E-commerce,628.245
+2023-08-01,Sulawesi,Marina Skin Care,Hospitals & Institutions,431.194
+2023-09-01,Jawa Barat,Tempra,General Trade,6614.146
+2023-09-01,Jawa Barat,Tempra,Modern Trade,5741.282
+2023-09-01,Jawa Barat,Tempra,E-commerce,4017.561
+2023-09-01,Jawa Barat,Tempra,Hospitals & Institutions,2684.023
+2023-09-01,Jawa Barat,Bodrex Flu & Batuk,General Trade,7860.708
+2023-09-01,Jawa Barat,Bodrex Flu & Batuk,Modern Trade,6710.738
+2023-09-01,Jawa Barat,Bodrex Flu & Batuk,E-commerce,4648.278
+2023-09-01,Jawa Barat,Bodrex Flu & Batuk,Hospitals & Institutions,3026.624
+2023-09-01,Jawa Barat,Hemaviton C1000,General Trade,5893.714
+2023-09-01,Jawa Barat,Hemaviton C1000,Modern Trade,5114.042
+2023-09-01,Jawa Barat,Hemaviton C1000,E-commerce,3455.416
+2023-09-01,Jawa Barat,Hemaviton C1000,Hospitals & Institutions,2316.859
+2023-09-01,Jawa Barat,Vidoran Smart,General Trade,5114.294
+2023-09-01,Jawa Barat,Vidoran Smart,Modern Trade,4395.36
+2023-09-01,Jawa Barat,Vidoran Smart,E-commerce,2882.764
+2023-09-01,Jawa Barat,Vidoran Smart,Hospitals & Institutions,1991.417
+2023-09-01,Jawa Barat,Marina Skin Care,General Trade,4566.867
+2023-09-01,Jawa Barat,Marina Skin Care,Modern Trade,3800.722
+2023-09-01,Jawa Barat,Marina Skin Care,E-commerce,2663.76
+2023-09-01,Jawa Barat,Marina Skin Care,Hospitals & Institutions,1747.061
+2023-09-01,Jawa Timur,Tempra,General Trade,3838.25
+2023-09-01,Jawa Timur,Tempra,Modern Trade,3387.879
+2023-09-01,Jawa Timur,Tempra,E-commerce,2407.516
+2023-09-01,Jawa Timur,Tempra,Hospitals & Institutions,1605.937
+2023-09-01,Jawa Timur,Bodrex Flu & Batuk,General Trade,4519.927
+2023-09-01,Jawa Timur,Bodrex Flu & Batuk,Modern Trade,4011.957
+2023-09-01,Jawa Timur,Bodrex Flu & Batuk,E-commerce,2695.48
+2023-09-01,Jawa Timur,Bodrex Flu & Batuk,Hospitals & Institutions,1841.56
+2023-09-01,Jawa Timur,Hemaviton C1000,General Trade,3367.999
+2023-09-01,Jawa Timur,Hemaviton C1000,Modern Trade,3024.321
+2023-09-01,Jawa Timur,Hemaviton C1000,E-commerce,1998.347
+2023-09-01,Jawa Timur,Hemaviton C1000,Hospitals & Institutions,1347.015
+2023-09-01,Jawa Timur,Vidoran Smart,General Trade,2975.597
+2023-09-01,Jawa Timur,Vidoran Smart,Modern Trade,2552.299
+2023-09-01,Jawa Timur,Vidoran Smart,E-commerce,1751.637
+2023-09-01,Jawa Timur,Vidoran Smart,Hospitals & Institutions,1190.532
+2023-09-01,Jawa Timur,Marina Skin Care,General Trade,2622.372
+2023-09-01,Jawa Timur,Marina Skin Care,Modern Trade,2298.676
+2023-09-01,Jawa Timur,Marina Skin Care,E-commerce,1548.121
+2023-09-01,Jawa Timur,Marina Skin Care,Hospitals & Institutions,1084.279
+2023-09-01,Jawa Tengah,Tempra,General Trade,2888.854
+2023-09-01,Jawa Tengah,Tempra,Modern Trade,2452.41
+2023-09-01,Jawa Tengah,Tempra,E-commerce,1722.842
+2023-09-01,Jawa Tengah,Tempra,Hospitals & Institutions,1187.067
+2023-09-01,Jawa Tengah,Bodrex Flu & Batuk,General Trade,3301.365
+2023-09-01,Jawa Tengah,Bodrex Flu & Batuk,Modern Trade,2813.453
+2023-09-01,Jawa Tengah,Bodrex Flu & Batuk,E-commerce,1889.857
+2023-09-01,Jawa Tengah,Bodrex Flu & Batuk,Hospitals & Institutions,1298.268
+2023-09-01,Jawa Tengah,Hemaviton C1000,General Trade,2547.197
+2023-09-01,Jawa Tengah,Hemaviton C1000,Modern Trade,2247.705
+2023-09-01,Jawa Tengah,Hemaviton C1000,E-commerce,1495.22
+2023-09-01,Jawa Tengah,Hemaviton C1000,Hospitals & Institutions,980.248
+2023-09-01,Jawa Tengah,Vidoran Smart,General Trade,2140.993
+2023-09-01,Jawa Tengah,Vidoran Smart,Modern Trade,1864.08
+2023-09-01,Jawa Tengah,Vidoran Smart,E-commerce,1292.799
+2023-09-01,Jawa Tengah,Vidoran Smart,Hospitals & Institutions,876.496
+2023-09-01,Jawa Tengah,Marina Skin Care,General Trade,1898.951
+2023-09-01,Jawa Tengah,Marina Skin Care,Modern Trade,1661.936
+2023-09-01,Jawa Tengah,Marina Skin Care,E-commerce,1156.174
+2023-09-01,Jawa Tengah,Marina Skin Care,Hospitals & Institutions,754.384
+2023-09-01,Sumatera,Tempra,General Trade,2352.167
+2023-09-01,Sumatera,Tempra,Modern Trade,2094.064
+2023-09-01,Sumatera,Tempra,E-commerce,1386.492
+2023-09-01,Sumatera,Tempra,Hospitals & Institutions,975.743
+2023-09-01,Sumatera,Bodrex Flu & Batuk,General Trade,2702.05
+2023-09-01,Sumatera,Bodrex Flu & Batuk,Modern Trade,2457.538
+2023-09-01,Sumatera,Bodrex Flu & Batuk,E-commerce,1620.112
+2023-09-01,Sumatera,Bodrex Flu & Batuk,Hospitals & Institutions,1118.701
+2023-09-01,Sumatera,Hemaviton C1000,General Trade,2067.292
+2023-09-01,Sumatera,Hemaviton C1000,Modern Trade,1875.098
+2023-09-01,Sumatera,Hemaviton C1000,E-commerce,1268.67
+2023-09-01,Sumatera,Hemaviton C1000,Hospitals & Institutions,867.582
+2023-09-01,Sumatera,Vidoran Smart,General Trade,1747.259
+2023-09-01,Sumatera,Vidoran Smart,Modern Trade,1547.784
+2023-09-01,Sumatera,Vidoran Smart,E-commerce,1079.353
+2023-09-01,Sumatera,Vidoran Smart,Hospitals & Institutions,717.807
+2023-09-01,Sumatera,Marina Skin Care,General Trade,1596.014
+2023-09-01,Sumatera,Marina Skin Care,Modern Trade,1391.388
+2023-09-01,Sumatera,Marina Skin Care,E-commerce,928.666
+2023-09-01,Sumatera,Marina Skin Care,Hospitals & Institutions,626.217
+2023-09-01,Kalimantan,Tempra,General Trade,1866.96
+2023-09-01,Kalimantan,Tempra,Modern Trade,1590.784
+2023-09-01,Kalimantan,Tempra,E-commerce,1088.805
+2023-09-01,Kalimantan,Tempra,Hospitals & Institutions,741.532
+2023-09-01,Kalimantan,Bodrex Flu & Batuk,General Trade,2167.539
+2023-09-01,Kalimantan,Bodrex Flu & Batuk,Modern Trade,1845.802
+2023-09-01,Kalimantan,Bodrex Flu & Batuk,E-commerce,1230.096
+2023-09-01,Kalimantan,Bodrex Flu & Batuk,Hospitals & Institutions,835.138
+2023-09-01,Kalimantan,Hemaviton C1000,General Trade,1653.048
+2023-09-01,Kalimantan,Hemaviton C1000,Modern Trade,1374.663
+2023-09-01,Kalimantan,Hemaviton C1000,E-commerce,967.963
+2023-09-01,Kalimantan,Hemaviton C1000,Hospitals & Institutions,638.187
+2023-09-01,Kalimantan,Vidoran Smart,General Trade,1340.755
+2023-09-01,Kalimantan,Vidoran Smart,Modern Trade,1176.558
+2023-09-01,Kalimantan,Vidoran Smart,E-commerce,828.072
+2023-09-01,Kalimantan,Vidoran Smart,Hospitals & Institutions,542.159
+2023-09-01,Kalimantan,Marina Skin Care,General Trade,1239.757
+2023-09-01,Kalimantan,Marina Skin Care,Modern Trade,1040.674
+2023-09-01,Kalimantan,Marina Skin Care,E-commerce,744.87
+2023-09-01,Kalimantan,Marina Skin Care,Hospitals & Institutions,503.251
+2023-09-01,Sulawesi,Tempra,General Trade,1578.05
+2023-09-01,Sulawesi,Tempra,Modern Trade,1319.906
+2023-09-01,Sulawesi,Tempra,E-commerce,934.504
+2023-09-01,Sulawesi,Tempra,Hospitals & Institutions,623.02
+2023-09-01,Sulawesi,Bodrex Flu & Batuk,General Trade,1764.572
+2023-09-01,Sulawesi,Bodrex Flu & Batuk,Modern Trade,1500.094
+2023-09-01,Sulawesi,Bodrex Flu & Batuk,E-commerce,1073.239
+2023-09-01,Sulawesi,Bodrex Flu & Batuk,Hospitals & Institutions,696.585
+2023-09-01,Sulawesi,Hemaviton C1000,General Trade,1377.904
+2023-09-01,Sulawesi,Hemaviton C1000,Modern Trade,1165.39
+2023-09-01,Sulawesi,Hemaviton C1000,E-commerce,814.66
+2023-09-01,Sulawesi,Hemaviton C1000,Hospitals & Institutions,537.536
+2023-09-01,Sulawesi,Vidoran Smart,General Trade,1138.791
+2023-09-01,Sulawesi,Vidoran Smart,Modern Trade,996.294
+2023-09-01,Sulawesi,Vidoran Smart,E-commerce,657.556
+2023-09-01,Sulawesi,Vidoran Smart,Hospitals & Institutions,465.868
+2023-09-01,Sulawesi,Marina Skin Care,General Trade,1042.9
+2023-09-01,Sulawesi,Marina Skin Care,Modern Trade,900.448
+2023-09-01,Sulawesi,Marina Skin Care,E-commerce,591.505
+2023-09-01,Sulawesi,Marina Skin Care,Hospitals & Institutions,415.571
+2023-10-01,Jawa Barat,Tempra,General Trade,7018.972
+2023-10-01,Jawa Barat,Tempra,Modern Trade,5921.635
+2023-10-01,Jawa Barat,Tempra,E-commerce,3994.797
+2023-10-01,Jawa Barat,Tempra,Hospitals & Institutions,2714.491
+2023-10-01,Jawa Barat,Bodrex Flu & Batuk,General Trade,7942.184
+2023-10-01,Jawa Barat,Bodrex Flu & Batuk,Modern Trade,6785.037
+2023-10-01,Jawa Barat,Bodrex Flu & Batuk,E-commerce,4638.093
+2023-10-01,Jawa Barat,Bodrex Flu & Batuk,Hospitals & Institutions,3125.448
+2023-10-01,Jawa Barat,Hemaviton C1000,General Trade,6180.476
+2023-10-01,Jawa Barat,Hemaviton C1000,Modern Trade,5105.645
+2023-10-01,Jawa Barat,Hemaviton C1000,E-commerce,3663.017
+2023-10-01,Jawa Barat,Hemaviton C1000,Hospitals & Institutions,2366.441
+2023-10-01,Jawa Barat,Vidoran Smart,General Trade,4984.563
+2023-10-01,Jawa Barat,Vidoran Smart,Modern Trade,4445.737
+2023-10-01,Jawa Barat,Vidoran Smart,E-commerce,3053.461
+2023-10-01,Jawa Barat,Vidoran Smart,Hospitals & Institutions,2026.184
+2023-10-01,Jawa Barat,Marina Skin Care,General Trade,4687.373
+2023-10-01,Jawa Barat,Marina Skin Care,Modern Trade,3965.544
+2023-10-01,Jawa Barat,Marina Skin Care,E-commerce,2689.48
+2023-10-01,Jawa Barat,Marina Skin Care,Hospitals & Institutions,1837.079
+2023-10-01,Jawa Timur,Tempra,General Trade,4115.607
+2023-10-01,Jawa Timur,Tempra,Modern Trade,3627.622
+2023-10-01,Jawa Timur,Tempra,E-commerce,2410.907
+2023-10-01,Jawa Timur,Tempra,Hospitals & Institutions,1653.339
+2023-10-01,Jawa Timur,Bodrex Flu & Batuk,General Trade,4753.476
+2023-10-01,Jawa Timur,Bodrex Flu & Batuk,Modern Trade,4108.111
+2023-10-01,Jawa Timur,Bodrex Flu & Batuk,E-commerce,2759.504
+2023-10-01,Jawa Timur,Bodrex Flu & Batuk,Hospitals & Institutions,1903.687
+2023-10-01,Jawa Timur,Hemaviton C1000,General Trade,3536.564
+2023-10-01,Jawa Timur,Hemaviton C1000,Modern Trade,3155.285
+2023-10-01,Jawa Timur,Hemaviton C1000,E-commerce,2065.506
+2023-10-01,Jawa Timur,Hemaviton C1000,Hospitals & Institutions,1412.44
+2023-10-01,Jawa Timur,Vidoran Smart,General Trade,2971.645
+2023-10-01,Jawa Timur,Vidoran Smart,Modern Trade,2629.196
+2023-10-01,Jawa Timur,Vidoran Smart,E-commerce,1812.971
+2023-10-01,Jawa Timur,Vidoran Smart,Hospitals & Institutions,1202.17
+2023-10-01,Jawa Timur,Marina Skin Care,General Trade,2688.0
+2023-10-01,Jawa Timur,Marina Skin Care,Modern Trade,2313.531
+2023-10-01,Jawa Timur,Marina Skin Care,E-commerce,1598.918
+2023-10-01,Jawa Timur,Marina Skin Care,Hospitals & Institutions,1107.965
+2023-10-01,Jawa Tengah,Tempra,General Trade,2895.497
+2023-10-01,Jawa Tengah,Tempra,Modern Trade,2587.31
+2023-10-01,Jawa Tengah,Tempra,E-commerce,1748.619
+2023-10-01,Jawa Tengah,Tempra,Hospitals & Institutions,1154.047
+2023-10-01,Jawa Tengah,Bodrex Flu & Batuk,General Trade,3318.007
+2023-10-01,Jawa Tengah,Bodrex Flu & Batuk,Modern Trade,2969.254
+2023-10-01,Jawa Tengah,Bodrex Flu & Batuk,E-commerce,2049.609
+2023-10-01,Jawa Tengah,Bodrex Flu & Batuk,Hospitals & Institutions,1372.024
+2023-10-01,Jawa Tengah,Hemaviton C1000,General Trade,2536.909
+2023-10-01,Jawa Tengah,Hemaviton C1000,Modern Trade,2322.593
+2023-10-01,Jawa Tengah,Hemaviton C1000,E-commerce,1539.329
+2023-10-01,Jawa Tengah,Hemaviton C1000,Hospitals & Institutions,1035.937
+2023-10-01,Jawa Tengah,Vidoran Smart,General Trade,2165.851
+2023-10-01,Jawa Tengah,Vidoran Smart,Modern Trade,1965.506
+2023-10-01,Jawa Tengah,Vidoran Smart,E-commerce,1305.833
+2023-10-01,Jawa Tengah,Vidoran Smart,Hospitals & Institutions,900.443
+2023-10-01,Jawa Tengah,Marina Skin Care,General Trade,1976.317
+2023-10-01,Jawa Tengah,Marina Skin Care,Modern Trade,1729.094
+2023-10-01,Jawa Tengah,Marina Skin Care,E-commerce,1155.186
+2023-10-01,Jawa Tengah,Marina Skin Care,Hospitals & Institutions,772.793
+2023-10-01,Sumatera,Tempra,General Trade,2550.159
+2023-10-01,Sumatera,Tempra,Modern Trade,2226.044
+2023-10-01,Sumatera,Tempra,E-commerce,1480.095
+2023-10-01,Sumatera,Tempra,Hospitals & Institutions,989.171
+2023-10-01,Sumatera,Bodrex Flu & Batuk,General Trade,2813.19
+2023-10-01,Sumatera,Bodrex Flu & Batuk,Modern Trade,2417.379
+2023-10-01,Sumatera,Bodrex Flu & Batuk,E-commerce,1668.712
+2023-10-01,Sumatera,Bodrex Flu & Batuk,Hospitals & Institutions,1163.197
+2023-10-01,Sumatera,Hemaviton C1000,General Trade,2237.11
+2023-10-01,Sumatera,Hemaviton C1000,Modern Trade,1930.392
+2023-10-01,Sumatera,Hemaviton C1000,E-commerce,1308.777
+2023-10-01,Sumatera,Hemaviton C1000,Hospitals & Institutions,869.775
+2023-10-01,Sumatera,Vidoran Smart,General Trade,1831.458
+2023-10-01,Sumatera,Vidoran Smart,Modern Trade,1635.192
+2023-10-01,Sumatera,Vidoran Smart,E-commerce,1105.334
+2023-10-01,Sumatera,Vidoran Smart,Hospitals & Institutions,742.262
+2023-10-01,Sumatera,Marina Skin Care,General Trade,1626.326
+2023-10-01,Sumatera,Marina Skin Care,Modern Trade,1398.342
+2023-10-01,Sumatera,Marina Skin Care,E-commerce,958.271
+2023-10-01,Sumatera,Marina Skin Care,Hospitals & Institutions,669.382
+2023-10-01,Kalimantan,Tempra,General Trade,1920.139
+2023-10-01,Kalimantan,Tempra,Modern Trade,1632.052
+2023-10-01,Kalimantan,Tempra,E-commerce,1147.915
+2023-10-01,Kalimantan,Tempra,Hospitals & Institutions,745.339
+2023-10-01,Kalimantan,Bodrex Flu & Batuk,General Trade,2125.628
+2023-10-01,Kalimantan,Bodrex Flu & Batuk,Modern Trade,1873.776
+2023-10-01,Kalimantan,Bodrex Flu & Batuk,E-commerce,1282.306
+2023-10-01,Kalimantan,Bodrex Flu & Batuk,Hospitals & Institutions,850.742
+2023-10-01,Kalimantan,Hemaviton C1000,General Trade,1650.745
+2023-10-01,Kalimantan,Hemaviton C1000,Modern Trade,1472.928
+2023-10-01,Kalimantan,Hemaviton C1000,E-commerce,982.965
+2023-10-01,Kalimantan,Hemaviton C1000,Hospitals & Institutions,659.053
+2023-10-01,Kalimantan,Vidoran Smart,General Trade,1402.651
+2023-10-01,Kalimantan,Vidoran Smart,Modern Trade,1190.135
+2023-10-01,Kalimantan,Vidoran Smart,E-commerce,830.447
+2023-10-01,Kalimantan,Vidoran Smart,Hospitals & Institutions,558.561
+2023-10-01,Kalimantan,Marina Skin Care,General Trade,1249.041
+2023-10-01,Kalimantan,Marina Skin Care,Modern Trade,1124.616
+2023-10-01,Kalimantan,Marina Skin Care,E-commerce,756.747
+2023-10-01,Kalimantan,Marina Skin Care,Hospitals & Institutions,491.511
+2023-10-01,Sulawesi,Tempra,General Trade,1622.823
+2023-10-01,Sulawesi,Tempra,Modern Trade,1387.983
+2023-10-01,Sulawesi,Tempra,E-commerce,930.303
+2023-10-01,Sulawesi,Tempra,Hospitals & Institutions,635.087
+2023-10-01,Sulawesi,Bodrex Flu & Batuk,General Trade,1795.772
+2023-10-01,Sulawesi,Bodrex Flu & Batuk,Modern Trade,1593.165
+2023-10-01,Sulawesi,Bodrex Flu & Batuk,E-commerce,1047.589
+2023-10-01,Sulawesi,Bodrex Flu & Batuk,Hospitals & Institutions,741.141
+2023-10-01,Sulawesi,Hemaviton C1000,General Trade,1388.53
+2023-10-01,Sulawesi,Hemaviton C1000,Modern Trade,1231.537
+2023-10-01,Sulawesi,Hemaviton C1000,E-commerce,817.511
+2023-10-01,Sulawesi,Hemaviton C1000,Hospitals & Institutions,558.805
+2023-10-01,Sulawesi,Vidoran Smart,General Trade,1213.059
+2023-10-01,Sulawesi,Vidoran Smart,Modern Trade,1048.288
+2023-10-01,Sulawesi,Vidoran Smart,E-commerce,710.325
+2023-10-01,Sulawesi,Vidoran Smart,Hospitals & Institutions,465.271
+2023-10-01,Sulawesi,Marina Skin Care,General Trade,1041.205
+2023-10-01,Sulawesi,Marina Skin Care,Modern Trade,894.258
+2023-10-01,Sulawesi,Marina Skin Care,E-commerce,624.196
+2023-10-01,Sulawesi,Marina Skin Care,Hospitals & Institutions,434.295
+2023-11-01,Jawa Barat,Tempra,General Trade,6637.835
+2023-11-01,Jawa Barat,Tempra,Modern Trade,5792.225
+2023-11-01,Jawa Barat,Tempra,E-commerce,4023.678
+2023-11-01,Jawa Barat,Tempra,Hospitals & Institutions,2779.784
+2023-11-01,Jawa Barat,Bodrex Flu & Batuk,General Trade,7998.989
+2023-11-01,Jawa Barat,Bodrex Flu & Batuk,Modern Trade,6770.298
+2023-11-01,Jawa Barat,Bodrex Flu & Batuk,E-commerce,4620.262
+2023-11-01,Jawa Barat,Bodrex Flu & Batuk,Hospitals & Institutions,3148.488
+2023-11-01,Jawa Barat,Hemaviton C1000,General Trade,6053.641
+2023-11-01,Jawa Barat,Hemaviton C1000,Modern Trade,5193.298
+2023-11-01,Jawa Barat,Hemaviton C1000,E-commerce,3633.254
+2023-11-01,Jawa Barat,Hemaviton C1000,Hospitals & Institutions,2428.305
+2023-11-01,Jawa Barat,Vidoran Smart,General Trade,5194.084
+2023-11-01,Jawa Barat,Vidoran Smart,Modern Trade,4422.27
+2023-11-01,Jawa Barat,Vidoran Smart,E-commerce,2933.86
+2023-11-01,Jawa Barat,Vidoran Smart,Hospitals & Institutions,2067.723
+2023-11-01,Jawa Barat,Marina Skin Care,General Trade,4494.249
+2023-11-01,Jawa Barat,Marina Skin Care,Modern Trade,4031.431
+2023-11-01,Jawa Barat,Marina Skin Care,E-commerce,2661.718
+2023-11-01,Jawa Barat,Marina Skin Care,Hospitals & Institutions,1817.266
+2023-11-01,Jawa Timur,Tempra,General Trade,3940.579
+2023-11-01,Jawa Timur,Tempra,Modern Trade,3589.134
+2023-11-01,Jawa Timur,Tempra,E-commerce,2357.755
+2023-11-01,Jawa Timur,Tempra,Hospitals & Institutions,1617.156
+2023-11-01,Jawa Timur,Bodrex Flu & Batuk,General Trade,4519.668
+2023-11-01,Jawa Timur,Bodrex Flu & Batuk,Modern Trade,3953.592
+2023-11-01,Jawa Timur,Bodrex Flu & Batuk,E-commerce,2687.264
+2023-11-01,Jawa Timur,Bodrex Flu & Batuk,Hospitals & Institutions,1863.722
+2023-11-01,Jawa Timur,Hemaviton C1000,General Trade,3572.106
+2023-11-01,Jawa Timur,Hemaviton C1000,Modern Trade,3091.527
+2023-11-01,Jawa Timur,Hemaviton C1000,E-commerce,2119.79
+2023-11-01,Jawa Timur,Hemaviton C1000,Hospitals & Institutions,1410.062
+2023-11-01,Jawa Timur,Vidoran Smart,General Trade,3045.045
+2023-11-01,Jawa Timur,Vidoran Smart,Modern Trade,2647.835
+2023-11-01,Jawa Timur,Vidoran Smart,E-commerce,1774.606
+2023-11-01,Jawa Timur,Vidoran Smart,Hospitals & Institutions,1224.007
+2023-11-01,Jawa Timur,Marina Skin Care,General Trade,2698.902
+2023-11-01,Jawa Timur,Marina Skin Care,Modern Trade,2358.791
+2023-11-01,Jawa Timur,Marina Skin Care,E-commerce,1582.249
+2023-11-01,Jawa Timur,Marina Skin Care,Hospitals & Institutions,1069.285
+2023-11-01,Jawa Tengah,Tempra,General Trade,2886.005
+2023-11-01,Jawa Tengah,Tempra,Modern Trade,2587.767
+2023-11-01,Jawa Tengah,Tempra,E-commerce,1751.775
+2023-11-01,Jawa Tengah,Tempra,Hospitals & Institutions,1146.752
+2023-11-01,Jawa Tengah,Bodrex Flu & Batuk,General Trade,3309.27
+2023-11-01,Jawa Tengah,Bodrex Flu & Batuk,Modern Trade,2954.728
+2023-11-01,Jawa Tengah,Bodrex Flu & Batuk,E-commerce,1998.147
+2023-11-01,Jawa Tengah,Bodrex Flu & Batuk,Hospitals & Institutions,1374.189
+2023-11-01,Jawa Tengah,Hemaviton C1000,General Trade,2605.084
+2023-11-01,Jawa Tengah,Hemaviton C1000,Modern Trade,2180.186
+2023-11-01,Jawa Tengah,Hemaviton C1000,E-commerce,1503.595
+2023-11-01,Jawa Tengah,Hemaviton C1000,Hospitals & Institutions,1015.478
+2023-11-01,Jawa Tengah,Vidoran Smart,General Trade,2190.696
+2023-11-01,Jawa Tengah,Vidoran Smart,Modern Trade,1838.096
+2023-11-01,Jawa Tengah,Vidoran Smart,E-commerce,1301.37
+2023-11-01,Jawa Tengah,Vidoran Smart,Hospitals & Institutions,893.816
+2023-11-01,Jawa Tengah,Marina Skin Care,General Trade,2003.753
+2023-11-01,Jawa Tengah,Marina Skin Care,Modern Trade,1682.854
+2023-11-01,Jawa Tengah,Marina Skin Care,E-commerce,1188.538
+2023-11-01,Jawa Tengah,Marina Skin Care,Hospitals & Institutions,798.266
+2023-11-01,Sumatera,Tempra,General Trade,2412.391
+2023-11-01,Sumatera,Tempra,Modern Trade,2161.533
+2023-11-01,Sumatera,Tempra,E-commerce,1462.57
+2023-11-01,Sumatera,Tempra,Hospitals & Institutions,972.658
+2023-11-01,Sumatera,Bodrex Flu & Batuk,General Trade,2761.509
+2023-11-01,Sumatera,Bodrex Flu & Batuk,Modern Trade,2428.852
+2023-11-01,Sumatera,Bodrex Flu & Batuk,E-commerce,1653.785
+2023-11-01,Sumatera,Bodrex Flu & Batuk,Hospitals & Institutions,1112.592
+2023-11-01,Sumatera,Hemaviton C1000,General Trade,2178.059
+2023-11-01,Sumatera,Hemaviton C1000,Modern Trade,1876.567
+2023-11-01,Sumatera,Hemaviton C1000,E-commerce,1270.044
+2023-11-01,Sumatera,Hemaviton C1000,Hospitals & Institutions,875.629
+2023-11-01,Sumatera,Vidoran Smart,General Trade,1770.587
+2023-11-01,Sumatera,Vidoran Smart,Modern Trade,1584.378
+2023-11-01,Sumatera,Vidoran Smart,E-commerce,1064.758
+2023-11-01,Sumatera,Vidoran Smart,Hospitals & Institutions,742.277
+2023-11-01,Sumatera,Marina Skin Care,General Trade,1596.19
+2023-11-01,Sumatera,Marina Skin Care,Modern Trade,1444.356
+2023-11-01,Sumatera,Marina Skin Care,E-commerce,957.194
+2023-11-01,Sumatera,Marina Skin Care,Hospitals & Institutions,664.138
+2023-11-01,Kalimantan,Tempra,General Trade,1885.127
+2023-11-01,Kalimantan,Tempra,Modern Trade,1642.732
+2023-11-01,Kalimantan,Tempra,E-commerce,1081.8
+2023-11-01,Kalimantan,Tempra,Hospitals & Institutions,744.647
+2023-11-01,Kalimantan,Bodrex Flu & Batuk,General Trade,2139.102
+2023-11-01,Kalimantan,Bodrex Flu & Batuk,Modern Trade,1827.714
+2023-11-01,Kalimantan,Bodrex Flu & Batuk,E-commerce,1292.538
+2023-11-01,Kalimantan,Bodrex Flu & Batuk,Hospitals & Institutions,857.256
+2023-11-01,Kalimantan,Hemaviton C1000,General Trade,1625.952
+2023-11-01,Kalimantan,Hemaviton C1000,Modern Trade,1393.121
+2023-11-01,Kalimantan,Hemaviton C1000,E-commerce,979.318
+2023-11-01,Kalimantan,Hemaviton C1000,Hospitals & Institutions,674.118
+2023-11-01,Kalimantan,Vidoran Smart,General Trade,1388.288
+2023-11-01,Kalimantan,Vidoran Smart,Modern Trade,1199.565
+2023-11-01,Kalimantan,Vidoran Smart,E-commerce,839.54
+2023-11-01,Kalimantan,Vidoran Smart,Hospitals & Institutions,556.867
+2023-11-01,Kalimantan,Marina Skin Care,General Trade,1224.085
+2023-11-01,Kalimantan,Marina Skin Care,Modern Trade,1095.303
+2023-11-01,Kalimantan,Marina Skin Care,E-commerce,750.22
+2023-11-01,Kalimantan,Marina Skin Care,Hospitals & Institutions,493.037
+2023-11-01,Sulawesi,Tempra,General Trade,1585.905
+2023-11-01,Sulawesi,Tempra,Modern Trade,1356.01
+2023-11-01,Sulawesi,Tempra,E-commerce,945.688
+2023-11-01,Sulawesi,Tempra,Hospitals & Institutions,631.038
+2023-11-01,Sulawesi,Bodrex Flu & Batuk,General Trade,1801.944
+2023-11-01,Sulawesi,Bodrex Flu & Batuk,Modern Trade,1576.868
+2023-11-01,Sulawesi,Bodrex Flu & Batuk,E-commerce,1058.996
+2023-11-01,Sulawesi,Bodrex Flu & Batuk,Hospitals & Institutions,726.784
+2023-11-01,Sulawesi,Hemaviton C1000,General Trade,1406.913
+2023-11-01,Sulawesi,Hemaviton C1000,Modern Trade,1200.393
+2023-11-01,Sulawesi,Hemaviton C1000,E-commerce,816.664
+2023-11-01,Sulawesi,Hemaviton C1000,Hospitals & Institutions,549.478
+2023-11-01,Sulawesi,Vidoran Smart,General Trade,1186.763
+2023-11-01,Sulawesi,Vidoran Smart,Modern Trade,1031.247
+2023-11-01,Sulawesi,Vidoran Smart,E-commerce,700.059
+2023-11-01,Sulawesi,Vidoran Smart,Hospitals & Institutions,467.963
+2023-11-01,Sulawesi,Marina Skin Care,General Trade,1038.396
+2023-11-01,Sulawesi,Marina Skin Care,Modern Trade,887.31
+2023-11-01,Sulawesi,Marina Skin Care,E-commerce,610.377
+2023-11-01,Sulawesi,Marina Skin Care,Hospitals & Institutions,425.604
+2023-12-01,Jawa Barat,Tempra,General Trade,7222.621
+2023-12-01,Jawa Barat,Tempra,Modern Trade,6222.08
+2023-12-01,Jawa Barat,Tempra,E-commerce,4421.303
+2023-12-01,Jawa Barat,Tempra,Hospitals & Institutions,2897.514
+2023-12-01,Jawa Barat,Bodrex Flu & Batuk,General Trade,8193.543
+2023-12-01,Jawa Barat,Bodrex Flu & Batuk,Modern Trade,7251.368
+2023-12-01,Jawa Barat,Bodrex Flu & Batuk,E-commerce,4978.852
+2023-12-01,Jawa Barat,Bodrex Flu & Batuk,Hospitals & Institutions,3428.922
+2023-12-01,Jawa Barat,Hemaviton C1000,General Trade,6475.829
+2023-12-01,Jawa Barat,Hemaviton C1000,Modern Trade,5658.462
+2023-12-01,Jawa Barat,Hemaviton C1000,E-commerce,3748.491
+2023-12-01,Jawa Barat,Hemaviton C1000,Hospitals & Institutions,2514.141
+2023-12-01,Jawa Barat,Vidoran Smart,General Trade,5486.032
+2023-12-01,Jawa Barat,Vidoran Smart,Modern Trade,4864.611
+2023-12-01,Jawa Barat,Vidoran Smart,E-commerce,3217.074
+2023-12-01,Jawa Barat,Vidoran Smart,Hospitals & Institutions,2217.273
+2023-12-01,Jawa Barat,Marina Skin Care,General Trade,4993.673
+2023-12-01,Jawa Barat,Marina Skin Care,Modern Trade,4266.714
+2023-12-01,Jawa Barat,Marina Skin Care,E-commerce,2878.328
+2023-12-01,Jawa Barat,Marina Skin Care,Hospitals & Institutions,1910.605
+2023-12-01,Jawa Timur,Tempra,General Trade,4318.166
+2023-12-01,Jawa Timur,Tempra,Modern Trade,3833.082
+2023-12-01,Jawa Timur,Tempra,E-commerce,2556.978
+2023-12-01,Jawa Timur,Tempra,Hospitals & Institutions,1759.718
+2023-12-01,Jawa Timur,Bodrex Flu & Batuk,General Trade,5043.967
+2023-12-01,Jawa Timur,Bodrex Flu & Batuk,Modern Trade,4222.748
+2023-12-01,Jawa Timur,Bodrex Flu & Batuk,E-commerce,2846.691
+2023-12-01,Jawa Timur,Bodrex Flu & Batuk,Hospitals & Institutions,1919.386
+2023-12-01,Jawa Timur,Hemaviton C1000,General Trade,3734.29
+2023-12-01,Jawa Timur,Hemaviton C1000,Modern Trade,3282.37
+2023-12-01,Jawa Timur,Hemaviton C1000,E-commerce,2206.886
+2023-12-01,Jawa Timur,Hemaviton C1000,Hospitals & Institutions,1520.223
+2023-12-01,Jawa Timur,Vidoran Smart,General Trade,3122.284
+2023-12-01,Jawa Timur,Vidoran Smart,Modern Trade,2718.766
+2023-12-01,Jawa Timur,Vidoran Smart,E-commerce,1914.663
+2023-12-01,Jawa Timur,Vidoran Smart,Hospitals & Institutions,1297.044
+2023-12-01,Jawa Timur,Marina Skin Care,General Trade,2850.525
+2023-12-01,Jawa Timur,Marina Skin Care,Modern Trade,2484.897
+2023-12-01,Jawa Timur,Marina Skin Care,E-commerce,1705.605
+2023-12-01,Jawa Timur,Marina Skin Care,Hospitals & Institutions,1159.391
+2023-12-01,Jawa Tengah,Tempra,General Trade,3166.236
+2023-12-01,Jawa Tengah,Tempra,Modern Trade,2797.236
+2023-12-01,Jawa Tengah,Tempra,E-commerce,1890.932
+2023-12-01,Jawa Tengah,Tempra,Hospitals & Institutions,1236.062
+2023-12-01,Jawa Tengah,Bodrex Flu & Batuk,General Trade,3671.144
+2023-12-01,Jawa Tengah,Bodrex Flu & Batuk,Modern Trade,3188.468
+2023-12-01,Jawa Tengah,Bodrex Flu & Batuk,E-commerce,2186.35
+2023-12-01,Jawa Tengah,Bodrex Flu & Batuk,Hospitals & Institutions,1474.728
+2023-12-01,Jawa Tengah,Hemaviton C1000,General Trade,2750.954
+2023-12-01,Jawa Tengah,Hemaviton C1000,Modern Trade,2347.588
+2023-12-01,Jawa Tengah,Hemaviton C1000,E-commerce,1611.933
+2023-12-01,Jawa Tengah,Hemaviton C1000,Hospitals & Institutions,1072.507
+2023-12-01,Jawa Tengah,Vidoran Smart,General Trade,2330.677
+2023-12-01,Jawa Tengah,Vidoran Smart,Modern Trade,2069.187
+2023-12-01,Jawa Tengah,Vidoran Smart,E-commerce,1361.147
+2023-12-01,Jawa Tengah,Vidoran Smart,Hospitals & Institutions,913.252
+2023-12-01,Jawa Tengah,Marina Skin Care,General Trade,2152.628
+2023-12-01,Jawa Tengah,Marina Skin Care,Modern Trade,1834.946
+2023-12-01,Jawa Tengah,Marina Skin Care,E-commerce,1270.115
+2023-12-01,Jawa Tengah,Marina Skin Care,Hospitals & Institutions,862.711
+2023-12-01,Sumatera,Tempra,General Trade,2626.518
+2023-12-01,Sumatera,Tempra,Modern Trade,2336.095
+2023-12-01,Sumatera,Tempra,E-commerce,1582.955
+2023-12-01,Sumatera,Tempra,Hospitals & Institutions,1068.732
+2023-12-01,Sumatera,Bodrex Flu & Batuk,General Trade,2929.384
+2023-12-01,Sumatera,Bodrex Flu & Batuk,Modern Trade,2569.243
+2023-12-01,Sumatera,Bodrex Flu & Batuk,E-commerce,1808.83
+2023-12-01,Sumatera,Bodrex Flu & Batuk,Hospitals & Institutions,1186.812
+2023-12-01,Sumatera,Hemaviton C1000,General Trade,2310.132
+2023-12-01,Sumatera,Hemaviton C1000,Modern Trade,1976.517
+2023-12-01,Sumatera,Hemaviton C1000,E-commerce,1349.784
+2023-12-01,Sumatera,Hemaviton C1000,Hospitals & Institutions,935.837
+2023-12-01,Sumatera,Vidoran Smart,General Trade,1956.322
+2023-12-01,Sumatera,Vidoran Smart,Modern Trade,1660.72
+2023-12-01,Sumatera,Vidoran Smart,E-commerce,1152.464
+2023-12-01,Sumatera,Vidoran Smart,Hospitals & Institutions,783.808
+2023-12-01,Sumatera,Marina Skin Care,General Trade,1808.734
+2023-12-01,Sumatera,Marina Skin Care,Modern Trade,1514.905
+2023-12-01,Sumatera,Marina Skin Care,E-commerce,1057.532
+2023-12-01,Sumatera,Marina Skin Care,Hospitals & Institutions,703.447
+2023-12-01,Kalimantan,Tempra,General Trade,2055.102
+2023-12-01,Kalimantan,Tempra,Modern Trade,1736.971
+2023-12-01,Kalimantan,Tempra,E-commerce,1210.413
+2023-12-01,Kalimantan,Tempra,Hospitals & Institutions,787.446
+2023-12-01,Kalimantan,Bodrex Flu & Batuk,General Trade,2258.325
+2023-12-01,Kalimantan,Bodrex Flu & Batuk,Modern Trade,1947.782
+2023-12-01,Kalimantan,Bodrex Flu & Batuk,E-commerce,1390.117
+2023-12-01,Kalimantan,Bodrex Flu & Batuk,Hospitals & Institutions,922.78
+2023-12-01,Kalimantan,Hemaviton C1000,General Trade,1774.021
+2023-12-01,Kalimantan,Hemaviton C1000,Modern Trade,1566.869
+2023-12-01,Kalimantan,Hemaviton C1000,E-commerce,1016.35
+2023-12-01,Kalimantan,Hemaviton C1000,Hospitals & Institutions,690.306
+2023-12-01,Kalimantan,Vidoran Smart,General Trade,1511.458
+2023-12-01,Kalimantan,Vidoran Smart,Modern Trade,1304.56
+2023-12-01,Kalimantan,Vidoran Smart,E-commerce,890.492
+2023-12-01,Kalimantan,Vidoran Smart,Hospitals & Institutions,597.97
+2023-12-01,Kalimantan,Marina Skin Care,General Trade,1376.905
+2023-12-01,Kalimantan,Marina Skin Care,Modern Trade,1150.969
+2023-12-01,Kalimantan,Marina Skin Care,E-commerce,804.314
+2023-12-01,Kalimantan,Marina Skin Care,Hospitals & Institutions,551.39
+2023-12-01,Sulawesi,Tempra,General Trade,1730.246
+2023-12-01,Sulawesi,Tempra,Modern Trade,1477.059
+2023-12-01,Sulawesi,Tempra,E-commerce,1002.459
+2023-12-01,Sulawesi,Tempra,Hospitals & Institutions,684.461
+2023-12-01,Sulawesi,Bodrex Flu & Batuk,General Trade,1915.2
+2023-12-01,Sulawesi,Bodrex Flu & Batuk,Modern Trade,1659.82
+2023-12-01,Sulawesi,Bodrex Flu & Batuk,E-commerce,1141.269
+2023-12-01,Sulawesi,Bodrex Flu & Batuk,Hospitals & Institutions,786.339
+2023-12-01,Sulawesi,Hemaviton C1000,General Trade,1433.225
+2023-12-01,Sulawesi,Hemaviton C1000,Modern Trade,1276.049
+2023-12-01,Sulawesi,Hemaviton C1000,E-commerce,851.329
+2023-12-01,Sulawesi,Hemaviton C1000,Hospitals & Institutions,588.157
+2023-12-01,Sulawesi,Vidoran Smart,General Trade,1249.636
+2023-12-01,Sulawesi,Vidoran Smart,Modern Trade,1063.358
+2023-12-01,Sulawesi,Vidoran Smart,E-commerce,755.968
+2023-12-01,Sulawesi,Vidoran Smart,Hospitals & Institutions,501.269
+2023-12-01,Sulawesi,Marina Skin Care,General Trade,1128.814
+2023-12-01,Sulawesi,Marina Skin Care,Modern Trade,954.027
+2023-12-01,Sulawesi,Marina Skin Care,E-commerce,649.615
+2023-12-01,Sulawesi,Marina Skin Care,Hospitals & Institutions,456.801
