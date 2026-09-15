@@ -267,6 +267,7 @@ async def test_missing_forecast_never_invokes_qwen(monkeypatch):
     assert state["status"] == "fallback"
     assert state["rows"] == []
     assert "belum tersedia" in state["answer"]["summary"]
+    assert "2024-03-31" in state["answer"]["summary"]
 
 
 @pytest.mark.asyncio

@@ -3,6 +3,7 @@ from __future__ import annotations
 import logging
 import re
 from typing import Any
+from datetime import date, timedelta
 
 from app.core.config import get_settings
 from app.db.base import DataBackendError
@@ -333,10 +334,12 @@ async def forecast(state: GraphState) -> GraphState:
     resolved_state = state.get("dashboard_state") or {}
     if lookup.status == "FORECAST_NOT_AVAILABLE":
         requested = intent.forecast_period.strftime("%B %Y")
+        current_range = project.resolution.period_ranges.get("current_month")
+        latest_actual = (date.fromisoformat(current_range.end) - timedelta(days=1)).isoformat() if current_range else "unknown"
         summary = (
-            f"Forecast untuk {requested} belum tersedia. Tidak ada angka forecast yang dibuat sebagai pengganti."
+            f"Forecast untuk {requested} belum tersedia. Data aktual terakhir tersedia sampai {latest_actual}. Tidak ada angka forecast yang dibuat sebagai pengganti."
             if state.get("language") == "id"
-            else f"The forecast for {requested} is not available. No substitute forecast was generated."
+            else f"The forecast for {requested} is not available. Actual data is available through {latest_actual}. No substitute forecast was generated."
         )
         answer = ExecutiveAnswer(
             summary=summary,
