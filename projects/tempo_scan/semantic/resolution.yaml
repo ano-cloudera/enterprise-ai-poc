@@ -1,0 +1,88 @@
+resolution:
+  default_metric: net_sales
+  default_dimension: region
+  entities:
+    region:
+      - value: Jawa Barat
+        aliases: [jawa barat, jabar, west java]
+      - value: Jawa Timur
+        aliases: [jawa timur, jatim, east java]
+      - value: Jawa Tengah
+        aliases: [jawa tengah, jateng]
+      - value: Sumatera
+        aliases: [sumatera]
+      - value: Kalimantan
+        aliases: [kalimantan]
+      - value: Sulawesi
+        aliases: [sulawesi]
+    channel:
+      - value: Modern Trade
+        aliases: [modern trade, mt]
+      - value: General Trade
+        aliases: [general trade]
+      - value: E-commerce
+        aliases: [e-commerce, ecommerce]
+      - value: Hospitals & Institutions
+        aliases: [hospital, hospitals and institutions]
+    category:
+      - value: Cough & Cold
+        aliases: [cough & cold, cough and cold, obat batuk & flu, obat batuk dan flu]
+      - value: Fever & Pain
+        aliases: [fever & pain, fever and pain]
+      - value: Vitamin
+        aliases: [vitamin]
+      - value: Multivitamin
+        aliases: [multivitamin]
+      - value: Skin Care
+        aliases: [skin care]
+    product:
+      - value: Tempra
+        aliases: [tempra]
+      - value: Bodrex Flu & Batuk
+        aliases: [bodrex, bodrex flu dan batuk, bodrex flu & batuk]
+      - value: Hemaviton C1000
+        aliases: [hemaviton, hemaviton c1000]
+      - value: Vidoran Smart
+        aliases: [vidoran, vidoran smart]
+      - value: Marina Skin Care
+        aliases: [marina, marina skin care]
+  periods:
+    current_month: [bulan ini, this month, current month]
+    previous_month: [bulan lalu, last month, previous month]
+    last_3_months: [3 bulan terakhir, last 3 months, three months]
+  period_ranges:
+    current_month: {start: "2024-03-01", end: "2024-04-01"}
+    previous_month: {start: "2024-02-01", end: "2024-03-01"}
+    january_2024: {start: "2024-01-01", end: "2024-02-01"}
+    last_3_months: {start: "2024-01-01", end: "2024-04-01"}
+  comparison_periods:
+    current_month: previous_month
+    previous_month: january_2024
+  reset_phrases: [reset filter, reset filternya, hapus filter, clear filter]
+  comparisons:
+    previous_period: [turun, penurunan, terdampak, tumbuh, growth, versus, vs]
+  grains:
+    month: [bulan, bulanan, monthly]
+    day: [hari, harian, daily]
+  patterns:
+    entity_comparison:
+      aliases: [bandingkan, compare]
+      dimensions: [region]
+      comparison: entity
+    trend:
+      aliases: [tren, trend]
+      dimensions: [time]
+    top_bottom:
+      aliases: [paling turun, penurunan terbesar, paling terdampak, justru tumbuh, top, bottom, teratas, terbawah]
+      comparison: previous_period
+      sort_field: percentage_change
+      sort_direction: asc
+    breakdown:
+      aliases: [berdasarkan, breakdown, by]
+    period_comparison:
+      aliases: [kenapa, mengapa, why]
+      dimensions: [region]
+      comparison: previous_period
+    kpi:
+      aliases: [berapa, total, how much]
+  positive_sort_aliases: [tumbuh, growth, naik, positive, top, teratas]

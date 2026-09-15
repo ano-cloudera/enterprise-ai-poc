@@ -40,3 +40,30 @@ class ForecastRepository:
             latest_actual_period=ForecastRow.model_validate(rows[0]).training_cutoff_date,
             rows=[ForecastRow.model_validate(row) for row in rows],
         )
+
+    def top(self, period: date, dimension_type: Literal["region", "product", "channel"], limit: int = 5) -> ForecastLookupResult:
+        if dimension_type not in {"region", "product", "channel"}:
+            raise ValueError("Unsupported forecast ranking dimension")
+        safe_limit = min(max(limit, 1), 20)
+        sql = (
+            "SELECT forecast_date, generated_at, forecast_horizon, forecast_sales, lower_bound, upper_bound, "
+            "model_name, model_version, training_cutoff_date, dimension_type, dimension_value "
+            "FROM commercial_sales_forecast "
+            f"WHERE forecast_date = DATE '{period.isoformat()}' AND dimension_type = '{dimension_type}' "
+            "QUALIFY ROW_NUMBER() OVER (PARTITION BY dimension_value ORDER BY generated_at DESC) = 1 "
+            f"ORDER BY forecast_sales DESC LIMIT {safe_limit}"
+        )
+        try:
+            rows = self.service.execute_validated(sql, QueryContext(purpose="forecast.ranking")).rows
+        except Exception:
+            rows = []
+        if not rows:
+            return ForecastLookupResult(status="FORECAST_NOT_AVAILABLE", requested_period=period)
+        parsed = [ForecastRow.model_validate(row) for row in rows]
+        return ForecastLookupResult(
+            status="ok",
+            requested_period=period,
+            latest_forecast_period=period,
+            latest_actual_period=parsed[0].training_cutoff_date,
+            rows=parsed,
+        )

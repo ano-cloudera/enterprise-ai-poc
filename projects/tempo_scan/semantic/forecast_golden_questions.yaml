@@ -1,0 +1,46 @@
+forecast_golden_questions:
+  - id: forecast_total
+    question: Berapa forecast total sales bulan depan?
+    dimension_type: total
+    dimension_value: ALL
+    forecast_period: "2024-04"
+  - id: forecast_west_java
+    question: Berapa prediksi sales Jawa Barat bulan depan?
+    dimension_type: region
+    dimension_value: Jawa Barat
+    forecast_period: "2024-04"
+  - id: forecast_modern_trade
+    question: Forecast Modern Trade bulan depan bagaimana?
+    dimension_type: channel
+    dimension_value: Modern Trade
+    forecast_period: "2024-04"
+  - id: forecast_top_product
+    question: Produk mana yang diprediksi memiliki sales tertinggi bulan depan?
+    dimension_type: product
+    forecast_period: "2024-04"
+  - id: forecast_west_java_comparison
+    question: Bagaimana forecast Jawa Barat dibanding sales bulan ini?
+    dimension_type: region
+    dimension_value: Jawa Barat
+    forecast_period: "2024-04"
+  - id: forecast_east_java
+    question: Forecast sales Jawa Timur bulan depan?
+    dimension_type: region
+    dimension_value: Jawa Timur
+    forecast_period: "2024-04"
+  - id: forecast_bodrex
+    question: Prediksi penjualan Bodrex Flu & Batuk bulan depan?
+    dimension_type: product
+    dimension_value: Bodrex Flu & Batuk
+    forecast_period: "2024-04"
+  - id: forecast_general_trade
+    question: Forecast channel General Trade bulan depan?
+    dimension_type: channel
+    dimension_value: General Trade
+    forecast_period: "2024-04"
+  - id: forecast_unavailable
+    question: Forecast Jawa Barat Januari 2025?
+    dimension_type: region
+    dimension_value: Jawa Barat
+    forecast_period: "2025-01"
+    expected_status: FORECAST_NOT_AVAILABLE

@@ -83,3 +83,10 @@ class ForecastLookupResult(BaseModel):
     latest_forecast_period: date | None = None
     latest_actual_period: date | None = None
     rows: list[ForecastRow] = Field(default_factory=list)
+
+
+class ForecastIntent(BaseModel):
+    forecast_period: date
+    dimension_type: DimensionType
+    dimension_value: str | None
+    top_n: int | None = Field(default=None, ge=1, le=20)
