@@ -1,0 +1,4 @@
+-r requirements-lock.txt
+guardrails-ai>=0.6,<1.0
+guardrails-ai-detect-jailbreak
+guardrails-ai-secrets-present

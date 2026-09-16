@@ -13,6 +13,10 @@ runtime/*.duckdb
 runtime/*.sqlite
 runtime/*.wal
 runtime/*.tmp
+**/runtime/*.duckdb
+**/runtime/*.sqlite
+**/runtime/*.wal
+**/runtime/*.tmp
 artifacts/forecasting/
 
 .DS_Store

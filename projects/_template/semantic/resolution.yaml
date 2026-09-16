@@ -1,0 +1,12 @@
+resolution:
+  default_metric: null
+  default_dimension: null
+  entities: {}
+  periods: {}
+  period_ranges: {}
+  reset_phrases: []
+  comparison_periods: {}
+  comparisons: {}
+  grains: {}
+  patterns: {}
+  positive_sort_aliases: []

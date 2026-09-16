@@ -1,0 +1,7 @@
+business_terms:
+  this_month: For the synthetic demo dataset, this month means March 2024.
+  last_month: For the synthetic demo dataset, last month means February 2024.
+  growth: Percentage change between the selected period and the comparison period.
+  sales_decline: Net sales in the selected period is lower than the comparison period.
+  inventory_health: Share of product-outlet-days without stockout.
+  trusted_data: Data returned from an allowlisted governed dataset after SQL validation.

@@ -1,0 +1,159 @@
+'use client'
+
+import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { ArrowUp, Bot, CheckCircle2, ChevronRight, Database, Lightbulb, MessageSquareText, Plus, Sparkles, UserRound } from 'lucide-react'
+import { useSearchParams } from 'next/navigation'
+import { AnswerChart } from '../components/AnswerChart'
+import { DataTable } from '../components/DataTable'
+import { PageIntro } from '../components/PageIntro'
+import { api } from '../lib/api'
+import { suggestedFollowUps } from '../lib/businessPresentation'
+import { useDashboardState } from '../lib/dashboardState'
+import { formatFloatingAnswerText, formatFloatingDriver } from '../lib/floatingAnswerFormatting'
+import { useProject } from '../lib/project'
+import type { ChatResponse } from '../types/api'
+
+const starterQuestions = [
+  'Kenapa sales Jawa Barat turun bulan ini?',
+  'Channel mana yang paling terdampak?',
+  'Produk mana yang menjadi driver utama?',
+  'Bagaimana forecast bulan depan?',
+]
+
+type UIMessage = { role: 'user' | 'assistant'; content: string; response?: ChatResponse }
+
+export function AskAIPage() {
+  const { config } = useProject()
+  const { state: dashboardState, applyActions } = useDashboardState()
+  const searchParams = useSearchParams()
+  const initial = searchParams.get('q') || ''
+  const priorSummary = searchParams.get('summary') || ''
+  const [input, setInput] = useState(initial)
+  const [messages, setMessages] = useState<UIMessage[]>([])
+  const [loading, setLoading] = useState(false)
+  const initialSubmitted = useRef(false)
+  const conversationEnd = useRef<HTMLDivElement>(null)
+
+  const recent = useMemo(
+    () => [...new Set(messages.filter(message => message.role === 'user').map(message => message.content))].reverse().slice(0, 5),
+    [messages],
+  )
+  async function submit(question = input) {
+    const value = question.trim()
+    if (!value || loading) return
+    const history = messages.length
+      ? messages.map(message => ({ role: message.role, content: message.content }))
+      : priorSummary ? [{ role: 'assistant' as const, content: priorSummary }] : []
+    setMessages(current => [...current, { role: 'user', content: value }])
+    setInput('')
+    setLoading(true)
+    try {
+      const response = await api.chat(value, history, dashboardState)
+      applyActions(response.ui_actions)
+      setMessages(current => [...current, { role: 'assistant', content: response.answer.summary, response }])
+    } catch {
+      setMessages(current => [...current, { role: 'assistant', content: 'Unable to complete the analysis right now. Please try again.' }])
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
+    if (event.key !== 'Enter' || event.shiftKey || !input.trim() || loading) return
+    event.preventDefault()
+    submit()
+  }
+
+  useEffect(() => {
+    if (!initial || initialSubmitted.current) return
+    initialSubmitted.current = true
+    submit(initial)
+  }, [])
+
+  useEffect(() => {
+    if (!messages.length && !loading) return
+    conversationEnd.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
+  }, [messages, loading])
+
+  return (
+    <div className="flex h-[calc(100dvh-112px)] min-w-0 flex-col sm:h-[calc(100dvh-128px)] xl:h-[calc(100dvh-136px)] 2xl:h-[calc(100dvh-144px)]">
+      <PageIntro
+        title="Ask AI"
+        subtitle="Ask business questions in Bahasa Indonesia or English. Answers stay grounded in governed data."
+      />
+
+      <div className="grid min-h-0 min-w-0 flex-1 gap-4 xl:grid-cols-[214px_minmax(0,1fr)]">
+        <aside className="card hidden h-full min-w-0 overflow-y-auto p-4 xl:block">
+          <button type="button" onClick={() => { setMessages([]); setInput('') }} className="btn-primary w-full"><Plus size={16} />New Chat</button>
+          <div className="mt-6 text-sm font-extrabold text-cloudera-navy">Recent conversations</div>
+          {recent.length ? (
+            <div className="mt-3 space-y-2">{recent.map(item => (
+              <button type="button" key={item} onClick={() => setInput(item)} className="w-full rounded-xl border border-transparent p-3 text-left text-xs leading-5 text-slate-600 transition hover:bg-slate-50">
+                <div className="flex gap-2"><MessageSquareText size={15} className="mt-0.5 shrink-0 text-slate-400" /><span className="min-w-0 break-words font-semibold">{item}</span></div>
+                <div className="ml-6 mt-1 text-[10px] text-slate-400">Current session</div>
+              </button>
+            ))}</div>
+          ) : <div className="mt-3 rounded-xl bg-slate-50 p-3 text-xs text-slate-500">No conversations yet.</div>}
+        </aside>
+
+        <section className="card order-1 flex h-full min-h-0 min-w-0 flex-col overflow-hidden xl:order-none">
+          <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
+            <div className="flex items-center gap-2"><div className="grid h-8 w-8 place-items-center rounded-lg bg-orange-50 text-cloudera-orange"><Sparkles size={16} /></div><div><div className="text-sm font-extrabold text-cloudera-navy">{config.project_name.replace(' Commercial Intelligence Assistant', '')} AI</div><div className="text-[11px] text-emerald-600">● Connected to governed data</div></div></div>
+            <div className="chip"><Database size={13} />Governed Data</div>
+          </div>
+
+          <div role="log" aria-label="Conversation" aria-live="polite" className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(99,91,255,.04),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(255,90,31,.05),transparent_30%)] p-4 sm:p-5">
+            {messages.length === 0 && (
+              <div className="mx-auto mt-6 w-full max-w-3xl text-center sm:mt-8">
+                <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-cloudera-navy text-white shadow-lg"><Bot size={26} /></div>
+                <h2 className="mt-4 text-xl font-black text-cloudera-navy">Ask your commercial data</h2>
+                <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-500">Ask a management question to get a concise answer, supporting evidence, and practical next steps.</p>
+                <div className="mt-5 grid gap-3 sm:grid-cols-2">{starterQuestions.map(item => <button type="button" onClick={() => submit(item)} key={item} className="rounded-xl border border-slate-200 bg-white p-4 text-left text-xs font-semibold text-slate-600 shadow-sm transition hover:border-orange-200 hover:text-cloudera-navy">{item}<ChevronRight className="mt-2 text-cloudera-orange" size={14} /></button>)}</div>
+              </div>
+            )}
+            {messages.map((message, index) => message.role === 'user' ? (
+              <div key={index} className="ml-auto flex max-w-[90%] items-start justify-end gap-2 sm:max-w-[78%]"><div className="min-w-0 break-words rounded-2xl rounded-tr-md bg-cloudera-navy px-4 py-3 text-sm leading-6 text-white">{message.content}</div><div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-200 text-slate-600"><UserRound size={15} /></div></div>
+            ) : (
+              <div key={index} className="flex min-w-0 items-start gap-3"><div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-cloudera-orange text-white"><Sparkles size={17} /></div><div className="min-w-0 flex-1 rounded-2xl rounded-tl-md border border-slate-200 bg-white p-4 shadow-sm sm:p-5">{message.response ? <StructuredAnswer response={message.response} onSelectFollowUp={setInput} /> : <div className="text-sm leading-6 text-slate-700">{message.content}</div>}</div></div>
+            ))}
+            {loading && <div className="flex items-center gap-3"><div className="grid h-9 w-9 place-items-center rounded-xl bg-cloudera-orange text-white"><Sparkles size={17} /></div><div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-500"><span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-cloudera-orange" />Analyzing governed data...</div></div>}
+            <div ref={conversationEnd} aria-hidden="true" />
+          </div>
+
+          <form onSubmit={(event: FormEvent) => { event.preventDefault(); submit() }} className="border-t border-slate-200 bg-white p-4">
+            <div className="flex items-end gap-2 rounded-2xl border border-slate-200 p-2 shadow-sm focus-within:border-cloudera-violet focus-within:ring-4 focus-within:ring-cloudera-violet/10">
+              <textarea value={input} onChange={event => setInput(event.target.value)} onKeyDown={handleComposerKeyDown} rows={2} placeholder="Ask a follow-up question..." className="min-h-[48px] min-w-0 flex-1 resize-none bg-transparent px-2 py-2 text-sm outline-none" />
+              <button type="submit" disabled={loading || !input.trim()} aria-label="Send question" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-cloudera-orange text-white disabled:opacity-40"><ArrowUp size={18} /></button>
+            </div>
+            <div className="mt-2 text-[10px] text-slate-400">AI-generated insights should be reviewed alongside your business context.</div>
+          </form>
+        </section>
+
+      </div>
+    </div>
+  )
+}
+
+function StructuredAnswer({ response, onSelectFollowUp }: { response: ChatResponse; onSelectFollowUp: (question: string) => void }) {
+  const { state } = useDashboardState()
+  const drivers = response.answer.drivers.map(formatFloatingDriver).filter(Boolean).slice(0, 3)
+  const actions = response.answer.recommended_actions.slice(0, 3)
+  const showTable = state.chat.table.visible && response.data.rows.length > 0
+  const showChart = Boolean(response.chart_spec && response.chart_spec.type !== 'none' && response.chart_spec.type !== 'table')
+  const followUps = suggestedFollowUps(response.metadata.intent).slice(0, 3)
+
+  return (
+    <div aria-label="AI response" className="min-w-0">
+      <section>
+        <div className="text-xs font-extrabold text-cloudera-navy">Executive Summary</div>
+        <p className="mt-2 break-words text-sm leading-6 text-slate-700">{formatFloatingAnswerText(response.answer.summary)}</p>
+      </section>
+      {drivers.length > 0 && <section className="mt-5"><div className="text-xs font-extrabold text-cloudera-navy">Key Drivers</div><div className="mt-2 space-y-2">{drivers.map((item, index) => <div key={`${item}-${index}`} className="flex gap-2.5 text-sm leading-6 text-slate-700"><span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-violet-50 text-[10px] font-black text-cloudera-violet">{index + 1}</span><span className="min-w-0 break-words">{item}</span></div>)}</div></section>}
+      {(showChart || showTable) && <section className="mt-5"><div className="text-xs font-extrabold text-cloudera-navy">Supporting Evidence</div>{showChart && <AnswerChart chart={response.chart_spec} />}{showTable && <DataTable columns={state.chat.table.columns.length ? state.chat.table.columns : response.data.columns} rows={response.data.rows} metric={response.metadata.resolved_context.metric} />}</section>}
+      {actions.length > 0 && <section className="mt-5 rounded-2xl border border-orange-100 bg-orange-50/60 p-4"><div className="flex items-center gap-2 text-xs font-extrabold text-cloudera-navy"><Lightbulb size={15} className="text-cloudera-orange" />Recommended Actions</div><div className="mt-2 space-y-2">{actions.map((item, index) => <div key={`${item}-${index}`} className="flex gap-2 text-sm leading-6 text-slate-700"><CheckCircle2 size={15} className="mt-1 shrink-0 text-emerald-500" /><span className="min-w-0 break-words">{formatFloatingAnswerText(item)}</span></div>)}</div></section>}
+      <div role="group" aria-label="Suggested follow-up questions" className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+        {followUps.map(question => <button type="button" key={question} onClick={() => onSelectFollowUp(question)} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-left text-[11px] font-semibold leading-4 text-slate-600 transition hover:border-orange-200 hover:bg-orange-50 hover:text-cloudera-navy">{question}</button>)}
+      </div>
+    </div>
+  )
+}

@@ -35,6 +35,12 @@ def load_semantic_project(project_id: str | None = None) -> SemanticProject:
     forecast_golden_questions = []
     if manifest.get("forecast_golden_questions_file"):
         forecast_golden_questions = _read_yaml(base / manifest["forecast_golden_questions_file"]).get("forecast_golden_questions", [])
+    weather_golden_questions = []
+    if manifest.get("weather_golden_questions_file"):
+        weather_golden_questions = _read_yaml(base / manifest["weather_golden_questions_file"]).get("weather_golden_questions", [])
+    market_golden_questions = []
+    if manifest.get("market_golden_questions_file"):
+        market_golden_questions = _read_yaml(base / manifest["market_golden_questions_file"]).get("market_golden_questions", [])
     return SemanticProject(
         project=project_id,
         datasets=datasets,
@@ -43,6 +49,8 @@ def load_semantic_project(project_id: str | None = None) -> SemanticProject:
         resolution=resolution,
         golden_questions=golden_questions,
         forecast_golden_questions=forecast_golden_questions,
+        weather_golden_questions=weather_golden_questions,
+        market_golden_questions=market_golden_questions,
     )
 
 

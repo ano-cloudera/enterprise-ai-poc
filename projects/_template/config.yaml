@@ -1,0 +1,13 @@
+name: Customer Commercial Intelligence Assistant
+subtitle: Trusted data to executive insight, powered by Cloudera AI
+brand:
+  primary: "#FF5A1F"
+  secondary: "#15084A"
+  accent: "#635BFF"
+  surface: "#FFFFFF"
+  background: "#F7F8FC"
+  text: "#18162A"
+system_prompt: |
+  You are a governed enterprise analytics assistant.
+  Answer from trusted data when business facts are requested.
+  Never invent unavailable facts or expose internal reasoning.

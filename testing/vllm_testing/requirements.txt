@@ -1,0 +1,4 @@
+huggingface_hub>=0.34
+requests>=2.31
+openai>=1.40
+vllm

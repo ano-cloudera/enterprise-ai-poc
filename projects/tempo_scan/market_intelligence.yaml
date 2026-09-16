@@ -1,0 +1,31 @@
+synthetic_data_disclaimer: Market indicators in this PoC include calibrated synthetic data and require validation against licensed market intelligence sources for production use.
+opportunity_methodology_disclaimer: The opportunity score is a transparent PoC analytical indicator, not an official commercial scoring methodology.
+regions: [Jawa Barat, Jawa Timur, Jawa Tengah, Sumatera, Kalimantan, Sulawesi]
+products:
+  - {product_name: Bodrex, brand: Bodrex, manufacturer: Tempo Scan Pacific, category: Adult Analgesic, competitor_group: Adult Analgesic}
+  - {product_name: Bodrex Flu & Batuk, brand: Bodrex, manufacturer: Tempo Scan Pacific, category: Adult Cough & Cold, competitor_group: Adult Cough & Cold}
+  - {product_name: Oskadon, brand: Oskadon, manufacturer: Tempo Scan Pacific, category: Adult Analgesic, competitor_group: Adult Analgesic}
+  - {product_name: Bodrexin, brand: Bodrexin, manufacturer: Tempo Scan Pacific, category: Children Analgesic, competitor_group: Children Analgesic}
+  - {product_name: Hemaviton, brand: Hemaviton, manufacturer: Tempo Scan Pacific, category: Vitamin / Mineral / Supplement, competitor_group: VMS}
+  - {product_name: Vidoran, brand: Vidoran, manufacturer: Tempo Scan Pacific, category: Nutritional, competitor_group: Nutritional}
+  - {product_name: Rheumacyl Oralinu, brand: Rheumacyl, manufacturer: Tempo Scan Pacific, category: Herbal, competitor_group: Herbal}
+  - {product_name: Neo Hormoviton, brand: Neo Hormoviton, manufacturer: Tempo Scan Pacific, category: Vitamin / Mineral / Supplement, competitor_group: VMS}
+  - {product_name: HealthyWay, brand: HealthyWay, manufacturer: Tempo Scan Pacific, category: Nutritional, competitor_group: Nutritional}
+  - {product_name: Wybert Herbal, brand: Wybert Herbal, manufacturer: Tempo Scan Pacific, category: Herbal, competitor_group: Herbal}
+  - {product_name: Herbalax, brand: Herbalax, manufacturer: Tempo Scan Pacific, category: Herbal, competitor_group: Herbal}
+competitors:
+  - {brand: Panadol, manufacturer: Haleon, category: Adult Analgesic, competitor_group: Adult Analgesic}
+  - {brand: Paramex, manufacturer: Konimex, category: Adult Analgesic, competitor_group: Adult Analgesic}
+  - {brand: Decolgen, manufacturer: Darya-Varia, category: Adult Cough & Cold, competitor_group: Adult Cough & Cold}
+  - {brand: Procold, manufacturer: Medifarma, category: Adult Cough & Cold, competitor_group: Adult Cough & Cold}
+  - {brand: Sanmol, manufacturer: Sanbe Farma, category: Children Analgesic, competitor_group: Children Analgesic}
+  - {brand: Enervon-C, manufacturer: Darya-Varia, category: Vitamin / Mineral / Supplement, competitor_group: VMS}
+  - {brand: Sakatonik, manufacturer: Kalbe, category: Vitamin / Mineral / Supplement, competitor_group: VMS}
+  - {brand: Pediasure, manufacturer: Abbott, category: Nutritional, competitor_group: Nutritional}
+  - {brand: Curcuma Plus, manufacturer: Soho, category: Nutritional, competitor_group: Nutritional}
+  - {brand: Tolak Angin, manufacturer: Sido Muncul, category: Herbal, competitor_group: Herbal}
+category_constraints:
+  Adult Analgesic:
+    leader_group_brands: [Bodrex, Oskadon]
+    minimum_combined_share_pct: 55.0
+    calibration_note: Synthetic PoC constraint used to model a directional leadership scenario; it is not measured market share or a licensed market-data claim.

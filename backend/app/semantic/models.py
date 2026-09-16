@@ -127,6 +127,25 @@ class ForecastGoldenQuestion(BaseModel):
     expected_status: Literal["ok", "FORECAST_NOT_AVAILABLE"] = "ok"
 
 
+class WeatherGoldenQuestion(BaseModel):
+    id: str
+    question: str
+    region_name: str | None = None
+    metric: Literal["precipitation", "temperature", "humidity", "rainy_days"]
+    period: str
+    correlation: bool = False
+
+
+class MarketGoldenQuestion(BaseModel):
+    id: str
+    question: str
+    context: dict[str, Any] = Field(default_factory=dict)
+    analysis_type: Literal["position", "competitors", "pricing", "growth", "share", "distribution", "pressure", "opportunity", "sales_pressure"]
+    product_name: str | None = None
+    region_name: str | None = None
+    expected_status: Literal["ok", "EXTERNAL_MARKET_SIGNAL_NOT_AVAILABLE", "MARKET_DATA_NOT_AVAILABLE"] = "ok"
+
+
 class SemanticProject(BaseModel):
     project: str
     datasets: dict[str, DatasetDefinition]
@@ -136,3 +155,5 @@ class SemanticProject(BaseModel):
     resolution: ResolutionDefinition = Field(default_factory=ResolutionDefinition)
     golden_questions: list[GoldenQuestion] = Field(default_factory=list)
     forecast_golden_questions: list[ForecastGoldenQuestion] = Field(default_factory=list)
+    weather_golden_questions: list[WeatherGoldenQuestion] = Field(default_factory=list)
+    market_golden_questions: list[MarketGoldenQuestion] = Field(default_factory=list)

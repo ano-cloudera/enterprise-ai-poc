@@ -2,10 +2,14 @@ dataset_files:
   - sales.yaml
   - inventory.yaml
   - forecast.yaml
+  - weather.yaml
+  - product_master.yaml
 business_terms_file: business_terms.yaml
 resolution_file: resolution.yaml
 golden_questions_file: golden_questions.yaml
 forecast_golden_questions_file: forecast_golden_questions.yaml
+weather_golden_questions_file: weather_golden_questions.yaml
+market_golden_questions_file: market_golden_questions.yaml
 allowed_questions:
   - Kenapa sales Jawa Barat turun bulan ini?
   - Produk mana yang paling berkontribusi terhadap penurunan Jawa Barat?
@@ -13,3 +17,5 @@ allowed_questions:
   - Apakah ada masalah inventory?
   - Bandingkan Jawa Barat dengan Jawa Timur.
   - Forecast sales Jawa Barat bulan depan.
+  - Apakah penurunan sales Jawa Barat berkorelasi dengan peningkatan curah hujan?
+  - Bagaimana posisi Bodrex dibanding kompetitor?

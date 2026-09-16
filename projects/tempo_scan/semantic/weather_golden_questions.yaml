@@ -1,0 +1,9 @@
+weather_golden_questions:
+  - {id: weather-correlation-jabar, question: "Apakah penurunan sales Jawa Barat berkorelasi dengan peningkatan curah hujan?", region_name: Jawa Barat, metric: precipitation, period: current_month, correlation: true}
+  - {id: weather-rain-trend-jabar, question: "Bagaimana sales Jawa Barat dibandingkan dengan tren hujan?", region_name: Jawa Barat, metric: precipitation, period: current_month, correlation: true}
+  - {id: weather-rainy-decline-regions, question: "Region mana yang mengalami penurunan sales saat rainy days meningkat?", region_name: null, metric: rainy_days, period: current_month, correlation: false}
+  - {id: weather-temperature-sales, question: "Bagaimana hubungan temperatur dengan sales?", region_name: null, metric: temperature, period: current_month, correlation: true}
+  - {id: weather-rain-increase-jabar, question: "Apakah curah hujan Jawa Barat meningkat bulan ini?", region_name: Jawa Barat, metric: precipitation, period: current_month, correlation: false}
+  - {id: weather-humidity-jatim, question: "Bagaimana kelembapan dan sales Jawa Timur bulan ini?", region_name: Jawa Timur, metric: humidity, period: current_month, correlation: false}
+  - {id: weather-rainy-jateng, question: "Apakah hari hujan Jawa Tengah meningkat bulan ini?", region_name: Jawa Tengah, metric: rainy_days, period: current_month, correlation: false}
+  - {id: weather-temperature-sumatera, question: "Apakah suhu Sumatera berkorelasi dengan sales?", region_name: Sumatera, metric: temperature, period: current_month, correlation: true}

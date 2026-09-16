@@ -6,6 +6,7 @@ import csv
 import calendar
 import math
 import random
+import yaml
 
 ROOT = Path(__file__).resolve().parents[1]
 OUT = ROOT / "projects" / "tempo_scan" / "fixtures"
@@ -180,3 +181,21 @@ with history_path.open("w", newline="", encoding="utf-8") as handle:
     writer.writeheader()
     writer.writerows(history_rows)
 print(f"wrote {len(history_rows):,} rows -> {history_path}")
+
+# The reusable product master is governed independently from transactional
+# scenarios so portfolio alignment cannot alter historical or forecast values.
+with (ROOT / "projects" / "tempo_scan" / "config.yaml").open(encoding="utf-8") as handle:
+    governed_products = (yaml.safe_load(handle) or {}).get("product_master", [])
+product_master_path = OUT / "commercial_product_master.csv"
+with product_master_path.open("w", newline="", encoding="utf-8") as handle:
+    fields = ["product_id", "product_name", "product_category", "product_categories", "synthetic"]
+    writer = csv.DictWriter(handle, fieldnames=fields)
+    writer.writeheader()
+    for product in governed_products:
+        categories = product["product_categories"]
+        writer.writerow({
+            "product_id": product["product_id"], "product_name": product["product_name"],
+            "product_category": "Nutritional" if "Nutritional" in categories else categories[0],
+            "product_categories": "; ".join(categories), "synthetic": "true",
+        })
+print(f"wrote {len(governed_products):,} rows -> {product_master_path}")

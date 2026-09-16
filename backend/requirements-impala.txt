@@ -1,0 +1,4 @@
+-r requirements-lock.txt
+impyla==0.22.0
+thrift_sasl==0.4.3
+pure-sasl==0.6.2

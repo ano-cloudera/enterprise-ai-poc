@@ -16,6 +16,10 @@ class GraphState(TypedDict, total=False):
     semantic_resolution: dict[str, Any]
     analytical_intent: dict[str, Any]
     forecast_intent: dict[str, Any]
+    weather_intent: dict[str, Any]
+    weather_evidence: dict[str, Any]
+    market_intent: dict[str, Any]
+    market_evidence: dict[str, Any]
     sql: str
     sql_reason: str
     validated_sql: str

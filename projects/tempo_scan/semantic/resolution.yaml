@@ -46,6 +46,26 @@ resolution:
         aliases: [vidoran, vidoran smart]
       - value: Marina Skin Care
         aliases: [marina, marina skin care]
+      - value: Bodrex
+        aliases: [bodrex tablet]
+      - value: Oskadon
+        aliases: [oskadon]
+      - value: Bodrexin
+        aliases: [bodrexin]
+      - value: Vidoran
+        aliases: [vidoran family]
+      - value: Hemaviton
+        aliases: [hemaviton family]
+      - value: Neo Hormoviton
+        aliases: [neo hormoviton]
+      - value: HealthyWay
+        aliases: [healthyway]
+      - value: Rheumacyl Oralinu
+        aliases: [rheumacyl oralinu]
+      - value: Wybert Herbal
+        aliases: [wybert herbal]
+      - value: Herbalax
+        aliases: [herbalax]
   periods:
     current_month: [bulan ini, this month, current month]
     previous_month: [bulan lalu, last month, previous month]
@@ -73,7 +93,7 @@ resolution:
       aliases: [tren, trend]
       dimensions: [time]
     top_bottom:
-      aliases: [paling turun, penurunan terbesar, paling terdampak, justru tumbuh, top, bottom, teratas, terbawah]
+      aliases: [paling turun, turun paling besar, penurunan terbesar, paling terdampak, justru tumbuh, top, bottom, teratas, terbawah]
       comparison: previous_period
       sort_field: percentage_change
       sort_direction: asc

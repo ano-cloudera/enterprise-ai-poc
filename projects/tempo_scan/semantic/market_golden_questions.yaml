@@ -1,0 +1,13 @@
+market_golden_questions:
+  - {id: market-position-bodrex, question: "Bagaimana posisi Bodrex dibanding kompetitor?", analysis_type: position, product_name: Bodrex}
+  - {id: market-share-bodrex-jabar, question: "Berapa market share Bodrex di Jawa Barat?", analysis_type: share, product_name: Bodrex, region_name: Jawa Barat}
+  - {id: market-opportunity-bodrex, question: "Region mana yang punya opportunity terbesar untuk Bodrex?", analysis_type: opportunity, product_name: Bodrex}
+  - {id: market-price-bodrex, question: "Bagaimana price positioning Bodrex?", analysis_type: pricing, product_name: Bodrex}
+  - {id: market-fastest-category, question: "Kategori mana yang tumbuh paling cepat?", analysis_type: growth}
+  - {id: market-distribution-gap, question: "Produk Tempo mana yang distribution gap-nya terbesar?", analysis_type: distribution}
+  - {id: market-competitor-analgesic, question: "Siapa kompetitor utama di Adult Analgesic?", analysis_type: competitors}
+  - {id: market-pressure-bodrex, question: "Bagaimana competitive pressure Bodrex bulan ini?", analysis_type: pressure, product_name: Bodrex}
+  - {id: market-sales-pressure-bodrex, question: "Apakah sales Bodrex turun saat competitive pressure naik?", analysis_type: sales_pressure, product_name: Bodrex}
+  - {id: market-low-share-opportunity, question: "Market mana yang menarik tetapi share Tempo masih rendah?", analysis_type: opportunity}
+  - {id: market-missing-product, question: "Berapa market share produk yang tidak tersedia?", analysis_type: share, expected_status: MARKET_DATA_NOT_AVAILABLE}
+  - {id: market-api-unavailable, question: "Bagaimana posisi market melalui API eksternal?", analysis_type: position, expected_status: EXTERNAL_MARKET_SIGNAL_NOT_AVAILABLE}

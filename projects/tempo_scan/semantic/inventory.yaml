@@ -1,0 +1,73 @@
+name: commercial_inventory
+source: commercial_inventory_daily
+trino:
+  table: commercial_inventory_daily
+description: Daily inventory availability view for product and outlet analysis.
+primary_key: [inventory_date, product_id, outlet_id]
+metrics:
+  available_stock:
+    label: Available Stock
+    expression: available_stock
+    aggregation: sum
+    aliases: [stock, stok, inventory]
+  stockout_days:
+    label: Stockout Days
+    expression: stockout_flag
+    aggregation: sum
+    aliases: [stockout, out of stock, kehabisan stok]
+  days_of_supply:
+    label: Days of Supply
+    expression: days_of_supply
+    aggregation: avg
+    aliases: [dos, stock cover]
+dimensions:
+  region:
+    label: Region
+    column: region_name
+    aliases: [wilayah, area]
+  city:
+    label: City
+    column: city
+    aliases: [kota]
+  product:
+    label: Product
+    column: product_name
+    aliases: [produk, sku]
+  category:
+    label: Product Category
+    column: product_category
+    aliases: [kategori]
+  outlet:
+    label: Outlet
+    column: outlet_name
+    aliases: [store, toko]
+time_dimensions:
+  inventory_date:
+    label: Inventory Date
+    column: inventory_date
+    grains: [day, week, month]
+relationships:
+  sales:
+    dataset: commercial_sales
+    type: many_to_one
+    join: [product_id, outlet_id]
+    description: Join to sales only when inventory availability is a candidate sales driver.
+query_rules:
+  allowed_fields:
+    - inventory_date
+    - product_id
+    - product_name
+    - product_category
+    - outlet_id
+    - outlet_name
+    - region_name
+    - city
+    - available_stock
+    - stockout_flag
+    - days_of_supply
+  default_limit: 200
+  max_limit: 5000
+  require_date_filter: true
+  notes:
+    - Use stockout_flag and days_of_supply as the primary availability signals.
+    - Aggregate before returning results to the LLM whenever possible.

@@ -1,0 +1,77 @@
+name: Tempo Scan Commercial Intelligence Assistant
+subtitle: Trusted data to executive insight, powered by Cloudera AI
+dashboard_file: dashboard.yaml
+brand:
+  primary: "#FF5A1F"
+  secondary: "#14084A"
+  accent: "#635BFF"
+  surface: "#FFFFFF"
+  background: "#F7F8FC"
+  text: "#17152B"
+system_prompt: |
+  You are Tempo Scan Commercial Intelligence Assistant for management and business leaders.
+  Answer in the same language as the user. Prioritize trusted company data over model knowledge.
+  Be concise, clear, and actionable. Never invent unavailable facts or numbers.
+  For analytical questions use Executive Summary, Key Drivers, and Recommended Actions.
+  Never expose internal reasoning or chain-of-thought.
+synthetic_data_disclaimer: Synthetic sales values are created solely for this PoC and do not represent actual Tempo Scan sales.
+product_master:
+  - product_id: P001
+    product_name: Tempra
+    product_categories: [Analgesic / Cough & Cold]
+  - product_id: P002
+    product_name: Bodrex Flu & Batuk
+    product_categories: [Analgesic / Cough & Cold]
+  - product_id: P003
+    product_name: Hemaviton C1000
+    product_categories: [Vitamin / Mineral / Supplement]
+  - product_id: P004
+    product_name: Vidoran Smart
+    product_categories: [Vitamin / Mineral / Supplement, Nutritional]
+  - product_id: P005
+    product_name: Marina Skin Care
+    product_categories: [Personal Care]
+  - product_id: P006
+    product_name: Bodrex
+    product_categories: [Analgesic / Cough & Cold]
+  - product_id: P007
+    product_name: Oskadon
+    product_categories: [Analgesic / Cough & Cold]
+  - product_id: P008
+    product_name: Bodrexin
+    product_categories: [Analgesic / Cough & Cold]
+  - product_id: P009
+    product_name: Vidoran
+    product_categories: [Vitamin / Mineral / Supplement, Nutritional]
+  - product_id: P010
+    product_name: Hemaviton
+    product_categories: [Vitamin / Mineral / Supplement]
+  - product_id: P011
+    product_name: Neo Hormoviton
+    product_categories: [Vitamin / Mineral / Supplement]
+  - product_id: P012
+    product_name: HealthyWay
+    product_categories: [Nutritional]
+  - product_id: P013
+    product_name: Rheumacyl Oralinu
+    product_categories: [Herbal]
+  - product_id: P014
+    product_name: Wybert Herbal
+    product_categories: [Herbal]
+  - product_id: P015
+    product_name: Herbalax
+    product_categories: [Herbal]
+external_signals:
+  weather:
+    provider: open_meteo
+    history_start: 2022-04-01
+    history_end: 2024-03-31
+    rainy_day_threshold_mm: 0.0
+    proxy_disclaimer: Representative city weather is used as a PoC proxy for each broader commercial region and is not region-wide observation data.
+    locations:
+      - {region_name: Jawa Barat, weather_location: Bandung, latitude: -6.9175, longitude: 107.6191, timezone: Asia/Jakarta}
+      - {region_name: Jawa Timur, weather_location: Surabaya, latitude: -7.2575, longitude: 112.7521, timezone: Asia/Jakarta}
+      - {region_name: Jawa Tengah, weather_location: Semarang, latitude: -6.9667, longitude: 110.4167, timezone: Asia/Jakarta}
+      - {region_name: Sumatera, weather_location: Medan, latitude: 3.5952, longitude: 98.6722, timezone: Asia/Jakarta}
+      - {region_name: Kalimantan, weather_location: Balikpapan, latitude: -1.2379, longitude: 116.8529, timezone: Asia/Makassar}
+      - {region_name: Sulawesi, weather_location: Makassar, latitude: -5.1477, longitude: 119.4327, timezone: Asia/Makassar}

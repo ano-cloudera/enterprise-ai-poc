@@ -20,6 +20,8 @@ from app.graph.nodes import (
     ui_action_generator,
     validate_sql,
     visualization_planner,
+    weather,
+    market,
 )
 from app.graph.state import GraphState
 
@@ -32,6 +34,8 @@ def _after_intent(state: GraphState) -> str:
     return {
         "analytical": "resolve_semantics",
         "forecast": "forecast",
+        "weather": "weather",
+        "market": "market",
         "conversational": "direct_chat",
         "blocked": "fallback",
     }.get(state.get("intent", ""), "fallback")
@@ -67,6 +71,8 @@ def build_graph():
         "output_guard": output_guard,
         "direct_chat": direct_chat,
         "forecast": forecast,
+        "weather": weather,
+        "market": market,
         "fallback": fallback,
     }.items():
         graph.add_node(name, node)
@@ -76,7 +82,7 @@ def build_graph():
     graph.add_conditional_edges(
         "route_intent",
         _after_intent,
-        {"resolve_semantics": "resolve_semantics", "forecast": "forecast", "direct_chat": "direct_chat", "fallback": "fallback"},
+        {"resolve_semantics": "resolve_semantics", "forecast": "forecast", "weather": "weather", "market": "market", "direct_chat": "direct_chat", "fallback": "fallback"},
     )
     graph.add_edge("resolve_semantics", "normalize_intent")
     graph.add_edge("normalize_intent", "generate_sql")
@@ -91,6 +97,8 @@ def build_graph():
     graph.add_edge("output_guard", END)
     graph.add_edge("direct_chat", "output_guard")
     graph.add_edge("forecast", "output_guard")
+    graph.add_edge("weather", "output_guard")
+    graph.add_edge("market", "output_guard")
     graph.add_edge("fallback", END)
     return graph.compile()
 

@@ -1,0 +1,21 @@
+name: commercial_product_master
+source: commercial_product_master
+trino:
+  table: commercial_product_master
+description: Governed representative synthetic Tempo Scan product portfolio for PoC semantics. It is not evidence of actual product sales.
+primary_key: [product_id]
+dimensions:
+  product:
+    label: Product
+    column: product_name
+  category:
+    label: Governed Product Category
+    column: product_category
+time_dimensions: {}
+query_rules:
+  allowed_fields: [product_id, product_name, product_category, product_categories, synthetic]
+  default_limit: 200
+  max_limit: 500
+  require_date_filter: false
+  notes:
+    - This is synthetic PoC master data and does not represent actual Tempo Scan sales.

@@ -1,0 +1,16 @@
+product_id,product_name,product_category,product_categories,synthetic
+P001,Tempra,Analgesic / Cough & Cold,Analgesic / Cough & Cold,true
+P002,Bodrex Flu & Batuk,Analgesic / Cough & Cold,Analgesic / Cough & Cold,true
+P003,Hemaviton C1000,Vitamin / Mineral / Supplement,Vitamin / Mineral / Supplement,true
+P004,Vidoran Smart,Nutritional,Vitamin / Mineral / Supplement; Nutritional,true
+P005,Marina Skin Care,Personal Care,Personal Care,true
+P006,Bodrex,Analgesic / Cough & Cold,Analgesic / Cough & Cold,true
+P007,Oskadon,Analgesic / Cough & Cold,Analgesic / Cough & Cold,true
+P008,Bodrexin,Analgesic / Cough & Cold,Analgesic / Cough & Cold,true
+P009,Vidoran,Nutritional,Vitamin / Mineral / Supplement; Nutritional,true
+P010,Hemaviton,Vitamin / Mineral / Supplement,Vitamin / Mineral / Supplement,true
+P011,Neo Hormoviton,Vitamin / Mineral / Supplement,Vitamin / Mineral / Supplement,true
+P012,HealthyWay,Nutritional,Nutritional,true
+P013,Rheumacyl Oralinu,Herbal,Herbal,true
+P014,Wybert Herbal,Herbal,Herbal,true
+P015,Herbalax,Herbal,Herbal,true

@@ -48,6 +48,12 @@ The September 15, 2026 local validation produced:
 
 The active model is therefore `naive_baseline`. XGBoost is not claimed to be superior. Safe MAPE excludes zero-valued actuals. This single synthetic holdout is suitable for architecture validation, not production demand-planning claims.
 
+### External-signal backtest
+
+`scripts/evaluate_external_signals.py` is an offline, read-only comparison of the naive baseline, internal-only XGBoost, and XGBoost with weather, market, or both signal groups. It uses six expanding chronological validation folds. Every external feature is lagged by one month; actual target-month weather and market values are excluded. The market feature set also excludes calibrated price, because its latest digital anchor post-dates the historical forecast window.
+
+The evaluator never writes model artifacts or persisted forecasts. A candidate is recommended only when MAE and RMSE both improve by at least 5%, MAPE does not deteriorate, and it beats the baseline MAE in at least four of six folds. Any recommendation remains subject to an explicit production promotion decision.
+
 ## Artifact and generation
 
 Artifacts are written under ignored `artifacts/forecasting/`:
@@ -91,6 +97,7 @@ Local generation persists directly through the isolated offline DuckDB writer. T
 ```bash
 .venv/bin/python scripts/train_forecast.py
 .venv/bin/python scripts/generate_forecast.py
+.venv/bin/python scripts/evaluate_external_signals.py
 ```
 
 In a future Cloudera AI Workbench job, the same scripts can train and generate, followed by isolated Trino persistence. Scheduling, automatic retraining, MLflow, and online model serving are deliberately outside this milestone.

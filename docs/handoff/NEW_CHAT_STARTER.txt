@@ -1,0 +1,29 @@
+HISTORICAL STARTER — superseded by Milestones 1–4 and retained only for provenance.
+
+Bro, kita lanjut Tempo Scan PoC dari handoff sebelumnya.
+
+Baca CONTEXT.md sebagai source of truth untuk state project.
+
+Current state:
+- Qwen3.8-27B-AWQ sudah jalan di vLLM pada Cloudera AI Application + L40S
+- FastAPI proxy sudah expose OpenAI-compatible endpoint
+- Gradio UI sudah connect dan mendapatkan response
+- Bahasa Indonesia/English dan thinking mode sudah dites
+- UI Tempo Scan sudah punya branding, settings, chat, endpoint test, temperature, token limit, system prompt, dan thinking toggle
+
+Sekarang kita fokus membangun foundation PoC:
+1. sample data model untuk sales/product/outlet/customer/inventory/region/channel
+2. Trino/CDW connector (current Milestone 5 direction)
+3. semantic layer
+4. controlled text-to-SQL
+5. SQL validation & execution
+6. result explanation + chart
+7. setelah itu forecasting + external data
+
+Hero use case:
+“Kenapa sales Jawa Barat turun bulan ini?”
+
+Target:
+AI harus query trusted data, identify key drivers, lalu kasih executive summary + recommended action.
+
+Jangan over-engineer karena timeline PoC mepet. Gunakan architecture minimal tapi proper dan reusable.

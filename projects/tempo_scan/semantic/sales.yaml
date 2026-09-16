@@ -1,0 +1,87 @@
+name: commercial_sales
+source: commercial_sales_daily
+trino:
+  table: commercial_sales_daily
+description: Daily governed commercial sales view used for management analytics.
+primary_key: [sales_date, product_id, outlet_id, channel_id]
+metrics:
+  net_sales:
+    label: Net Sales
+    expression: sales_amount
+    aggregation: sum
+    type: currency_million_idr
+    aliases: [sales, revenue, penjualan, net sales]
+    description: Total invoiced sales amount in million IDR.
+  sales_volume:
+    label: Sales Volume
+    expression: sales_qty
+    aggregation: sum
+    aliases: [volume, qty, unit terjual]
+  transactions:
+    label: Transactions
+    expression: transaction_count
+    aggregation: sum
+    aliases: [transactions, transaksi]
+dimensions:
+  region:
+    label: Region
+    column: region_name
+    aliases: [wilayah, area, province, provinsi]
+  city:
+    label: City
+    column: city
+    aliases: [kota]
+  product:
+    label: Product
+    column: product_name
+    aliases: [produk, sku]
+  category:
+    label: Product Category
+    column: product_category
+    aliases: [kategori, category]
+  outlet:
+    label: Outlet
+    column: outlet_name
+    aliases: [store, toko]
+  channel:
+    label: Channel
+    column: channel_name
+    aliases: [sales channel, kanal]
+  customer_segment:
+    label: Customer Segment
+    column: customer_segment
+    aliases: [customer, pelanggan, segment]
+time_dimensions:
+  sales_date:
+    label: Sales Date
+    column: sales_date
+    grains: [day, week, month, quarter, year]
+relationships:
+  inventory:
+    dataset: commercial_inventory
+    type: many_to_one
+    join: [product_id, outlet_id]
+    description: Use inventory only when explaining availability/stock drivers. Align dates at the business period grain.
+query_rules:
+  allowed_fields:
+    - sales_date
+    - product_id
+    - product_name
+    - product_category
+    - outlet_id
+    - outlet_name
+    - channel_id
+    - channel_name
+    - region_name
+    - city
+    - customer_segment
+    - sales_amount
+    - sales_qty
+    - transaction_count
+  default_limit: 200
+  max_limit: 5000
+  require_date_filter: true
+  notes:
+    - Use explicit date ranges for period comparisons.
+    - Prefer aggregate results over row-level records for management questions.
+    - Never query fields outside this semantic definition.

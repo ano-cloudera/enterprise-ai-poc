@@ -1,0 +1,34 @@
+golden_questions:
+  - id: decline_west_java
+    question: Kenapa sales Jawa Barat turun bulan ini?
+    expected: {metric: net_sales, dimensions: [region], filters: {region: [Jawa Barat]}, period: current_month, comparison: previous_period, pattern: period_comparison}
+  - id: modern_trade_follow_up
+    question: Kalau cuma Modern Trade?
+    context: {filters: {region: [Jawa Barat]}, date_range: {preset: current_month}, metric: net_sales, dimension: region}
+    expected: {metric: net_sales, dimensions: [], filters: {region: [Jawa Barat], channel: [Modern Trade]}, period: current_month, comparison: none, pattern: kpi}
+  - id: declining_products
+    question: Produk mana yang paling turun?
+    context: {filters: {region: [Jawa Barat], channel: [Modern Trade]}, date_range: {preset: current_month}}
+    expected: {metric: net_sales, dimensions: [product], filters: {region: [Jawa Barat], channel: [Modern Trade]}, period: current_month, comparison: previous_period, pattern: top_bottom}
+  - id: impacted_channel
+    question: Channel mana yang paling terdampak?
+    expected: {metric: net_sales, dimensions: [channel], filters: {}, period: current_month, comparison: previous_period, pattern: top_bottom}
+  - id: compare_regions
+    question: Bandingkan Jawa Barat dengan Jawa Timur.
+    expected: {metric: net_sales, dimensions: [region], filters: {region: [Jawa Barat, Jawa Timur]}, period: current_month, comparison: entity, pattern: entity_comparison}
+  - id: three_month_trend
+    question: Tampilkan tren sales 3 bulan terakhir.
+    expected: {metric: net_sales, dimensions: [time], filters: {}, period: last_3_months, comparison: none, pattern: trend}
+  - id: sales_kpi
+    question: Berapa sales Jawa Barat bulan ini?
+    expected: {metric: net_sales, dimensions: [], filters: {region: [Jawa Barat]}, period: current_month, comparison: none, pattern: kpi}
+  - id: outlet_decline
+    question: Outlet mana yang mengalami penurunan terbesar?
+    expected: {metric: net_sales, dimensions: [outlet], filters: {}, period: current_month, comparison: previous_period, pattern: top_bottom}
+  - id: growing_products
+    question: Produk apa yang justru tumbuh?
+    expected: {metric: net_sales, dimensions: [product], filters: {}, period: current_month, comparison: previous_period, pattern: top_bottom}
+  - id: reset
+    question: Reset filter.
+    expected: {metric: net_sales, dimensions: [], filters: {}, period: current_month, comparison: none, pattern: kpi}
+    generates_sql: false

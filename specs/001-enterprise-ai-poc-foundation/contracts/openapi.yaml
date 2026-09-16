@@ -1,0 +1,145 @@
+openapi: 3.1.0
+info: {title: Enterprise AI PoC API, version: 0.9.0}
+paths:
+  /api/health:
+    get:
+      summary: Return application, data, and safe model-provider health
+      responses:
+        '200':
+          description: Health response
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/HealthResponse'}
+  /api/chat:
+    post:
+      summary: Execute controlled analytical conversation turn
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: {$ref: '#/components/schemas/ChatRequest'}
+      responses:
+        '200':
+          description: Structured AI response
+          content:
+            application/json:
+              schema: {$ref: '#/components/schemas/ChatResponse'}
+  /api/dashboard/overview:
+    get:
+      summary: Return the default dashboard overview
+      responses:
+        '200': {description: Dashboard overview}
+    post:
+      summary: Return a dashboard overview using validated active state
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                context: {$ref: '#/components/schemas/DashboardState'}
+      responses:
+        '200': {description: Filtered dashboard overview}
+components:
+  schemas:
+    HealthResponse:
+      type: object
+      required: [status, app, project, data_backend, model_backend, timestamp]
+      properties:
+        status: {type: string, enum: [ok, degraded]}
+        app: {type: string}
+        project: {type: string}
+        data_backend:
+          type: object
+          required: [status, name]
+          properties:
+            status: {type: string}
+            name: {type: string}
+        model_backend:
+          type: object
+          required: [mode, status, provider, model]
+          properties:
+            mode: {type: string, enum: [mock, remote]}
+            status: {type: string, enum: [mock, ok, unavailable, auth_required, unknown]}
+            provider: {type: string}
+            model: {type: string}
+        timestamp: {type: string, format: date-time}
+    DashboardState:
+      type: object
+      properties:
+        filters: {type: object, additionalProperties: {type: array, items: {type: string}}}
+        date_range:
+          type: object
+          properties:
+            preset: {type: [string, 'null'], default: current_month}
+            start: {type: [string, 'null']}
+            end: {type: [string, 'null']}
+        metric: {type: string, default: net_sales}
+        dimension: {type: string, default: region}
+        highlights:
+          type: array
+          items:
+            type: object
+            required: [target, value]
+            properties:
+              target: {type: string}
+              value: {type: string}
+        ai_applied_context:
+          type: array
+          items:
+            type: object
+            required: [kind, target, label]
+            properties:
+              kind: {type: string, enum: [filter, date_range]}
+              target: {type: string}
+              label: {type: string}
+        revision: {type: integer, default: 0}
+    ChatRequest:
+      type: object
+      required: [question]
+      properties:
+        question: {type: string}
+        session_id: {type: string, default: demo-session}
+        language: {type: string, enum: [id, en, auto], default: auto}
+        history: {type: array, items: {type: object}}
+        context: {$ref: '#/components/schemas/DashboardState'}
+    ChatResponse:
+      type: object
+      additionalProperties: false
+      required: [status, question, answer, data, chart_spec, ui_actions, metadata]
+      properties:
+        status: {type: string, enum: [ok, fallback, error]}
+        question: {type: string}
+        answer:
+          type: object
+          required: [summary, drivers, recommended_actions, caveats]
+          properties:
+            summary: {type: string}
+            drivers: {type: array, items: {type: string}}
+            recommended_actions: {type: array, items: {type: string}}
+            caveats: {type: array, items: {type: string}}
+        data:
+          type: object
+          required: [columns, rows]
+          properties:
+            columns: {type: array, items: {type: string}}
+            rows: {type: array, items: {type: object}}
+        chart_spec: {type: [object, 'null']}
+        ui_actions:
+          type: array
+          items:
+            type: object
+            required: [type]
+            properties:
+              type: {type: string, enum: [SET_FILTER, SET_DATE_RANGE, CHANGE_METRIC, CHANGE_DIMENSION, RENDER_CHART, SHOW_TABLE, HIGHLIGHT_CARD, RESET_FILTER]}
+        metadata:
+          type: object
+          additionalProperties: false
+          required: [trace_id, session_id, intent, resolved_context, execution_time_ms]
+          properties:
+            trace_id: {type: string}
+            session_id: {type: string}
+            intent: {type: string}
+            resolved_context: {$ref: '#/components/schemas/DashboardState'}
+            execution_time_ms: {type: integer}

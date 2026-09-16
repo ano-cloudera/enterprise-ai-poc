@@ -1,0 +1,9 @@
+name: primary_dataset
+source: business_ready_view
+trino:
+  table: business_ready_view
+description: Replace with the customer's governed business view.
+primary_key: []
+metrics: {}
+dimensions: {}
+time_dimensions: {}

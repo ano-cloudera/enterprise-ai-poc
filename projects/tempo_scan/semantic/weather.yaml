@@ -1,0 +1,54 @@
+name: commercial_weather
+source: commercial_weather_monthly
+trino:
+  table: commercial_weather_monthly
+description: Governed monthly historical weather proxy by commercial region. Representative city observations are a PoC proxy, not region-wide measurements.
+primary_key: [period, region_name, source]
+metrics:
+  average_temperature_c:
+    label: Average Temperature
+    expression: avg_temperature_c
+    aggregation: avg
+    aliases: [temperature, temperatur, suhu]
+  total_precipitation_mm:
+    label: Total Precipitation
+    expression: total_precipitation_mm
+    aggregation: sum
+    aliases: [precipitation, curah hujan, hujan]
+  average_relative_humidity_pct:
+    label: Average Relative Humidity
+    expression: avg_relative_humidity_pct
+    aggregation: avg
+    aliases: [humidity, kelembapan]
+  rainy_days:
+    label: Rainy Days
+    expression: rainy_days
+    aggregation: sum
+    aliases: [rainy days, hari hujan]
+dimensions:
+  region:
+    label: Region
+    column: region_name
+  weather_location:
+    label: Representative Weather Location
+    column: weather_location
+time_dimensions:
+  period:
+    label: Weather Month
+    column: period
+    grains: [month]
+relationships:
+  sales:
+    dataset: commercial_sales
+    type: many_to_many
+    join: [region_name, period]
+    description: This logical relationship may only be executed by the deterministic Weather Analysis Tool at monthly grain.
+query_rules:
+  allowed_fields: [period, region_name, weather_location, avg_temperature_c, total_precipitation_mm, avg_relative_humidity_pct, rainy_days, source, generated_at]
+  default_limit: 200
+  max_limit: 5000
+  require_date_filter: true
+  notes:
+    - Historical observations only.
+    - Do not infer causation from correlation.
+    - Arbitrary LLM-generated joins are prohibited.

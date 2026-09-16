@@ -8,6 +8,9 @@ from datetime import date, timedelta
 from app.core.config import get_settings
 from app.db.base import DataBackendError
 from app.forecasting.tool import ForecastTool, resolve_forecast_intent
+from app.external_signals.weather.service import load_weather_governance, resolve_weather_intent
+from app.external_signals.weather.tool import WeatherAnalysisTool
+from app.market_intelligence.service import MarketIntelligenceTool, load_market_governance, resolve_market_intent
 from app.llm.models import TrustedAnalysisPayload
 from app.core.schemas import (
     ChangeDimensionAction,
@@ -60,6 +63,14 @@ def route_intent(state: GraphState) -> GraphState:
     if state.get("guardrail_error"):
         return {**state, "intent": "blocked"}
     forecast_terms = ("forecast", "proyeksi", "ramalan", "bulan depan", "next month")
+    weather_terms = (
+        "weather", "cuaca", "curah hujan", "hujan", "rainy day", "hari hujan",
+        "temperatur", "temperature", "suhu", "humidity", "kelembapan",
+    )
+    market_terms = (
+        "market", "kompetitor", "competitor", "pesaing", "opportunity", "price positioning",
+        "distribution gap", "competitive pressure", "tekanan kompetitif",
+    )
     project = load_semantic_project()
     business_terms: set[str] = set()
     for dataset in project.datasets.values():
@@ -72,7 +83,11 @@ def route_intent(state: GraphState) -> GraphState:
         for item in values:
             business_terms.update([item.value.lower(), *(alias.lower() for alias in item.aliases)])
     reset_requested = any(_contains_alias(q, phrase) for phrase in project.resolution.reset_phrases)
-    if any(term in q for term in forecast_terms):
+    if any(term in q for term in weather_terms):
+        intent = "weather"
+    elif any(term in q for term in market_terms):
+        intent = "market"
+    elif any(term in q for term in forecast_terms):
         intent = "forecast"
     elif reset_requested or any(_contains_alias(q, term) for term in business_terms):
         intent = "analytical"
@@ -410,6 +425,130 @@ async def forecast(state: GraphState) -> GraphState:
         "model_telemetry": model_telemetry,
         "resolved_state": resolved_state,
         "status": "ok",
+    }
+
+
+async def weather(state: GraphState, tool=None) -> GraphState:
+    """Return immutable calculated weather evidence; no model-generated joins or values."""
+    project = load_semantic_project()
+    governance = load_weather_governance(project.project)
+    intent = resolve_weather_intent(state["question"], state.get("dashboard_state") or {}, project, governance)
+    result = (tool or WeatherAnalysisTool()).analyze(intent)
+    rows = [item.model_dump(mode="json") for item in result.evidence]
+    language = state.get("language", "auto")
+    if result.status == "EXTERNAL_SIGNAL_NOT_AVAILABLE":
+        region = result.requested_region or "requested regions"
+        period = result.requested_period.isoformat()
+        summary = (
+            f"Sinyal cuaca historis untuk {region} pada {period} belum tersedia. Konteks sales historis tetap tersedia dan tidak ada nilai cuaca yang diestimasi."
+            if language == "id"
+            else f"Historical weather for {region} in {period} is unavailable. Historical sales context remains available and no weather values were estimated."
+        )
+        answer = ExecutiveAnswer(summary=summary, drivers=[], recommended_actions=[], caveats=["EXTERNAL_SIGNAL_NOT_AVAILABLE"])
+        return {
+            **state, "weather_intent": intent.model_dump(mode="json"), "weather_evidence": result.model_dump(mode="json"),
+            "answer": answer.model_dump(), "rows": result.sales_context,
+            "chart_spec": {"type": "none", "title": "", "x": [], "series": []}, "ui_actions": [],
+            "resolved_state": state.get("dashboard_state") or {}, "status": "fallback", "fallback_used": True,
+        }
+
+    first = result.evidence[0]
+    relationship = ""
+    if first.correlation is not None:
+        relationship = (
+            f" Korelasi terhitung {first.correlation:.3f} berdasarkan {first.observation_count} observasi selaras."
+            if language == "id"
+            else f" The calculated correlation is {first.correlation:.3f} across {first.observation_count} aligned observations."
+        )
+    if language == "id":
+        summary = (
+            f"Sales {first.region_name} berubah {first.sales_change_pct:.2f}% dan {first.weather_metric} berubah "
+            f"{first.weather_change:.2f} pada {first.period.isoformat()}.{relationship}"
+        )
+        caveat = "Terlihat hubungan pada data historis, tetapi belum cukup bukti untuk menyimpulkan sebab-akibat."
+    else:
+        summary = (
+            f"{first.region_name} sales changed {first.sales_change_pct:.2f}% while {first.weather_metric} changed "
+            f"{first.weather_change:.2f} in {first.period.isoformat()}.{relationship}"
+        )
+        caveat = "The historical data shows a relationship, but it is not sufficient to establish causation."
+    if result.status == "INSUFFICIENT_OBSERVATIONS":
+        caveat = "INSUFFICIENT_OBSERVATIONS. " + caveat
+    answer = ExecutiveAnswer(
+        summary=summary,
+        drivers=[
+            f"Governed sales comparison: current={first.sales_current}; previous={first.sales_previous}; change_pct={first.sales_change_pct}",
+            f"Governed weather comparison ({first.weather_location}, {first.source}): current={first.weather_current}; previous={first.weather_previous}; change={first.weather_change}",
+        ],
+        recommended_actions=[], caveats=[caveat, governance.weather.proxy_disclaimer],
+    )
+    return {
+        **state, "weather_intent": intent.model_dump(mode="json"), "weather_evidence": result.model_dump(mode="json"),
+        "answer": answer.model_dump(), "rows": rows,
+        "chart_spec": {"type": "none", "title": "", "x": [], "series": []}, "ui_actions": [],
+        "resolved_state": state.get("dashboard_state") or {}, "status": "ok",
+    }
+
+
+async def market(state: GraphState, tool=None) -> GraphState:
+    """Controlled market branch; calculated/persisted evidence remains immutable."""
+    project = load_semantic_project()
+    governance = load_market_governance(project.project)
+    intent = resolve_market_intent(state["question"], state.get("dashboard_state") or {}, project, governance)
+    result = (tool or MarketIntelligenceTool()).analyze(intent)
+    if result.status != "ok":
+        summary = (
+            "Sinyal market eksternal yang diminta belum tersedia. Tidak ada angka market atau kompetitor yang diestimasi."
+            if state.get("language") == "id"
+            else "The requested external market signal is unavailable. No market or competitor values were estimated."
+        )
+        answer = ExecutiveAnswer(summary=summary, drivers=[], recommended_actions=[], caveats=[result.status])
+        return {
+            **state, "market_intent": intent.model_dump(mode="json"), "market_evidence": result.model_dump(mode="json"),
+            "answer": answer.model_dump(), "rows": [], "chart_spec": {"type": "none", "title": "", "x": [], "series": []},
+            "ui_actions": [], "resolved_state": state.get("dashboard_state") or {}, "status": "fallback", "fallback_used": True,
+        }
+    rows = result.evidence
+    primary_index = next(
+        (index for index, row in enumerate(rows) if intent.product_name and row.get("product_name") == intent.product_name),
+        0,
+    )
+    first = rows[primary_index]
+    ordered_rows = [first, *rows[:primary_index], *rows[primary_index + 1:]]
+    governed_caveats = []
+    if result.metadata.get("contains_synthetic_data"):
+        governed_caveats.append(governance.synthetic_data_disclaimer)
+    governed_caveats.append("Observed relationships do not establish causation; persisted metrics and calculated scores are immutable.")
+    payload = TrustedAnalysisPayload(
+        question=state["question"], language=state.get("language", "auto"),
+        intent=intent.model_dump(mode="json"),
+        business_context={
+            "provenance": result.metadata,
+            "calculated_metrics_immutable": True,
+            "instruction": "Explain only from supplied evidence. Never modify metrics, imply measured share, or claim causation.",
+        },
+        query_result={
+            "columns": list(first),
+            "rows": ordered_rows,
+            "internal_sales_evidence": result.internal_sales_evidence,
+        },
+    )
+    try:
+        explanation = await get_llm_provider().generate_structured(
+            payload, language=state.get("language", "auto"), trace_id=state.get("trace_id", ""),
+        )
+        analysis = explanation.analysis
+        model_telemetry = explanation.telemetry.model_dump()
+    except LLMProviderError as error:
+        analysis = deterministic_grounded_analysis(payload, provider_unavailable=True)
+        model_telemetry = {"success": False, "fallback_used": True, "error_code": error.code}
+    answer = to_executive_answer(analysis)
+    answer.caveats = list(dict.fromkeys([*answer.caveats, *governed_caveats]))
+    return {
+        **state, "market_intent": intent.model_dump(mode="json"), "market_evidence": result.model_dump(mode="json"),
+        "answer": answer.model_dump(), "rows": rows, "chart_spec": {"type": "none", "title": "", "x": [], "series": []},
+        "ui_actions": [], "resolved_state": state.get("dashboard_state") or {}, "status": "ok",
+        "model_telemetry": model_telemetry,
     }
 
 
