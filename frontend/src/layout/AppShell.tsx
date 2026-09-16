@@ -72,8 +72,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 }
 
 function NavigationItem({ to, label, icon: Icon, compact, active, onNavigate }: { to: string | null; label: string; icon: typeof LayoutDashboard; compact: boolean; active: boolean; onNavigate?: () => void }) {
-  const classes = `flex h-11 items-center rounded-xl text-xs font-bold transition ${compact ? 'justify-center px-1' : 'gap-2.5 px-2'} ${active ? 'bg-orange-50 text-cloudera-orange ring-1 ring-inset ring-orange-100' : to ? 'text-slate-600 hover:bg-slate-50 hover:text-cloudera-navy' : 'cursor-default text-slate-400'}`
-  const content = <><span aria-hidden="true" className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg transition ${active ? 'bg-white text-cloudera-orange shadow-sm' : 'text-slate-500'}`}><Icon size={17} strokeWidth={2.1} /></span><span className={compact ? 'sr-only' : ''}>{label}</span>{!to && !compact && <span className="ml-auto text-[8px] font-bold uppercase tracking-wide text-slate-300">Soon</span>}</>
+  const classes = `flex h-11 items-center rounded-xl text-xs font-bold transition ${compact ? 'justify-center px-1' : 'gap-2.5 px-2'} ${active ? 'bg-violet-50 text-cloudera-violet ring-1 ring-inset ring-violet-100' : to ? 'text-slate-600 hover:bg-slate-50 hover:text-cloudera-navy' : 'cursor-default text-slate-400'}`
+  const content = <><span aria-hidden="true" className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg transition ${active ? 'bg-white text-cloudera-violet shadow-sm' : 'text-slate-500'}`}><Icon size={17} strokeWidth={2.1} /></span><span className={compact ? 'sr-only' : ''}>{label}</span>{!to && !compact && <span className="ml-auto text-[8px] font-bold uppercase tracking-wide text-slate-300">Soon</span>}</>
   if (!to) return <div className={classes} aria-disabled="true" title={compact ? label : undefined}>{content}</div>
   return <Link href={to} onClick={onNavigate} className={classes} title={compact ? label : undefined}>{content}</Link>
 }
