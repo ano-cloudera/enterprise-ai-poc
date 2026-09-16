@@ -102,13 +102,13 @@ export function AskAIPage() {
             <div className="chip"><Database size={13} />Governed Data</div>
           </div>
 
-          <div role="log" aria-label="Conversation" aria-live="polite" className="min-h-0 flex-1 space-y-5 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(99,91,255,.04),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(255,90,31,.05),transparent_30%)] p-4 sm:p-5">
+          <div role="log" aria-label="Conversation" aria-live="polite" className={`min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(99,91,255,.04),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(255,90,31,.05),transparent_30%)] p-4 sm:p-5 ${messages.length === 0 ? 'flex' : 'space-y-5'}`}>
             {messages.length === 0 && (
-              <div className="mx-auto mt-6 w-full max-w-3xl text-center sm:mt-8">
-                <div className="mx-auto grid h-14 w-14 place-items-center rounded-2xl bg-cloudera-navy text-white shadow-lg"><Bot size={26} /></div>
-                <h2 className="mt-4 text-xl font-black text-cloudera-navy">Ask your commercial data</h2>
+              <div className="m-auto w-full max-w-3xl text-center">
+                <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-cloudera-navy text-white shadow-lg"><Bot size={30} /></div>
+                <h2 className="mt-5 text-2xl font-black text-cloudera-navy">Ask your commercial data</h2>
                 <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-500">Ask a management question to get a concise answer, supporting evidence, and practical next steps.</p>
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">{starterQuestions.map(item => <button type="button" onClick={() => submit(item)} key={item} className="rounded-xl border border-slate-200 bg-white p-4 text-left text-xs font-semibold text-slate-600 shadow-sm transition hover:border-orange-200 hover:text-cloudera-navy">{item}<ChevronRight className="mt-2 text-cloudera-orange" size={14} /></button>)}</div>
+                <div className="mt-7 grid gap-3 sm:grid-cols-2">{starterQuestions.map(item => <button type="button" onClick={() => submit(item)} key={item} className="rounded-xl border border-slate-200 bg-white p-5 text-left text-sm font-semibold text-slate-600 shadow-sm transition hover:border-orange-200 hover:text-cloudera-navy">{item}<ChevronRight className="mt-2.5 text-cloudera-orange" size={14} /></button>)}</div>
               </div>
             )}
             {messages.map((message, index) => message.role === 'user' ? (

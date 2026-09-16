@@ -233,6 +233,20 @@ class HealthResponse(BaseModel):
     timestamp: datetime
 
 
+class ComponentReadiness(BaseModel):
+    name: str
+    status: Literal["healthy", "degraded", "unavailable"]
+    detail: str = ""
+
+
+class ReadinessResponse(BaseModel):
+    status: Literal["healthy", "degraded", "unavailable"]
+    app: str
+    project: str
+    components: list[ComponentReadiness]
+    timestamp: datetime
+
+
 class PublicConfigResponse(BaseModel):
     project_id: str
     project_name: str

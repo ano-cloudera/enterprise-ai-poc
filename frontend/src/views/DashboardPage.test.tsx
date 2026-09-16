@@ -45,7 +45,7 @@ describe('Dashboard v2', () => {
     for (const label of ['Date Range', 'Region', 'Product', 'Channel']) screen.getByLabelText(label)
     for (const label of ['Net Sales', 'Growth vs Previous Period', 'Forecast Next Period', 'Top Region', 'Market Opportunity']) screen.getByText(label)
     expect(screen.queryByText('Inventory Health')).toBeNull()
-    expect(screen.getAllByText('Unavailable').length).toBeGreaterThanOrEqual(2)
+    expect(screen.getAllByText('Not available').length).toBeGreaterThanOrEqual(2)
   })
 
   it('updates shared filter state and never renders raw missing values', () => {

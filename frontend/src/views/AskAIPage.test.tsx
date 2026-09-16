@@ -50,15 +50,17 @@ describe('Ask AI business UX', () => {
     expect(container.textContent).not.toMatch(/Current Context|Shared with the dashboard|Suggested Follow-ups|Resolved Context|How it works|Controlled workflow|Trusted SQL|Demo session|current_month|net_sales|Technical trace|Trace ID|Session ID/)
   })
 
-  it('gives the conversation more room and keeps the empty state compact', () => {
+  it('gives the conversation more room and centers the empty state within the panel', () => {
     render(<AskAIPage />)
     const recentHeading = screen.getByText('Recent conversations')
     const layout = recentHeading.closest('aside')?.parentElement
     const emptyState = screen.getByRole('heading', { name: 'Ask your commercial data' }).parentElement
+    const conversation = screen.getByRole('log', { name: 'Conversation' })
 
     expect(layout?.className).toContain('xl:grid-cols-[214px_minmax(0,1fr)]')
     expect(emptyState?.className).toContain('max-w-3xl')
-    expect(emptyState?.className).toContain('sm:mt-8')
+    expect(emptyState?.className).toContain('m-auto')
+    expect(conversation.className).toContain('flex')
     expect(recentHeading.className).toContain('text-sm')
     expect(screen.getByText('Tempo Scan AI').className).toContain('text-sm')
   })

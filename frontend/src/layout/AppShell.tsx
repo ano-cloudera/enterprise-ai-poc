@@ -5,7 +5,7 @@ import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import {
   Bot, ChevronLeft, ChevronRight, Clock3, Gauge, LayoutDashboard, Menu,
-  Settings, ShoppingBag, X,
+  Settings, X,
 } from 'lucide-react'
 import { BrandMark } from '../components/BrandMark'
 import { useProject } from '../lib/project'
@@ -13,7 +13,6 @@ import { useProject } from '../lib/project'
 const nav = [
   { to: '/', label: 'Dashboard', icon: LayoutDashboard },
   { to: '/ask-ai', label: 'Ask AI', icon: Bot },
-  { to: null, label: 'Market Intelligence', icon: ShoppingBag },
   { to: '/monitoring', label: 'AI Monitoring', icon: Gauge },
   { to: '/settings', label: 'Settings', icon: Settings },
 ] as const
@@ -79,7 +78,7 @@ function NavigationItem({ to, label, icon: Icon, compact, active, onNavigate }: 
   return <Link href={to} onClick={onNavigate} className={classes} title={compact ? label : undefined}>{content}</Link>
 }
 
-function CompactBrand() { return <div className="grid h-9 w-9 place-items-center rounded-lg bg-cloudera-orange text-sm font-black text-white" aria-label="Cloudera">C</div> }
+function CompactBrand() { return <img src="/cloudera-logo.png" alt="Cloudera" className="h-9 w-9 rounded-lg" /> }
 
 function formatOpenedAt(value: Date) {
   const parts = new Intl.DateTimeFormat('en-US', {

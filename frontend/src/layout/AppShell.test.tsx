@@ -13,9 +13,10 @@ describe('Dashboard shell navigation', () => {
   afterEach(() => { cleanup(); vi.useRealTimers() })
   it('removes internal foundation cards and exposes the customer navigation', () => {
     render(<AppShell><div>Dashboard content</div></AppShell>)
-    for (const label of ['Dashboard', 'Ask AI', 'Market Intelligence', 'AI Monitoring', 'Settings']) {
+    for (const label of ['Dashboard', 'Ask AI', 'AI Monitoring', 'Settings']) {
       expect(screen.getAllByText(label).length).toBeGreaterThan(0)
     }
+    expect(screen.queryByText('Market Intelligence')).toBeNull()
     expect(screen.queryByText('Active Project')).toBeNull()
     expect(screen.queryByText('Foundation readiness 88%')).toBeNull()
     expect(screen.getAllByText('Powered by Cloudera AI').length).toBeGreaterThan(0)

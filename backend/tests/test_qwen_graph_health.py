@@ -39,6 +39,63 @@ async def test_health_represents_remote_unknown_without_failing_application(monk
 
 
 @pytest.mark.asyncio
+async def test_deployment_readiness_reports_healthy_when_all_components_ok(monkeypatch):
+    class ReachableAsyncClient:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_exc):
+            return False
+
+        async def get(self, *_args, **_kwargs):
+            class Response:
+                status_code = 200
+            return Response()
+
+    monkeypatch.setattr(health_route.httpx, "AsyncClient", ReachableAsyncClient)
+    result = await health_route.deployment_readiness()
+    assert result.status == "healthy"
+    names = {component.name for component in result.components}
+    assert names == {"backend_api", "semantic_layer", "data_backend", "market_api", "llm_provider"}
+    assert all(component.status == "healthy" for component in result.components)
+
+
+@pytest.mark.asyncio
+async def test_deployment_readiness_reports_unavailable_when_market_api_unreachable(monkeypatch):
+    class UnreachableAsyncClient:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_exc):
+            return False
+
+        async def get(self, *_args, **_kwargs):
+            raise ConnectionError("refused")
+
+    monkeypatch.setattr(health_route.httpx, "AsyncClient", UnreachableAsyncClient)
+    result = await health_route.deployment_readiness()
+    assert result.status == "unavailable"
+    market = next(component for component in result.components if component.name == "market_api")
+    assert market.status == "unavailable"
+    assert "http://" not in market.detail
+    assert result.model_dump_json().count("http://") == 0
+
+
+@pytest.mark.asyncio
+async def test_deployment_readiness_never_exposes_secrets(monkeypatch):
+    monkeypatch.setattr(health_route, "get_settings", lambda: Settings(_env_file=None, llm_mode="remote", qwen_api_token="super-secret-token"))
+    result = await health_route.deployment_readiness()
+    payload = result.model_dump_json()
+    assert "super-secret-token" not in payload
+
+
+@pytest.mark.asyncio
 async def test_chat_telemetry_records_safe_model_status(monkeypatch):
     captured = {}
     monkeypatch.setattr(chat.telemetry, "record", lambda **event: captured.update(event))
