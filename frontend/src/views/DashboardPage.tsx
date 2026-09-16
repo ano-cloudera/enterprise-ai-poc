@@ -2,7 +2,7 @@
 
 import { FormEvent, useEffect, useRef, useState, type ReactNode } from 'react'
 import {
-  ArrowRight, ArrowUp, Bot, CalendarDays, ChartNoAxesCombined, CheckCircle2, ChevronDown, CircleDollarSign,
+  ArrowRight, ArrowUp, Bot, CalendarDays, CheckCircle2, ChevronDown, CircleDollarSign, LineChart as LineChartIcon,
   CloudSun, MapPin, MessageSquareText, Package, RefreshCcw, RotateCcw, Store,
   Target, TrendingUp, Undo2, X,
 } from 'lucide-react'
@@ -91,7 +91,7 @@ export function DashboardPage() {
       <section id="executive-kpis" aria-label="Executive KPIs" className="mt-4 scroll-mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
         <KpiCard label="Net Sales" value={netSales?.value} format={netSales?.format || 'text'} delta={netSales?.delta} icon={CircleDollarSign} context="Selected period" highlighted={isHighlighted(state.highlights, 'net_sales')} />
         <KpiCard label="Growth vs Previous Period" value={growth?.value} format={growth?.format || 'percent'} delta={growth?.delta} icon={TrendingUp} context="Compared with prior period" highlighted={isHighlighted(state.highlights, 'growth')} />
-        <KpiCard label="Forecast Next Period" value={forecast?.value} format={forecast?.format || 'currency_billion'} delta={forecast?.delta} icon={ChartNoAxesCombined} context={forecast?.period || 'No governed forecast in this response'} highlighted={isHighlighted(state.highlights, 'forecast')} />
+        <KpiCard label="Forecast Next Period" value={forecast?.value} format={forecast?.format || 'currency_billion'} delta={forecast?.delta} icon={LineChartIcon} context={forecast?.period || 'No governed forecast in this response'} highlighted={isHighlighted(state.highlights, 'forecast')} />
         <KpiCard label="Top Region" value={topRegion?.value} format={topRegion?.format || 'text'} delta={topRegion?.delta} icon={MapPin} context={latestPeriod} highlighted={isHighlighted(state.highlights, 'top_region')} />
         <KpiCard label="Market Opportunity" value={opportunity} format="score" delta={null} icon={Target} context={data.market_signals?.opportunity_context || 'No governed market signal in this response'} highlighted={isHighlighted(state.highlights, 'market_opportunity')} />
       </section>

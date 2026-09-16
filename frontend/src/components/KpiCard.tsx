@@ -18,7 +18,7 @@ export function KpiCard({ label, value, format, delta, icon: Icon, highlighted =
   return (
     <div className={`card p-4 ${highlighted ? 'border-orange-300 ring-2 ring-orange-100' : ''}`}>
       <div className="flex items-start justify-between">
-        <div className="grid h-8 w-8 place-items-center rounded-lg bg-orange-50 text-cloudera-orange"><Icon size={16} strokeWidth={2} /></div>
+        <div className="grid h-8 w-8 place-items-center rounded-lg bg-violet-50 text-cloudera-violet"><Icon size={16} strokeWidth={2} /></div>
         {typeof delta === 'number' && <span className={`flex items-center gap-1 text-xs font-bold ${positive ? 'text-emerald-600' : 'text-rose-600'}`}>{positive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}{Math.abs(delta).toFixed(1)}%</span>}
       </div>
       <div className="mt-3 text-[11px] font-bold text-slate-500">{label}</div>
