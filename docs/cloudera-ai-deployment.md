@@ -15,7 +15,11 @@ User Browser
 CAI Application #1 — Tempo Scan Frontend
 Next.js production app
       |
-      | HTTPS REST API (cross-origin, NEXT_PUBLIC_BACKEND_API_URL)
+      | same-origin browser fetch("/api/...") — no cross-origin call, ever
+      v
+Next.js server (same process) — next.config.mjs rewrite
+      |
+      | server-to-server HTTPS (BACKEND_API_URL, not NEXT_PUBLIC_*)
       v
 CAI Application #2 — Tempo Scan Backend
 FastAPI + LangGraph + semantic layer + forecast/weather/market tools
@@ -28,6 +32,25 @@ CAI Application #3 — Existing Qwen Model Serving (already running)
 Qwen3.8-27B-AWQ via vLLM on NVIDIA L40S
 (code: testing/vllm_testing/vllm/proxy.py)
 ```
+
+**Important**: the browser never calls the Backend Application's URL
+directly. CAI's gateway (Istio) was observed to reject cross-origin
+requests between Application domains outright — with a bare
+`Disallowed CORS origin` response from `istio-envoy` — even with the
+Backend's own `CORS_ORIGINS` correctly set to the Frontend's URL and even
+after enabling **Site Administration → Security → Feature Flags → Enable
+cross-origin resource sharing**. That flag did not change the observed
+behavior in this deployment (its effect and propagation are platform
+infrastructure outside this application's control). Rather than depend on
+that, the Frontend proxies `/api/*` **server-side** via
+`next.config.mjs`'s `rewrites()`, using the plain server env var
+`BACKEND_API_URL` (not `NEXT_PUBLIC_*`, so it's read at request time on
+the Next.js server, never shipped to the browser). The browser only ever
+sees one origin — the Frontend's own — so there is no cross-origin request
+for any CORS policy to block, browser-side or gateway-side.
+`CORS_ORIGINS` on the Backend is still set for defense-in-depth (direct
+`curl`/API testing, or a future consumer that does need cross-origin
+access) but is no longer on the browser's request path.
 
 **Only two applications are created in this milestone**: Tempo Scan
 Frontend and Tempo Scan Backend. The Qwen application already exists — do
@@ -66,7 +89,7 @@ never put a secret in a `NEXT_PUBLIC_*` variable (see §3.2).
 | Variable | Required | Example | Secret? | Description |
 | --- | --- | --- | --- | --- |
 | `APP_ENV` | no | `production` | no | Deployment environment label |
-| `CORS_ORIGINS` | **yes** | `https://tempo-frontend.cai.example` | no | Comma-separated list of allowed frontend origins. No wildcard in production. Set once the Frontend URL is known (§7) |
+| `CORS_ORIGINS` | no | `https://tempo-frontend.cai.example` | no | Defense-in-depth only — the deployed Frontend proxies API calls server-side and never triggers browser CORS (§1). Useful for direct/cross-origin API consumers besides the Frontend. Comma-separated, no wildcard in production |
 | `DATA_BACKEND` | no (default `duckdb`) | `duckdb` | no | `duckdb` for this milestone; `trino` later (§10) |
 | `DUCKDB_PATH` | no | `runtime/tempo_scan.duckdb` | no | Relative to repo root |
 | `LLM_MODE` | no (default `mock`) | `remote` | no | `mock` = offline deterministic; `remote` = calls Qwen |
@@ -79,14 +102,19 @@ never put a secret in a `NEXT_PUBLIC_*` variable (see §3.2).
 
 ### 3.2 Frontend Application environment variables
 
-Everything here is inlined into the browser bundle at **build time** — do
-not put secrets here.
+`NEXT_PUBLIC_APP_NAME`/`NEXT_PUBLIC_CUSTOMER_NAME` are inlined into the
+browser bundle at build time — do not put secrets in any `NEXT_PUBLIC_*`
+variable. `NEXT_PUBLIC_BACKEND_API_URL` is the one exception that never
+reaches the browser: `app_cai_frontend.py` reads it and re-exports it as
+the plain server env var `BACKEND_API_URL`, which only
+`next.config.mjs`'s server-side rewrite uses (§1) — the `NEXT_PUBLIC_`
+prefix here is a historical naming leftover, not a sign it's client-side.
 
 | Variable | Required | Example | Secret? | Description |
 | --- | --- | --- | --- | --- |
-| `NEXT_PUBLIC_BACKEND_API_URL` | **yes** | `https://tempo-backend.cai.example` | no | Deployed Backend Application's public URL. No trailing slash needed |
-| `NEXT_PUBLIC_APP_NAME` | no | `Commercial Intelligence` | no | Cosmetic |
-| `NEXT_PUBLIC_CUSTOMER_NAME` | no | `Tempo Scan` | no | Cosmetic |
+| `NEXT_PUBLIC_BACKEND_API_URL` | **yes** | `https://tempo-backend.cai.example` | no | Deployed Backend Application's public URL. Server-side only — see above. No trailing slash needed |
+| `NEXT_PUBLIC_APP_NAME` | no | `Commercial Intelligence` | no | Cosmetic, client-side |
+| `NEXT_PUBLIC_CUSTOMER_NAME` | no | `Tempo Scan` | no | Cosmetic, client-side |
 
 Never set `QWEN_API_TOKEN`, `SERPER_API_KEY`, `TRINO_PASSWORD`,
 `TRINO_ACCESS_TOKEN`, or any database credential on the Frontend
@@ -187,19 +215,24 @@ Neither entrypoint uses `npm run dev` or `uvicorn --reload`.
 1. Confirm the existing Qwen Application is running; note its public URL.
 2. Deploy the **Backend** Application (Script: `backend/app_cai_backend.py`),
    with `LLM_MODE=remote`, `QWEN_BASE_URL`/`QWEN_MODEL` set to the Qwen
-   Application above, and `CORS_ORIGINS` initially set to a placeholder (it
-   will be corrected in step 8).
+   Application above. `CORS_ORIGINS` can be left at its default —
+   it's defense-in-depth only, not on the browser's request path (see §1).
 3. Validate the Backend directly: `curl $BACKEND_URL/api/health` and
    `curl $BACKEND_URL/api/deployment/readiness`.
 4. Capture the Backend Application's public URL.
 5. Configure the **Frontend** Application's environment:
-   `NEXT_PUBLIC_BACKEND_API_URL=<backend URL from step 4>`.
+   `NEXT_PUBLIC_BACKEND_API_URL=<backend URL from step 4>` (this becomes
+   `BACKEND_API_URL` for the server-side proxy; the browser never sees it —
+   see §1).
 6. Deploy the Frontend Application (Script: `frontend/app_cai_frontend.py`).
-7. Capture the Frontend Application's public URL.
-8. Update the Backend Application's `CORS_ORIGINS` to the Frontend URL from
-   step 7.
-9. Restart the Backend Application so the new CORS origin takes effect.
-10. Run end-to-end validation (§8).
+7. Capture the Frontend Application's public URL and open it — the
+   browser only ever calls this URL's own `/api/*`, proxied server-side to
+   the Backend.
+8. Run end-to-end validation (§8).
+
+Optional hardening: once the Frontend URL is known, set the Backend's
+`CORS_ORIGINS` to it anyway, for any future direct/cross-origin consumer
+of the Backend API. This is not required for the deployed Frontend to work.
 
 ## 8. Health validation
 
@@ -239,8 +272,9 @@ Grouped by which service is at fault — logs are prefixed `[frontend]`,
 | Symptom | Likely cause | Fix |
 | --- | --- | --- |
 | `app_cai_frontend.py` exits with `NEXT_PUBLIC_BACKEND_API_URL is required` | Env var not set before build | Set it to the deployed Backend URL, then re-run |
-| Page loads but every API call fails in the browser console with a CORS error | Backend's `CORS_ORIGINS` doesn't include the Frontend's actual URL | Update `CORS_ORIGINS` on the Backend Application and restart it (§7 step 8–9) |
-| Frontend shows stale backend behavior after changing `NEXT_PUBLIC_BACKEND_API_URL` | The value is baked in at build time, not read at runtime | Rebuild: re-run `app_cai_frontend.py` without `BUILD_SKIP=1` |
+| Page loads but every API call 404s or times out | `next.config.mjs`'s rewrite target is wrong — `NEXT_PUBLIC_BACKEND_API_URL` is malformed or the Backend Application is down | Check the Frontend Application Logs for the printed Backend URL at startup; fix the env var and restart |
+| Browser console shows a CORS error | Should not happen — the browser only ever calls this app's own origin (§1), proxied server-side to the Backend | Something is bypassing the `/api/*` proxy and calling the Backend URL directly from client code; check for a stray fetch to the Backend's own domain outside `frontend/src/lib/api.ts` |
+| Frontend shows stale backend behavior after changing `NEXT_PUBLIC_BACKEND_API_URL` | `next.config.mjs` reads it fresh from `BACKEND_API_URL` (set by `app_cai_frontend.py`) on every process start — a rebuild is not required | Restart the Frontend Application (no rebuild needed for this specific change) |
 | `FileNotFoundError: ... 'npm'` | Runtime image is Python-only (PBJ Workbench / JupyterLab), no Node.js pre-installed | Should self-heal on its own — `app_cai_frontend.py` downloads a portable Node.js 20 build automatically. If this error still appears, confirm you're on the latest commit (`git pull`) and that the Application's egress can reach `nodejs.org` |
 
 **Backend problem**

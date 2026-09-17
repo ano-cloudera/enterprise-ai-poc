@@ -1,13 +1,18 @@
 import type { ChatResponse, DashboardOverview, DashboardState } from '../types/api'
 import { validateChatResponse } from './contract'
 
-// Split-deployment: the backend runs as its own CAI Application with its
-// own public URL. When unset, requests stay same-origin (Milestone 7's
-// single-app path, e.g. local dev via next.config.mjs rewrites).
-const API_BASE_URL = (process.env.NEXT_PUBLIC_BACKEND_API_URL || '').replace(/\/+$/, '')
-
+// Always same-origin from the browser's perspective, even in the split
+// deployment (Backend as its own CAI Application). Cross-origin fetch()
+// from the browser to the Backend's own domain depends on CORS being
+// allowed by CAI's gateway (Istio), which is platform-level infrastructure
+// outside this application's control and was observed to reject every
+// origin regardless of the app-level CORS_ORIGINS setting. Instead,
+// next.config.mjs's server-side rewrite proxies /api/:path* to
+// BACKEND_API_URL (a plain, non-NEXT_PUBLIC_ server env var) — the browser
+// never sees a second domain, so there is nothing for a browser CORS
+// policy to block.
 async function request<T>(path: string, options?: RequestInit): Promise<T> {
-  const response = await fetch(`${API_BASE_URL}/api${path}`, {
+  const response = await fetch(`/api${path}`, {
     headers: { 'Content-Type': 'application/json', ...(options?.headers || {}) },
     ...options,
   })

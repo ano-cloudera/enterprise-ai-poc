@@ -210,6 +210,15 @@ if not BACKEND_URL:
 if not (BACKEND_URL.startswith("http://") or BACKEND_URL.startswith("https://")):
     raise RuntimeError(f"NEXT_PUBLIC_BACKEND_API_URL must start with http:// or https:// (got: {BACKEND_URL})")
 
+# The browser never calls the Backend directly — CAI's gateway (Istio) was
+# observed to reject cross-origin requests between Application domains
+# regardless of app-level CORS_ORIGINS, and that's platform infrastructure
+# outside this app's control. Instead, next.config.mjs's server-side
+# rewrite proxies /api/:path* to BACKEND_API_URL (plain server env var,
+# read at request time, not baked into the client bundle), so the browser
+# only ever talks to this Frontend Application's own origin.
+os.environ["BACKEND_API_URL"] = BACKEND_URL
+
 print("=" * 60)
 print("Tempo Scan Commercial Intelligence - Frontend")
 print("=" * 60)
