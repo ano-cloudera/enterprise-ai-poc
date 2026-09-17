@@ -335,9 +335,35 @@ def output_guard(state: GraphState) -> GraphState:
     return state
 
 
+_GREETING_TERMS = (
+    "halo", "hallo", "hai", "hi", "hey", "hello",
+    "selamat pagi", "selamat siang", "selamat sore", "selamat malam",
+    "good morning", "good afternoon", "good evening",
+    "apa kabar", "how are you", "terima kasih", "thank you", "thanks", "makasih",
+)
+
+
+def _is_greeting(question: str) -> bool:
+    q = question.lower().strip()
+    return any(_contains_alias(q, term) for term in _GREETING_TERMS)
+
+
 async def direct_chat(state: GraphState) -> GraphState:
     language = state.get("language", "auto")
-    summary = "Silakan ajukan pertanyaan analitis berdasarkan data bisnis yang tersedia." if language == "id" else "Please ask an analytical question grounded in the available business data."
+    if _is_greeting(state["question"]):
+        summary = (
+            "Halo! Saya Tempo Scan AI, siap membantu analisis data komersial Anda. "
+            "Coba tanyakan misalnya performa sales suatu wilayah, forecast, atau posisi produk dibanding kompetitor."
+            if language == "id"
+            else "Hello! I'm Tempo Scan AI, ready to help with your commercial data analysis. "
+            "Try asking about sales performance in a region, a forecast, or how a product compares to competitors."
+        )
+    else:
+        summary = (
+            "Silakan ajukan pertanyaan analitis berdasarkan data bisnis yang tersedia."
+            if language == "id"
+            else "Please ask an analytical question grounded in the available business data."
+        )
     answer = ExecutiveAnswer(summary=summary, drivers=[], recommended_actions=[])
     return {**state, "answer": answer.model_dump(), "chart_spec": {"type": "none", "title": "", "x": [], "series": []}, "ui_actions": [], "resolved_state": state.get("dashboard_state") or {}, "status": "ok"}
 
