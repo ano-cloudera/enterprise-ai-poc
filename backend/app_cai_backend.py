@@ -111,10 +111,20 @@ PYTHON_BIN = ensure_venv()
 # CDSW_APP_PORT is authoritative when CAI sets it; PORT is the generic
 # fallback; 8000 is only for ad hoc local testing outside CAI.
 APP_PORT = os.getenv("CDSW_APP_PORT") or os.getenv("PORT") or "8000"
-MARKET_API_PORT = os.getenv("MARKET_API_INTERNAL_PORT", "8100")
+# High/uncommon default deliberately chosen so it can't collide with
+# whatever CDSW_APP_PORT CAI happens to assign this Application (CAI's
+# assigned public port is not guaranteed to avoid the common 8000-8999
+# range — it has collided with the old 8100 default in practice).
+MARKET_API_PORT = os.getenv("MARKET_API_INTERNAL_PORT", "18100")
 MARKET_API_STARTUP_TIMEOUT = int(os.getenv("MARKET_API_STARTUP_TIMEOUT", "60"))
 BACKEND_STARTUP_TIMEOUT = int(os.getenv("BACKEND_STARTUP_TIMEOUT", "60"))
 POLL_INTERVAL = 2
+
+if APP_PORT == MARKET_API_PORT:
+    raise RuntimeError(
+        f"CDSW_APP_PORT ({APP_PORT}) collides with MARKET_API_INTERNAL_PORT ({MARKET_API_PORT}). "
+        "Set MARKET_API_INTERNAL_PORT to a different value in this Application's environment variables."
+    )
 
 DATA_BACKEND = os.getenv("DATA_BACKEND", "duckdb")
 LLM_MODE = os.getenv("LLM_MODE", "mock")

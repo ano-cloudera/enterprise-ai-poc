@@ -69,7 +69,7 @@ never put a secret in a `NEXT_PUBLIC_*` variable (see §3.2).
 | `QWEN_BASE_URL` | yes if `LLM_MODE=remote` | `https://qwen-model.ml-....cloudera.site/v1` | no (URL only) | Existing Qwen Application's public URL |
 | `QWEN_MODEL` | yes if `LLM_MODE=remote` | `Qwen3.8-27B-AWQ` | no | Model name served by Qwen Application |
 | `QWEN_API_TOKEN` | if Qwen requires auth | — | **yes** | Set via CAI secrets only |
-| `MARKET_API_BASE_URL` | no | `http://127.0.0.1:8100` | no | Internal only — Mock Market API runs inside this same application |
+| `MARKET_API_INTERNAL_PORT` | no (default `18100`) | `18100` | no | Internal port for the Mock Market API child process, set automatically as `MARKET_API_BASE_URL`. Only override if it collides with `CDSW_APP_PORT` |
 | `SERPER_API_KEY` | no | — | **yes** | Only used by manual refresh scripts, not at runtime |
 | `SERPER_ENABLED` | no (default `false`) | `false` | no | Keep `false` for normal startup |
 
@@ -148,10 +148,12 @@ python backend/app_cai_backend.py
 ```
 Validates env (`DATA_BACKEND`, `LLM_MODE` + Qwen vars if remote, DuckDB
 file presence, a resolvable port), starts the Mock External Market API as
-an internal child process on `127.0.0.1:8100` (log-prefixed `[market-api]`)
-and waits for its `/health`, then starts FastAPI bound to
-`127.0.0.1:$CDSW_APP_PORT` (log-prefixed `[backend]`) and waits for
-`/api/health`. Does **not** start the frontend. Fails loudly if any step
+an internal child process on `127.0.0.1:18100` by default (log-prefixed
+`[market-api]`; override with `MARKET_API_INTERNAL_PORT` only if it happens
+to collide with the `CDSW_APP_PORT` CAI assigns this Application) and waits
+for its `/health`, then starts FastAPI bound to `127.0.0.1:$CDSW_APP_PORT`
+(log-prefixed `[backend]`) and waits for `/api/health`. Does **not** start
+the frontend. Fails loudly if any step
 doesn't come up. Monitors both subprocesses and cleans them up on shutdown,
 same as the Qwen app.py, with both children's stdout/stderr preserved so
 failures show up in CAI's Application Logs.
