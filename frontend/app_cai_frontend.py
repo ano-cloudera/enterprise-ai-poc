@@ -40,7 +40,11 @@ NODE_VERSION = "20.18.1"
 
 
 def _looks_like_frontend_dir(path: str) -> bool:
-    return os.path.isfile(os.path.join(path, "package.json")) and os.path.isdir(os.path.join(path, "src"))
+    return (
+        os.path.isfile(os.path.join(path, "package.json"))
+        and os.path.isfile(os.path.join(path, "package-lock.json"))
+        and os.path.isdir(os.path.join(path, "src"))
+    )
 
 
 def resolve_frontend_dir() -> str:
@@ -69,9 +73,23 @@ def resolve_frontend_dir() -> str:
         if os.path.isdir(candidate) and _looks_like_frontend_dir(candidate):
             return candidate
 
-    # Nothing matched the marker files — fall back to the old behavior
-    # rather than failing outright, since npm ci/build will still fail
-    # with a clear message if this guess is wrong.
+    # Nothing matched all three marker files (package.json,
+    # package-lock.json, src/) — report exactly what each candidate did
+    # have, so a checkout problem (e.g. a missing committed file) is
+    # diagnosable from Application Logs instead of surfacing only as a
+    # confusing downstream `npm ci` error.
+    print("[frontend] WARNING: could not find a frontend checkout with package.json + "
+          "package-lock.json + src/. Candidates checked:")
+    for candidate in candidates:
+        if not os.path.isdir(candidate):
+            print(f"[frontend]   {candidate} -> directory does not exist")
+            continue
+        present = [
+            name for name in ("package.json", "package-lock.json", "src")
+            if os.path.exists(os.path.join(candidate, name))
+        ]
+        print(f"[frontend]   {candidate} -> found: {', '.join(present) or '(none)'}")
+
     if project_dir and os.path.isdir(os.path.join(project_dir, "frontend")):
         return os.path.join(project_dir, "frontend")
     return cwd
