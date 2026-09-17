@@ -56,13 +56,18 @@ def _looks_like_frontend_dir(path: str) -> bool:
 
 def resolve_frontend_dir() -> str:
     """CAI can execute this entrypoint as interpreter code where __file__ is
-    unset or wrong, and CDSW_PROJECT_DIR can point at the CAI *project*
-    directory rather than the git checkout itself when the repo was added
-    as a subfolder (e.g. /home/cdsw/enterprise-ai-poc rather than
-    /home/cdsw) — so "<CDSW_PROJECT_DIR>/frontend" alone is not reliable.
-    Resolve by looking for this app's own marker files (package.json + src),
-    checking <CDSW_PROJECT_DIR>/frontend and <CDSW_PROJECT_DIR>/*/frontend,
-    then the current working directory and <cwd>/frontend."""
+    unset or wrong, CDSW_PROJECT_DIR is not guaranteed to be set at all
+    (observed empty in this deployment's Application pods even though it
+    resolves correctly in Workbench terminal Sessions), and even when set
+    it can point at the CAI *project* directory rather than the git
+    checkout itself when the repo was added as a subfolder (e.g.
+    /home/cdsw/enterprise-ai-poc rather than /home/cdsw) — so
+    "<CDSW_PROJECT_DIR>/frontend" alone is not reliable either way.
+    Resolve by looking for this app's own marker files (package.json +
+    package-lock.json + src) across every plausible base: CDSW_PROJECT_DIR
+    (and its subfolders) when set, AND the current working directory (and
+    its subfolders) regardless — never skip the cwd scan just because
+    CDSW_PROJECT_DIR happened to be set."""
     candidates = []
     project_dir = os.getenv("CDSW_PROJECT_DIR")
     if project_dir and os.path.isdir(project_dir):
@@ -75,6 +80,12 @@ def resolve_frontend_dir() -> str:
     cwd = os.getcwd()
     candidates.append(cwd)
     candidates.append(os.path.join(cwd, "frontend"))
+    if os.path.isdir(cwd):
+        candidates.extend(
+            os.path.join(cwd, name, "frontend")
+            for name in sorted(os.listdir(cwd))
+            if os.path.isdir(os.path.join(cwd, name))
+        )
 
     for candidate in candidates:
         if os.path.isdir(candidate) and _looks_like_frontend_dir(candidate):
