@@ -248,21 +248,35 @@ print("[frontend] npm --version stderr:", version_check.stderr.strip())
 print("[frontend] npm --version rc    :", version_check.returncode)
 
 # =========================================================
-# 1. Install dependencies. Always a clean install: an interrupted/killed
-#    previous run (Application restarts, pod evictions) can leave
-#    node_modules present but incomplete, and merely checking that the
-#    directory exists would then skip installation and fail downstream
-#    with a confusing "module not found" instead of a clear npm error.
+# 1. Install dependencies. Skip when a prior install already finished
+#    cleanly against the current lock file (marker written only after a
+#    successful `npm ci`), so a normal restart doesn't re-download
+#    everything. Reinstall when node_modules is missing/incomplete, the
+#    marker is missing (e.g. an interrupted/killed previous run — restarts
+#    or pod evictions can leave node_modules present but incomplete), or
+#    package-lock.json changed since the marker was written.
 # =========================================================
 node_modules_dir = os.path.join(FRONTEND_DIR, "node_modules")
-if os.path.isdir(node_modules_dir):
-    print("[frontend] Removing existing node_modules for a clean install...")
-    shutil.rmtree(node_modules_dir)
+lock_path = os.path.join(FRONTEND_DIR, "package-lock.json")
+install_marker = os.path.join(node_modules_dir, ".install-complete")
 
-print("[frontend] Installing dependencies (npm ci)...")
-install_result = subprocess.run([os.path.join(node_bin_dir, "npm"), "ci"], cwd=FRONTEND_DIR, env=run_env)
-if install_result.returncode != 0:
-    raise RuntimeError(f"npm ci failed with exit code {install_result.returncode}")
+needs_install = True
+if os.path.isdir(node_modules_dir) and os.path.isfile(install_marker):
+    lock_mtime = os.path.getmtime(lock_path) if os.path.isfile(lock_path) else None
+    marker_mtime = os.path.getmtime(install_marker)
+    needs_install = lock_mtime is None or lock_mtime > marker_mtime
+
+if needs_install:
+    if os.path.isdir(node_modules_dir):
+        print("[frontend] Removing existing node_modules for a clean install...")
+        shutil.rmtree(node_modules_dir)
+    print("[frontend] Installing dependencies (npm ci)...")
+    install_result = subprocess.run([os.path.join(node_bin_dir, "npm"), "ci"], cwd=FRONTEND_DIR, env=run_env)
+    if install_result.returncode != 0:
+        raise RuntimeError(f"npm ci failed with exit code {install_result.returncode}")
+    open(install_marker, "w").close()
+else:
+    print("[frontend] node_modules already installed and up to date with package-lock.json - skipping npm ci.")
 
 # next's own CLI entrypoint, invoked directly with the Node.js binary
 # rather than through the node_modules/.bin/next symlink (via `npm run` or
