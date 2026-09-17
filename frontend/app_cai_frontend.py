@@ -239,13 +239,21 @@ print("[frontend] npm --version stderr:", version_check.stderr.strip())
 print("[frontend] npm --version rc    :", version_check.returncode)
 
 # =========================================================
-# 1. Install dependencies (a fresh CAI checkout has no node_modules)
+# 1. Install dependencies. Always a clean install: an interrupted/killed
+#    previous run (Application restarts, pod evictions) can leave
+#    node_modules present but incomplete, and merely checking that the
+#    directory exists would then skip installation and fail downstream
+#    with a confusing "module not found" instead of a clear npm error.
 # =========================================================
-if not os.path.isdir(os.path.join(FRONTEND_DIR, "node_modules")):
-    print("[frontend] Installing dependencies (npm ci)...")
-    install_result = subprocess.run(["npm", "ci"], cwd=FRONTEND_DIR, env=run_env)
-    if install_result.returncode != 0:
-        raise RuntimeError(f"npm ci failed with exit code {install_result.returncode}")
+node_modules_dir = os.path.join(FRONTEND_DIR, "node_modules")
+if os.path.isdir(node_modules_dir):
+    print("[frontend] Removing existing node_modules for a clean install...")
+    shutil.rmtree(node_modules_dir)
+
+print("[frontend] Installing dependencies (npm ci)...")
+install_result = subprocess.run([os.path.join(node_bin_dir, "npm"), "ci"], cwd=FRONTEND_DIR, env=run_env)
+if install_result.returncode != 0:
+    raise RuntimeError(f"npm ci failed with exit code {install_result.returncode}")
 
 # next's own CLI entrypoint, invoked directly with the Node.js binary
 # rather than through the node_modules/.bin/next symlink (via `npm run` or
