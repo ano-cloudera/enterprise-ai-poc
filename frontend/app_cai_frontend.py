@@ -99,6 +99,34 @@ FRONTEND_DIR = resolve_frontend_dir()
 NODE_INSTALL_DIR = os.path.join(FRONTEND_DIR, ".node-runtime")
 
 
+def _print_diagnostics() -> None:
+    """Print everything needed to debug a checkout/path mismatch straight
+    from this process's own Application Logs, since a terminal Session in
+    the same CAI project is not guaranteed to see the same filesystem this
+    process does."""
+    print("[frontend] --- diagnostics ---")
+    print("[frontend] os.getcwd()        :", os.getcwd())
+    print("[frontend] CDSW_PROJECT_DIR   :", os.getenv("CDSW_PROJECT_DIR"))
+    print("[frontend] FRONTEND_DIR       :", FRONTEND_DIR)
+    print("[frontend] FRONTEND_DIR exists:", os.path.isdir(FRONTEND_DIR))
+    if os.path.isdir(FRONTEND_DIR):
+        try:
+            entries = sorted(os.listdir(FRONTEND_DIR))
+        except OSError as exc:
+            entries = [f"<listdir failed: {exc}>"]
+        print("[frontend] FRONTEND_DIR contents:", entries)
+        lock_path = os.path.join(FRONTEND_DIR, "package-lock.json")
+        print("[frontend] package-lock.json exists:", os.path.isfile(lock_path))
+        if os.path.isfile(lock_path):
+            print("[frontend] package-lock.json size :", os.path.getsize(lock_path), "bytes")
+    print("[frontend] shutil.which(npm) :", shutil.which("npm"))
+    print("[frontend] shutil.which(node):", shutil.which("node"))
+    print("[frontend] --- end diagnostics ---")
+
+
+_print_diagnostics()
+
+
 def _node_arch() -> str:
     machine = platform.machine().lower()
     if machine in ("x86_64", "amd64"):
@@ -180,6 +208,17 @@ print()
 node_bin_dir = ensure_node_bin_dir()
 run_env = os.environ.copy()
 run_env["PATH"] = f"{node_bin_dir}{os.pathsep}{run_env.get('PATH', '')}"
+
+print("[frontend] node_bin_dir used for npm/node/npx:", node_bin_dir)
+print("[frontend] resolved npm on run_env PATH      :", shutil.which("npm", path=run_env["PATH"]))
+print("[frontend] resolved node on run_env PATH      :", shutil.which("node", path=run_env["PATH"]))
+version_check = subprocess.run(
+    [os.path.join(node_bin_dir, "npm"), "--version"], cwd=FRONTEND_DIR, env=run_env,
+    capture_output=True, text=True,
+)
+print("[frontend] npm --version stdout:", version_check.stdout.strip())
+print("[frontend] npm --version stderr:", version_check.stderr.strip())
+print("[frontend] npm --version rc    :", version_check.returncode)
 
 # =========================================================
 # 1. Install dependencies (a fresh CAI checkout has no node_modules)
