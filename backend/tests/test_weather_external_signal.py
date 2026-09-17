@@ -173,8 +173,9 @@ def test_correlation_is_calculated_only_with_enough_aligned_observations():
         ("Bagaimana hubungan temperatur dengan sales Jawa Timur?", "weather"),
     ],
 )
-def test_controlled_intent_routing(question, expected):
-    assert route_intent({"question": question})["intent"] == expected
+@pytest.mark.asyncio
+async def test_controlled_intent_routing(question, expected):
+    assert (await route_intent({"question": question}))["intent"] == expected
 
 
 def test_weather_intent_uses_only_governed_region_period_and_metric():

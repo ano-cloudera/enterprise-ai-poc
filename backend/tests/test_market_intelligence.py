@@ -378,8 +378,9 @@ def test_unavailable_market_api_returns_controlled_number_free_fallback():
         ("Region mana yang punya opportunity terbesar untuk Bodrex?", "market"),
     ],
 )
-def test_market_routing_preserves_existing_routes(question, expected):
-    assert route_intent({"question": question})["intent"] == expected
+@pytest.mark.asyncio
+async def test_market_routing_preserves_existing_routes(question, expected):
+    assert (await route_intent({"question": question}))["intent"] == expected
 
 
 def test_market_follow_up_intent_preserves_governed_dashboard_context():

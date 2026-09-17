@@ -217,9 +217,11 @@ function DashboardAssistant({ contextItems, appliedItems, periodLabel, state, ap
 
 function DrawerAnswer({ message, periodLabel, onConfirm, onContinue }: { message: DrawerMessage; periodLabel: string; onConfirm: (index: number) => void; onContinue: () => void }) {
   const drivers = message.response?.answer.drivers.slice(0, 3).map(formatFloatingDriver).filter(Boolean) || []
+  const isConversational = message.response?.metadata.intent === 'conversational'
+  const showSummaryLabel = Boolean(message.response) && !isConversational
   return <div aria-label={message.response ? 'AI response' : 'Assistant message'} className="max-w-[94%] rounded-xl border border-slate-200 bg-white p-3 text-xs leading-5 text-slate-700 shadow-sm">
-    {message.response && <div className="text-[10px] font-extrabold uppercase tracking-[.1em] text-slate-400">Summary</div>}
-    <p className={`${message.response ? 'mt-1.5 ' : ''}font-semibold text-cloudera-navy`}>{formatFloatingAnswerText(message.content)}</p>
+    {showSummaryLabel && <div className="text-[10px] font-extrabold uppercase tracking-[.1em] text-slate-400">Summary</div>}
+    <p className={`${showSummaryLabel ? 'mt-1.5 ' : ''}font-semibold text-cloudera-navy`}>{formatFloatingAnswerText(message.content)}</p>
     {drivers.length > 0 && <div className="mt-3"><div className="text-[10px] font-extrabold uppercase tracking-[.1em] text-slate-400">Key drivers</div><ul className="mt-1.5 space-y-1">{drivers.map(driver => <li key={driver} className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-cloudera-orange" />{driver}</li>)}</ul></div>}
     {Boolean(message.automaticActions?.length) && <div className="mt-3 rounded-lg border border-emerald-100 bg-emerald-50 p-2.5"><div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[.1em] text-emerald-700"><CheckCircle2 size={13} />Applied to dashboard</div><div className="mt-1 font-semibold text-emerald-800">{automaticActionLabels(message.automaticActions || [], periodLabel).join(' • ')}</div></div>}
     {Boolean(message.pendingActions?.length) && <div className="mt-3 space-y-2"><div className="text-[10px] font-extrabold uppercase tracking-[.1em] text-slate-400">Next actions</div>{message.pendingActions?.map((action, index) => <button key={`${action.type}-${index}`} type="button" onClick={() => onConfirm(index)} className="w-full rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-left font-bold text-cloudera-violet hover:bg-violet-100">{actionLabel(action)}</button>)}</div>}

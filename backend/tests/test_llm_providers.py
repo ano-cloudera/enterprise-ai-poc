@@ -338,3 +338,45 @@ async def test_usage_is_recorded_as_safe_model_telemetry():
     assert dumped["provider"] == "qwen_openai_compatible"
     assert dumped["total_tokens"] == 125
     assert "secret" not in json.dumps(dumped)
+
+
+@pytest.mark.asyncio
+async def test_mock_provider_classifies_ambiguous_intent_deterministically():
+    provider = MockLLMProvider(Settings(_env_file=None, llm_mode="mock"))
+    with_history = await provider.classify_intent("ada gak data lain?", conversation_history=[{"role": "user", "content": "kenapa sales turun?"}], trace_id="t")
+    assert with_history.classification.intent == "analytical"
+    without_history = await provider.classify_intent("bisa bahasa indonesia?", conversation_history=[], trace_id="t")
+    assert without_history.classification.intent == "conversational"
+
+
+@pytest.mark.asyncio
+async def test_qwen_provider_classifies_intent_from_model_response():
+    def handler(request: httpx.Request):
+        body = json.loads(request.content)
+        assert body["max_tokens"] <= 50
+        return response(json.dumps({"intent": "conversational"}))
+
+    provider = QwenOpenAICompatibleProvider(settings(), transport=httpx.MockTransport(handler))
+    result = await provider.classify_intent(
+        "bisa bahasa indonesia?",
+        conversation_history=[{"role": "user", "content": "kenapa sales Jawa Barat turun?"}, {"role": "assistant", "content": "Sales turun 16%..."}],
+        trace_id="trace",
+    )
+    assert result.classification.intent == "conversational"
+    assert result.telemetry.provider == "qwen_openai_compatible"
+
+
+@pytest.mark.asyncio
+async def test_qwen_provider_classification_accepts_markdown_wrapped_json():
+    content = "```json\n{\"intent\": \"analytical\"}\n```"
+    provider = QwenOpenAICompatibleProvider(settings(), transport=httpx.MockTransport(lambda _: response(content)))
+    result = await provider.classify_intent("ada data lain?", conversation_history=[], trace_id="trace")
+    assert result.classification.intent == "analytical"
+
+
+@pytest.mark.asyncio
+async def test_qwen_provider_classification_failure_raises_provider_error():
+    provider = QwenOpenAICompatibleProvider(settings(), transport=httpx.MockTransport(lambda _: response("not json at all")))
+    with pytest.raises(LLMProviderError) as error:
+        await provider.classify_intent("ada data lain?", conversation_history=[], trace_id="trace")
+    assert error.value.code == "invalid_response"

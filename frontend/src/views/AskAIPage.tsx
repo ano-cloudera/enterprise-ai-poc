@@ -1,7 +1,7 @@
 'use client'
 
-import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from 'react'
-import { ArrowUp, Bot, CheckCircle2, ChevronRight, Database, Lightbulb, MessageSquareText, Plus, Sparkles, UserRound } from 'lucide-react'
+import { FormEvent, KeyboardEvent, MouseEvent, useEffect, useRef, useState } from 'react'
+import { ArrowUp, Bot, CheckCircle2, ChevronRight, Database, Lightbulb, MessageSquareText, Plus, Sparkles, Trash2, UserRound } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import { AnswerChart } from '../components/AnswerChart'
 import { DataTable } from '../components/DataTable'
@@ -10,7 +10,7 @@ import { api } from '../lib/api'
 import { suggestedFollowUps } from '../lib/businessPresentation'
 import { useDashboardState } from '../lib/dashboardState'
 import { formatFloatingAnswerText, formatFloatingDriver } from '../lib/floatingAnswerFormatting'
-import { createSessionId, loadSessions, saveSession, sessionTitle, takeHandoff, type ChatSession, type StoredMessage } from '../lib/chatSessions'
+import { createSessionId, deleteSession, loadSessions, saveSession, sessionTitle, takeHandoff, type ChatSession, type StoredMessage } from '../lib/chatSessions'
 import type { ChatResponse } from '../types/api'
 
 const starterQuestions = [
@@ -70,6 +70,13 @@ export function AskAIPage() {
     setInput('')
   }
 
+  function removeSession(event: MouseEvent, id: string) {
+    event.stopPropagation()
+    deleteSession(id)
+    setSessions(loadSessions())
+    if (id === sessionId) startNewChat()
+  }
+
   function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key !== 'Enter' || event.shiftKey || !input.trim() || loading) return
     event.preventDefault()
@@ -105,10 +112,13 @@ export function AskAIPage() {
           <div className="mt-6 text-sm font-extrabold text-cloudera-navy">Recent conversations</div>
           {sessions.length ? (
             <div className="mt-3 space-y-2">{sessions.map(session => (
-              <button type="button" key={session.id} onClick={() => openSession(session)} className={`w-full rounded-xl border p-3 text-left text-xs leading-5 transition hover:bg-slate-50 ${session.id === sessionId ? 'border-orange-200 bg-orange-50/60' : 'border-transparent text-slate-600'}`}>
-                <div className="flex gap-2"><MessageSquareText size={15} className="mt-0.5 shrink-0 text-slate-400" /><span className="min-w-0 break-words font-semibold">{session.title}</span></div>
-                <div className="ml-6 mt-1 text-[10px] text-slate-400">{new Date(session.updatedAt).toLocaleString()}</div>
-              </button>
+              <div key={session.id} className={`group relative w-full rounded-xl border transition hover:bg-slate-50 ${session.id === sessionId ? 'border-orange-200 bg-orange-50/60' : 'border-transparent text-slate-600'}`}>
+                <button type="button" onClick={() => openSession(session)} className="w-full p-3 pr-9 text-left text-xs leading-5">
+                  <div className="flex gap-2"><MessageSquareText size={15} className="mt-0.5 shrink-0 text-slate-400" /><span className="min-w-0 break-words font-semibold">{session.title}</span></div>
+                  <div className="ml-6 mt-1 text-[10px] text-slate-400">{new Date(session.updatedAt).toLocaleString()}</div>
+                </button>
+                <button type="button" onClick={event => removeSession(event, session.id)} aria-label="Delete conversation" className="absolute right-2 top-2.5 grid h-6 w-6 place-items-center rounded-lg text-slate-300 opacity-0 transition hover:bg-rose-50 hover:text-rose-500 group-hover:opacity-100"><Trash2 size={13} /></button>
+              </div>
             ))}</div>
           ) : <div className="mt-3 rounded-xl bg-slate-50 p-3 text-xs text-slate-500">No conversations yet.</div>}
         </aside>
@@ -158,6 +168,10 @@ function StructuredAnswer({ response, onSelectFollowUp }: { response: ChatRespon
   const showTable = state.chat.table.visible && response.data.rows.length > 0
   const showChart = Boolean(response.chart_spec && response.chart_spec.type !== 'none' && response.chart_spec.type !== 'table')
   const followUps = suggestedFollowUps(response.metadata.intent).slice(0, 3)
+
+  if (response.metadata.intent === 'conversational') {
+    return <p aria-label="AI response" className="min-w-0 break-words text-sm leading-6 text-slate-700">{formatFloatingAnswerText(response.answer.summary)}</p>
+  }
 
   return (
     <div aria-label="AI response" className="min-w-0">

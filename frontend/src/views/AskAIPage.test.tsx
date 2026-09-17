@@ -155,4 +155,35 @@ describe('Ask AI business UX', () => {
     await screen.findByText('Unable to complete the analysis right now. Please try again.')
     expect(screen.queryByText(/traceback secret/)).toBeNull()
   })
+
+  it('renders a conversational answer as plain text without the Executive Summary card', async () => {
+    vi.mocked(api.chat).mockResolvedValue({
+      ...response,
+      answer: { summary: 'Ya, saya bisa berkomunikasi dalam Bahasa Indonesia.', drivers: [], recommended_actions: [], caveats: [] },
+      metadata: { ...response.metadata, intent: 'conversational' },
+    } as never)
+    render(<AskAIPage />)
+    fireEvent.change(screen.getByPlaceholderText('Ask a follow-up question...'), { target: { value: 'bisa bahasa indonesia?' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send question' }))
+
+    await screen.findByText('Ya, saya bisa berkomunikasi dalam Bahasa Indonesia.')
+    expect(screen.queryByText('Executive Summary')).toBeNull()
+    expect(screen.queryByRole('group', { name: 'Suggested follow-up questions' })).toBeNull()
+  })
+
+  it('deletes a saved conversation from the sidebar without opening it', async () => {
+    window.localStorage.clear()
+    render(<AskAIPage />)
+    fireEvent.change(screen.getByPlaceholderText('Ask a follow-up question...'), { target: { value: 'Kenapa sales turun?' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send question' }))
+    await screen.findByLabelText('AI response')
+
+    cleanup()
+    render(<AskAIPage />)
+    screen.getByText('Kenapa sales turun?')
+    fireEvent.click(screen.getByRole('button', { name: 'Delete conversation' }))
+
+    expect(screen.queryByText('Kenapa sales turun?')).toBeNull()
+    screen.getByText('No conversations yet.')
+  })
 })

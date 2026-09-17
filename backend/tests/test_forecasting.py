@@ -223,9 +223,10 @@ def test_explicit_unavailable_forecast_period_is_preserved():
     assert intent.forecast_period == date(2025, 1, 1)
 
 
-def test_historical_question_does_not_route_to_forecast():
-    assert route_intent({"question": "Kenapa sales Jawa Barat turun bulan ini?"})["intent"] == "analytical"
-    assert route_intent({"question": "Berapa forecast Jawa Barat bulan depan?"})["intent"] == "forecast"
+@pytest.mark.asyncio
+async def test_historical_question_does_not_route_to_forecast():
+    assert (await route_intent({"question": "Kenapa sales Jawa Barat turun bulan ini?"}))["intent"] == "analytical"
+    assert (await route_intent({"question": "Berapa forecast Jawa Barat bulan depan?"}))["intent"] == "forecast"
 
 
 def test_forecast_tool_returns_persisted_values_without_numeric_fallback():

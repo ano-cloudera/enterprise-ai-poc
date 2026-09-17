@@ -31,6 +31,10 @@ class TrustedAnalysisPayload(StrictModel):
     conversation_history: list[dict[str, str]] = []
 
 
+class IntentClassification(StrictModel):
+    intent: Literal["analytical", "conversational"]
+
+
 class ModelTelemetry(StrictModel):
     trace_id: str
     provider: str
@@ -49,6 +53,11 @@ class ModelTelemetry(StrictModel):
 
 class AnalysisResult(StrictModel):
     analysis: StructuredAnalysis
+    telemetry: ModelTelemetry
+
+
+class IntentClassificationResult(StrictModel):
+    classification: IntentClassification
     telemetry: ModelTelemetry
 
 

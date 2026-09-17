@@ -34,6 +34,15 @@ export function saveSession(session: ChatSession) {
   }
 }
 
+export function deleteSession(id: string) {
+  if (typeof window === 'undefined') return
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(loadSessions().filter(item => item.id !== id)))
+  } catch {
+    // localStorage unavailable - nothing to clean up.
+  }
+}
+
 export function sessionTitle(messages: StoredMessage[]): string {
   return messages.find(message => message.role === 'user')?.content.slice(0, 80) || 'New conversation'
 }

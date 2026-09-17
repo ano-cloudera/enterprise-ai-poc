@@ -10,7 +10,15 @@ import httpx
 from pydantic import ValidationError
 
 from app.core.config import Settings
-from app.llm.models import AnalysisResult, ModelHealth, ModelTelemetry, StructuredAnalysis, TrustedAnalysisPayload
+from app.llm.models import (
+    AnalysisResult,
+    IntentClassification,
+    IntentClassificationResult,
+    ModelHealth,
+    ModelTelemetry,
+    StructuredAnalysis,
+    TrustedAnalysisPayload,
+)
 from app.llm.payload import deterministic_grounded_analysis
 
 
@@ -28,6 +36,7 @@ class LLMProviderError(RuntimeError):
 
 class LLMProvider(Protocol):
     async def generate_structured(self, payload: TrustedAnalysisPayload, *, language: str, trace_id: str) -> AnalysisResult: ...
+    async def classify_intent(self, question: str, *, conversation_history: list[dict[str, str]], trace_id: str) -> IntentClassificationResult: ...
     async def health_check(self) -> ModelHealth: ...
 
 
@@ -48,6 +57,22 @@ class MockLLMProvider:
                 retry_count=0,
                 success=True,
                 structured_validation_success=True,
+            ),
+        )
+
+    async def classify_intent(self, question: str, *, conversation_history: list[dict[str, str]], trace_id: str) -> IntentClassificationResult:
+        started = time.perf_counter()
+        # Deterministic stand-in for local/offline dev and tests: no keyword
+        # match already means "ambiguous", so without a real model to judge
+        # meaning, default to the safer of the two options only when there
+        # is conversational context to plausibly be a follow-up to.
+        intent = "analytical" if conversation_history else "conversational"
+        return IntentClassificationResult(
+            classification=IntentClassification(intent=intent),
+            telemetry=ModelTelemetry(
+                trace_id=trace_id, provider="mock", model=self.settings.qwen_model,
+                latency_ms=round((time.perf_counter() - started) * 1000),
+                retry_count=0, success=True, structured_validation_success=True,
             ),
         )
 
@@ -196,6 +221,70 @@ from query_result and business_context."""
         status = "unknown" if self.settings.qwen_base_url else "unavailable"
         return ModelHealth(mode="remote", status=status, provider="qwen_openai_compatible", model=self.settings.qwen_model)
 
+    @staticmethod
+    def _classification_messages(question: str, conversation_history: list[dict[str, str]]) -> list[dict[str, str]]:
+        system = """You classify one user message for a commercial-analytics chat assistant.
+Return JSON only: {"intent":"analytical"|"conversational"}
+"analytical" = the message is asking about, or is a natural follow-up to (clarifying, requesting
+more detail on, or reacting to) the business/commercial data already being discussed in this
+session — sales, forecasts, products, regions, channels, market signals, and similar.
+"conversational" = anything else: greetings, small talk, questions about the assistant itself
+(its capabilities, language support, identity), or a topic change unrelated to the data being
+discussed. When in doubt and there is no concrete data-related follow-up cue, prefer
+"conversational" — do not guess "analytical" just because a conversation is already underway."""
+        history_text = "\n".join(f"{item.get('role', '?')}: {item.get('content', '')}" for item in conversation_history[-6:])
+        user = f"Recent conversation (oldest first):\n{history_text or '(none)'}\n\nMessage to classify: {question}"
+        return [{"role": "system", "content": system}, {"role": "user", "content": user}]
+
+    async def classify_intent(self, question: str, *, conversation_history: list[dict[str, str]], trace_id: str) -> IntentClassificationResult:
+        if not self.settings.qwen_base_url:
+            raise LLMProviderError("unavailable")
+        headers = {"Content-Type": "application/json"}
+        token = self.settings.qwen_api_token.get_secret_value()
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        body = {
+            "model": self.settings.qwen_model,
+            "messages": self._classification_messages(question, conversation_history),
+            "temperature": 0.0,
+            "max_tokens": 50,
+            "chat_template_kwargs": {"enable_thinking": False, "preserve_thinking": False},
+        }
+        started = time.perf_counter()
+        try:
+            async with httpx.AsyncClient(
+                timeout=self.settings.qwen_request_timeout_seconds,
+                verify=self.settings.qwen_verify_ssl,
+                transport=self.transport,
+            ) as client:
+                response = await client.post(self.endpoint, headers=headers, json=body)
+            if response.status_code >= 400:
+                raise LLMProviderError("http_error", http_status=response.status_code, latency_ms=round((time.perf_counter() - started) * 1000))
+            raw = response.json()
+            content = self._strip_reasoning(raw["choices"][0]["message"]["content"])
+            match = re.search(r"\{.*\}", content, flags=re.DOTALL)
+            value = json.loads(match.group(0) if match else content)
+            classification = IntentClassification.model_validate(value)
+            usage = raw.get("usage") or {}
+            return IntentClassificationResult(
+                classification=classification,
+                telemetry=ModelTelemetry(
+                    trace_id=trace_id, provider="qwen_openai_compatible", model=self.settings.qwen_model,
+                    latency_ms=round((time.perf_counter() - started) * 1000), retry_count=0, success=True,
+                    http_status=response.status_code, structured_validation_success=True,
+                    prompt_tokens=usage.get("prompt_tokens"), completion_tokens=usage.get("completion_tokens"),
+                    total_tokens=usage.get("total_tokens"),
+                ),
+            )
+        except LLMProviderError:
+            raise
+        except httpx.TimeoutException:
+            raise LLMProviderError("timeout", latency_ms=round((time.perf_counter() - started) * 1000))
+        except httpx.RequestError:
+            raise LLMProviderError("unavailable", latency_ms=round((time.perf_counter() - started) * 1000))
+        except (json.JSONDecodeError, KeyError, IndexError, TypeError, ValueError, ValidationError):
+            raise LLMProviderError("invalid_response", latency_ms=round((time.perf_counter() - started) * 1000))
+
 
 class LiteLLMProvider(QwenOpenAICompatibleProvider):
     """Routes analysis requests through the LiteLLM proxy (litellm/config.yaml)
@@ -311,3 +400,52 @@ class LiteLLMProvider(QwenOpenAICompatibleProvider):
     async def health_check(self) -> ModelHealth:
         status = "unknown" if self.settings.litellm_base_url else "unavailable"
         return ModelHealth(mode="remote", status=status, provider="litellm", model=self.requested_model_group)
+
+    async def classify_intent(self, question: str, *, conversation_history: list[dict[str, str]], trace_id: str) -> IntentClassificationResult:
+        if not self.settings.litellm_base_url:
+            raise LLMProviderError("unavailable")
+        headers = {"Content-Type": "application/json"}
+        api_key = self.settings.litellm_api_key.get_secret_value()
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        body = {
+            "model": self.requested_model_group,
+            "messages": self._classification_messages(question, conversation_history),
+            "temperature": 0.0,
+            "max_tokens": 50,
+            "chat_template_kwargs": {"enable_thinking": False, "preserve_thinking": False},
+        }
+        started = time.perf_counter()
+        try:
+            async with httpx.AsyncClient(
+                timeout=self.settings.qwen_request_timeout_seconds,
+                verify=self.settings.qwen_verify_ssl,
+                transport=self.transport,
+            ) as client:
+                response = await client.post(self.endpoint, headers=headers, json=body)
+            if response.status_code >= 400:
+                raise LLMProviderError("http_error", http_status=response.status_code, latency_ms=round((time.perf_counter() - started) * 1000))
+            raw = response.json()
+            content = self._strip_reasoning(raw["choices"][0]["message"]["content"])
+            match = re.search(r"\{.*\}", content, flags=re.DOTALL)
+            value = json.loads(match.group(0) if match else content)
+            classification = IntentClassification.model_validate(value)
+            usage = raw.get("usage") or {}
+            return IntentClassificationResult(
+                classification=classification,
+                telemetry=ModelTelemetry(
+                    trace_id=trace_id, provider="litellm", model=str(raw.get("model") or self.requested_model_group),
+                    latency_ms=round((time.perf_counter() - started) * 1000), retry_count=0, success=True,
+                    http_status=response.status_code, structured_validation_success=True,
+                    prompt_tokens=usage.get("prompt_tokens"), completion_tokens=usage.get("completion_tokens"),
+                    total_tokens=usage.get("total_tokens"),
+                ),
+            )
+        except LLMProviderError:
+            raise
+        except httpx.TimeoutException:
+            raise LLMProviderError("timeout", latency_ms=round((time.perf_counter() - started) * 1000))
+        except httpx.RequestError:
+            raise LLMProviderError("unavailable", latency_ms=round((time.perf_counter() - started) * 1000))
+        except (json.JSONDecodeError, KeyError, IndexError, TypeError, ValueError, ValidationError):
+            raise LLMProviderError("invalid_response", latency_ms=round((time.perf_counter() - started) * 1000))

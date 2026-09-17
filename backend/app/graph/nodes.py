@@ -58,7 +58,7 @@ def _contains_alias(text: str, alias: str) -> bool:
     return re.search(rf"(?<!\w){re.escape(alias.lower())}(?!\w)", text) is not None
 
 
-def route_intent(state: GraphState) -> GraphState:
+async def route_intent(state: GraphState) -> GraphState:
     q = state["question"].lower()
     if state.get("guardrail_error"):
         return {**state, "intent": "blocked"}
@@ -91,17 +91,35 @@ def route_intent(state: GraphState) -> GraphState:
         intent = "forecast"
     elif reset_requested or any(_contains_alias(q, term) for term in business_terms):
         intent = "analytical"
-    elif not _is_greeting(q) and _has_active_analytical_context(state):
-        # No business keyword matched, but this isn't a greeting and the
-        # session already has an analytical thread going (prior turns in
-        # this conversation, or dashboard filters/dimension already
-        # resolved from an earlier question) - treat it as a follow-up
-        # clarification ("what else drove it?", "any other data?") rather
-        # than bouncing it to the generic conversational fallback.
-        intent = "analytical"
+    elif _is_greeting(q):
+        intent = "conversational"
+    elif _has_active_analytical_context(state):
+        # No business keyword matched, but the session already has an
+        # analytical thread going (prior turns, or dashboard filters
+        # already resolved from an earlier question) - this could be a
+        # genuine follow-up ("what else drove it?") or an unrelated aside
+        # ("can you speak Indonesian?", "who are you?"). Keyword lists
+        # can't reliably tell those apart, so ask the model to judge intent
+        # from meaning rather than guessing "analytical" by default.
+        intent = await _classify_ambiguous_intent(state)
     else:
         intent = "conversational"
     return {**state, "intent": intent}
+
+
+async def _classify_ambiguous_intent(state: GraphState) -> str:
+    try:
+        result = await get_llm_provider().classify_intent(
+            state["question"],
+            conversation_history=state.get("history", []),
+            trace_id=state.get("trace_id", ""),
+        )
+        return result.classification.intent
+    except LLMProviderError:
+        # LLM unavailable - fall back to the previous conservative
+        # heuristic (treat as analytical whenever context exists) rather
+        # than silently dropping every ambiguous follow-up.
+        return "analytical"
 
 
 def _has_active_analytical_context(state: GraphState) -> bool:

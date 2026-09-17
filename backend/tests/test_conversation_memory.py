@@ -69,3 +69,31 @@ def test_conversation_store_bounds_history_length(isolated_store):
     # Oldest turns are dropped, most recent kept, in original (oldest-first) order.
     assert history[-1]["content"] == f"answer {num_turns - 1}"
     assert history[0]["role"] == "user"
+
+
+@pytest.mark.asyncio
+async def test_ambiguous_follow_up_asks_the_model_instead_of_always_assuming_analytical(isolated_store, monkeypatch):
+    """Regression guard for the "bisa bahasa indonesia?" bug: a keyword-less
+    message with prior session history used to be assumed analytical
+    unconditionally, so an unrelated aside got routed through the SQL/data
+    pipeline and answered with an unrelated "Executive Summary" instead of
+    a direct reply. route_intent must now ask the LLM to judge intent from
+    meaning for this ambiguous case, and honor a "conversational" verdict."""
+    from app.llm.models import IntentClassification, IntentClassificationResult, ModelTelemetry
+    from app.llm import factory as llm_factory
+
+    class ConversationalClassifierStub:
+        async def classify_intent(self, question, *, conversation_history, trace_id):
+            return IntentClassificationResult(
+                classification=IntentClassification(intent="conversational"),
+                telemetry=ModelTelemetry(trace_id=trace_id, provider="stub", model="stub", latency_ms=1, retry_count=0, success=True),
+            )
+
+    monkeypatch.setattr(llm_factory, "get_llm_provider", lambda *_, **__: ConversationalClassifierStub())
+    monkeypatch.setattr("app.graph.nodes.get_llm_provider", lambda *_, **__: ConversationalClassifierStub())
+
+    session_id = "ambiguous-follow-up"
+    await chat.run_chat(ChatRequest(question="Kenapa sales Jawa Barat turun bulan ini?", session_id=session_id))
+    response = await chat.run_chat(ChatRequest(question="bisa bahasa indonesia?", session_id=session_id))
+
+    assert response.metadata.intent == "conversational"
