@@ -256,6 +256,7 @@ async def analyze_result(state: GraphState) -> GraphState:
         intent=intent,
         rows=rows,
         project=load_semantic_project(),
+        conversation_history=state.get("history", []),
     )
     try:
         result = await get_llm_provider().generate_structured(trusted_payload, language=language, trace_id=trace_id)
@@ -414,6 +415,7 @@ async def forecast(state: GraphState) -> GraphState:
             "instruction": "Explain only; forecast values and bounds are immutable.",
         },
         query_result={"columns": list(rows[0]), "rows": rows},
+        conversation_history=state.get("history", []),
     )
     try:
         model_result = await get_llm_provider().generate_structured(
@@ -558,6 +560,7 @@ async def market(state: GraphState, tool=None) -> GraphState:
             "rows": ordered_rows,
             "internal_sales_evidence": result.internal_sales_evidence,
         },
+        conversation_history=state.get("history", []),
     )
     try:
         explanation = await get_llm_provider().generate_structured(

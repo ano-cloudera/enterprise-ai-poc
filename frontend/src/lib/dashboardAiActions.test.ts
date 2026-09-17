@@ -16,17 +16,17 @@ describe('floating dashboard AI action policy', () => {
     expect(result.rejected).toEqual([])
   })
 
-  it('requires confirmation for larger visual actions', () => {
+  it('auto-applies dimension and highlight changes but requires confirmation for larger visual actions', () => {
     const result = partitionDashboardAiActions([
       { type: 'CHANGE_DIMENSION', value: 'channel' },
+      { type: 'HIGHLIGHT_CARD', target: 'growth', value: 'growth' },
       { type: 'CHANGE_METRIC', value: 'units' },
       { type: 'RENDER_CHART', target: 'dashboard', value: { chart_type: 'bar', dimension: 'channel', metric: 'net_sales' } },
       { type: 'SHOW_TABLE', target: 'dashboard', value: { columns: ['channel', 'sales'] } },
-      { type: 'HIGHLIGHT_CARD', target: 'growth', value: 'growth' },
     ])
 
-    expect(result.automatic).toEqual([])
-    expect(result.confirmationRequired).toHaveLength(5)
+    expect(result.automatic).toHaveLength(2)
+    expect(result.confirmationRequired).toHaveLength(3)
   })
 
   it('rejects unsupported filters and malformed or unknown commands', () => {

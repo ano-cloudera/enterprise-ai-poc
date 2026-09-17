@@ -93,7 +93,11 @@ Distinguish facts from inference. Do not claim inventory impact unless inventory
 Do not claim channel impact unless channel fields exist. Never reveal hidden reasoning.
 Return JSON only with exactly this schema:
 {{"summary":"string","drivers":[{{"title":"string","description":"string","evidence":"string"}}],"recommended_actions":["string"],"caveats":["string"]}}
-Prioritize material business impact and cite evidence using supplied field names and values."""
+Prioritize material business impact and cite evidence using supplied field names and values.
+The payload may include conversation_history: prior turns in this session, oldest first. Use it
+only to keep the answer coherent with what was already discussed (e.g. resolve "that region" or
+avoid repeating the same explanation) — never as a source of facts; all facts must still come
+from query_result and business_context."""
         return [
             {"role": "system", "content": system},
             {"role": "user", "content": payload.model_dump_json()},

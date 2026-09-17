@@ -19,6 +19,7 @@ import { api } from '../lib/api'
 import { useDashboardState } from '../lib/dashboardState'
 import { actionLabel, dashboardSectionForAction, partitionDashboardAiActions, selectDashboardActions } from '../lib/dashboardAiActions'
 import { formatFloatingAnswerText, formatFloatingDriver } from '../lib/floatingAnswerFormatting'
+import { setHandoff } from '../lib/chatSessions'
 import { useFetch } from '../hooks/useFetch'
 import type { AppliedContextItem, ChatResponse, DashboardOverview, UIAction } from '../types/api'
 
@@ -189,18 +190,11 @@ function DashboardAssistant({ contextItems, appliedItems, periodLabel, state, ap
     onFocusSection(dashboardSectionForAction(action))
   }
 
-  const latestQuestion = [...messages].reverse().find(message => message.role === 'user')?.content || input.trim()
   function continueInAskAi() {
+    const latestQuestion = [...messages].reverse().find(message => message.role === 'user')?.content
     const latestResponse = [...messages].reverse().find(message => message.response)?.response
-    const params = new URLSearchParams()
-    if (latestQuestion) params.set('q', latestQuestion)
-    if (latestResponse) {
-      params.set('summary', latestResponse.answer.summary)
-      params.set('intent', latestResponse.metadata.intent)
-    }
-    params.set('period', state.date_range.preset || [state.date_range.start, state.date_range.end].filter(Boolean).join(':'))
-    for (const target of ['region', 'product', 'channel']) if (state.filters[target]?.[0]) params.set(target, state.filters[target][0])
-    router.push(`/ask-ai?${params.toString()}`)
+    if (latestQuestion && latestResponse) setHandoff({ question: latestQuestion, response: latestResponse })
+    router.push('/ask-ai')
   }
 
   return (
@@ -291,7 +285,15 @@ function formatPeriodMonth(value: string) { const parsed = new Date(`${value.len
 function periodLabel(data: DashboardOverview, preset: string | null) { const months = data.sales_trend.map(row => row.month); if (!months.length) return data.period || 'Latest period'; if (preset === 'last_3_months') return `${formatPeriodMonth(months[0])} – ${formatPeriodMonth(months[months.length - 1])}`; if (preset === 'previous_month') return formatPeriodMonth(months[Math.max(0, months.length - 2)]); return formatPeriodMonth(months[months.length - 1]) }
 function contextItems(period: string, filters: Record<string, string[]>) { return [period, filters.region?.[0] || 'All Regions', filters.product?.[0] || 'All Products', filters.channel?.[0] || 'All Channels'] }
 function displayContextItems(items: AppliedContextItem[], period: string) { return items.map(item => item.kind === 'date_range' ? { ...item, label: period } : item) }
-function automaticActionLabels(actions: UIAction[], period: string) { return actions.flatMap(action => action.type === 'SET_FILTER' ? action.value : action.type === 'SET_DATE_RANGE' ? [period] : []) }
+function automaticActionLabels(actions: UIAction[], period: string) {
+  return actions.flatMap(action => {
+    if (action.type === 'SET_FILTER') return action.value
+    if (action.type === 'SET_DATE_RANGE') return [period]
+    if (action.type === 'CHANGE_DIMENSION') return [`Dimension: ${action.value}`]
+    if (action.type === 'HIGHLIGHT_CARD') return [Array.isArray(action.value) ? action.value.join(', ') : action.value]
+    return []
+  })
+}
 function focusClass(base: string, focused: boolean) { return `${base} rounded-2xl transition-all duration-300 ${focused ? 'ring-2 ring-cloudera-orange/50 ring-offset-2' : 'ring-0'}` }
 function focusDashboardSection(id: string) { const section = typeof document === 'undefined' ? null : document.getElementById(id); if (section && typeof section.scrollIntoView === 'function') section.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
 function forecastTrend(data: DashboardOverview) { const rows = data.sales_trend.map(row => ({ month: row.month, actual: Number(row.sales), forecast: null as number | null })); if (data.forecast && rows.length) { rows[rows.length - 1].forecast = rows[rows.length - 1].actual; rows.push({ month: data.forecast.period, actual: Number.NaN, forecast: Number(data.forecast.value) }) } return rows }

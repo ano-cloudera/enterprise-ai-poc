@@ -28,6 +28,7 @@ class TrustedAnalysisPayload(StrictModel):
     intent: dict[str, Any]
     business_context: dict[str, Any]
     query_result: dict[str, Any]
+    conversation_history: list[dict[str, str]] = []
 
 
 class ModelTelemetry(StrictModel):

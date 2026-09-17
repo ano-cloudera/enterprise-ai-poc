@@ -1,7 +1,7 @@
 import type { UIAction } from '../types/api'
 
 const automaticFilterTargets = new Set(['region', 'product', 'channel'])
-const confirmationTypes = new Set(['CHANGE_METRIC', 'CHANGE_DIMENSION', 'RENDER_CHART', 'SHOW_TABLE', 'HIGHLIGHT_CARD'])
+const confirmationTypes = new Set(['CHANGE_METRIC', 'RENDER_CHART', 'SHOW_TABLE'])
 const chartTypes = new Set(['line', 'bar', 'area', 'pie', 'table'])
 const renderTargets = new Set(['chat', 'dashboard', 'both'])
 const sectionIds = {
@@ -38,20 +38,23 @@ function isAutomaticAction(candidate: unknown): candidate is UIAction {
       && candidate.value.length > 0
       && candidate.value.every(value => typeof value === 'string')
   }
-  if (candidate.type !== 'SET_DATE_RANGE') return false
-  if (typeof candidate.value === 'string') return Boolean(candidate.value)
-  return isRecord(candidate.value)
-    && typeof candidate.value.start === 'string'
-    && typeof candidate.value.end === 'string'
-}
-
-function isConfirmationAction(candidate: unknown): candidate is UIAction {
-  if (!isRecord(candidate) || typeof candidate.type !== 'string' || !confirmationTypes.has(candidate.type)) return false
-  if (candidate.type === 'CHANGE_METRIC' || candidate.type === 'CHANGE_DIMENSION') return typeof candidate.value === 'string' && Boolean(candidate.value)
+  if (candidate.type === 'SET_DATE_RANGE') {
+    if (typeof candidate.value === 'string') return Boolean(candidate.value)
+    return isRecord(candidate.value)
+      && typeof candidate.value.start === 'string'
+      && typeof candidate.value.end === 'string'
+  }
+  if (candidate.type === 'CHANGE_DIMENSION') return typeof candidate.value === 'string' && Boolean(candidate.value)
   if (candidate.type === 'HIGHLIGHT_CARD') {
     return typeof candidate.target === 'string'
       && (typeof candidate.value === 'string' || (Array.isArray(candidate.value) && candidate.value.every(value => typeof value === 'string')))
   }
+  return false
+}
+
+function isConfirmationAction(candidate: unknown): candidate is UIAction {
+  if (!isRecord(candidate) || typeof candidate.type !== 'string' || !confirmationTypes.has(candidate.type)) return false
+  if (candidate.type === 'CHANGE_METRIC') return typeof candidate.value === 'string' && Boolean(candidate.value)
   if (!renderTargets.has(String(candidate.target)) || !isRecord(candidate.value)) return false
   if (candidate.type === 'SHOW_TABLE') return Array.isArray(candidate.value.columns) && candidate.value.columns.every(column => typeof column === 'string')
   return chartTypes.has(String(candidate.value.chart_type))

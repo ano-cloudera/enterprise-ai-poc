@@ -10,7 +10,13 @@ from app.semantic.models import SemanticProject
 
 
 def build_trusted_analysis_payload(
-    *, question: str, language: str, intent: AnalyticalIntent, rows: list[dict[str, Any]], project: SemanticProject
+    *,
+    question: str,
+    language: str,
+    intent: AnalyticalIntent,
+    rows: list[dict[str, Any]],
+    project: SemanticProject,
+    conversation_history: list[dict[str, str]] | None = None,
 ) -> TrustedAnalysisPayload:
     dataset = next(dataset for dataset in project.datasets.values() if intent.metric in dataset.metrics)
     metric = dataset.metrics[intent.metric]
@@ -45,6 +51,7 @@ def build_trusted_analysis_payload(
             "dimension_definitions": dimensions,
         },
         query_result={"columns": list(rows[0]) if rows else [], "rows": rows[:200]},
+        conversation_history=conversation_history or [],
     )
 
 

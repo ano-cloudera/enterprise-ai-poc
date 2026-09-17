@@ -1,6 +1,6 @@
 'use client'
 
-import { FormEvent, KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react'
+import { FormEvent, KeyboardEvent, useEffect, useRef, useState } from 'react'
 import { ArrowUp, Bot, CheckCircle2, ChevronRight, Database, Lightbulb, MessageSquareText, Plus, Sparkles, UserRound } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import { AnswerChart } from '../components/AnswerChart'
@@ -10,6 +10,7 @@ import { api } from '../lib/api'
 import { suggestedFollowUps } from '../lib/businessPresentation'
 import { useDashboardState } from '../lib/dashboardState'
 import { formatFloatingAnswerText, formatFloatingDriver } from '../lib/floatingAnswerFormatting'
+import { createSessionId, loadSessions, saveSession, sessionTitle, takeHandoff, type ChatSession, type StoredMessage } from '../lib/chatSessions'
 import type { ChatResponse } from '../types/api'
 
 const starterQuestions = [
@@ -19,29 +20,30 @@ const starterQuestions = [
   'Bagaimana forecast bulan depan?',
 ]
 
-type UIMessage = { role: 'user' | 'assistant'; content: string; response?: ChatResponse }
+type UIMessage = StoredMessage
 
 export function AskAIPage() {
   const { state: dashboardState, applyActions } = useDashboardState()
   const searchParams = useSearchParams()
   const initial = searchParams.get('q') || ''
-  const priorSummary = searchParams.get('summary') || ''
-  const [input, setInput] = useState(initial)
+  const [input, setInput] = useState('')
+  const [sessionId, setSessionId] = useState(createSessionId)
   const [messages, setMessages] = useState<UIMessage[]>([])
+  const [sessions, setSessions] = useState<ChatSession[]>([])
   const [loading, setLoading] = useState(false)
   const initialSubmitted = useRef(false)
   const conversationEnd = useRef<HTMLDivElement>(null)
 
-  const recent = useMemo(
-    () => [...new Set(messages.filter(message => message.role === 'user').map(message => message.content))].reverse().slice(0, 5),
-    [messages],
-  )
+  useEffect(() => { setSessions(loadSessions()) }, [])
+
+  useEffect(() => {
+    if (messages.length) saveSession({ id: sessionId, title: sessionTitle(messages), updatedAt: Date.now(), messages })
+  }, [messages, sessionId])
+
   async function submit(question = input) {
     const value = question.trim()
     if (!value || loading) return
-    const history = messages.length
-      ? messages.map(message => ({ role: message.role, content: message.content }))
-      : priorSummary ? [{ role: 'assistant' as const, content: priorSummary }] : []
+    const history = messages.map(message => ({ role: message.role, content: message.content }))
     setMessages(current => [...current, { role: 'user', content: value }])
     setInput('')
     setLoading(true)
@@ -56,6 +58,19 @@ export function AskAIPage() {
     }
   }
 
+  function startNewChat() {
+    setSessions(loadSessions())
+    setSessionId(createSessionId())
+    setMessages([])
+    setInput('')
+  }
+
+  function openSession(session: ChatSession) {
+    setSessionId(session.id)
+    setMessages(session.messages)
+    setInput('')
+  }
+
   function handleComposerKeyDown(event: KeyboardEvent<HTMLTextAreaElement>) {
     if (event.key !== 'Enter' || event.shiftKey || !input.trim() || loading) return
     event.preventDefault()
@@ -63,9 +78,14 @@ export function AskAIPage() {
   }
 
   useEffect(() => {
-    if (!initial || initialSubmitted.current) return
+    if (initialSubmitted.current) return
     initialSubmitted.current = true
-    submit(initial)
+    const handoff = takeHandoff()
+    if (handoff) {
+      setMessages([{ role: 'user', content: handoff.question }, { role: 'assistant', content: handoff.response.answer.summary, response: handoff.response }])
+      return
+    }
+    if (initial) submit(initial)
   }, [])
 
   useEffect(() => {
@@ -82,13 +102,13 @@ export function AskAIPage() {
 
       <div className="grid min-h-0 min-w-0 flex-1 gap-4 xl:grid-cols-[214px_minmax(0,1fr)]">
         <aside className="card hidden h-full min-w-0 overflow-y-auto p-4 xl:block">
-          <button type="button" onClick={() => { setMessages([]); setInput('') }} className="btn-primary w-full"><Plus size={16} />New Chat</button>
+          <button type="button" onClick={startNewChat} className="btn-primary w-full"><Plus size={16} />New Chat</button>
           <div className="mt-6 text-sm font-extrabold text-cloudera-navy">Recent conversations</div>
-          {recent.length ? (
-            <div className="mt-3 space-y-2">{recent.map(item => (
-              <button type="button" key={item} onClick={() => setInput(item)} className="w-full rounded-xl border border-transparent p-3 text-left text-xs leading-5 text-slate-600 transition hover:bg-slate-50">
-                <div className="flex gap-2"><MessageSquareText size={15} className="mt-0.5 shrink-0 text-slate-400" /><span className="min-w-0 break-words font-semibold">{item}</span></div>
-                <div className="ml-6 mt-1 text-[10px] text-slate-400">Current session</div>
+          {sessions.length ? (
+            <div className="mt-3 space-y-2">{sessions.map(session => (
+              <button type="button" key={session.id} onClick={() => openSession(session)} className={`w-full rounded-xl border p-3 text-left text-xs leading-5 transition hover:bg-slate-50 ${session.id === sessionId ? 'border-orange-200 bg-orange-50/60' : 'border-transparent text-slate-600'}`}>
+                <div className="flex gap-2"><MessageSquareText size={15} className="mt-0.5 shrink-0 text-slate-400" /><span className="min-w-0 break-words font-semibold">{session.title}</span></div>
+                <div className="ml-6 mt-1 text-[10px] text-slate-400">{new Date(session.updatedAt).toLocaleString()}</div>
               </button>
             ))}</div>
           ) : <div className="mt-3 rounded-xl bg-slate-50 p-3 text-xs text-slate-500">No conversations yet.</div>}
@@ -112,7 +132,7 @@ export function AskAIPage() {
             {messages.map((message, index) => message.role === 'user' ? (
               <div key={index} className="ml-auto flex max-w-[90%] items-start justify-end gap-2 sm:max-w-[78%]"><div className="min-w-0 break-words rounded-2xl rounded-tr-md bg-cloudera-navy px-4 py-3 text-sm leading-6 text-white">{message.content}</div><div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-200 text-slate-600"><UserRound size={15} /></div></div>
             ) : (
-              <div key={index} className="flex min-w-0 items-start gap-3"><div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-cloudera-orange text-white"><Sparkles size={17} /></div><div className="min-w-0 flex-1 rounded-2xl rounded-tl-md border border-slate-200 bg-white p-4 shadow-sm sm:p-5">{message.response ? <StructuredAnswer response={message.response} onSelectFollowUp={setInput} /> : <div className="text-sm leading-6 text-slate-700">{message.content}</div>}</div></div>
+              <div key={index} className="flex min-w-0 items-start gap-3"><div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-cloudera-orange text-white"><Sparkles size={17} /></div><div className="min-w-0 flex-1 rounded-2xl rounded-tl-md border border-slate-200 bg-white p-4 shadow-sm sm:p-5">{message.response ? <StructuredAnswer response={message.response} onSelectFollowUp={submit} /> : <div className="text-sm leading-6 text-slate-700">{message.content}</div>}</div></div>
             ))}
             {loading && <div className="flex items-center gap-3"><div className="grid h-9 w-9 place-items-center rounded-xl bg-cloudera-orange text-white"><Sparkles size={17} /></div><div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-500"><span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-cloudera-orange" />Analyzing governed data...</div></div>}
             <div ref={conversationEnd} aria-hidden="true" />

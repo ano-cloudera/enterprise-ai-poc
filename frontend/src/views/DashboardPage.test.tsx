@@ -87,7 +87,7 @@ describe('Dashboard v2', () => {
     expect(screen.queryByRole('dialog', { name: 'SCAN' })).toBeNull()
   })
 
-  it('auto-applies simple actions but waits for confirmation before a large action', async () => {
+  it('auto-applies simple filters and dimension changes but waits for confirmation before a large chart/table action', async () => {
     vi.mocked(api.chat).mockResolvedValue({
       status: 'ok', question: 'Tampilkan breakdown berdasarkan channel',
       answer: { summary: 'Sales decline is concentrated in General Trade.', drivers: ['General Trade is the largest negative contributor.'], recommended_actions: [], caveats: [] },
@@ -95,8 +95,8 @@ describe('Dashboard v2', () => {
       ui_actions: [
         { type: 'SET_FILTER', target: 'region', value: ['Jawa Barat'] },
         { type: 'CHANGE_DIMENSION', value: 'region' },
-        { type: 'CHANGE_DIMENSION', value: 'product' },
-        { type: 'CHANGE_DIMENSION', value: 'channel' },
+        { type: 'CHANGE_METRIC', value: 'units' },
+        { type: 'SHOW_TABLE', target: 'dashboard', value: { columns: ['channel', 'sales'] } },
       ],
       metadata: { trace_id: 't', session_id: 's', intent: 'analysis', resolved_context: dashboardState, execution_time_ms: 1 },
     } as never)
@@ -106,27 +106,25 @@ describe('Dashboard v2', () => {
 
     await waitFor(() => expect(stateActions.applyDashboardAiActions).toHaveBeenCalledWith([
       { type: 'SET_FILTER', target: 'region', value: ['Jawa Barat'] },
+      { type: 'CHANGE_DIMENSION', value: 'region' },
     ]))
     expect(stateActions.applyActions).not.toHaveBeenCalled()
     screen.getByText('Sales decline is concentrated in General Trade.')
     screen.getByText('General Trade is the largest negative contributor.')
     expect(push).not.toHaveBeenCalled()
-    const regionAction = screen.getByRole('button', { name: 'Compare regions' })
-    screen.getByRole('button', { name: 'View product drivers' })
-    expect(screen.queryByRole('button', { name: 'Compare channels' })).toBeNull()
-    expect(screen.queryByText(/Render Bar Chart|Break down by|CHANGE_DIMENSION/)).toBeNull()
-    fireEvent.click(regionAction)
-    expect(stateActions.applyActions).toHaveBeenCalledWith([{ type: 'CHANGE_DIMENSION', value: 'region' }])
+    const metricAction = screen.getByRole('button', { name: 'View Units' })
+    screen.getByRole('button', { name: 'View supporting data' })
+    fireEvent.click(metricAction)
+    expect(stateActions.applyActions).toHaveBeenCalledWith([{ type: 'CHANGE_METRIC', value: 'units' }])
     screen.getByRole('dialog', { name: 'SCAN' })
-    expect(document.getElementById('sales-by-region')?.getAttribute('data-focused')).toBe('true')
   })
 
-  it('keeps local product and channel actions on the dashboard and removes temporary focus', async () => {
+  it('auto-applies a highlight action reported to the dashboard', async () => {
     vi.mocked(api.chat).mockResolvedValue({
       status: 'ok', question: 'Produk dan channel mana yang terdampak?',
       answer: { summary: 'A governed result is available.', drivers: [], recommended_actions: [], caveats: [] },
       data: { columns: [], rows: [] }, chart_spec: null,
-      ui_actions: [{ type: 'CHANGE_DIMENSION', value: 'product' }, { type: 'CHANGE_DIMENSION', value: 'channel' }],
+      ui_actions: [{ type: 'CHANGE_DIMENSION', value: 'product' }, { type: 'HIGHLIGHT_CARD', target: 'growth', value: 'growth' }],
       metadata: { trace_id: 't', session_id: 's', intent: 'analysis', resolved_context: dashboardState, execution_time_ms: 1 },
     } as never)
     render(<DashboardPage />)
@@ -134,17 +132,13 @@ describe('Dashboard v2', () => {
     fireEvent.change(screen.getByPlaceholderText('Ask about this dashboard...'), { target: { value: 'Produk dan channel mana yang terdampak?' } })
     fireEvent.click(screen.getByRole('button', { name: 'Send question' }))
 
-    const productAction = await screen.findByRole('button', { name: 'View product drivers' })
-    vi.useFakeTimers()
-    fireEvent.click(productAction)
-    expect(document.getElementById('product-performance')?.getAttribute('data-focused')).toBe('true')
+    await waitFor(() => expect(stateActions.applyDashboardAiActions).toHaveBeenCalledWith([
+      { type: 'CHANGE_DIMENSION', value: 'product' },
+      { type: 'HIGHLIGHT_CARD', target: 'growth', value: 'growth' },
+    ]))
     expect(push).not.toHaveBeenCalled()
     screen.getByRole('dialog', { name: 'SCAN' })
-
-    fireEvent.click(screen.getByRole('button', { name: 'Compare channels' }))
-    expect(document.getElementById('channel-contribution')?.getAttribute('data-focused')).toBe('true')
-    act(() => { vi.advanceTimersByTime(2200) })
-    expect(document.getElementById('channel-contribution')?.getAttribute('data-focused')).toBe('false')
+    screen.getByText('Applied to dashboard')
   })
 
   it('rejects unsupported UI commands while retaining the analytical answer', async () => {
@@ -164,7 +158,7 @@ describe('Dashboard v2', () => {
     expect(stateActions.applyActions).not.toHaveBeenCalled()
   })
 
-  it('renders a submitted answer in the drawer and only navigates after explicit escalation', async () => {
+  it('renders a submitted answer in the drawer and hands off the existing answer on explicit escalation', async () => {
     vi.mocked(api.chat).mockResolvedValue({
       status: 'ok', question: 'Analisa strategi Bodrex',
       answer: {
@@ -185,11 +179,10 @@ describe('Dashboard v2', () => {
     expect(screen.getByRole('dialog', { name: 'SCAN' }).textContent).not.toContain('current_value=')
     expect(push).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Continue analysis in Ask AI' }))
-    const target = new URL(String(push.mock.calls[0][0]), 'http://localhost')
-    expect(target.pathname).toBe('/ask-ai')
-    expect(target.searchParams.get('q')).toBe('Analisa strategi Bodrex')
-    expect(target.searchParams.get('summary')).toBe('Nilai Bodrex berubah 18.21664440535221% dari 32568.457000000002 menjadi 38501.337000000004.')
-    expect(target.searchParams.get('period')).toBe('current_month')
+    expect(push).toHaveBeenCalledWith('/ask-ai')
+    const handoff = JSON.parse(window.sessionStorage.getItem('scan.ask-ai.handoff') || '{}')
+    expect(handoff.question).toBe('Analisa strategi Bodrex')
+    expect(handoff.response.answer.summary).toBe('Nilai Bodrex berubah 18.21664440535221% dari 32568.457000000002 menjadi 38501.337000000004.')
   })
 
   it('shows a controlled business error without backend details', async () => {

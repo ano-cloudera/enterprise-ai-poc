@@ -104,7 +104,7 @@ describe('Ask AI business UX', () => {
     expect(container.textContent).not.toMatch(/current_value=|secret-trace|developer-session|18\.21664440535221|38501\.337000000004/)
   })
 
-  it('places a selected response follow-up in the composer without sending it immediately', async () => {
+  it('sends a selected response follow-up immediately', async () => {
     render(<AskAIPage />)
     fireEvent.change(screen.getByPlaceholderText('Ask a follow-up question...'), { target: { value: 'Kenapa sales turun?' } })
     fireEvent.click(screen.getByRole('button', { name: 'Send question' }))
@@ -112,8 +112,8 @@ describe('Ask AI business UX', () => {
     const answer = await screen.findByLabelText('AI response')
     fireEvent.click(within(answer).getByRole('button', { name: 'Which products drove the decline?' }))
 
-    expect((screen.getByPlaceholderText('Ask a follow-up question...') as HTMLTextAreaElement).value).toBe('Which products drove the decline?')
-    expect(api.chat).toHaveBeenCalledTimes(1)
+    await waitFor(() => expect(api.chat).toHaveBeenCalledTimes(2))
+    expect(api.chat).toHaveBeenLastCalledWith('Which products drove the decline?', expect.any(Array), expect.anything())
   })
 
   it('submits with Enter, keeps Shift+Enter multiline, and ignores empty Enter', async () => {
