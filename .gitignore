@@ -8,6 +8,7 @@ frontend/node_modules/
 frontend/.next/
 frontend/out/
 frontend/.tsbuildinfo
+frontend/.node-runtime/
 
 runtime/*.duckdb
 runtime/*.sqlite

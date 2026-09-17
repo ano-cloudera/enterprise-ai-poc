@@ -16,8 +16,25 @@ Application entrypoint.
 from __future__ import annotations
 
 import os
+import platform
+import shutil
 import subprocess
+import sys
+import tarfile
 import time
+import urllib.request
+
+# Line-buffer stdout/stderr so print() output shows up in CAI's Application
+# Logs immediately rather than sitting in a block buffer for minutes (CAI
+# runs this as a non-interactive process, so Python defaults to full
+# buffering on stdout/stderr).
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
+
+# Node.js LTS version bundled for CAI runtimes that have no Node.js of their
+# own (the PBJ Workbench / JupyterLab Python images are Python-only). Pinned
+# so builds are reproducible; bump deliberately, not silently.
+NODE_VERSION = "20.18.1"
 
 
 def _looks_like_frontend_dir(path: str) -> bool:
@@ -59,6 +76,59 @@ def resolve_frontend_dir() -> str:
 
 
 FRONTEND_DIR = resolve_frontend_dir()
+NODE_INSTALL_DIR = os.path.join(FRONTEND_DIR, ".node-runtime")
+
+
+def _node_arch() -> str:
+    machine = platform.machine().lower()
+    if machine in ("x86_64", "amd64"):
+        return "x64"
+    if machine in ("aarch64", "arm64"):
+        return "arm64"
+    raise RuntimeError(f"Unsupported CPU architecture for portable Node.js download: {machine}")
+
+
+def ensure_node_bin_dir() -> str:
+    """Return a directory containing node/npm/npx, downloading a portable
+    Node.js build if the CAI runtime image doesn't already have one (the
+    PBJ Workbench / JupyterLab Python images are Python-only — there is no
+    guarantee npm is on PATH). Mirrors the native-binary launcher pattern:
+    cache under the app directory, probe before trusting it, never assume
+    the interpreter's environment has what a Node app needs."""
+    if shutil.which("npm") and shutil.which("node"):
+        print("[frontend] Using system Node.js:", shutil.which("node"))
+        return os.path.dirname(shutil.which("node"))
+
+    arch = _node_arch()
+    dist_name = f"node-v{NODE_VERSION}-linux-{arch}"
+    node_home = os.path.join(NODE_INSTALL_DIR, dist_name)
+    bin_dir = os.path.join(node_home, "bin")
+    node_bin = os.path.join(bin_dir, "node")
+
+    if os.path.isfile(node_bin):
+        print("[frontend] Reusing cached portable Node.js at", node_home)
+        return bin_dir
+
+    os.makedirs(NODE_INSTALL_DIR, exist_ok=True)
+    archive_name = f"{dist_name}.tar.xz"
+    url = f"https://nodejs.org/dist/v{NODE_VERSION}/{archive_name}"
+    archive_path = os.path.join(NODE_INSTALL_DIR, archive_name)
+
+    print(f"[frontend] No system Node.js found. Downloading portable Node.js {NODE_VERSION} ({arch})...")
+    print("[frontend]", url)
+    urllib.request.urlretrieve(url, archive_path)
+
+    with tarfile.open(archive_path, mode="r:xz") as archive:
+        archive.extractall(NODE_INSTALL_DIR)
+    os.remove(archive_path)
+
+    if not os.path.isfile(node_bin):
+        raise RuntimeError(f"Portable Node.js download did not produce an executable at {node_bin}")
+
+    # Probe the binary actually runs before trusting it for the real build.
+    subprocess.run([node_bin, "--version"], check=True)
+    print("[frontend] Portable Node.js ready at", node_home)
+    return bin_dir
 
 # CDSW_APP_PORT is authoritative when CAI sets it; PORT is the generic
 # fallback; 3000 is only for ad hoc local testing outside CAI.
@@ -84,11 +154,19 @@ print("=" * 60)
 print()
 
 # =========================================================
+# 0. Ensure Node.js/npm are available (the PBJ Workbench / JupyterLab
+#    Python runtime images have no Node.js of their own)
+# =========================================================
+node_bin_dir = ensure_node_bin_dir()
+run_env = os.environ.copy()
+run_env["PATH"] = f"{node_bin_dir}{os.pathsep}{run_env.get('PATH', '')}"
+
+# =========================================================
 # 1. Install dependencies (a fresh CAI checkout has no node_modules)
 # =========================================================
 if not os.path.isdir(os.path.join(FRONTEND_DIR, "node_modules")):
     print("[frontend] Installing dependencies (npm ci)...")
-    install_result = subprocess.run(["npm", "ci"], cwd=FRONTEND_DIR, env=os.environ.copy())
+    install_result = subprocess.run(["npm", "ci"], cwd=FRONTEND_DIR, env=run_env)
     if install_result.returncode != 0:
         raise RuntimeError(f"npm ci failed with exit code {install_result.returncode}")
 
@@ -100,7 +178,7 @@ if BUILD_SKIP and has_existing_build:
     print("[frontend] BUILD_SKIP=1 and .next already exists - reusing existing build.")
 else:
     print("[frontend] Building production frontend (bakes NEXT_PUBLIC_BACKEND_API_URL into the bundle)...")
-    build_result = subprocess.run(["npm", "run", "build"], cwd=FRONTEND_DIR, env=os.environ.copy())
+    build_result = subprocess.run(["npm", "run", "build"], cwd=FRONTEND_DIR, env=run_env)
     if build_result.returncode != 0:
         raise RuntimeError(f"Frontend build failed with exit code {build_result.returncode}")
 
@@ -110,7 +188,7 @@ else:
 start_cmd = ["npx", "next", "start", "-H", "127.0.0.1", "-p", str(APP_PORT)]
 print("[frontend] Starting:", " ".join(start_cmd))
 # stdout/stderr inherited (not redirected) so failures surface in CAI's Application Logs.
-frontend_process = subprocess.Popen(start_cmd, cwd=FRONTEND_DIR, env=os.environ.copy())
+frontend_process = subprocess.Popen(start_cmd, cwd=FRONTEND_DIR, env=run_env)
 print("[frontend] PID:", frontend_process.pid)
 print()
 

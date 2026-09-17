@@ -26,6 +26,13 @@ import urllib.request
 # not yet have backend/requirements-lock.txt installed. Do not add a
 # third-party import above this line.
 
+# Line-buffer stdout/stderr so print() output shows up in CAI's Application
+# Logs immediately rather than sitting in a block buffer for minutes (CAI
+# runs this as a non-interactive process, so Python defaults to full
+# buffering on stdout/stderr).
+sys.stdout.reconfigure(line_buffering=True)
+sys.stderr.reconfigure(line_buffering=True)
+
 
 _REPO_MARKER = os.path.join("backend", "app", "main.py")
 

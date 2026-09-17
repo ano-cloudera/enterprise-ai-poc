@@ -47,7 +47,11 @@ not runtime dependencies and not separate applications.
   Backend).
 - The existing Qwen/vLLM CAI Application already running, with its public
   URL known.
-- Python 3.10 and Node.js 18+ available in the CAI runtime images.
+- Python 3.10 available in the CAI runtime image (e.g. PBJ Workbench or
+  JupyterLab Python 3.10 standard). Node.js is **not** required on the
+  image — `frontend/app_cai_frontend.py` downloads a portable Node.js 20
+  LTS build automatically on first start if `npm`/`node` aren't already on
+  `PATH` (CAI's Python-only runtime images have neither).
 - Network egress from the Backend Application to the Qwen Application's URL.
 - No Trino/CDW credentials required for this milestone.
 
@@ -237,6 +241,7 @@ Grouped by which service is at fault — logs are prefixed `[frontend]`,
 | `app_cai_frontend.py` exits with `NEXT_PUBLIC_BACKEND_API_URL is required` | Env var not set before build | Set it to the deployed Backend URL, then re-run |
 | Page loads but every API call fails in the browser console with a CORS error | Backend's `CORS_ORIGINS` doesn't include the Frontend's actual URL | Update `CORS_ORIGINS` on the Backend Application and restart it (§7 step 8–9) |
 | Frontend shows stale backend behavior after changing `NEXT_PUBLIC_BACKEND_API_URL` | The value is baked in at build time, not read at runtime | Rebuild: re-run `app_cai_frontend.py` without `BUILD_SKIP=1` |
+| `FileNotFoundError: ... 'npm'` | Runtime image is Python-only (PBJ Workbench / JupyterLab), no Node.js pre-installed | Should self-heal on its own — `app_cai_frontend.py` downloads a portable Node.js 20 build automatically. If this error still appears, confirm you're on the latest commit (`git pull`) and that the Application's egress can reach `nodejs.org` |
 
 **Backend problem**
 | Symptom | Likely cause | Fix |
