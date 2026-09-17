@@ -43,12 +43,11 @@ export function AskAIPage() {
   async function submit(question = input) {
     const value = question.trim()
     if (!value || loading) return
-    const history = messages.map(message => ({ role: message.role, content: message.content }))
     setMessages(current => [...current, { role: 'user', content: value }])
     setInput('')
     setLoading(true)
     try {
-      const response = await api.chat(value, history, dashboardState)
+      const response = await api.chat(value, sessionId, dashboardState)
       applyActions(response.ui_actions)
       setMessages(current => [...current, { role: 'assistant', content: response.answer.summary, response }])
     } catch {

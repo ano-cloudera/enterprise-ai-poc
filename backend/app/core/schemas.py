@@ -10,11 +10,6 @@ class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid")
 
 
-class ChatMessage(BaseModel):
-    role: Literal["user", "assistant", "system"]
-    content: str
-
-
 class DashboardDateRange(BaseModel):
     preset: str | None = "current_month"
     start: str | None = None
@@ -53,9 +48,13 @@ class DashboardState(BaseModel):
 
 class ChatRequest(BaseModel):
     question: str = Field(min_length=1, max_length=4000)
+    # Keys the server-side conversation history (see
+    # app/services/conversation_store.py) - memory is looked up by this, not
+    # sent by the client on each request. Two different browser tabs/session
+    # objects sharing the same session_id share the same remembered
+    # conversation.
     session_id: str = "demo-session"
     language: Literal["id", "en", "auto"] = "auto"
-    history: list[ChatMessage] = Field(default_factory=list)
     context: DashboardState = Field(
         default_factory=DashboardState,
         validation_alias=AliasChoices("context", "dashboard_state"),

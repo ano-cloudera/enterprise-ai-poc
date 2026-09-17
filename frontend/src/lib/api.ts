@@ -28,15 +28,14 @@ export const api = {
   monitoring: () => request<any>('/monitoring/summary'),
   chat: async (
     question: string,
-    history: { role: 'user' | 'assistant'; content: string }[] = [],
+    sessionId: string,
     dashboardState: DashboardState,
   ) => validateChatResponse(await request<unknown>('/chat', {
     method: 'POST',
     body: JSON.stringify({
       question,
-      session_id: 'tempo-demo',
+      session_id: sessionId,
       language: 'auto',
-      history,
       context: dashboardContext(dashboardState),
     }),
   })),

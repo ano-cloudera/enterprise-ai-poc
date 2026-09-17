@@ -19,7 +19,7 @@ import { api } from '../lib/api'
 import { useDashboardState } from '../lib/dashboardState'
 import { actionLabel, dashboardSectionForAction, partitionDashboardAiActions, selectDashboardActions } from '../lib/dashboardAiActions'
 import { formatFloatingAnswerText, formatFloatingDriver } from '../lib/floatingAnswerFormatting'
-import { setHandoff } from '../lib/chatSessions'
+import { createSessionId, setHandoff } from '../lib/chatSessions'
 import { useFetch } from '../hooks/useFetch'
 import type { AppliedContextItem, ChatResponse, DashboardOverview, UIAction } from '../types/api'
 
@@ -160,6 +160,7 @@ function FilterSelect({ label, value, options, onChange, icon: Icon }: { label: 
 
 function DashboardAssistant({ contextItems, appliedItems, periodLabel, state, applyActions, applyDashboardAiActions, canUndo, onFocusSection, onUndo, onReset, onClose }: { contextItems: string[]; appliedItems: AppliedContextItem[]; periodLabel: string; state: Parameters<typeof api.dashboard>[0]; applyActions: (actions: ChatResponse['ui_actions']) => void; applyDashboardAiActions: (actions: ChatResponse['ui_actions']) => void; canUndo: boolean; onFocusSection: (sectionId: string) => void; onUndo: () => void; onReset: () => void; onClose: () => void }) {
   const router = useRouter()
+  const [sessionId] = useState(createSessionId)
   const [messages, setMessages] = useState<DrawerMessage[]>([])
   const [input, setInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -167,12 +168,11 @@ function DashboardAssistant({ contextItems, appliedItems, periodLabel, state, ap
   async function submit(question = input) {
     const value = question.trim()
     if (!value || loading) return
-    const history = messages.map(message => ({ role: message.role, content: message.content }))
     setMessages(current => [...current, { role: 'user', content: value }])
     setInput('')
     setLoading(true)
     try {
-      const response = await api.chat(value, history, state)
+      const response = await api.chat(value, sessionId, state)
       const actions = partitionDashboardAiActions(response.ui_actions)
       if (actions.automatic.length) applyDashboardAiActions(actions.automatic)
       setMessages(current => [...current, { role: 'assistant', content: response.answer.summary, response, automaticActions: actions.automatic, pendingActions: selectDashboardActions(actions.confirmationRequired) }])

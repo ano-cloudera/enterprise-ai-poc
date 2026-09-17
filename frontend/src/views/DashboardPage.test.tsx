@@ -209,7 +209,7 @@ describe('Dashboard v2', () => {
     expect(api.chat).not.toHaveBeenCalled()
     fireEvent.change(input, { target: { value: 'Bandingkan Bodrex\ndengan kompetitor' } })
     expect(fireEvent.keyDown(input, { key: 'Enter', shiftKey: false })).toBe(false)
-    await waitFor(() => expect(api.chat).toHaveBeenCalledWith('Bandingkan Bodrex\ndengan kompetitor', [], dashboardState))
+    await waitFor(() => expect(api.chat).toHaveBeenCalledWith('Bandingkan Bodrex\ndengan kompetitor', expect.any(String), dashboardState))
   })
 
   it('uses a full-width mobile drawer and bounded desktop width', () => {
@@ -229,7 +229,7 @@ describe('Dashboard v2', () => {
     render(<DashboardPage />)
     fireEvent.click(screen.getByRole('button', { name: 'Ask AI' }))
     fireEvent.click(screen.getByRole('button', { name: 'Bagaimana forecast bulan depan?' }))
-    await waitFor(() => expect(api.chat).toHaveBeenCalledWith('Bagaimana forecast bulan depan?', [], dashboardState))
+    await waitFor(() => expect(api.chat).toHaveBeenCalledWith('Bagaimana forecast bulan depan?', expect.any(String), dashboardState))
   })
 
   it('uses functional enterprise icons for filters and the AI assistant', () => {

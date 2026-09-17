@@ -7,6 +7,11 @@ class GraphState(TypedDict, total=False):
     question: str
     language: str
     session_id: str
+    # Prior turns in this session, oldest first - loaded from
+    # ConversationStore (app/services/conversation_store.py) by
+    # services/chat.py before each graph invocation. Nodes only ever read
+    # this field; it never accumulates within the graph itself (no
+    # LangGraph checkpointer is used - see workflow.py).
     history: list[dict[str, str]]
     trace_id: str
     dashboard_state: dict[str, Any]

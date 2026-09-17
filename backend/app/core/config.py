@@ -92,6 +92,12 @@ class Settings(BaseSettings):
 
     telemetry_db_path: Path = Field(default_factory=lambda: Path(__file__).resolve().parents[3] / "runtime" / "telemetry.sqlite")
 
+    # Chat history per session_id (see app/services/conversation_store.py),
+    # so multi-turn memory survives across requests/process restarts, not
+    # just within one browser tab's lifetime. Same runtime/ convention as
+    # duckdb_path and telemetry_db_path above.
+    conversation_db_path: Path = Field(default_factory=lambda: Path(__file__).resolve().parents[3] / "runtime" / "conversation_history.sqlite")
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [item.strip() for item in self.cors_origins.split(",") if item.strip()]

@@ -113,7 +113,7 @@ describe('Ask AI business UX', () => {
     fireEvent.click(within(answer).getByRole('button', { name: 'Which products drove the decline?' }))
 
     await waitFor(() => expect(api.chat).toHaveBeenCalledTimes(2))
-    expect(api.chat).toHaveBeenLastCalledWith('Which products drove the decline?', expect.any(Array), expect.anything())
+    expect(api.chat).toHaveBeenLastCalledWith('Which products drove the decline?', expect.any(String), expect.anything())
   })
 
   it('submits with Enter, keeps Shift+Enter multiline, and ignores empty Enter', async () => {

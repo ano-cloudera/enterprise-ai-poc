@@ -16,20 +16,27 @@ from app.core.schemas import (
 )
 from app.graph.workflow import workflow
 from app.monitoring.store import TelemetryStore
+from app.services.conversation_store import ConversationStore
 
 
 telemetry = TelemetryStore()
+conversations = ConversationStore()
 logger = logging.getLogger(__name__)
 
 
 async def run_chat(request: ChatRequest) -> ChatResponse:
     trace_id = str(uuid.uuid4())
     started = time.perf_counter()
+    # Prior turns from this session, loaded once per request - a plain
+    # SQLite table keyed by session_id (see conversation_store.py), not a
+    # LangGraph checkpointer. Each graph run is otherwise fully stateless:
+    # nodes only read "history", nothing in the graph accumulates it.
+    history = conversations.load_history(request.session_id)
     initial = {
         "question": request.question,
         "language": request.language,
         "session_id": request.session_id,
-        "history": [item.model_dump() for item in request.history[-8:]],
+        "history": history,
         "dashboard_state": request.context.model_dump(),
         "trace_id": trace_id,
         "repair_attempts": 0,
@@ -45,6 +52,7 @@ async def run_chat(request: ChatRequest) -> ChatResponse:
         columns = list(rows[0].keys()) if rows else []
         status = state.get("status", "ok")
         resolved_state = DashboardState.model_validate(state.get("resolved_state") or request.context.model_dump())
+        conversations.append_turn(request.session_id, request.question, answer.summary)
         telemetry.record(
             trace_id=trace_id,
             question=request.question,
