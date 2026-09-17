@@ -24,6 +24,13 @@ import tarfile
 import time
 import urllib.request
 
+# Build marker printed as the very first thing this file does, before any
+# other logic — if this exact string does not appear at the top of
+# Application Logs after a restart, the running process is not executing
+# this version of the file (checkout/sync problem), independent of
+# anything else this script does.
+print("[frontend] app_cai_frontend.py build marker: 2026-09-17-diagnostics-v2", flush=True)
+
 # Line-buffer stdout/stderr so print() output shows up in CAI's Application
 # Logs immediately rather than sitting in a block buffer for minutes. CAI
 # can run this entrypoint two different ways: as a plain script (regular
