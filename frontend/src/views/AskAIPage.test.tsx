@@ -62,7 +62,7 @@ describe('Ask AI business UX', () => {
     expect(emptyState?.className).toContain('m-auto')
     expect(conversation.className).toContain('flex')
     expect(recentHeading.className).toContain('text-sm')
-    expect(screen.getByText('Tempo Scan AI').className).toContain('text-sm')
+    expect(screen.getByText('SCAN').className).toContain('text-sm')
   })
 
   it('keeps the composer outside a viewport-bounded scrolling conversation', () => {

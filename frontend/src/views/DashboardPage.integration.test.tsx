@@ -52,7 +52,7 @@ describe('floating AI shared dashboard state', () => {
     screen.getByRole('button', { name: 'Remove Bodrex' })
     screen.getByRole('button', { name: 'Remove Mar 2024' })
 
-    fireEvent.click(within(screen.getByRole('dialog', { name: 'Tempo Scan AI' })).getByRole('button', { name: 'Undo AI changes' }))
+    fireEvent.click(within(screen.getByRole('dialog', { name: 'SCAN' })).getByRole('button', { name: 'Undo AI changes' }))
     expect((screen.getByLabelText('Region') as HTMLSelectElement).value).toBe('')
     expect((screen.getByLabelText('Product') as HTMLSelectElement).value).toBe('')
     expect(screen.queryByText('Applied by AI:')).toBeNull()
@@ -73,7 +73,7 @@ describe('floating AI shared dashboard state', () => {
     fetchResult = { data: overview, loading: true, error: null }
     view.rerender(<DashboardStateProvider><DashboardPage /></DashboardStateProvider>)
 
-    screen.getByRole('dialog', { name: 'Tempo Scan AI' })
+    screen.getByRole('dialog', { name: 'SCAN' })
     screen.getByText('Sales turun dibanding periode sebelumnya.')
   })
 

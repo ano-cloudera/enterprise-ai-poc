@@ -80,11 +80,11 @@ describe('Dashboard v2', () => {
   it('opens and closes the floating AI drawer without navigating away', () => {
     render(<DashboardPage />)
     fireEvent.click(screen.getByRole('button', { name: 'Ask AI' }))
-    screen.getByRole('dialog', { name: 'Tempo Scan AI' })
+    screen.getByRole('dialog', { name: 'SCAN' })
     screen.getByText('Kenapa sales turun bulan ini?')
     for (const item of ['Mar 2024', 'All Regions', 'All Products', 'All Channels']) expect(screen.getAllByText(item).length).toBeGreaterThan(0)
     fireEvent.click(screen.getByRole('button', { name: 'Close AI assistant' }))
-    expect(screen.queryByRole('dialog', { name: 'Tempo Scan AI' })).toBeNull()
+    expect(screen.queryByRole('dialog', { name: 'SCAN' })).toBeNull()
   })
 
   it('auto-applies simple actions but waits for confirmation before a large action', async () => {
@@ -117,7 +117,7 @@ describe('Dashboard v2', () => {
     expect(screen.queryByText(/Render Bar Chart|Break down by|CHANGE_DIMENSION/)).toBeNull()
     fireEvent.click(regionAction)
     expect(stateActions.applyActions).toHaveBeenCalledWith([{ type: 'CHANGE_DIMENSION', value: 'region' }])
-    screen.getByRole('dialog', { name: 'Tempo Scan AI' })
+    screen.getByRole('dialog', { name: 'SCAN' })
     expect(document.getElementById('sales-by-region')?.getAttribute('data-focused')).toBe('true')
   })
 
@@ -139,7 +139,7 @@ describe('Dashboard v2', () => {
     fireEvent.click(productAction)
     expect(document.getElementById('product-performance')?.getAttribute('data-focused')).toBe('true')
     expect(push).not.toHaveBeenCalled()
-    screen.getByRole('dialog', { name: 'Tempo Scan AI' })
+    screen.getByRole('dialog', { name: 'SCAN' })
 
     fireEvent.click(screen.getByRole('button', { name: 'Compare channels' }))
     expect(document.getElementById('channel-contribution')?.getAttribute('data-focused')).toBe('true')
@@ -182,7 +182,7 @@ describe('Dashboard v2', () => {
 
     await screen.findByText('Summary')
     screen.getByText('Nilai Bodrex berubah +18.2% dari Rp32.57B menjadi Rp38.50B.')
-    expect(screen.getByRole('dialog', { name: 'Tempo Scan AI' }).textContent).not.toContain('current_value=')
+    expect(screen.getByRole('dialog', { name: 'SCAN' }).textContent).not.toContain('current_value=')
     expect(push).not.toHaveBeenCalled()
     fireEvent.click(screen.getByRole('button', { name: 'Continue analysis in Ask AI' }))
     const target = new URL(String(push.mock.calls[0][0]), 'http://localhost')
@@ -199,7 +199,7 @@ describe('Dashboard v2', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Kenapa sales turun bulan ini?' }))
 
     await screen.findByText('Unable to complete the analysis right now. Please try again.')
-    expect(screen.getByRole('dialog', { name: 'Tempo Scan AI' }).textContent).not.toContain('traceback')
+    expect(screen.getByRole('dialog', { name: 'SCAN' }).textContent).not.toContain('traceback')
   })
 
   it('submits floating chat with Enter and preserves Shift+Enter multiline input', async () => {
@@ -222,8 +222,8 @@ describe('Dashboard v2', () => {
   it('uses a full-width mobile drawer and bounded desktop width', () => {
     render(<DashboardPage />)
     fireEvent.click(screen.getByRole('button', { name: 'Ask AI' }))
-    expect(screen.getByRole('dialog', { name: 'Tempo Scan AI' }).className).toContain('w-full')
-    expect(screen.getByRole('dialog', { name: 'Tempo Scan AI' }).className).toContain('sm:max-w-[410px]')
+    expect(screen.getByRole('dialog', { name: 'SCAN' }).className).toContain('w-full')
+    expect(screen.getByRole('dialog', { name: 'SCAN' }).className).toContain('sm:max-w-[410px]')
   })
 
   it('sends the same shared dashboard context through the existing chat API', async () => {

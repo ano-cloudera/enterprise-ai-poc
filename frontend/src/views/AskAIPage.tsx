@@ -10,7 +10,6 @@ import { api } from '../lib/api'
 import { suggestedFollowUps } from '../lib/businessPresentation'
 import { useDashboardState } from '../lib/dashboardState'
 import { formatFloatingAnswerText, formatFloatingDriver } from '../lib/floatingAnswerFormatting'
-import { useProject } from '../lib/project'
 import type { ChatResponse } from '../types/api'
 
 const starterQuestions = [
@@ -23,7 +22,6 @@ const starterQuestions = [
 type UIMessage = { role: 'user' | 'assistant'; content: string; response?: ChatResponse }
 
 export function AskAIPage() {
-  const { config } = useProject()
   const { state: dashboardState, applyActions } = useDashboardState()
   const searchParams = useSearchParams()
   const initial = searchParams.get('q') || ''
@@ -98,7 +96,7 @@ export function AskAIPage() {
 
         <section className="card order-1 flex h-full min-h-0 min-w-0 flex-col overflow-hidden xl:order-none">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
-            <div className="flex items-center gap-2"><div className="grid h-8 w-8 place-items-center rounded-lg bg-orange-50 text-cloudera-orange"><Sparkles size={16} /></div><div><div className="text-sm font-extrabold text-cloudera-navy">{config.project_name.replace(' Commercial Intelligence Assistant', '')} AI</div><div className="text-[11px] text-emerald-600">● Connected to governed data</div></div></div>
+            <div className="flex items-center gap-2"><div className="grid h-8 w-8 place-items-center rounded-lg bg-orange-50 text-cloudera-orange"><Sparkles size={16} /></div><div><div className="text-sm font-extrabold text-cloudera-navy">SCAN</div><div className="text-[11px] text-emerald-600">● Connected to governed data</div></div></div>
             <div className="chip"><Database size={13} />Governed Data</div>
           </div>
 

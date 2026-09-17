@@ -352,10 +352,10 @@ async def direct_chat(state: GraphState) -> GraphState:
     language = state.get("language", "auto")
     if _is_greeting(state["question"]):
         summary = (
-            "Halo! Saya Tempo Scan AI, siap membantu analisis data komersial Anda. "
+            "Halo! Saya SCAN, siap membantu analisis data komersial Anda. "
             "Coba tanyakan misalnya performa sales suatu wilayah, forecast, atau posisi produk dibanding kompetitor."
             if language == "id"
-            else "Hello! I'm Tempo Scan AI, ready to help with your commercial data analysis. "
+            else "Hello! I'm SCAN, ready to help with your commercial data analysis. "
             "Try asking about sales performance in a region, a forecast, or how a product compares to competitors."
         )
     else:

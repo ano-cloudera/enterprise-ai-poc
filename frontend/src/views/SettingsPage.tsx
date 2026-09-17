@@ -19,7 +19,7 @@ export function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-6xl">
-      <div className="mb-5"><h1 className="page-title">Settings</h1><p className="page-subtitle">Configure how Tempo Scan AI responds for your team.</p></div>
+      <div className="mb-5"><h1 className="page-title">Settings</h1><p className="page-subtitle">Configure how SCAN responds for your team.</p></div>
       {error && <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
       {!settings ? <div className="card-pad text-sm text-slate-500">Loading settings…</div> : (
         <form onSubmit={save} className="space-y-4">
