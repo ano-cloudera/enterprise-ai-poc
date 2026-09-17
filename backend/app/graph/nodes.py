@@ -91,9 +91,30 @@ def route_intent(state: GraphState) -> GraphState:
         intent = "forecast"
     elif reset_requested or any(_contains_alias(q, term) for term in business_terms):
         intent = "analytical"
+    elif not _is_greeting(q) and _has_active_analytical_context(state):
+        # No business keyword matched, but this isn't a greeting and the
+        # session already has an analytical thread going (prior turns in
+        # this conversation, or dashboard filters/dimension already
+        # resolved from an earlier question) - treat it as a follow-up
+        # clarification ("what else drove it?", "any other data?") rather
+        # than bouncing it to the generic conversational fallback.
+        intent = "analytical"
     else:
         intent = "conversational"
     return {**state, "intent": intent}
+
+
+def _has_active_analytical_context(state: GraphState) -> bool:
+    """True once this session has evidence of a prior analytical turn: an
+    actual conversation history, or a dashboard filter explicitly applied
+    (region/product/channel, etc). Deliberately ignores `dashboard_state`
+    fields like `dimension`/`metric` that always carry a non-empty default
+    value even on a brand-new session - those would otherwise make every
+    first message look like a follow-up."""
+    if state.get("history"):
+        return True
+    filters = (state.get("dashboard_state") or {}).get("filters") or {}
+    return any(filters.get(key) for key in filters)
 
 
 def resolve_semantics(state: GraphState) -> GraphState:
