@@ -5,7 +5,6 @@ import { ArrowUp, Bot, CheckCircle2, ChevronRight, Database, Lightbulb, MessageS
 import { useSearchParams } from 'next/navigation'
 import { AnswerChart } from '../components/AnswerChart'
 import { DataTable } from '../components/DataTable'
-import { PageIntro } from '../components/PageIntro'
 import { api } from '../lib/api'
 import { suggestedFollowUps } from '../lib/businessPresentation'
 import { useDashboardState } from '../lib/dashboardState'
@@ -101,11 +100,6 @@ export function AskAIPage() {
 
   return (
     <div className="flex h-[calc(100dvh-112px)] min-w-0 flex-col sm:h-[calc(100dvh-128px)] xl:h-[calc(100dvh-136px)] 2xl:h-[calc(100dvh-144px)]">
-      <PageIntro
-        title="Ask AI"
-        subtitle="Ask business questions in Bahasa Indonesia or English. Answers stay grounded in governed data."
-      />
-
       <div className="grid min-h-0 min-w-0 flex-1 gap-4 xl:grid-cols-[214px_minmax(0,1fr)]">
         <aside className="card hidden h-full min-w-0 overflow-y-auto p-4 xl:block">
           <button type="button" onClick={startNewChat} className="btn-primary w-full"><Plus size={16} />New Chat</button>

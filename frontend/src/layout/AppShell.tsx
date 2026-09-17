@@ -28,7 +28,7 @@ export function AppShell({ children }: { children: ReactNode }) {
   useEffect(() => setOpenedAt(formatOpenedAt(new Date())), [])
 
   return (
-    <div className="min-h-screen overflow-x-hidden bg-cloudera-mist text-cloudera-ink">
+    <div className="min-h-screen overflow-x-clip bg-cloudera-mist text-cloudera-ink">
       <aside className={`fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-slate-200 bg-white py-4 transition-[width] duration-200 lg:flex ${collapsed ? 'w-20 px-3' : 'w-[232px] px-4'}`}>
         <div className={collapsed ? 'flex justify-center' : 'px-1'}>{collapsed ? <CompactBrand /> : <BrandMark />}</div>
         <nav aria-label="Primary navigation" className="mt-6 space-y-1">
