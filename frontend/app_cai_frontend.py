@@ -247,6 +247,14 @@ if not os.path.isdir(os.path.join(FRONTEND_DIR, "node_modules")):
     if install_result.returncode != 0:
         raise RuntimeError(f"npm ci failed with exit code {install_result.returncode}")
 
+# next's own CLI entrypoint, invoked directly with the Node.js binary
+# rather than through the node_modules/.bin/next symlink (via `npm run` or
+# `npx`) — observed broken/unresolvable on this CAI deployment's
+# filesystem ("next: not found", exit 127, even though npm ci succeeded
+# and node_modules/next/dist/bin/next exists on disk).
+node_bin = os.path.join(node_bin_dir, "node")
+next_cli = os.path.join(FRONTEND_DIR, "node_modules", "next", "dist", "bin", "next")
+
 # =========================================================
 # 2. Build (NEXT_PUBLIC_* is inlined at build time, not read at runtime)
 # =========================================================
@@ -254,15 +262,17 @@ has_existing_build = os.path.isdir(os.path.join(FRONTEND_DIR, ".next"))
 if BUILD_SKIP and has_existing_build:
     print("[frontend] BUILD_SKIP=1 and .next already exists - reusing existing build.")
 else:
+    if not os.path.isfile(next_cli):
+        raise RuntimeError(f"next CLI not found at {next_cli} after npm ci — dependency install may be incomplete.")
     print("[frontend] Building production frontend (bakes NEXT_PUBLIC_BACKEND_API_URL into the bundle)...")
-    build_result = subprocess.run(["npm", "run", "build"], cwd=FRONTEND_DIR, env=run_env)
+    build_result = subprocess.run([node_bin, next_cli, "build"], cwd=FRONTEND_DIR, env=run_env)
     if build_result.returncode != 0:
         raise RuntimeError(f"Frontend build failed with exit code {build_result.returncode}")
 
 # =========================================================
 # 3. Start Next.js production server (this Application's listener, 127.0.0.1)
 # =========================================================
-start_cmd = ["npx", "next", "start", "-H", "127.0.0.1", "-p", str(APP_PORT)]
+start_cmd = [node_bin, next_cli, "start", "-H", "127.0.0.1", "-p", str(APP_PORT)]
 print("[frontend] Starting:", " ".join(start_cmd))
 # stdout/stderr inherited (not redirected) so failures surface in CAI's Application Logs.
 frontend_process = subprocess.Popen(start_cmd, cwd=FRONTEND_DIR, env=run_env)
