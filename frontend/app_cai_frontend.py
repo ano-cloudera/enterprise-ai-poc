@@ -20,17 +20,42 @@ import subprocess
 import time
 
 
+def _looks_like_frontend_dir(path: str) -> bool:
+    return os.path.isfile(os.path.join(path, "package.json")) and os.path.isdir(os.path.join(path, "src"))
+
+
 def resolve_frontend_dir() -> str:
     """CAI can execute this entrypoint as interpreter code where __file__ is
-    unset or wrong. Resolve the frontend checkout dir from CDSW_PROJECT_DIR
-    first (repo_root/frontend), falling back to the current working
-    directory (assumed to already be the frontend dir when run locally)."""
+    unset or wrong, and CDSW_PROJECT_DIR can point at the CAI *project*
+    directory rather than the git checkout itself when the repo was added
+    as a subfolder (e.g. /home/cdsw/enterprise-ai-poc rather than
+    /home/cdsw) — so "<CDSW_PROJECT_DIR>/frontend" alone is not reliable.
+    Resolve by looking for this app's own marker files (package.json + src),
+    checking <CDSW_PROJECT_DIR>/frontend and <CDSW_PROJECT_DIR>/*/frontend,
+    then the current working directory and <cwd>/frontend."""
+    candidates = []
     project_dir = os.getenv("CDSW_PROJECT_DIR")
     if project_dir and os.path.isdir(project_dir):
-        candidate = os.path.join(project_dir, "frontend")
-        if os.path.isdir(candidate):
+        candidates.append(os.path.join(project_dir, "frontend"))
+        candidates.extend(
+            os.path.join(project_dir, name, "frontend")
+            for name in sorted(os.listdir(project_dir))
+            if os.path.isdir(os.path.join(project_dir, name))
+        )
+    cwd = os.getcwd()
+    candidates.append(cwd)
+    candidates.append(os.path.join(cwd, "frontend"))
+
+    for candidate in candidates:
+        if os.path.isdir(candidate) and _looks_like_frontend_dir(candidate):
             return candidate
-    return os.getcwd()
+
+    # Nothing matched the marker files — fall back to the old behavior
+    # rather than failing outright, since npm ci/build will still fail
+    # with a clear message if this guess is wrong.
+    if project_dir and os.path.isdir(os.path.join(project_dir, "frontend")):
+        return os.path.join(project_dir, "frontend")
+    return cwd
 
 
 FRONTEND_DIR = resolve_frontend_dir()

@@ -27,14 +27,50 @@ import urllib.request
 # third-party import above this line.
 
 
+_REPO_MARKER = os.path.join("backend", "app", "main.py")
+
+
+def _looks_like_repo_root(path: str) -> bool:
+    return os.path.isfile(os.path.join(path, _REPO_MARKER))
+
+
 def resolve_repo_root() -> str:
     """CAI can execute this entrypoint as interpreter code where __file__ is
-    unset or wrong. Resolve the checkout root from CDSW_PROJECT_DIR first,
-    falling back to the current working directory."""
+    unset or wrong, and CDSW_PROJECT_DIR can point at the CAI *project*
+    directory rather than the git checkout itself when the repo was added
+    as a subfolder (e.g. /home/cdsw/enterprise-ai-poc rather than
+    /home/cdsw). Resolve by looking for this repo's own marker file,
+    checking CDSW_PROJECT_DIR itself, then one level of subdirectories
+    under it, then the current working directory and its subdirectories."""
+    candidates = []
     project_dir = os.getenv("CDSW_PROJECT_DIR")
     if project_dir and os.path.isdir(project_dir):
+        candidates.append(project_dir)
+        candidates.extend(
+            os.path.join(project_dir, name)
+            for name in sorted(os.listdir(project_dir))
+            if os.path.isdir(os.path.join(project_dir, name))
+        )
+    cwd = os.getcwd()
+    candidates.append(cwd)
+    if os.path.isdir(cwd):
+        candidates.extend(
+            os.path.join(cwd, name)
+            for name in sorted(os.listdir(cwd))
+            if os.path.isdir(os.path.join(cwd, name))
+        )
+
+    for candidate in candidates:
+        if _looks_like_repo_root(candidate):
+            return candidate
+
+    # Nothing matched the marker file — fall back to the old behavior
+    # (CDSW_PROJECT_DIR, then cwd) rather than failing outright, since a
+    # later check (CSV fixtures) will still fail with a clear message if
+    # this guess is wrong.
+    if project_dir and os.path.isdir(project_dir):
         return project_dir
-    return os.getcwd()
+    return cwd
 
 
 REPO_ROOT = resolve_repo_root()
