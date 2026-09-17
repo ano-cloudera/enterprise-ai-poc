@@ -25,11 +25,13 @@ import time
 import urllib.request
 
 # Line-buffer stdout/stderr so print() output shows up in CAI's Application
-# Logs immediately rather than sitting in a block buffer for minutes (CAI
-# runs this as a non-interactive process, so Python defaults to full
-# buffering on stdout/stderr).
-sys.stdout.reconfigure(line_buffering=True)
-sys.stderr.reconfigure(line_buffering=True)
+# Logs immediately rather than sitting in a block buffer for minutes. CAI
+# can run this entrypoint two different ways: as a plain script (regular
+# TextIOWrapper, which supports reconfigure()) or as Jupyter kernel cells
+# (ipykernel's OutStream, which does not) — guard against the latter.
+for _stream in (sys.stdout, sys.stderr):
+    if hasattr(_stream, "reconfigure"):
+        _stream.reconfigure(line_buffering=True)
 
 # Node.js LTS version bundled for CAI runtimes that have no Node.js of their
 # own (the PBJ Workbench / JupyterLab Python images are Python-only). Pinned
