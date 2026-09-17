@@ -6,8 +6,10 @@ from decimal import Decimal
 import pytest
 
 from app.bootstrap.config import LoaderConfig, LoaderConfigurationError, LoaderSettings
-from app.bootstrap.loader import LoaderSafetyError, TrinoDemoLoader, build_insert_statement, validate_loader_sql
-from app.bootstrap.tempo_data import APPROVED_TABLES, hero_metrics, load_tempo_fixture_bundle
+from app.bootstrap.loader import ExtendedTrinoLoader, LoaderSafetyError, TrinoDemoLoader, build_insert_statement, validate_loader_sql
+from app.bootstrap.tempo_data import (
+    APPROVED_TABLES, EXTENDED_APPROVED_TABLES, hero_metrics, load_tempo_extended_bundle, load_tempo_fixture_bundle,
+)
 from app.bootstrap.validation import (
     DemoValidationSnapshot,
     ValidationFailure,
@@ -225,6 +227,72 @@ def test_rerunning_bootstrap_uses_scoped_delete_before_insert():
     sql = [item[0] for item in connection.cursor_instance.calls]
     assert sql.count("DELETE FROM tempo.commercial.commercial_sales_daily") == 2
     assert sql.count("DELETE FROM tempo.commercial.commercial_inventory_daily") == 2
+
+
+def fake_extended_loader(**settings_overrides):
+    connection = FakeConnection()
+    calls = []
+
+    def connect_factory(**kwargs):
+        calls.append(kwargs)
+        return connection
+
+    loader = ExtendedTrinoLoader(LoaderConfig.from_settings(loader_settings(**settings_overrides)), connect_factory=connect_factory)
+    return loader, connection, calls
+
+
+def test_extended_approved_tables_are_disjoint_from_sales_inventory():
+    assert APPROVED_TABLES.isdisjoint(EXTENDED_APPROVED_TABLES)
+    assert "commercial_sales_forecast" not in EXTENDED_APPROVED_TABLES
+
+
+def test_extended_loader_writes_only_tables_present_in_duckdb(tmp_path):
+    import duckdb
+
+    duckdb_path = tmp_path / "extended.duckdb"
+    with duckdb.connect(str(duckdb_path)) as connection:
+        connection.execute("CREATE TABLE commercial_product_master (product_id VARCHAR, product_name VARCHAR, product_category VARCHAR, product_categories VARCHAR, synthetic BOOLEAN)")
+        connection.execute("INSERT INTO commercial_product_master VALUES ('P001', 'Tempra', 'Analgesic', 'Analgesic', true)")
+
+    bundle = load_tempo_extended_bundle(duckdb_path)
+    assert set(bundle.rows_by_table) == {"commercial_product_master"}
+
+    loader, connection, _ = fake_extended_loader()
+    report = loader.bootstrap(bundle, validate=False)
+    assert report.tables == ("commercial_product_master",)
+    sql = [item[0] for item in connection.cursor_instance.calls]
+    assert any(call.startswith("CREATE TABLE IF NOT EXISTS tempo.commercial.commercial_product_master") and "ICEBERG" in call for call in sql)
+    assert "DELETE FROM tempo.commercial.commercial_product_master" in sql
+    assert any(call.startswith("INSERT INTO tempo.commercial.commercial_product_master") for call in sql)
+    assert not any("commercial_weather_monthly" in call or "commercial_market_monthly" in call for call in sql)
+
+
+def test_extended_loader_rejects_tables_outside_its_own_allowlist():
+    loader, _connection, _ = fake_extended_loader()
+    with pytest.raises(LoaderSafetyError):
+        loader._execute(loader._connect().cursor(), "DELETE FROM tempo.commercial.commercial_sales_daily")
+
+
+def test_extended_loader_dry_run_performs_no_connection_or_writes(tmp_path):
+    import duckdb
+
+    duckdb_path = tmp_path / "extended.duckdb"
+    with duckdb.connect(str(duckdb_path)) as connection:
+        connection.execute("CREATE TABLE commercial_weather_monthly (period DATE, region_name VARCHAR, weather_location VARCHAR, avg_temperature_c DOUBLE, total_precipitation_mm DOUBLE, avg_relative_humidity_pct DOUBLE, rainy_days BIGINT, source VARCHAR, generated_at TIMESTAMP)")
+        connection.execute("INSERT INTO commercial_weather_monthly VALUES ('2024-01-01', 'Jawa Barat', 'Bandung', 24.0, 100.0, 80.0, 10, 'open_meteo', '2026-01-01 00:00:00')")
+
+    bundle = load_tempo_extended_bundle(duckdb_path)
+    config = LoaderConfig.from_settings(loader_settings())
+    config = replace_dry_run(config)
+    report = ExtendedTrinoLoader(config, connect_factory=lambda **_: pytest.fail("dry run must not connect")).bootstrap(bundle, validate=False)
+    assert report.dry_run is True
+    assert report.tables == ("commercial_weather_monthly",)
+
+
+def replace_dry_run(config: LoaderConfig) -> LoaderConfig:
+    from dataclasses import replace
+
+    return replace(config, dry_run=True)
 
 
 @pytest.mark.parametrize(

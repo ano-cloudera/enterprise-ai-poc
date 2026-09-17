@@ -90,11 +90,18 @@ if LLM_MODE == "remote":
         raise RuntimeError("QWEN_MODEL is required when LLM_MODE=remote.")
 
 if DATA_BACKEND == "duckdb":
-    duckdb_path = os.getenv("DUCKDB_PATH", "runtime/tempo_scan.duckdb")
-    duckdb_abs_path = duckdb_path if os.path.isabs(duckdb_path) else os.path.join(REPO_ROOT, duckdb_path)
-    if not os.path.isfile(duckdb_abs_path):
+    # The DuckDB backend (app.db.duckdb_backend.DuckDBBackend.initialize)
+    # creates runtime/tempo_scan.duckdb itself from these CSV fixtures on
+    # its first query — the .duckdb file itself is a generated artifact
+    # (gitignored) and is NOT expected to already exist on a fresh CAI
+    # checkout. Only the source CSVs, which ARE committed, are required
+    # upfront.
+    fixtures_dir = os.path.join(REPO_ROOT, "projects", "tempo_scan", "fixtures")
+    required_fixtures = ("commercial_sales_daily.csv", "commercial_inventory_daily.csv")
+    missing_fixtures = [name for name in required_fixtures if not os.path.isfile(os.path.join(fixtures_dir, name))]
+    if missing_fixtures:
         raise RuntimeError(
-            f"DuckDB runtime file not found at {duckdb_abs_path}. "
+            f"Missing sample data fixtures in {fixtures_dir}: {', '.join(missing_fixtures)}. "
             "Run scripts/generate_sample_data.py first, or set DATA_BACKEND=trino with Trino credentials."
         )
 

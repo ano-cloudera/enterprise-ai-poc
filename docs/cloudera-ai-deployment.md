@@ -270,9 +270,29 @@ not create any Trino schema. When ready to certify live Trino/CDW
 2. Provide `TRINO_JDBC_URL` (or `TRINO_HOST`/`TRINO_PORT`/`TRINO_HTTP_SCHEME`),
    `TRINO_CATALOG`, `TRINO_SCHEMA`, and either `TRINO_USER`+`TRINO_PASSWORD`
    or `TRINO_ACCESS_TOKEN`, via CAI secrets — never in source.
-3. Re-run the backend regression suite and the smoke test against the Trino
+3. Load governed tables into Trino/Iceberg using the **dedicated loader
+   identity** (`TRINO_LOADER_*` variables — never reuse the application's
+   `TRINO_*` credential):
+   - `python scripts/bootstrap_trino_demo.py --dry-run` then without
+     `--dry-run` — loads `commercial_sales_daily` and
+     `commercial_inventory_daily`, and runs the hero-story validation
+     (Jawa Barat decline) against what Trino actually returns.
+   - `python scripts/bootstrap_trino_extended.py --dry-run` then without
+     `--dry-run` — loads `commercial_product_master`,
+     `commercial_weather_monthly`, `commercial_market_monthly`, and
+     `commercial_market_digital_snapshot` from the local DuckDB runtime.
+     Skips any table with no rows yet in the local runtime rather than
+     failing (e.g. run `scripts/fetch_weather_history.py` /
+     `scripts/generate_market_data.py` / `scripts/fetch_market_snapshot.py`
+     first if a table is missing).
+   - `commercial_sales_forecast` is loaded separately through
+     `app.forecasting.persistence.TrinoForecastWriter`, which replaces rows
+     scoped to one `model_version` rather than the whole table — this stays
+     a training-job concern, not part of either bootstrap script above.
+   All tables are created `WITH (format = 'ICEBERG')`.
+4. Re-run the backend regression suite and the smoke test against the Trino
    path before promoting it as the default.
-4. **The Frontend Application requires zero changes** — the data-backend
+5. **The Frontend Application requires zero changes** — the data-backend
    abstraction is entirely server-side; only the Backend's `DATA_BACKEND`
    configuration changes.
 
