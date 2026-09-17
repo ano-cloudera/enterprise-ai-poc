@@ -70,6 +70,22 @@ async def deployment_readiness() -> ReadinessResponse:
     model = await get_llm_provider(settings).health_check()
     if model.mode == "mock":
         components.append(ComponentReadiness(name="llm_provider", status="healthy", detail="Mock LLM provider configured"))
+    elif model.provider == "litellm":
+        if model.status == "ok":
+            components.append(ComponentReadiness(name="llm_provider", status="healthy", detail=f"LiteLLM router configured (model group: {model.model})"))
+        elif model.status == "unknown":
+            components.append(ComponentReadiness(name="llm_provider", status="degraded", detail="LiteLLM router configured, connectivity not probed"))
+        else:
+            components.append(ComponentReadiness(name="llm_provider", status="unavailable", detail="LiteLLM router not configured"))
+        # "degraded" rather than "unavailable" when not provisioned: this is
+        # an optional, not-yet-deployed capability, not a failure of
+        # anything this Application is expected to provide today — it
+        # should not drag deployment_readiness's overall status down.
+        components.append(ComponentReadiness(
+            name="agent_studio_workflow",
+            status="healthy" if settings.litellm_use_agent_studio and bool(settings.litellm_base_url) else "degraded",
+            detail="Routed through LiteLLM" if settings.litellm_use_agent_studio else "Not provisioned yet; requests use the commercial-intelligence model group",
+        ))
     elif model.status == "ok":
         components.append(ComponentReadiness(name="llm_provider", status="healthy", detail="Qwen endpoint configured"))
     elif model.status == "unknown":
@@ -77,8 +93,13 @@ async def deployment_readiness() -> ReadinessResponse:
     else:
         components.append(ComponentReadiness(name="llm_provider", status="unavailable", detail="Qwen endpoint not configured"))
 
-    statuses = {component.status for component in components}
-    overall = "unavailable" if "unavailable" in statuses else "degraded" if "degraded" in statuses else "healthy"
+    # agent_studio_workflow is an optional, not-yet-provisioned capability
+    # (see the placeholder model group in litellm/config.yaml) - its
+    # "degraded" state there just means "not deployed yet", not an actual
+    # problem with anything this Application is expected to provide today,
+    # so it is deliberately excluded from the overall status rollup.
+    required_statuses = {component.status for component in components if component.name != "agent_studio_workflow"}
+    overall = "unavailable" if "unavailable" in required_statuses else "degraded" if "degraded" in required_statuses else "healthy"
 
     return ReadinessResponse(
         status=overall,

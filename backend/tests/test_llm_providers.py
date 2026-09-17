@@ -10,7 +10,7 @@ from app.core.config import Settings
 from app.llm.factory import get_llm_provider
 from app.llm.models import TrustedAnalysisPayload
 from app.llm.payload import build_trusted_analysis_payload, deterministic_grounded_analysis
-from app.llm.providers import LLMProviderError, MockLLMProvider, QwenOpenAICompatibleProvider
+from app.llm.providers import LiteLLMProvider, LLMProviderError, MockLLMProvider, QwenOpenAICompatibleProvider
 from app.semantic.loader import load_semantic_project
 from app.semantic.resolver import normalize_analytical_intent, resolve_analytical_intent
 
@@ -60,6 +60,18 @@ def response(content: str, status: int = 200, usage: dict | None = None):
 def test_provider_selection_is_configuration_driven():
     assert isinstance(get_llm_provider(Settings(_env_file=None, llm_mode="mock")), MockLLMProvider)
     assert isinstance(get_llm_provider(settings()), QwenOpenAICompatibleProvider)
+
+
+def test_provider_selection_prefers_litellm_when_configured():
+    provider = get_llm_provider(settings(litellm_base_url="https://litellm.example.test"))
+    assert isinstance(provider, LiteLLMProvider)
+    assert provider.requested_model_group == "commercial-intelligence"
+
+
+def test_provider_selection_requests_agent_studio_group_when_enabled():
+    provider = get_llm_provider(settings(litellm_base_url="https://litellm.example.test", litellm_use_agent_studio=True))
+    assert isinstance(provider, LiteLLMProvider)
+    assert provider.requested_model_group == "agent-studio-workflow"
 
 
 def test_qwen_configuration_comes_from_environment(monkeypatch):
@@ -264,6 +276,57 @@ def test_deterministic_market_analysis_uses_business_labels_and_rounding():
 
     assert analysis.summary == "Bodrex memiliki pangsa pasar 19,9%, pertumbuhan pasar 2,9%, harga pasar rata-rata Rp528, dan skor peluang 66,4/100."
     assert "market_share_pct" not in analysis.summary
+
+
+def litellm_response(content: str, *, served_model: str, status: int = 200):
+    return httpx.Response(status, json={"model": served_model, "choices": [{"message": {"content": content}}]})
+
+
+@pytest.mark.asyncio
+async def test_litellm_provider_calls_the_router_endpoint_with_the_requested_model_group():
+    captured = {}
+
+    def handler(request: httpx.Request):
+        captured["url"] = str(request.url)
+        captured.update(json.loads(request.content))
+        return litellm_response(json.dumps(VALID_ANALYSIS), served_model="commercial-intelligence")
+
+    provider = LiteLLMProvider(
+        settings(litellm_base_url="https://litellm.example.test/", litellm_api_key="proxy-secret"),
+        transport=httpx.MockTransport(handler),
+    )
+    result = await provider.generate_structured(trusted_payload(), language="id", trace_id="trace")
+    assert captured["url"] == "https://litellm.example.test/chat/completions"
+    assert captured["model"] == "commercial-intelligence"
+    assert result.telemetry.provider == "litellm"
+    assert result.telemetry.fallback_used is False
+    assert result.analysis.caveats == []
+
+
+@pytest.mark.asyncio
+async def test_litellm_agent_studio_fallback_is_surfaced_as_a_caveat_not_silent():
+    provider = LiteLLMProvider(
+        settings(litellm_base_url="https://litellm.example.test", litellm_use_agent_studio=True),
+        model_group="agent-studio-workflow",
+        transport=httpx.MockTransport(lambda _: litellm_response(json.dumps(VALID_ANALYSIS), served_model="commercial-intelligence")),
+    )
+    assert provider.requested_model_group == "agent-studio-workflow"
+    result = await provider.generate_structured(trusted_payload(), language="en", trace_id="trace")
+    assert result.telemetry.fallback_used is True
+    assert result.telemetry.model == "commercial-intelligence"
+    assert any("Agent Studio" in caveat for caveat in result.analysis.caveats)
+
+
+@pytest.mark.asyncio
+async def test_litellm_no_fallback_notice_when_agent_studio_actually_served_the_request():
+    provider = LiteLLMProvider(
+        settings(litellm_base_url="https://litellm.example.test", litellm_use_agent_studio=True),
+        model_group="agent-studio-workflow",
+        transport=httpx.MockTransport(lambda _: litellm_response(json.dumps(VALID_ANALYSIS), served_model="agent-studio-workflow")),
+    )
+    result = await provider.generate_structured(trusted_payload(), language="en", trace_id="trace")
+    assert result.telemetry.fallback_used is False
+    assert result.analysis.caveats == []
 
 
 @pytest.mark.asyncio

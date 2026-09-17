@@ -195,3 +195,119 @@ from query_result and business_context."""
     async def health_check(self) -> ModelHealth:
         status = "unknown" if self.settings.qwen_base_url else "unavailable"
         return ModelHealth(mode="remote", status=status, provider="qwen_openai_compatible", model=self.settings.qwen_model)
+
+
+class LiteLLMProvider(QwenOpenAICompatibleProvider):
+    """Routes analysis requests through the LiteLLM proxy (litellm/config.yaml)
+    instead of calling Qwen directly. Reuses QwenOpenAICompatibleProvider's
+    request/retry/parsing logic wholesale — the only difference is which
+    endpoint, model name, and auth header are used, and that the response is
+    inspected for whether LiteLLM silently fell back to a different model
+    group than the one requested (e.g. the planned Agent Studio workflow
+    being unavailable and LiteLLM routing to commercial-intelligence
+    instead), so that fallback can be surfaced to the user rather than
+    passed through invisibly."""
+
+    def __init__(self, settings: Settings, *, model_group: str | None = None, transport: httpx.AsyncBaseTransport | None = None):
+        super().__init__(settings, transport=transport)
+        self.requested_model_group = model_group or settings.litellm_model_group
+
+    @property
+    def endpoint(self) -> str:
+        return f"{self.settings.litellm_base_url.rstrip('/')}/chat/completions"
+
+    async def generate_structured(self, payload: TrustedAnalysisPayload, *, language: str, trace_id: str) -> AnalysisResult:
+        if not self.settings.litellm_base_url:
+            raise LLMProviderError("unavailable")
+        headers = {"Content-Type": "application/json"}
+        api_key = self.settings.litellm_api_key.get_secret_value()
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        body = {
+            "model": self.requested_model_group,
+            "messages": self._messages(payload, language),
+            "temperature": 0.1,
+            "max_tokens": self.settings.qwen_max_tokens,
+            "chat_template_kwargs": {
+                "enable_thinking": not self.settings.qwen_disable_thinking,
+                "preserve_thinking": False,
+            },
+        }
+        started = time.perf_counter()
+        last_code = "unavailable"
+        last_status: int | None = None
+        for attempt in range(self.settings.qwen_max_retries + 1):
+            try:
+                async with httpx.AsyncClient(
+                    timeout=self.settings.qwen_request_timeout_seconds,
+                    verify=self.settings.qwen_verify_ssl,
+                    transport=self.transport,
+                ) as client:
+                    response = await client.post(self.endpoint, headers=headers, json=body)
+                last_status = response.status_code
+                if response.status_code in {401, 403}:
+                    raise LLMProviderError(
+                        "auth_required", retry_count=attempt, http_status=response.status_code,
+                        latency_ms=round((time.perf_counter() - started) * 1000),
+                    )
+                if response.status_code >= 400:
+                    last_code = "http_error"
+                    if response.status_code < 500:
+                        raise LLMProviderError(
+                            last_code, retry_count=attempt, http_status=response.status_code,
+                            latency_ms=round((time.perf_counter() - started) * 1000),
+                        )
+                    raise ValueError("Retryable upstream status")
+                raw = response.json()
+                content = raw["choices"][0]["message"]["content"]
+                analysis = self._parse_analysis(content)
+                usage = raw.get("usage") or {}
+                served_model_group = str(raw.get("model") or self.requested_model_group)
+                fallback_used = (
+                    self.requested_model_group == self.settings.litellm_agent_studio_model_group
+                    and served_model_group != self.requested_model_group
+                )
+                if fallback_used:
+                    fallback_notice = (
+                        "The Agent Studio workflow was unavailable, so this answer was generated "
+                        "by the standard commercial-intelligence model instead."
+                        if language != "id"
+                        else "Alur kerja Agent Studio sedang tidak tersedia, sehingga jawaban ini "
+                        "dihasilkan oleh model commercial-intelligence standar."
+                    )
+                    if fallback_notice not in analysis.caveats:
+                        analysis = analysis.model_copy(update={"caveats": [*analysis.caveats, fallback_notice][:12]})
+                return AnalysisResult(
+                    analysis=analysis,
+                    telemetry=ModelTelemetry(
+                        trace_id=trace_id, provider="litellm", model=served_model_group,
+                        latency_ms=round((time.perf_counter() - started) * 1000),
+                        retry_count=attempt, success=True, fallback_used=fallback_used,
+                        http_status=response.status_code, structured_validation_success=True,
+                        prompt_tokens=usage.get("prompt_tokens"),
+                        completion_tokens=usage.get("completion_tokens"),
+                        total_tokens=usage.get("total_tokens"),
+                    ),
+                )
+            except LLMProviderError:
+                raise
+            except httpx.TimeoutException:
+                last_code = "timeout"
+            except httpx.RequestError:
+                last_code = "unavailable"
+            except (json.JSONDecodeError, KeyError, IndexError, TypeError, ValueError, ValidationError):
+                last_code = "invalid_response"
+            logger.warning("LiteLLM analysis attempt failed code=%s status=%s attempt=%s model_group=%s", last_code, last_status, attempt + 1, self.requested_model_group)
+            if attempt >= self.settings.qwen_max_retries:
+                raise LLMProviderError(
+                    last_code, retry_count=attempt, http_status=last_status,
+                    latency_ms=round((time.perf_counter() - started) * 1000),
+                )
+        raise LLMProviderError(
+            last_code, retry_count=self.settings.qwen_max_retries, http_status=last_status,
+            latency_ms=round((time.perf_counter() - started) * 1000),
+        )
+
+    async def health_check(self) -> ModelHealth:
+        status = "unknown" if self.settings.litellm_base_url else "unavailable"
+        return ModelHealth(mode="remote", status=status, provider="litellm", model=self.requested_model_group)

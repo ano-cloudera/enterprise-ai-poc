@@ -1,0 +1,54 @@
+# LiteLLM proxy config for the Tempo Scan Commercial Intelligence Assistant.
+#
+# The backend never talks to a named model directly - it calls the
+# "commercial-intelligence" model group below through this proxy's
+# OpenAI-compatible /chat/completions endpoint. Adding, swapping, or
+# reordering providers/models happens here, with no backend code change.
+#
+# Today this group resolves to a single deployment (Qwen on Cloudera AI).
+# The "agent-studio-workflow" group is a placeholder for the planned
+# Cloudera Agent Studio workflow: it is defined but points at a URL that is
+# not provisioned yet, so any attempt to route to it fails fast and the
+# backend surfaces that as a caveat to the user (see
+# app/llm/litellm_provider.py) instead of silently falling back without
+# telling anyone.
+
+model_list:
+  - model_name: commercial-intelligence
+    litellm_params:
+      model: openai/${QWEN_MODEL}
+      api_base: ${QWEN_BASE_URL}
+      api_key: ${QWEN_API_TOKEN}
+      timeout: ${QWEN_REQUEST_TIMEOUT_SECONDS}
+
+  # Not provisioned yet - deliberately left pointed at an empty/placeholder
+  # endpoint. Enable by setting AGENT_STUDIO_BASE_URL once the Agent Studio
+  # workflow is deployed on Cloudera AI; until then, requests to this group
+  # fail immediately and the backend reports the fallback to the user.
+  - model_name: agent-studio-workflow
+    litellm_params:
+      model: openai/agent-studio
+      api_base: ${AGENT_STUDIO_BASE_URL:-http://127.0.0.1:0}
+      api_key: ${AGENT_STUDIO_API_TOKEN}
+      timeout: 30
+
+router_settings:
+  routing_strategy: simple-shuffle
+  num_retries: 1
+  # If a caller explicitly asks for the Agent Studio workflow and it is
+  # unavailable, fall back to the proven Qwen path rather than failing the
+  # whole request - the backend is responsible for telling the user this
+  # fallback happened (never a silent swap).
+  fallbacks:
+    - agent-studio-workflow: ["commercial-intelligence"]
+
+litellm_settings:
+  drop_params: true
+  set_verbose: false
+
+general_settings:
+  # Cloudera AI Application health checks / uptime probes hit this without
+  # a master key; keep the proxy key-less for the internal, same-cluster
+  # call from the backend (it is never exposed to the browser - see
+  # app_cai_litellm.py binding to 127.0.0.1 only).
+  disable_spend_logs: true

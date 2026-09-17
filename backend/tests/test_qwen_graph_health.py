@@ -64,6 +64,41 @@ async def test_deployment_readiness_reports_healthy_when_all_components_ok(monke
 
 
 @pytest.mark.asyncio
+async def test_deployment_readiness_reports_agent_studio_as_degraded_not_unavailable_when_unprovisioned(monkeypatch):
+    class ReachableAsyncClient:
+        def __init__(self, *_args, **_kwargs):
+            pass
+
+        async def __aenter__(self):
+            return self
+
+        async def __aexit__(self, *_exc):
+            return False
+
+        async def get(self, *_args, **_kwargs):
+            class Response:
+                status_code = 200
+            return Response()
+
+    class LiteLLMProviderStub:
+        async def health_check(self):
+            return ModelHealth(mode="remote", status="ok", provider="litellm", model="commercial-intelligence")
+
+    monkeypatch.setattr(health_route.httpx, "AsyncClient", ReachableAsyncClient)
+    monkeypatch.setattr(health_route, "get_settings", lambda: Settings(_env_file=None, llm_mode="remote", litellm_base_url="https://litellm.example.test"))
+    monkeypatch.setattr(health_route, "get_llm_provider", lambda *_: LiteLLMProviderStub())
+    result = await health_route.deployment_readiness()
+
+    components = {component.name: component for component in result.components}
+    assert components["llm_provider"].status == "healthy"
+    assert components["agent_studio_workflow"].status == "degraded"
+    assert "not provisioned" in components["agent_studio_workflow"].detail.lower()
+    # Agent Studio not being provisioned yet is expected, not a failure -
+    # it must not drag the overall deployment status down.
+    assert result.status == "healthy"
+
+
+@pytest.mark.asyncio
 async def test_deployment_readiness_reports_unavailable_when_market_api_unreachable(monkeypatch):
     class UnreachableAsyncClient:
         def __init__(self, *_args, **_kwargs):

@@ -56,6 +56,20 @@ class Settings(BaseSettings):
     qwen_disable_thinking: bool = True
     qwen_max_tokens: int = Field(default=1400, ge=100, le=8000)
 
+    # When set, the backend routes LLM calls through this LiteLLM proxy
+    # (litellm/config.yaml's "commercial-intelligence" model group) instead
+    # of calling Qwen directly. Empty by default so existing deployments
+    # that haven't stood up the LiteLLM Application keep working unchanged.
+    litellm_base_url: str = ""
+    litellm_api_key: SecretStr = SecretStr("")
+    litellm_model_group: str = "commercial-intelligence"
+    # The Agent Studio workflow group name in litellm/config.yaml. Not
+    # callable yet (see litellm/config.yaml) — kept here so the routing
+    # decision of "should we prefer Agent Studio" lives in one place once
+    # it is provisioned, rather than being hardcoded at call sites.
+    litellm_agent_studio_model_group: str = "agent-studio-workflow"
+    litellm_use_agent_studio: bool = False
+
     serpapi_api_key: SecretStr = SecretStr("")
     serpapi_enabled: bool = True
     serpapi_max_queries: int = Field(default=5, ge=1, le=11)

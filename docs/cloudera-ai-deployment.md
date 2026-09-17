@@ -57,6 +57,18 @@ Frontend and Tempo Scan Backend. The Qwen application already exists — do
 not redeploy or modify it. There is no fourth application for the Mock
 Market API; it runs as an internal process inside the Backend Application.
 
+**Optional fourth application — Tempo Scan LiteLLM Router**: when
+`LITELLM_BASE_URL` is set on the Backend Application, the Backend calls
+this router (`litellm/config.yaml`, entrypoint
+`litellm/app_cai_litellm.py`) instead of calling the Qwen Application
+directly. It exists so which model(s) actually serve a request — Qwen
+today, an additional provider or the planned Cloudera Agent Studio
+workflow later — is a config change in `litellm/config.yaml`, not a
+backend code change. Leaving `LITELLM_BASE_URL` unset (the default) skips
+this application entirely and the Backend keeps calling Qwen directly, as
+in §1's diagram above — deploy this only if/when you actually want the
+routing layer. See §3.3.
+
 Serper.dev and Open-Meteo are controlled, manual data-refresh sources
 (`scripts/fetch_market_snapshot.py`, `scripts/fetch_weather_history.py`),
 not runtime dependencies and not separate applications.
@@ -124,6 +136,32 @@ does.
 **Important**: because `NEXT_PUBLIC_*` values are baked in at build time,
 changing `NEXT_PUBLIC_BACKEND_API_URL` requires rebuilding the frontend
 (`frontend/app_cai_frontend.py` rebuilds by default every start — see §6).
+
+### 3.3 LiteLLM Router Application environment variables (optional)
+
+Only needed if you deploy the fourth application described above. Skip
+this section entirely if `LITELLM_BASE_URL` stays unset on the Backend.
+
+| Variable | Required | Example | Secret? | Description |
+| --- | --- | --- | --- | --- |
+| `QWEN_BASE_URL` | **yes** | `https://qwen-model.ml-....cloudera.site/v1` | no (URL only) | Same existing Qwen Application URL as the Backend's §3.1 — this Application's own `config.yaml` reads it directly, independent of the Backend's copy |
+| `QWEN_MODEL` | **yes** | `Qwen3.8-27B-AWQ` | no | Same value as the Backend's §3.1 |
+| `QWEN_API_TOKEN` | if Qwen requires auth | — | **yes** | Set via CAI secrets only |
+| `QWEN_REQUEST_TIMEOUT_SECONDS` | no (default `60`) | `60` | no | Forwarded into `config.yaml`'s per-model timeout |
+| `AGENT_STUDIO_BASE_URL` | no | — | no (URL only) | Leave unset until the Cloudera Agent Studio workflow is provisioned — the `agent-studio-workflow` model group in `config.yaml` is a placeholder until then and any request to it fails over to `commercial-intelligence` |
+| `AGENT_STUDIO_API_TOKEN` | if Agent Studio requires auth | — | **yes** | Set via CAI secrets only, once provisioned |
+
+Then, on the **Backend** Application, set:
+
+| Variable | Required | Example | Secret? | Description |
+| --- | --- | --- | --- | --- |
+| `LITELLM_BASE_URL` | to enable routing | `https://tempo-litellm.cai.example` | no | This Application's own public URL. Leave unset to keep the Backend calling Qwen directly |
+| `LITELLM_API_KEY` | no | — | **yes** | Only if you add proxy authentication to `config.yaml`; unset by default |
+| `LITELLM_MODEL_GROUP` | no (default `commercial-intelligence`) | `commercial-intelligence` | no | Must match a `model_name` in `litellm/config.yaml` |
+| `LITELLM_USE_AGENT_STUDIO` | no (default `false`) | `false` | no | Leave `false` until Agent Studio is provisioned and `AGENT_STUDIO_BASE_URL` is set above. When `true` before that, requests still succeed (LiteLLM falls back to `commercial-intelligence`) and the user sees a caveat explaining the fallback — never a silent swap |
+
+The Backend's own `QWEN_*` variables (§3.1) become unused once
+`LITELLM_BASE_URL` is set — they only matter for the direct-to-Qwen path.
 
 Cloudera AI injects `CDSW_APP_PORT` into both applications at runtime — do
 not set this yourself. Both entrypoints also accept `PORT` as a fallback for

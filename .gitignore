@@ -10,6 +10,8 @@ frontend/out/
 frontend/.tsbuildinfo
 frontend/.node-runtime/
 
+litellm/.venv-litellm/
+
 runtime/*.duckdb
 runtime/*.sqlite
 runtime/*.wal
