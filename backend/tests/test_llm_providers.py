@@ -380,3 +380,57 @@ async def test_qwen_provider_classification_failure_raises_provider_error():
     with pytest.raises(LLMProviderError) as error:
         await provider.classify_intent("ada data lain?", conversation_history=[], trace_id="trace")
     assert error.value.code == "invalid_response"
+
+
+@pytest.mark.asyncio
+async def test_mock_provider_answers_conversational_meta_questions_naturally():
+    provider = MockLLMProvider(Settings(_env_file=None, llm_mode="mock"))
+    result = await provider.generate_conversational_reply("bisa bahasa indonesia?", language="en", conversation_history=[], trace_id="t")
+    assert "support@" not in result.reply.message
+    assert result.reply.message
+
+
+@pytest.mark.asyncio
+async def test_mock_provider_declines_out_of_scope_questions_with_support_contact():
+    provider = MockLLMProvider(Settings(_env_file=None, llm_mode="mock"))
+    result = await provider.generate_conversational_reply("ceritakan resep nasi goreng", language="en", conversation_history=[], trace_id="t")
+    assert "support@temposcangroup.com" in result.reply.message
+
+
+@pytest.mark.asyncio
+async def test_qwen_provider_generates_conversational_reply_from_model_response():
+    def handler(request: httpx.Request):
+        body = json.loads(request.content)
+        assert body["messages"][0]["role"] == "system"
+        return response(json.dumps({"message": "Ya, saya bisa berbahasa Indonesia."}))
+
+    provider = QwenOpenAICompatibleProvider(settings(), transport=httpx.MockTransport(handler))
+    result = await provider.generate_conversational_reply(
+        "bisa bahasa indonesia?", language="id",
+        conversation_history=[{"role": "user", "content": "halo"}, {"role": "assistant", "content": "Halo! Saya SCAN."}],
+        trace_id="trace",
+    )
+    assert result.reply.message == "Ya, saya bisa berbahasa Indonesia."
+    assert result.telemetry.provider == "qwen_openai_compatible"
+
+
+@pytest.mark.asyncio
+async def test_litellm_provider_generates_conversational_reply_using_requested_model_group():
+    captured = {}
+
+    def handler(request: httpx.Request):
+        captured.update(json.loads(request.content))
+        return litellm_response(json.dumps({"message": "Hello!"}), served_model="commercial-intelligence")
+
+    provider = LiteLLMProvider(settings(litellm_base_url="https://litellm.example.test"), transport=httpx.MockTransport(handler))
+    result = await provider.generate_conversational_reply("hi", language="en", conversation_history=[], trace_id="trace")
+    assert captured["model"] == "commercial-intelligence"
+    assert result.reply.message == "Hello!"
+
+
+@pytest.mark.asyncio
+async def test_conversational_reply_failure_raises_provider_error_not_a_fabricated_reply():
+    provider = QwenOpenAICompatibleProvider(settings(), transport=httpx.MockTransport(lambda _: response("not json at all")))
+    with pytest.raises(LLMProviderError) as error:
+        await provider.generate_conversational_reply("hi", language="en", conversation_history=[], trace_id="trace")
+    assert error.value.code == "invalid_response"

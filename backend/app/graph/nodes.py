@@ -411,20 +411,26 @@ def _is_greeting(question: str) -> bool:
 
 
 async def direct_chat(state: GraphState) -> GraphState:
+    """Handles the "conversational" intent: greetings, small talk, questions
+    about the assistant itself, or anything else that isn't a data question.
+    Calls the LLM for a natural reply (see LLMProvider.generate_conversational_reply)
+    instead of a fixed template, so it can actually respond to whatever was
+    asked ("bisa bahasa indonesia?", "siapa kamu?", "terima kasih") rather
+    than only recognizing a hardcoded greeting and defaulting to a generic
+    "ask an analytical question" message for everything else."""
     language = state.get("language", "auto")
-    if _is_greeting(state["question"]):
+    try:
+        result = await get_llm_provider().generate_conversational_reply(
+            state["question"], language=language, conversation_history=state.get("history", []), trace_id=state.get("trace_id", ""),
+        )
+        summary = result.reply.message
+    except LLMProviderError:
         summary = (
             "Halo! Saya SCAN, siap membantu analisis data komersial Anda. "
             "Coba tanyakan misalnya performa sales suatu wilayah, forecast, atau posisi produk dibanding kompetitor."
             if language == "id"
             else "Hello! I'm SCAN, ready to help with your commercial data analysis. "
             "Try asking about sales performance in a region, a forecast, or how a product compares to competitors."
-        )
-    else:
-        summary = (
-            "Silakan ajukan pertanyaan analitis berdasarkan data bisnis yang tersedia."
-            if language == "id"
-            else "Please ask an analytical question grounded in the available business data."
         )
     answer = ExecutiveAnswer(summary=summary, drivers=[], recommended_actions=[])
     return {**state, "answer": answer.model_dump(), "chart_spec": {"type": "none", "title": "", "x": [], "series": []}, "ui_actions": [], "resolved_state": state.get("dashboard_state") or {}, "status": "ok"}

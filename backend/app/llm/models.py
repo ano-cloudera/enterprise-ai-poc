@@ -61,6 +61,15 @@ class IntentClassificationResult(StrictModel):
     telemetry: ModelTelemetry
 
 
+class ConversationalReply(StrictModel):
+    message: str = Field(min_length=1, max_length=1200)
+
+
+class ConversationalReplyResult(StrictModel):
+    reply: ConversationalReply
+    telemetry: ModelTelemetry
+
+
 class ModelHealth(StrictModel):
     mode: Literal["mock", "remote"]
     status: Literal["mock", "ok", "unavailable", "auth_required", "unknown"]
