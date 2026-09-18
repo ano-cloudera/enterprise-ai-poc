@@ -171,6 +171,19 @@ describe('Ask AI business UX', () => {
     expect(screen.queryByRole('group', { name: 'Suggested follow-up questions' })).toBeNull()
   })
 
+  it('lists the active conversation in the sidebar as soon as it has messages, without a reload', async () => {
+    window.localStorage.clear()
+    render(<AskAIPage />)
+    screen.getByText('No conversations yet.')
+
+    fireEvent.change(screen.getByPlaceholderText('Ask a follow-up question...'), { target: { value: 'Kenapa sales turun?' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send question' }))
+    await screen.findByLabelText('AI response')
+
+    expect(screen.queryByText('No conversations yet.')).toBeNull()
+    expect(screen.getAllByText('Kenapa sales turun?').length).toBeGreaterThan(1)
+  })
+
   it('deletes a saved conversation from the sidebar without opening it', async () => {
     window.localStorage.clear()
     render(<AskAIPage />)

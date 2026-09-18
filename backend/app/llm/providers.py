@@ -24,6 +24,15 @@ from app.llm.payload import deterministic_grounded_analysis
 
 logger = logging.getLogger(__name__)
 
+# Low enough to keep numbers/facts reliable, high enough that phrasing
+# varies naturally instead of reading like a filled-in template every time
+# (0.1 was observed to produce mechanically repetitive, robotic-sounding
+# summaries even though the underlying data was correct).
+ANALYSIS_TEMPERATURE = 0.35
+# Intent classification is a forced two-way choice, not prose generation -
+# keep this fully deterministic.
+CLASSIFICATION_TEMPERATURE = 0.0
+
 
 class LLMProviderError(RuntimeError):
     def __init__(self, code: str, *, retry_count: int = 0, http_status: int | None = None, latency_ms: int = 0):
@@ -112,17 +121,27 @@ class QwenOpenAICompatibleProvider:
             "id": "Write all user-facing content in Bahasa Indonesia.",
             "en": "Write all user-facing content in English.",
         }.get(language, "Use the same language as the user's question.")
-        system = f"""You are a concise enterprise business analyst. {language_instruction}
-Use only the trusted payload supplied by the application. Never invent unavailable causes.
-Distinguish facts from inference. Do not claim inventory impact unless inventory fields exist.
-Do not claim channel impact unless channel fields exist. Never reveal hidden reasoning.
+        system = f"""You are a senior commercial analyst explaining a result to a business
+stakeholder in conversation — not a report generator restating a data table. {language_instruction}
+Write the way a sharp colleague would talk through a number out loud: natural sentences with your
+own phrasing, varied structure, and a point of view on what matters — never a mechanical recitation
+of field names or a templated "X changed by Y%" sentence repeated the same way every time.
+Use only the trusted payload supplied by the application as your source of facts. Never invent
+unavailable causes. Distinguish facts from inference. Do not claim inventory impact unless
+inventory fields exist. Do not claim channel impact unless channel fields exist. Never reveal
+hidden reasoning.
 Return JSON only with exactly this schema:
 {{"summary":"string","drivers":[{{"title":"string","description":"string","evidence":"string"}}],"recommended_actions":["string"],"caveats":["string"]}}
-Prioritize material business impact and cite evidence using supplied field names and values.
-The payload may include conversation_history: prior turns in this session, oldest first. Use it
-only to keep the answer coherent with what was already discussed (e.g. resolve "that region" or
-avoid repeating the same explanation) — never as a source of facts; all facts must still come
-from query_result and business_context."""
+"summary" is the opening take: 1-3 sentences, conversational, leading with what matters most to a
+business reader (not "Net Sales for X was Y") — say what happened and why it's worth noting, in
+your own words, before any numbers.
+"drivers": each title is a short natural phrase (not a restated field name), each description
+reads like you're explaining the "so what" to someone who wasn't looking at the data, and evidence
+still cites the exact supplied field names and values so the claim stays checkable.
+Prioritize material business impact. The payload may include conversation_history: prior turns in
+this session, oldest first. Use it only to keep the answer coherent with what was already discussed
+(e.g. resolve "that region" or avoid repeating the same explanation) — never as a source of facts;
+all facts must still come from query_result and business_context."""
         return [
             {"role": "system", "content": system},
             {"role": "user", "content": payload.model_dump_json()},
@@ -138,7 +157,7 @@ from query_result and business_context."""
         body = {
             "model": self.settings.qwen_model,
             "messages": self._messages(payload, language),
-            "temperature": 0.1,
+            "temperature": ANALYSIS_TEMPERATURE,
             "max_tokens": self.settings.qwen_max_tokens,
             "chat_template_kwargs": {
                 "enable_thinking": not self.settings.qwen_disable_thinking,
@@ -246,7 +265,7 @@ discussed. When in doubt and there is no concrete data-related follow-up cue, pr
         body = {
             "model": self.settings.qwen_model,
             "messages": self._classification_messages(question, conversation_history),
-            "temperature": 0.0,
+            "temperature": CLASSIFICATION_TEMPERATURE,
             "max_tokens": 50,
             "chat_template_kwargs": {"enable_thinking": False, "preserve_thinking": False},
         }
@@ -315,7 +334,7 @@ class LiteLLMProvider(QwenOpenAICompatibleProvider):
         body = {
             "model": self.requested_model_group,
             "messages": self._messages(payload, language),
-            "temperature": 0.1,
+            "temperature": ANALYSIS_TEMPERATURE,
             "max_tokens": self.settings.qwen_max_tokens,
             "chat_template_kwargs": {
                 "enable_thinking": not self.settings.qwen_disable_thinking,
@@ -411,7 +430,7 @@ class LiteLLMProvider(QwenOpenAICompatibleProvider):
         body = {
             "model": self.requested_model_group,
             "messages": self._classification_messages(question, conversation_history),
-            "temperature": 0.0,
+            "temperature": CLASSIFICATION_TEMPERATURE,
             "max_tokens": 50,
             "chat_template_kwargs": {"enable_thinking": False, "preserve_thinking": False},
         }

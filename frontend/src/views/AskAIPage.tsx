@@ -36,7 +36,9 @@ export function AskAIPage() {
   useEffect(() => { setSessions(loadSessions()) }, [])
 
   useEffect(() => {
-    if (messages.length) saveSession({ id: sessionId, title: sessionTitle(messages), updatedAt: Date.now(), messages })
+    if (!messages.length) return
+    saveSession({ id: sessionId, title: sessionTitle(messages), updatedAt: Date.now(), messages })
+    setSessions(loadSessions())
   }, [messages, sessionId])
 
   async function submit(question = input) {
