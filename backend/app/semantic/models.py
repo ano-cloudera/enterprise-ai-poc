@@ -98,6 +98,14 @@ class ResolutionDefinition(BaseModel):
     grains: dict[str, list[str]] = Field(default_factory=dict)
     patterns: dict[str, PatternDefinition] = Field(default_factory=dict)
     positive_sort_aliases: list[str] = Field(default_factory=list)
+    # Words that signal the user is asking for a specific quantity ("jumlah",
+    # "berapa banyak", "how many", "number of"), as opposed to a general
+    # question about performance. Used to distinguish "the question named no
+    # metric, treat it as [default_metric] performance" (fine to fall back)
+    # from "the question explicitly asked for a count/amount that has no
+    # matching configured metric" (should say the data isn't available,
+    # never silently substitute a different metric).
+    measure_request_terms: list[str] = Field(default_factory=list)
 
 
 class GoldenExpected(BaseModel):

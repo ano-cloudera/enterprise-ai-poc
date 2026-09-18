@@ -106,3 +106,4 @@ resolution:
     kpi:
       aliases: [berapa, total, how much]
   positive_sort_aliases: [tumbuh, growth, naik, positive, top, teratas]
+  measure_request_terms: [jumlah, berapa banyak, berapa jumlah, banyaknya, total, how many, number of, count of, jumlahnya]

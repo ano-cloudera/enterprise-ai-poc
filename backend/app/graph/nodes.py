@@ -142,6 +142,8 @@ def resolve_semantics(state: GraphState) -> GraphState:
     prior = state.get("dashboard_state") or {}
     reset_requested = any(_contains_alias(q, phrase) for phrase in project.resolution.reset_phrases)
     candidate = resolve_analytical_intent(state["question"], {} if reset_requested else prior, project)
+    if candidate.get("metric_unavailable"):
+        return {**state, "intent": "metric_unavailable"}
     dimension = next((item for item in candidate["dimensions"] if item != "time"), prior.get("dimension") or project.resolution.default_dimension)
     resolved = {
         "filters": candidate["filters"],
@@ -169,6 +171,26 @@ def resolve_semantics(state: GraphState) -> GraphState:
         "semantic_resolution": semantic_resolution,
         "resolved_state": resolved,
         "reset_requested": reset_requested,
+    }
+
+
+def metric_unavailable(state: GraphState) -> GraphState:
+    """The question asked for a specific count/amount that has no matching
+    configured metric (see resolve_semantics/resolve_analytical_intent's
+    measure_request_terms check) - answer honestly instead of silently
+    substituting a different metric (e.g. answering "how many customers"
+    with Net Sales)."""
+    language = state.get("language", "auto")
+    summary = (
+        "Data yang diminta belum tersedia di dataset governed saat ini. Metric yang tersedia mencakup Net Sales, Sales Volume, dan Transactions."
+        if language == "id"
+        else "The requested data isn't available in the governed dataset yet. Available metrics are Net Sales, Sales Volume, and Transactions."
+    )
+    answer = ExecutiveAnswer(summary=summary, drivers=[], recommended_actions=[], caveats=["METRIC_NOT_CONFIGURED"])
+    return {
+        **state, "answer": answer.model_dump(), "rows": [],
+        "chart_spec": {"type": "none", "title": "", "x": [], "series": []}, "ui_actions": [],
+        "resolved_state": state.get("dashboard_state") or {}, "status": "fallback", "fallback_used": True,
     }
 
 

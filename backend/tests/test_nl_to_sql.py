@@ -4,12 +4,13 @@ import inspect
 
 import pytest
 
-from app.core.schemas import DashboardState
+from app.core.schemas import ChatRequest, DashboardState
 from app.graph import nodes
 from app.graph.nodes import analyze_result, repair_sql, result_checker, ui_action_generator, validate_sql, visualization_planner
 from app.graph.workflow import _after_validation
 from app.semantic.loader import load_semantic_project
 from app.semantic.resolver import normalize_analytical_intent, resolve_analytical_intent
+from app.services import chat
 from app.tools.semantic_sql import generate_semantic_sql
 from app.tools.sql_validator import validate_readonly_sql
 from app.services.query import QueryContext, query_service
@@ -199,3 +200,31 @@ def test_generic_resolver_has_no_tempo_business_vocabulary():
     source = inspect.getsource(resolver).lower()
     for forbidden in ("jawa barat", "jawa timur", "modern trade", "jabar", "bulan ini"):
         assert forbidden not in source
+
+
+def test_measure_request_with_no_matching_metric_is_flagged_unavailable():
+    """Regression guard: "berapa jumlah customer" must not silently fall
+    back to net_sales just because no metric alias matched - customer_segment
+    is a dimension, not a count metric, so the correct behavior is to flag
+    this as unanswerable rather than answer a different question."""
+    candidate = resolve_analytical_intent("berapa jumlah customer saat ini?", DashboardState().model_dump(), PROJECT)
+    assert candidate["metric_unavailable"] is True
+
+
+@pytest.mark.parametrize("question", [
+    "gimana performa Jawa Barat bulan ini?",  # no measure-request word, no metric word - default_metric fallback is fine
+    "berapa total sales Jawa Barat?",  # measure-request word ("total") but "sales" matches net_sales explicitly
+    "berapa transaksi bulan ini?",  # matches the transactions metric explicitly
+])
+def test_measure_request_does_not_false_positive_when_a_metric_is_resolvable(question):
+    candidate = resolve_analytical_intent(question, DashboardState().model_dump(), PROJECT)
+    assert candidate["metric_unavailable"] is False
+
+
+@pytest.mark.asyncio
+async def test_chat_answers_honestly_when_the_requested_metric_has_no_data_instead_of_substituting_net_sales():
+    response = await chat.run_chat(ChatRequest(question="berapa jumlah customer saat ini?", session_id="test-metric-unavailable"))
+    assert response.status == "fallback"
+    assert response.metadata.intent == "metric_unavailable"
+    assert response.ui_actions == []
+    assert "isn't available" in response.answer.summary.lower()

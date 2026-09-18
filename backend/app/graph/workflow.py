@@ -11,6 +11,7 @@ from app.graph.nodes import (
     forecast,
     generate_sql,
     input_guard,
+    metric_unavailable,
     normalize_intent,
     output_guard,
     repair_sql,
@@ -52,6 +53,10 @@ def _after_result_check(state: GraphState) -> str:
     return "analyze_result" if state.get("result_check_status") == "OK" else "fallback"
 
 
+def _after_semantics(state: GraphState) -> str:
+    return "metric_unavailable" if state.get("intent") == "metric_unavailable" else "normalize_intent"
+
+
 def build_graph():
     """Controlled deterministic graph. No autonomous tool loop and no database write path."""
     graph = StateGraph(GraphState)
@@ -59,6 +64,7 @@ def build_graph():
         "input_guard": input_guard,
         "route_intent": route_intent,
         "resolve_semantics": resolve_semantics,
+        "metric_unavailable": metric_unavailable,
         "normalize_intent": normalize_intent,
         "generate_sql": generate_sql,
         "repair_sql": repair_sql,
@@ -84,7 +90,7 @@ def build_graph():
         _after_intent,
         {"resolve_semantics": "resolve_semantics", "forecast": "forecast", "weather": "weather", "market": "market", "direct_chat": "direct_chat", "fallback": "fallback"},
     )
-    graph.add_edge("resolve_semantics", "normalize_intent")
+    graph.add_conditional_edges("resolve_semantics", _after_semantics, {"metric_unavailable": "metric_unavailable", "normalize_intent": "normalize_intent"})
     graph.add_edge("normalize_intent", "generate_sql")
     graph.add_edge("generate_sql", "validate_sql")
     graph.add_conditional_edges("validate_sql", _after_validation, {"execute_sql": "execute_sql", "repair_sql": "repair_sql", "fallback": "fallback"})
@@ -99,6 +105,7 @@ def build_graph():
     graph.add_edge("forecast", "output_guard")
     graph.add_edge("weather", "output_guard")
     graph.add_edge("market", "output_guard")
+    graph.add_edge("metric_unavailable", "output_guard")
     graph.add_edge("fallback", END)
     return graph.compile()
 

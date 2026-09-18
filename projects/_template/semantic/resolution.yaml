@@ -10,3 +10,4 @@ resolution:
   grains: {}
   patterns: {}
   positive_sort_aliases: []
+  measure_request_terms: []

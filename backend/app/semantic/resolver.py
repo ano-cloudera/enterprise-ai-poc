@@ -33,10 +33,22 @@ def resolve_analytical_intent(question: str, context: dict[str, Any], project: S
     filters.update(matched_entities)
 
     metric = context.get("metric") or resolution.default_metric
+    metric_explicitly_matched = False
     for dataset in project.datasets.values():
         for key, definition in dataset.metrics.items():
             if any(_contains(text, alias) for alias in [key, definition.label, *definition.aliases]):
                 metric = key
+                metric_explicitly_matched = True
+
+    # The question asked for a specific count/amount ("jumlah", "berapa
+    # banyak", "how many") but named nothing that maps to a configured
+    # metric - e.g. "berapa jumlah customer" when there is no customer-count
+    # metric, only a customer_segment dimension. Falling back to
+    # default_metric here would silently answer a different question
+    # ("Net Sales") as if it were the one asked - flag it instead so the
+    # caller can say the data isn't available rather than substituting it.
+    asked_for_a_measure = any(_contains(text, term) for term in resolution.measure_request_terms)
+    metric_unavailable = asked_for_a_measure and not metric_explicitly_matched
 
     for dataset in project.datasets.values():
         for key, definition in dataset.dimensions.items():
@@ -89,6 +101,13 @@ def resolve_analytical_intent(question: str, context: dict[str, Any], project: S
         "comparison": {"type": comparison_type},
         "sort": sort,
         "limit": limit,
+        # Not part of AnalyticalIntent (the governed intent schema passed to
+        # SQL generation) - a signal consumed only by graph/nodes.py's
+        # resolve_semantics to short-circuit to a "data not available"
+        # answer instead of silently querying a substitute metric. Pop it
+        # before normalize_analytical_intent validates the rest as
+        # AnalyticalIntent.
+        "metric_unavailable": metric_unavailable,
     }
 
 
