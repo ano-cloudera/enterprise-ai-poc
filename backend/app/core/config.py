@@ -89,14 +89,14 @@ class Settings(BaseSettings):
     # Enables the optional Guardrails AI (guardrailsai.com) validators
     # (DetectJailbreak on input, SecretsPresent on output) in
     # app/guardrails/service.py, on top of the always-on deterministic
-    # regex checks. Requires guardrails-ai to be installed
-    # (pip install -r backend/requirements-guardrails.txt) AND the Hub
-    # account authenticated separately via the CLI - `guardrails configure
-    # --token <api-key>` - which writes to ~/.guardrailsrc; there is no env
-    # var for the API key itself, Guardrails Hub does not read one. If
-    # either the package or that auth step is missing, GuardrailService
-    # falls back to deterministic-only checks rather than failing the
-    # request.
+    # regex checks. GuardrailService itself never reads a token - Guardrails
+    # Hub authenticates via `guardrails configure --token`, which writes to
+    # ~/.guardrailsrc. GUARDRAILS_TOKEN (see .env.example) exists only for
+    # app_cai_backend.py's ensure_guardrails() to run that CLI command and
+    # install the Hub validators automatically on first startup — it is
+    # never read by this Settings class or by GuardrailService. If the
+    # package/Hub install is missing or fails, GuardrailService falls back
+    # to deterministic-only checks rather than failing the request.
     guardrails_enabled: bool = False
 
     telemetry_db_path: Path = Field(default_factory=lambda: Path(__file__).resolve().parents[3] / "runtime" / "telemetry.sqlite")

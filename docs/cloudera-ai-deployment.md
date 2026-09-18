@@ -111,6 +111,8 @@ never put a secret in a `NEXT_PUBLIC_*` variable (see §3.2).
 | `MARKET_API_INTERNAL_PORT` | no (default `18100`) | `18100` | no | Internal port for the Mock Market API child process, set automatically as `MARKET_API_BASE_URL`. Only override if it collides with `CDSW_APP_PORT` |
 | `SERPER_API_KEY` | no | — | **yes** | Only used by manual refresh scripts, not at runtime |
 | `SERPER_ENABLED` | no (default `false`) | `false` | no | Keep `false` for normal startup |
+| `GUARDRAILS_ENABLED` | no (default `false`) | `true` | no | Enables Guardrails Hub validators (DetectJailbreak, SecretsPresent) on top of the always-on deterministic checks. `app_cai_backend.py` installs and configures them automatically on first startup when `true` — safe to leave `false`, nothing else depends on it |
+| `GUARDRAILS_TOKEN` | if `GUARDRAILS_ENABLED=true` | — | **yes** | A Guardrails Hub API key from guardrailsai.com. Only read by the entrypoint script to run `guardrails configure`/`guardrails hub install` once; never read by the FastAPI app itself |
 
 ### 3.2 Frontend Application environment variables
 

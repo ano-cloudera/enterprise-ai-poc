@@ -117,6 +117,55 @@ def ensure_venv() -> str:
 
 PYTHON_BIN = ensure_venv()
 
+
+GUARDRAILS_ENABLED = os.getenv("GUARDRAILS_ENABLED", "false").lower() == "true"
+GUARDRAILS_MARKER = os.path.join(VENV_DIR, ".guardrails-installed")
+GUARDRAILS_REQUIREMENTS_FILE = os.path.join(BACKEND_DIR, "requirements-guardrails.txt")
+GUARDRAILS_VALIDATORS = ("hub://guardrails/detect_jailbreak", "hub://guardrails/secrets_present")
+
+
+def ensure_guardrails() -> None:
+    """Optional: installs the guardrails-ai package plus its two Hub
+    validators (DetectJailbreak, SecretsPresent) into the same venv
+    ensure_venv() just bootstrapped, and authenticates to Guardrails Hub
+    with GUARDRAILS_TOKEN. Only runs when GUARDRAILS_ENABLED=true, and only
+    once per venv (tracked by GUARDRAILS_MARKER) — Hub installs require
+    internet egress to hub.api.guardrailsai.com, so this is skipped
+    entirely by default and never blocks a normal restart once done.
+    app.guardrails.service.GuardrailService already degrades gracefully to
+    deterministic-only checks if this never runs or fails, so a failure
+    here is logged, not fatal — it must never take the whole Application
+    down over an optional enhancement."""
+    if not GUARDRAILS_ENABLED or os.path.isfile(GUARDRAILS_MARKER):
+        return
+    token = os.getenv("GUARDRAILS_TOKEN", "")
+    if not token:
+        print("[backend] WARNING: GUARDRAILS_ENABLED=true but GUARDRAILS_TOKEN is not set — "
+              "skipping Guardrails AI setup; falling back to deterministic-only checks.")
+        return
+    print("[backend] Installing Guardrails AI (guardrailsai.com) validators...")
+    pip_env = os.environ.copy()
+    pip_env.pop("PIP_USER", None)
+    pip_env.pop("PYTHONUSERBASE", None)
+    guardrails_bin = os.path.join(VENV_DIR, "bin", "guardrails")
+    try:
+        subprocess.check_call([PYTHON_BIN, "-m", "pip", "--isolated", "install", "--no-user", "-r", GUARDRAILS_REQUIREMENTS_FILE], env=pip_env)
+        subprocess.check_call([
+            guardrails_bin, "configure", "--token", token,
+            "--disable-remote-inferencing", "--disable-metrics",
+        ], env=pip_env)
+        for validator in GUARDRAILS_VALIDATORS:
+            subprocess.check_call([guardrails_bin, "hub", "install", validator], env=pip_env)
+        with open(GUARDRAILS_MARKER, "w") as handle:
+            handle.write("ok")
+        print("[backend] Guardrails AI validators installed.")
+    except subprocess.CalledProcessError as error:
+        print(f"[backend] WARNING: Guardrails AI setup failed ({error}) — "
+              "falling back to deterministic-only checks. This does not block startup.")
+
+
+ensure_guardrails()
+
 # CDSW_APP_PORT is authoritative when CAI sets it; PORT is the generic
 # fallback; 8000 is only for ad hoc local testing outside CAI.
 APP_PORT = os.getenv("CDSW_APP_PORT") or os.getenv("PORT") or "8000"
