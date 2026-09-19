@@ -91,6 +91,15 @@ async def route_intent(state: GraphState) -> GraphState:
         intent = "forecast"
     elif reset_requested or any(_contains_alias(q, term) for term in business_terms):
         intent = "analytical"
+    elif not _is_greeting(q) and any(_contains_alias(q, term) for term in project.resolution.measure_request_terms):
+        # No configured metric/dimension/entity name matched, but the
+        # question is clearly asking for a business quantity ("berapa",
+        # "margin", "jumlah customer") - route to analytical so
+        # resolve_semantics's metric_unavailable check can give a specific,
+        # honest "that data isn't governed here, but X/Y/Z is" answer,
+        # rather than falling through to the generic conversational
+        # "that's outside what I can help with" reply.
+        intent = "analytical"
     elif _is_greeting(q):
         intent = "conversational"
     elif _has_active_analytical_context(state):

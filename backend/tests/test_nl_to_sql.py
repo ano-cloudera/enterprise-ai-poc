@@ -228,3 +228,31 @@ async def test_chat_answers_honestly_when_the_requested_metric_has_no_data_inste
     assert response.metadata.intent == "metric_unavailable"
     assert response.ui_actions == []
     assert "isn't available" in response.answer.summary.lower()
+
+
+@pytest.mark.parametrize("question", [
+    "berapa margin keuntungan bulan ini?",
+    "berapa banyak outlet aktif bulan ini?",
+    "berapa churn rate pelanggan?",
+])
+def test_business_sounding_measure_requests_with_no_governed_metric_are_flagged_unavailable(question):
+    """Regression guard: these don't share a keyword with "berapa jumlah
+    customer" (the first bug fixed), but hit the same class of problem -
+    "margin", "outlet aktif", and "churn" all name a real business
+    quantity that we simply don't have a configured metric for."""
+    candidate = resolve_analytical_intent(question, DashboardState().model_dump(), PROJECT)
+    assert candidate["metric_unavailable"] is True
+
+
+@pytest.mark.asyncio
+async def test_route_intent_sends_measure_requests_to_analytical_not_conversational():
+    """Regression guard: route_intent used to route "berapa margin
+    keuntungan?" straight to conversational (no configured business
+    keyword matched, no session history, not a greeting) before
+    resolve_semantics ever got a chance to recognize it as an
+    unavailable-metric question. That produced a generic "that's outside
+    what I can help with, contact support" reply instead of the more
+    specific "that data isn't governed, but X/Y/Z is" answer."""
+    response = await chat.run_chat(ChatRequest(question="berapa margin keuntungan bulan ini?", session_id="test-measure-routing"))
+    assert response.metadata.intent == "metric_unavailable"
+    assert "support@temposcangroup.com" not in response.answer.summary
