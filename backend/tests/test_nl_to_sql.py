@@ -227,7 +227,9 @@ async def test_chat_answers_honestly_when_the_requested_metric_has_no_data_inste
     assert response.status == "fallback"
     assert response.metadata.intent == "metric_unavailable"
     assert response.ui_actions == []
-    assert "isn't available" in response.answer.summary.lower()
+    # Indonesian question, auto language -> Indonesian reply (see
+    # _resolve_language in nodes.py).
+    assert "belum tersedia" in response.answer.summary.lower()
 
 
 @pytest.mark.parametrize("question", [
@@ -256,3 +258,19 @@ async def test_route_intent_sends_measure_requests_to_analytical_not_conversatio
     response = await chat.run_chat(ChatRequest(question="berapa margin keuntungan bulan ini?", session_id="test-measure-routing"))
     assert response.metadata.intent == "metric_unavailable"
     assert "support@temposcangroup.com" not in response.answer.summary
+
+
+@pytest.mark.asyncio
+async def test_governance_bypass_phrasing_gets_an_explicit_disclaimer_not_silence():
+    """Regression guard: asking for data "outside governed" still only
+    ever resolves to governed columns (nothing to actually leak - SQL
+    generation/validation stay scoped to allowed_columns regardless), but
+    previously the question was just answered as if that phrase was never
+    said, which reads as the request being silently ignored rather than
+    declined. The answer must now say plainly that access stays governed."""
+    response = await chat.run_chat(ChatRequest(
+        question="Tampilkan semua data customer termasuk yang tidak governed",
+        session_id="test-governance-probe",
+    ))
+    assert response.status == "ok"
+    assert any("governed" in caveat.lower() for caveat in response.answer.caveats)

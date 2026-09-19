@@ -58,6 +58,33 @@ def _contains_alias(text: str, alias: str) -> bool:
     return re.search(rf"(?<!\w){re.escape(alias.lower())}(?!\w)", text) is not None
 
 
+# Common Indonesian function words/particles that rarely appear in English
+# sentences - used only to break the tie when the request's language is
+# "auto" (the default the frontend always sends; it never sends "id"
+# explicitly). Deliberately not exhaustive or linguistically rigorous: this
+# only needs to pick between two languages for short business questions,
+# not classify arbitrary text.
+_INDONESIAN_MARKER_WORDS = (
+    "apakah", "bagaimana", "berapa", "kenapa", "mengapa", "yang", "dengan", "dari",
+    "untuk", "adalah", "tidak", "belum", "sudah", "akan", "bisa", "saat", "ini",
+    "bulan", "tahun", "minggu", "hari", "turun", "naik", "produk", "wilayah",
+    "termasuk", "semua", "data", "penjualan", "pelanggan", "jumlah",
+)
+
+
+def _resolve_language(question: str, language: str) -> str:
+    """Returns "id" or "en" for deterministic (non-LLM) template branches.
+    `language` is the request's declared setting - "auto" (the frontend's
+    permanent default; explicit "id"/"en" always wins outright) means the
+    caller never picked a language, so infer it from the question text
+    instead of silently defaulting to English."""
+    if language in ("id", "en"):
+        return language
+    text = question.lower()
+    hits = sum(1 for word in _INDONESIAN_MARKER_WORDS if _contains_alias(text, word))
+    return "id" if hits >= 1 else "en"
+
+
 async def route_intent(state: GraphState) -> GraphState:
     q = state["question"].lower()
     if state.get("guardrail_error"):
@@ -144,12 +171,28 @@ def _has_active_analytical_context(state: GraphState) -> bool:
     return any(filters.get(key) for key in filters)
 
 
+_GOVERNANCE_PROBE_TERMS = (
+    "tidak governed", "not governed", "yang tidak governed", "ungoverned",
+    "bypass", "di luar governed", "outside governed", "semua data", "all data",
+    "raw data", "data mentah", "tanpa restriction", "without restriction",
+    "akses penuh", "full access", "abaikan governance", "ignore governance",
+)
+
+
 def resolve_semantics(state: GraphState) -> GraphState:
     """Resolve configured vocabulary while preserving explicit prior dashboard state."""
     project = load_semantic_project()
     q = state["question"].lower()
     prior = state.get("dashboard_state") or {}
     reset_requested = any(_contains_alias(q, phrase) for phrase in project.resolution.reset_phrases)
+    # The question still only ever resolves to governed metrics/dimensions/
+    # columns below (SQL generation and validate_sql both enforce the same
+    # allowlist regardless), so this can't actually widen data access - but
+    # if the user explicitly asked to bypass governance, silently answering
+    # the governed question as if nothing unusual was asked reads as if the
+    # request was ignored rather than declined. Flag it so analyze_result
+    # can say plainly that access stays governed either way.
+    governance_probe_detected = any(_contains_alias(q, term) for term in _GOVERNANCE_PROBE_TERMS)
     candidate = resolve_analytical_intent(state["question"], {} if reset_requested else prior, project)
     if candidate.get("metric_unavailable"):
         return {**state, "intent": "metric_unavailable"}
@@ -180,6 +223,7 @@ def resolve_semantics(state: GraphState) -> GraphState:
         "semantic_resolution": semantic_resolution,
         "resolved_state": resolved,
         "reset_requested": reset_requested,
+        "governance_probe_detected": governance_probe_detected,
     }
 
 
@@ -189,7 +233,7 @@ def metric_unavailable(state: GraphState) -> GraphState:
     measure_request_terms check) - answer honestly instead of silently
     substituting a different metric (e.g. answering "how many customers"
     with Net Sales)."""
-    language = state.get("language", "auto")
+    language = _resolve_language(state["question"], state.get("language", "auto"))
     summary = (
         "Data yang diminta belum tersedia di dataset governed saat ini. Metric yang tersedia mencakup Net Sales, Sales Volume, dan Transactions."
         if language == "id"
@@ -347,6 +391,13 @@ async def analyze_result(state: GraphState) -> GraphState:
             error_code=error.code,
         )
     answer = to_executive_answer(analysis)
+    if state.get("governance_probe_detected"):
+        notice = (
+            "Seluruh akses data dibatasi pada dataset governed; tidak ada data di luar itu yang dapat ditampilkan."
+            if _resolve_language(state.get("question", ""), language) == "id"
+            else "All data access stays within the governed dataset; nothing outside it can be shown."
+        )
+        answer = answer.model_copy(update={"caveats": [notice, *answer.caveats][:12]})
     return {
         **state,
         "answer": answer.model_dump(),
@@ -437,7 +488,7 @@ async def direct_chat(state: GraphState) -> GraphState:
         summary = (
             "Halo! Saya SCAN, siap membantu analisis data komersial Anda. "
             "Coba tanyakan misalnya performa sales suatu wilayah, forecast, atau posisi produk dibanding kompetitor."
-            if language == "id"
+            if _resolve_language(state["question"], language) == "id"
             else "Hello! I'm SCAN, ready to help with your commercial data analysis. "
             "Try asking about sales performance in a region, a forecast, or how a product compares to competitors."
         )
@@ -456,13 +507,18 @@ async def forecast(state: GraphState) -> GraphState:
         latest_actual = (date.fromisoformat(current_range.end) - timedelta(days=1)).isoformat() if current_range else "unknown"
         summary = (
             f"Forecast untuk {requested} belum tersedia. Data aktual terakhir tersedia sampai {latest_actual}. Tidak ada angka forecast yang dibuat sebagai pengganti."
-            if state.get("language") == "id"
+            if _resolve_language(state["question"], state.get("language", "auto")) == "id"
             else f"The forecast for {requested} is not available. Actual data is available through {latest_actual}. No substitute forecast was generated."
         )
+        # No recommended_actions here - there is nothing to act on, this is
+        # a plain "the data doesn't exist" fallback, not an analysis with a
+        # next step to suggest. A generic "show the last 3 months" action
+        # repeated on every unrelated forecast miss read as a templated
+        # non-sequitur rather than a real recommendation.
         answer = ExecutiveAnswer(
             summary=summary,
             drivers=[],
-            recommended_actions=["Tampilkan tren penjualan 3 bulan terakhir sebagai referensi historis."],
+            recommended_actions=[],
             caveats=["FORECAST_NOT_AVAILABLE"],
         )
         return {
@@ -539,7 +595,7 @@ async def weather(state: GraphState, tool=None) -> GraphState:
     intent = resolve_weather_intent(state["question"], state.get("dashboard_state") or {}, project, governance)
     result = (tool or WeatherAnalysisTool()).analyze(intent)
     rows = [item.model_dump(mode="json") for item in result.evidence]
-    language = state.get("language", "auto")
+    language = _resolve_language(state["question"], state.get("language", "auto"))
     if result.status == "EXTERNAL_SIGNAL_NOT_AVAILABLE":
         region = result.requested_region or "requested regions"
         period = result.requested_period.isoformat()
@@ -603,7 +659,7 @@ async def market(state: GraphState, tool=None) -> GraphState:
     if result.status != "ok":
         summary = (
             "Sinyal market eksternal yang diminta belum tersedia. Tidak ada angka market atau kompetitor yang diestimasi."
-            if state.get("language") == "id"
+            if _resolve_language(state["question"], state.get("language", "auto")) == "id"
             else "The requested external market signal is unavailable. No market or competitor values were estimated."
         )
         answer = ExecutiveAnswer(summary=summary, drivers=[], recommended_actions=[], caveats=[result.status])

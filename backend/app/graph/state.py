@@ -43,3 +43,4 @@ class GraphState(TypedDict, total=False):
     data_telemetry: dict[str, Any]
     guardrail_error: str
     reset_requested: bool
+    governance_probe_detected: bool

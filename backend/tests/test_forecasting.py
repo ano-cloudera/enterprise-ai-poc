@@ -269,6 +269,29 @@ async def test_missing_forecast_never_invokes_qwen(monkeypatch):
     assert state["rows"] == []
     assert "belum tersedia" in state["answer"]["summary"]
     assert "2024-03-31" in state["answer"]["summary"]
+    # No next step to suggest for a plain "data doesn't exist" fallback -
+    # a generic "show the last 3 months" action here reads as a templated
+    # non-sequitur, not a real recommendation.
+    assert state["answer"]["recommended_actions"] == []
+
+
+@pytest.mark.asyncio
+async def test_missing_forecast_replies_in_indonesian_for_an_indonesian_question_even_with_language_auto(monkeypatch):
+    """Regression guard: the frontend always sends language="auto", never
+    an explicit "id" - a prior bug compared state["language"] == "id"
+    directly, which is never true for "auto", so every deterministic
+    fallback template (this one included) always answered in English
+    regardless of what language the question was actually asked in."""
+    missing = ForecastLookupResult(status="FORECAST_NOT_AVAILABLE", requested_period=date(2024, 4, 1))
+
+    class MissingTool:
+        def get_sales_forecast(self, intent):
+            return missing
+
+    monkeypatch.setattr(nodes, "ForecastTool", lambda: MissingTool())
+    state = await nodes.forecast({"question": "Bagaimana forecast bulan depan?", "language": "auto", "dashboard_state": {}, "trace_id": "safe"})
+    assert "belum tersedia" in state["answer"]["summary"]
+    assert "is not available" not in state["answer"]["summary"]
 
 
 @pytest.mark.asyncio
