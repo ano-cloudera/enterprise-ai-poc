@@ -26,7 +26,7 @@ const response = {
   },
   data: { columns: ['region', 'current_value', 'percentage_change'], rows: [{ region: 'Jawa Barat', current_value: 38501.337000000004, percentage_change: 18.21664440535221 }] },
   chart_spec: null,
-  ui_actions: [],
+  ui_actions: [{ type: 'SHOW_TABLE', target: 'chat', value: { columns: ['region', 'current_value', 'percentage_change'] } }],
   metadata: { trace_id: 'secret-trace', session_id: 'developer-session', intent: 'analytical', resolved_context: dashboardState, execution_time_ms: 123 },
 } as const
 
@@ -171,6 +171,18 @@ describe('Ask AI business UX', () => {
     expect(screen.queryByRole('group', { name: 'Suggested follow-up questions' })).toBeNull()
   })
 
+  it('renders answer caveats so a governance/data-availability disclaimer actually reaches the user', async () => {
+    vi.mocked(api.chat).mockResolvedValue({
+      ...response,
+      answer: { ...response.answer, caveats: ['All data access stays within the governed dataset; nothing outside it can be shown.'] },
+    } as never)
+    render(<AskAIPage />)
+    fireEvent.change(screen.getByPlaceholderText('Ask a follow-up question...'), { target: { value: 'Kenapa sales turun?' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send question' }))
+
+    await screen.findByText('All data access stays within the governed dataset; nothing outside it can be shown.')
+  })
+
   it('lists the active conversation in the sidebar as soon as it has messages, without a reload', async () => {
     window.localStorage.clear()
     render(<AskAIPage />)
@@ -182,6 +194,34 @@ describe('Ask AI business UX', () => {
 
     expect(screen.queryByText('No conversations yet.')).toBeNull()
     expect(screen.getAllByText('Kenapa sales turun?').length).toBeGreaterThan(1)
+  })
+
+  it('keeps each answer\'s own table columns even after a later question uses different columns', async () => {
+    const channelResponse = {
+      ...response,
+      data: { columns: ['channel', 'value'], rows: [{ channel: 'Modern Trade', value: 1000 }] },
+      ui_actions: [{ type: 'SHOW_TABLE', target: 'chat', value: { columns: ['channel', 'value'] } }],
+    }
+    const regionResponse = {
+      ...response,
+      data: { columns: ['region', 'value'], rows: [{ region: 'Jawa Barat', value: 2000 }] },
+      ui_actions: [{ type: 'SHOW_TABLE', target: 'chat', value: { columns: ['region', 'value'] } }],
+    }
+    vi.mocked(api.chat).mockResolvedValueOnce(channelResponse as never).mockResolvedValueOnce(regionResponse as never)
+
+    render(<AskAIPage />)
+    fireEvent.change(screen.getByPlaceholderText('Ask a follow-up question...'), { target: { value: 'Breakdown by channel' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send question' }))
+    await screen.findByText('Modern Trade')
+
+    fireEvent.change(screen.getByPlaceholderText('Ask a follow-up question...'), { target: { value: 'Sales per region' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send question' }))
+    await screen.findByText('Jawa Barat')
+
+    // The first answer's table must still show its own "Channel" column
+    // and value, not the second answer's "Region" header/data.
+    screen.getByText('Modern Trade')
+    expect(screen.queryByText('—')).toBeNull()
   })
 
   it('deletes a saved conversation from the sidebar without opening it', async () => {

@@ -1,7 +1,7 @@
 'use client'
 
 import { FormEvent, KeyboardEvent, MouseEvent, useEffect, useRef, useState } from 'react'
-import { ArrowUp, Bot, CheckCircle2, ChevronRight, Database, Lightbulb, MessageSquareText, Plus, Sparkles, Trash2, UserRound } from 'lucide-react'
+import { ArrowUp, Bot, CheckCircle2, ChevronRight, Database, Info, Lightbulb, MessageSquareText, Plus, Sparkles, Trash2, UserRound } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import { AnswerChart } from '../components/AnswerChart'
 import { DataTable } from '../components/DataTable'
@@ -158,10 +158,17 @@ export function AskAIPage() {
 }
 
 function StructuredAnswer({ response, onSelectFollowUp }: { response: ChatResponse; onSelectFollowUp: (question: string) => void }) {
-  const { state } = useDashboardState()
   const drivers = response.answer.drivers.map(formatFloatingDriver).filter(Boolean).slice(0, 3)
   const actions = response.answer.recommended_actions.slice(0, 3)
-  const showTable = state.chat.table.visible && response.data.rows.length > 0
+  const caveats = response.answer.caveats.slice(0, 3)
+  // Whether to show the table is this message's own concern - drawn from
+  // its own ui_actions, never from the shared dashboard state.chat.table
+  // flag. That flag (and its .columns) is a single global value shared by
+  // every message in the conversation, so using it here made an earlier
+  // question's table silently render with a later question's column
+  // headers (or vice versa) once more than one analytical answer existed
+  // in the same session.
+  const showTable = response.ui_actions.some(action => action.type === 'SHOW_TABLE') && response.data.rows.length > 0
   const showChart = Boolean(response.chart_spec && response.chart_spec.type !== 'none' && response.chart_spec.type !== 'table')
   const followUps = suggestedFollowUps(response.metadata.intent).slice(0, 3)
 
@@ -176,8 +183,9 @@ function StructuredAnswer({ response, onSelectFollowUp }: { response: ChatRespon
         <p className="mt-2 break-words text-sm leading-6 text-slate-700">{formatFloatingAnswerText(response.answer.summary)}</p>
       </section>
       {drivers.length > 0 && <section className="mt-5"><div className="text-xs font-extrabold text-cloudera-navy">Key Drivers</div><div className="mt-2 space-y-2">{drivers.map((item, index) => <div key={`${item}-${index}`} className="flex gap-2.5 text-sm leading-6 text-slate-700"><span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-violet-50 text-[10px] font-black text-cloudera-violet">{index + 1}</span><span className="min-w-0 break-words">{item}</span></div>)}</div></section>}
-      {(showChart || showTable) && <section className="mt-5"><div className="text-xs font-extrabold text-cloudera-navy">Supporting Evidence</div>{showChart && <AnswerChart chart={response.chart_spec} />}{showTable && <DataTable columns={state.chat.table.columns.length ? state.chat.table.columns : response.data.columns} rows={response.data.rows} metric={response.metadata.resolved_context.metric} />}</section>}
+      {(showChart || showTable) && <section className="mt-5"><div className="text-xs font-extrabold text-cloudera-navy">Supporting Evidence</div>{showChart && <AnswerChart chart={response.chart_spec} />}{showTable && <DataTable columns={response.data.columns} rows={response.data.rows} metric={response.metadata.resolved_context.metric} />}</section>}
       {actions.length > 0 && <section className="mt-5 rounded-2xl border border-orange-100 bg-orange-50/60 p-4"><div className="flex items-center gap-2 text-xs font-extrabold text-cloudera-navy"><Lightbulb size={15} className="text-cloudera-orange" />Recommended Actions</div><div className="mt-2 space-y-2">{actions.map((item, index) => <div key={`${item}-${index}`} className="flex gap-2 text-sm leading-6 text-slate-700"><CheckCircle2 size={15} className="mt-1 shrink-0 text-emerald-500" /><span className="min-w-0 break-words">{formatFloatingAnswerText(item)}</span></div>)}</div></section>}
+      {caveats.length > 0 && <section className="mt-4 flex gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3"><Info size={14} className="mt-0.5 shrink-0 text-slate-400" /><div className="space-y-1 text-xs leading-5 text-slate-500">{caveats.map((item, index) => <p key={`${item}-${index}`} className="break-words">{formatFloatingAnswerText(item)}</p>)}</div></section>}
       <div role="group" aria-label="Suggested follow-up questions" className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
         {followUps.map(question => <button type="button" key={question} onClick={() => onSelectFollowUp(question)} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-left text-[11px] font-semibold leading-4 text-slate-600 transition hover:border-orange-200 hover:bg-orange-50 hover:text-cloudera-navy">{question}</button>)}
       </div>

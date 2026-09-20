@@ -239,7 +239,11 @@ def metric_unavailable(state: GraphState) -> GraphState:
         if language == "id"
         else "The requested data isn't available in the governed dataset yet. Available metrics are Net Sales, Sales Volume, and Transactions."
     )
-    answer = ExecutiveAnswer(summary=summary, drivers=[], recommended_actions=[], caveats=["METRIC_NOT_CONFIGURED"])
+    # caveats intentionally empty: summary already explains this in plain
+    # language, and the frontend renders caveats verbatim to the user - an
+    # internal status code like "METRIC_NOT_CONFIGURED" here would leak as
+    # raw text on screen instead of the sentence above.
+    answer = ExecutiveAnswer(summary=summary, drivers=[], recommended_actions=[], caveats=[])
     return {
         **state, "answer": answer.model_dump(), "rows": [],
         "chart_spec": {"type": "none", "title": "", "x": [], "series": []}, "ui_actions": [],
@@ -515,11 +519,12 @@ async def forecast(state: GraphState) -> GraphState:
         # next step to suggest. A generic "show the last 3 months" action
         # repeated on every unrelated forecast miss read as a templated
         # non-sequitur rather than a real recommendation.
+        # caveats intentionally empty - see metric_unavailable's comment above.
         answer = ExecutiveAnswer(
             summary=summary,
             drivers=[],
             recommended_actions=[],
-            caveats=["FORECAST_NOT_AVAILABLE"],
+            caveats=[],
         )
         return {
             **state,
@@ -604,7 +609,8 @@ async def weather(state: GraphState, tool=None) -> GraphState:
             if language == "id"
             else f"Historical weather for {region} in {period} is unavailable. Historical sales context remains available and no weather values were estimated."
         )
-        answer = ExecutiveAnswer(summary=summary, drivers=[], recommended_actions=[], caveats=["EXTERNAL_SIGNAL_NOT_AVAILABLE"])
+        # caveats intentionally empty - see metric_unavailable's comment above.
+        answer = ExecutiveAnswer(summary=summary, drivers=[], recommended_actions=[], caveats=[])
         return {
             **state, "weather_intent": intent.model_dump(mode="json"), "weather_evidence": result.model_dump(mode="json"),
             "answer": answer.model_dump(), "rows": result.sales_context,
@@ -662,7 +668,8 @@ async def market(state: GraphState, tool=None) -> GraphState:
             if _resolve_language(state["question"], state.get("language", "auto")) == "id"
             else "The requested external market signal is unavailable. No market or competitor values were estimated."
         )
-        answer = ExecutiveAnswer(summary=summary, drivers=[], recommended_actions=[], caveats=[result.status])
+        # caveats intentionally empty - see metric_unavailable's comment above.
+        answer = ExecutiveAnswer(summary=summary, drivers=[], recommended_actions=[], caveats=[])
         return {
             **state, "market_intent": intent.model_dump(mode="json"), "market_evidence": result.model_dump(mode="json"),
             "answer": answer.model_dump(), "rows": [], "chart_spec": {"type": "none", "title": "", "x": [], "series": []},
