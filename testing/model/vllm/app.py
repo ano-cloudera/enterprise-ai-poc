@@ -156,7 +156,37 @@ def calculate_file_hash(path: Path) -> str:
     return sha256.hexdigest()
 
 
-if not PYTHON_BIN.exists():
+def venv_is_usable() -> bool:
+    """PYTHON_BIN.exists() isn't enough: a venv can be left as a folder
+    with no bin/python inside if a previous run was interrupted mid
+    `python -m venv` (e.g. the container got killed/rebuilt while the
+    Application was starting). Actually invoke the interpreter so a
+    half-built venv gets rebuilt instead of failing every request.
+    """
+    if not PYTHON_BIN.exists():
+        return False
+    try:
+        subprocess.check_call(
+            [str(PYTHON_BIN), "--version"],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+        )
+        return True
+    except (OSError, subprocess.CalledProcessError):
+        return False
+
+
+if not venv_is_usable():
+
+    if VENV_DIR.exists():
+
+        print("=" * 60)
+        print("REMOVING CORRUPT VIRTUAL ENVIRONMENT")
+        print("=" * 60)
+        print(VENV_DIR)
+
+        import shutil
+        shutil.rmtree(VENV_DIR, ignore_errors=True)
 
     print("=" * 60)
     print("CREATING VIRTUAL ENVIRONMENT")
