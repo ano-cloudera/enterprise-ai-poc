@@ -19,12 +19,10 @@ def _resolve_base_dir() -> Path:
     (shown as "Cell In[N]" in the logs), where __file__ is not defined at
     all -- so we can't just trust Path(__file__) like a normal script.
 
-    IMPORTANT: this only ever checks the exact path
-    "<project root>/testing/model/vllm" under CDSW_PROJECT_DIR or cwd --
-    never a wildcard/glob search. An earlier version used
-    `base.glob("*/vllm")` as a fallback, which silently matched ANY
-    sibling folder named "vllm" anywhere under the search root
-    (including an old, abandoned copy of this app at
+    IMPORTANT: this deliberately avoids any recursive/wildcard glob
+    search. An earlier version used `base.glob("*/vllm")` as a fallback,
+    which silently matched ANY folder named "vllm" anywhere under the
+    search root (including an old, abandoned copy of this app at
     /home/cdsw/tempo_llm_vllm_test/vllm/ that happened to still exist).
     Because glob() order isn't guaranteed, that stale folder sometimes
     won, and the Application spawned uvicorn with --app-dir pointing at
@@ -32,6 +30,17 @@ def _resolve_base_dir() -> Path:
     log, file content, root endpoint) still looked correct because they
     were all run against the *intended* checkout, not the one actually
     running.
+
+    Instead: check the exact "<base>/testing/model/vllm" path first
+    (covers CDSW_PROJECT_DIR pointing straight at the project root, or
+    cwd already being inside it), and only if that fails, look one
+    level down from cwd for a project folder containing that same exact
+    relative path -- CAI sessions can start with cwd=/home/cdsw itself
+    rather than the project directory, so this repo could be at
+    /home/cdsw/<project>/testing/model/vllm. That one-level scan checks
+    a fixed, non-wildcard relative path under each direct subdirectory,
+    so it still can't match an unrelated "vllm"-named folder the way
+    glob("*/vllm") could.
     """
     script_path = globals().get("__file__")
     if script_path:
@@ -43,15 +52,29 @@ def _resolve_base_dir() -> Path:
 
     relative_path = Path("testing") / "model" / "vllm"
 
+    def is_valid(candidate: Path) -> bool:
+        return (candidate / "app.py").is_file() and (candidate / "proxy.py").is_file()
+
     for base in candidates:
         for candidate in (base / relative_path, base):
-            if (candidate / "app.py").is_file() and (candidate / "proxy.py").is_file():
+            if is_valid(candidate):
+                return candidate
+
+    for base in candidates:
+        if not base.is_dir():
+            continue
+        for subdir in sorted(base.iterdir()):
+            if not subdir.is_dir():
+                continue
+            candidate = subdir / relative_path
+            if is_valid(candidate):
                 return candidate
 
     raise RuntimeError(
-        "Unable to locate the vllm/ application directory at "
-        f"<project root>/{relative_path}. Set CDSW_PROJECT_DIR or start "
-        "this Application from the project root."
+        "Unable to locate the vllm/ application directory (looked for "
+        f"<project root>/{relative_path} under CDSW_PROJECT_DIR and cwd, "
+        "including one level of subdirectories). Set CDSW_PROJECT_DIR or "
+        "start this Application from the project root."
     )
 
 
