@@ -18,9 +18,20 @@ def _resolve_base_dir() -> Path:
     CAI can execute an Application's script as interpreter/notebook code
     (shown as "Cell In[N]" in the logs), where __file__ is not defined at
     all -- so we can't just trust Path(__file__) like a normal script.
-    Fall back to CDSW_PROJECT_DIR / cwd and search for a "vllm" folder
-    that actually contains this app's files, instead of hardcoding a
-    project folder name that changes per clone/project.
+
+    IMPORTANT: this only ever checks the exact path
+    "<project root>/testing/model/vllm" under CDSW_PROJECT_DIR or cwd --
+    never a wildcard/glob search. An earlier version used
+    `base.glob("*/vllm")` as a fallback, which silently matched ANY
+    sibling folder named "vllm" anywhere under the search root
+    (including an old, abandoned copy of this app at
+    /home/cdsw/tempo_llm_vllm_test/vllm/ that happened to still exist).
+    Because glob() order isn't guaranteed, that stale folder sometimes
+    won, and the Application spawned uvicorn with --app-dir pointing at
+    old, unfixed proxy.py/app.py code -- while every other check (git
+    log, file content, root endpoint) still looked correct because they
+    were all run against the *intended* checkout, not the one actually
+    running.
     """
     script_path = globals().get("__file__")
     if script_path:
@@ -30,17 +41,17 @@ def _resolve_base_dir() -> Path:
     project_dir_env = os.getenv("CDSW_PROJECT_DIR")
     candidates = ([Path(project_dir_env).resolve()] if project_dir_env else []) + [cwd]
 
+    relative_path = Path("testing") / "model" / "vllm"
+
     for base in candidates:
-        for candidate in (base / "vllm", base):
-            if (candidate / "app.py").is_file() and (candidate / "proxy.py").is_file():
-                return candidate
-        for candidate in base.glob("*/vllm"):
+        for candidate in (base / relative_path, base):
             if (candidate / "app.py").is_file() and (candidate / "proxy.py").is_file():
                 return candidate
 
     raise RuntimeError(
-        "Unable to locate the vllm/ application directory. "
-        "Set CDSW_PROJECT_DIR or start this Application from the project root."
+        "Unable to locate the vllm/ application directory at "
+        f"<project root>/{relative_path}. Set CDSW_PROJECT_DIR or start "
+        "this Application from the project root."
     )
 
 
