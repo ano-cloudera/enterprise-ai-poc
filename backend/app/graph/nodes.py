@@ -490,11 +490,11 @@ async def direct_chat(state: GraphState) -> GraphState:
         summary = result.reply.message
     except LLMProviderError:
         summary = (
-            "Halo! Saya SCAN, siap membantu analisis data komersial Anda. "
-            "Coba tanyakan misalnya performa sales suatu wilayah, forecast, atau posisi produk dibanding kompetitor."
+            "Halo, senang bisa bantu! Aku SCAN, siap gali data komersial bareng kamu. "
+            "Coba tanya soal performa sales di suatu wilayah, forecast bulan depan, atau posisi produk dibanding kompetitor ya."
             if _resolve_language(state["question"], language) == "id"
-            else "Hello! I'm SCAN, ready to help with your commercial data analysis. "
-            "Try asking about sales performance in a region, a forecast, or how a product compares to competitors."
+            else "Hey there! I'm SCAN, happy to dig into commercial data with you. "
+            "Try asking about sales performance in a region, a forecast, or how a product stacks up against competitors."
         )
     answer = ExecutiveAnswer(summary=summary, drivers=[], recommended_actions=[])
     return {**state, "answer": answer.model_dump(), "chart_spec": {"type": "none", "title": "", "x": [], "series": []}, "ui_actions": [], "resolved_state": state.get("dashboard_state") or {}, "status": "ok"}

@@ -1,10 +1,11 @@
 'use client'
 
 import { FormEvent, KeyboardEvent, MouseEvent, useEffect, useRef, useState } from 'react'
-import { ArrowUp, Bot, CheckCircle2, ChevronRight, Database, Info, Lightbulb, MessageSquareText, Plus, Sparkles, Trash2, UserRound } from 'lucide-react'
+import { ArrowUp, CheckCircle2, ChevronRight, Database, Info, Lightbulb, MessageSquareText, Plus, Trash2, UserRound } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
 import { AnswerChart } from '../components/AnswerChart'
 import { DataTable } from '../components/DataTable'
+import { ScanMark } from '../components/ScanMark'
 import { api } from '../lib/api'
 import { suggestedFollowUps } from '../lib/businessPresentation'
 import { useDashboardState } from '../lib/dashboardState'
@@ -116,14 +117,14 @@ export function AskAIPage() {
 
         <section className="card order-1 flex h-full min-h-0 min-w-0 flex-col overflow-hidden xl:order-none">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
-            <div className="flex items-center gap-2"><div className="grid h-8 w-8 place-items-center rounded-lg bg-orange-50 text-cloudera-orange"><Sparkles size={16} /></div><div><div className="text-sm font-extrabold text-cloudera-navy">SCAN</div><div className="text-[11px] text-emerald-600">● Connected to governed data</div></div></div>
+            <div className="flex items-center gap-2"><ScanMark size={32} /><div><div className="text-sm font-extrabold text-cloudera-navy">SCAN</div><div className="text-[11px] text-emerald-600">● Connected to governed data</div></div></div>
             <div className="chip"><Database size={13} />Governed Data</div>
           </div>
 
           <div role="log" aria-label="Conversation" aria-live="polite" className={`min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(99,91,255,.04),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(255,90,31,.05),transparent_30%)] p-4 sm:p-5 ${messages.length === 0 ? 'flex' : 'space-y-5'}`}>
             {messages.length === 0 && (
               <div className="m-auto w-full max-w-3xl text-center">
-                <div className="mx-auto grid h-16 w-16 place-items-center rounded-2xl bg-cloudera-navy text-white shadow-lg"><Bot size={30} /></div>
+                <ScanMark size={56} className="mx-auto" rounded="2xl" />
                 <h2 className="mt-5 text-2xl font-black text-cloudera-navy">Ask your commercial data</h2>
                 <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-500">Ask a management question to get a concise answer, supporting evidence, and practical next steps.</p>
                 <div className="mt-7 grid gap-3 sm:grid-cols-2">{starterQuestions.map(item => <button type="button" onClick={() => submit(item)} key={item} className="rounded-xl border border-slate-200 bg-white p-5 text-left text-sm font-semibold text-slate-600 shadow-sm transition hover:border-orange-200 hover:text-cloudera-navy">{item}<ChevronRight className="mt-2.5 text-cloudera-orange" size={14} /></button>)}</div>
@@ -132,9 +133,9 @@ export function AskAIPage() {
             {messages.map((message, index) => message.role === 'user' ? (
               <div key={index} className="ml-auto flex max-w-[90%] items-start justify-end gap-2 sm:max-w-[600px]"><div className="min-w-0 break-words rounded-2xl rounded-tr-md bg-cloudera-navy px-4 py-3 text-sm leading-6 text-white">{message.content}</div><div className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-slate-200 text-slate-600"><UserRound size={15} /></div></div>
             ) : (
-              <div key={index} className="flex min-w-0 items-start gap-3"><div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-cloudera-orange text-white"><Sparkles size={17} /></div><div className="min-w-0 max-w-[760px] flex-1 rounded-2xl rounded-tl-md border border-slate-200 bg-white p-4 shadow-sm sm:p-5">{message.response ? <StructuredAnswer response={message.response} onSelectFollowUp={submit} /> : <div className="text-sm leading-6 text-slate-700">{message.content}</div>}</div></div>
+              <div key={index} className="flex min-w-0 items-start gap-3"><ScanMark size={36} /><div className="min-w-0 max-w-[760px] flex-1 rounded-2xl rounded-tl-md border border-slate-200 bg-white p-4 shadow-sm sm:p-5">{message.response ? <StructuredAnswer response={message.response} onSelectFollowUp={submit} /> : <div className="text-sm leading-6 text-slate-700">{message.content}</div>}</div></div>
             ))}
-            {loading && <div className="flex items-center gap-3"><div className="grid h-9 w-9 place-items-center rounded-xl bg-cloudera-orange text-white"><Sparkles size={17} /></div><div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-500"><span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-cloudera-orange" />Analyzing governed data...</div></div>}
+            {loading && <div className="flex items-center gap-3"><ScanMark size={36} /><div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-500"><span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-cloudera-orange" />Analyzing governed data...</div></div>}
             <div ref={conversationEnd} aria-hidden="true" />
           </div>
 

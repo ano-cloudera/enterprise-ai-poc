@@ -34,10 +34,13 @@ describe('Dashboard v2', () => {
   beforeEach(() => vi.clearAllMocks())
   afterEach(() => { cleanup() })
 
-  it('renders executive header, compact filters, and five governed KPI slots', () => {
+  it('renders compact filters and five governed KPI slots without a page title', () => {
     render(<DashboardPage />)
     expect(screen.queryByText(/^Commercial Intelligence$/i)).toBeNull()
-    screen.getByRole('heading', { name: 'Commercial Dashboard' })
+    // The page-level "Commercial Dashboard" heading was removed so filters
+    // and content sit closer to the top instead of under a repeated title
+    // (the app shell header already names the page).
+    expect(screen.queryByRole('heading', { name: 'Commercial Dashboard' })).toBeNull()
     for (const label of ['Date Range', 'Region', 'Product', 'Channel']) screen.getByLabelText(label)
     for (const label of ['Net Sales', 'Growth vs Previous Period', 'Forecast Next Period', 'Top Region', 'Market Opportunity']) screen.getByText(label)
     expect(screen.queryByText('Inventory Health')).toBeNull()
@@ -67,7 +70,7 @@ describe('Dashboard v2', () => {
 
     expect(document.getElementById('key-business-signals')).toBeNull()
     expect(screen.queryByText('Key Business Signals')).toBeNull()
-    expect([...sales!.querySelectorAll('div')].some(element => element.className.includes('sm:h-[300px]'))).toBe(true)
+    expect([...sales!.querySelectorAll('div')].some(element => element.className.includes('sm:h-[280px]'))).toBe(true)
     expect(region?.className).toContain('xl:col-span-5')
     expect(product?.className).toContain('xl:col-span-7')
     expect(channel?.className).toContain('xl:col-span-5')
@@ -95,5 +98,16 @@ describe('Dashboard v2', () => {
     expect(container.querySelector('.lucide-map-pin')).toBeTruthy()
     expect(container.querySelector('.lucide-package')).toBeTruthy()
     expect(container.querySelector('.lucide-store')).toBeTruthy()
+  })
+
+  // The trend card used to be a bare line chart with nothing else on it.
+  // It now splits into the chart plus a metrics panel (best month, period
+  // average, latest month-over-month move) so the card carries more signal
+  // at a glance instead of requiring a hover to read any number off it.
+  it('shows a metrics panel beside the sales trend chart', () => {
+    render(<DashboardPage />)
+    screen.getByText('Best month')
+    screen.getByText('Period average')
+    screen.getByText('Latest move')
   })
 })

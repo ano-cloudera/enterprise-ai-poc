@@ -2,8 +2,8 @@
 
 import { useRef, type ReactNode } from 'react'
 import {
-  CalendarDays, ChevronDown, CircleDollarSign, LineChart as LineChartIcon,
-  CloudSun, MapPin, Package, RefreshCcw, RotateCcw, Store,
+  ArrowDownRight, ArrowUpRight, CalendarDays, ChevronDown, CircleDollarSign, LineChart as LineChartIcon,
+  CloudSun, Crosshair, MapPin, Package, RefreshCcw, RotateCcw, Store,
   Target, TrendingUp,
 } from 'lucide-react'
 import {
@@ -13,7 +13,6 @@ import {
 import { AiAppliedContext } from '../components/AiAppliedContext'
 import { ChartCard } from '../components/ChartCard'
 import { KpiCard } from '../components/KpiCard'
-import { PageIntro } from '../components/PageIntro'
 import { api } from '../lib/api'
 import { useDashboardState } from '../lib/dashboardState'
 import { useFetch } from '../hooks/useFetch'
@@ -48,12 +47,6 @@ export function DashboardPage() {
 
   return (
     <div className="min-w-0">
-      <PageIntro
-        title="Commercial Dashboard"
-        subtitle="Sales performance and commercial insights from governed business data."
-        action={data.refreshed_at ? <div className="flex items-center gap-1.5 text-xs text-slate-400"><RefreshCcw size={16} strokeWidth={2} />Last refreshed: {formatRefresh(data.refreshed_at)}</div> : undefined}
-      />
-
       <DashboardFilters
         dateLabel={latestPeriod}
         options={cachedOptions.current}
@@ -62,6 +55,7 @@ export function DashboardPage() {
         onDateChange={value => applyActions([{ type: 'SET_DATE_RANGE', value }])}
         onFilterChange={(target, value) => setFilter(target, value ? [value] : [])}
         onReset={reset}
+        refreshedAt={data.refreshed_at}
       />
       <AiAppliedContext items={displayContextItems(state.ai_applied_context, latestPeriod)} onRemove={removeAppliedContext} onReset={reset} onUndo={undoAiChanges} canUndo={Boolean(previousDashboardState)} />
 
@@ -77,17 +71,20 @@ export function DashboardPage() {
         <div id="sales-performance" className="min-w-0 scroll-mt-4 [&>section]:h-full">
           <ChartCard title="Sales Performance" subtitle={`Historical actual sales${forecast ? ' with next-period forecast' : ''} • Million IDR`} action={<ChartKey hasForecast={Boolean(forecast)} />}>
             {trend.length ? (
-              <div className="h-[280px] sm:h-[300px]">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={trend} margin={{ top: 10, right: 12, left: 2, bottom: 0 }}>
-                    <CartesianGrid vertical={false} strokeDasharray="3 3" />
-                    <XAxis dataKey="month" tickFormatter={formatAxisMonth} tick={{ fontSize: 11, fill: '#7C849A' }} axisLine={false} tickLine={false} />
-                    <YAxis width={58} tickFormatter={formatAxisSales} tick={{ fontSize: 11, fill: '#7C849A' }} axisLine={false} tickLine={false} />
-                    <Tooltip formatter={value => [formatSales(Number(value)), 'Sales']} labelFormatter={formatAxisMonth} />
-                    <Line type="monotone" dataKey="actual" name="Actual" stroke="#FF5A1F" strokeWidth={2.5} dot={{ r: 3, fill: '#FF5A1F', strokeWidth: 0 }} connectNulls={false} />
-                    {forecast && <Line type="monotone" dataKey="forecast" name="Forecast" stroke="#635BFF" strokeWidth={2.5} strokeDasharray="6 5" dot={{ r: 3, fill: '#635BFF', strokeWidth: 0 }} connectNulls />}
-                  </LineChart>
-                </ResponsiveContainer>
+              <div className="grid gap-5 lg:grid-cols-[1fr_200px]">
+                <div className="h-[260px] sm:h-[280px]">
+                  <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={trend} margin={{ top: 10, right: 12, left: 2, bottom: 0 }}>
+                      <CartesianGrid vertical={false} strokeDasharray="3 3" />
+                      <XAxis dataKey="month" tickFormatter={formatAxisMonth} tick={{ fontSize: 11, fill: '#7C849A' }} axisLine={false} tickLine={false} />
+                      <YAxis width={58} tickFormatter={formatAxisSales} tick={{ fontSize: 11, fill: '#7C849A' }} axisLine={false} tickLine={false} />
+                      <Tooltip formatter={value => [formatSales(Number(value)), 'Sales']} labelFormatter={formatAxisMonth} />
+                      <Line type="monotone" dataKey="actual" name="Actual" stroke="#FF5A1F" strokeWidth={2.5} dot={{ r: 3, fill: '#FF5A1F', strokeWidth: 0 }} connectNulls={false} />
+                      {forecast && <Line type="monotone" dataKey="forecast" name="Forecast" stroke="#635BFF" strokeWidth={2.5} strokeDasharray="6 5" dot={{ r: 3, fill: '#635BFF', strokeWidth: 0 }} connectNulls />}
+                    </LineChart>
+                  </ResponsiveContainer>
+                </div>
+                <TrendMetricsPanel data={data} trend={trend} />
               </div>
             ) : <EmptyState message="Sales trend is not available for this context." />}
           </ChartCard>
@@ -107,7 +104,7 @@ export function DashboardPage() {
   )
 }
 
-function DashboardFilters({ dateLabel, datePreset, filters, options, onDateChange, onFilterChange, onReset }: {
+function DashboardFilters({ dateLabel, datePreset, filters, options, onDateChange, onFilterChange, onReset, refreshedAt }: {
   dateLabel: string
   datePreset: string
   filters: Record<string, string[]>
@@ -115,6 +112,7 @@ function DashboardFilters({ dateLabel, datePreset, filters, options, onDateChang
   onDateChange: (value: string) => void
   onFilterChange: (target: string, value: string) => void
   onReset: () => void
+  refreshedAt?: string
 }) {
   return (
     <section aria-label="Dashboard filters" className="card grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-[1.15fr_1fr_1fr_1fr_auto] lg:items-end">
@@ -122,13 +120,68 @@ function DashboardFilters({ dateLabel, datePreset, filters, options, onDateChang
       <FilterSelect label="Region" icon={MapPin} value={filters.region?.[0] || ''} onChange={value => onFilterChange('region', value)} options={[{ value: '', label: 'All Regions' }, ...options.region.map(value => ({ value, label: value }))]} />
       <FilterSelect label="Product" icon={Package} value={filters.product?.[0] || ''} onChange={value => onFilterChange('product', value)} options={[{ value: '', label: 'All Products' }, ...options.product.map(value => ({ value, label: value }))]} />
       <FilterSelect label="Channel" icon={Store} value={filters.channel?.[0] || ''} onChange={value => onFilterChange('channel', value)} options={[{ value: '', label: 'All Channels' }, ...options.channel.map(value => ({ value, label: value }))]} />
-      <button type="button" onClick={onReset} className="btn-secondary h-[42px] px-3" aria-label="Reset dashboard filters"><RotateCcw size={16} strokeWidth={2} /><span className="lg:hidden 2xl:inline">Reset</span></button>
+      <div className="flex items-center gap-2">
+        <button type="button" onClick={onReset} className="btn-secondary h-[42px] px-3" aria-label="Reset dashboard filters"><RotateCcw size={16} strokeWidth={2} /><span className="lg:hidden 2xl:inline">Reset</span></button>
+        {refreshedAt && <span className="hidden items-center gap-1 whitespace-nowrap text-[10px] text-slate-400 2xl:flex"><RefreshCcw size={12} strokeWidth={2} />{formatRefresh(refreshedAt)}</span>}
+      </div>
     </section>
   )
 }
 
 function FilterSelect({ label, value, options, onChange, icon: Icon }: { label: string; value: string; options: { value: string; label: string }[]; onChange: (value: string) => void; icon: typeof CalendarDays }) {
   return <label className="min-w-0"><span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[.12em] text-slate-400">{label}</span><span className="relative flex items-center"><Icon size={16} strokeWidth={2} className="pointer-events-none absolute left-3 z-10 text-slate-400" /><select aria-label={label} value={value} onChange={event => onChange(event.target.value)} className="h-[42px] w-full appearance-none rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-8 text-xs font-semibold text-cloudera-navy outline-none transition hover:border-slate-300 focus:border-cloudera-violet focus:ring-2 focus:ring-violet-100">{options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select><ChevronDown size={16} strokeWidth={2} className="pointer-events-none absolute right-3 text-slate-400" /></span></label>
+}
+
+// Sits beside the trend line so the chart isn't the only thing on the card:
+// a quick read of peak month, period average, and the latest move, without
+// having to hover the line to find them.
+function TrendMetricsPanel({ data, trend }: { data: DashboardOverview; trend: ReturnType<typeof forecastTrend> }) {
+  const actuals = trend.filter(row => Number.isFinite(row.actual))
+  const peak = actuals.reduce((best, row) => (row.actual > (best?.actual ?? -Infinity) ? row : best), actuals[0])
+  const average = actuals.length ? actuals.reduce((sum, row) => sum + row.actual, 0) / actuals.length : null
+  const latestChange = actuals.length >= 2 ? actuals[actuals.length - 1].actual - actuals[actuals.length - 2].actual : null
+  const latestChangePercent = latestChange !== null && actuals[actuals.length - 2].actual !== 0
+    ? (latestChange / actuals[actuals.length - 2].actual) * 100
+    : null
+
+  const items: { label: string; value: string; icon: typeof TrendingUp; tone: 'up' | 'down' | 'neutral'; hint: string }[] = []
+
+  if (peak) items.push({ label: 'Best month', value: formatSales(peak.actual), icon: TrendingUp, tone: 'neutral', hint: formatAxisMonth(peak.month) })
+  if (average !== null) items.push({ label: 'Period average', value: formatSales(average), icon: Crosshair, tone: 'neutral', hint: `${actuals.length} months` })
+  if (latestChangePercent !== null) {
+    const up = latestChangePercent >= 0
+    items.push({ label: 'Latest move', value: `${up ? '+' : ''}${latestChangePercent.toFixed(1)}%`, icon: up ? ArrowUpRight : ArrowDownRight, tone: up ? 'up' : 'down', hint: 'vs prior month' })
+  }
+  if (data.forecast) {
+    const delta = data.forecast.delta
+    const up = typeof delta === 'number' ? delta >= 0 : true
+    items.push({
+      label: 'Forecast next period',
+      value: formatSales(Number(data.forecast.value)),
+      icon: up ? ArrowUpRight : ArrowDownRight,
+      tone: typeof delta === 'number' ? (up ? 'up' : 'down') : 'neutral',
+      hint: typeof delta === 'number' ? `${delta >= 0 ? '+' : ''}${delta.toFixed(1)}% expected` : 'Projected',
+    })
+  }
+
+  if (!items.length) return null
+
+  const toneClass = { up: 'text-emerald-600', down: 'text-rose-600', neutral: 'text-cloudera-violet' } as const
+
+  return (
+    <div className="flex flex-col justify-center gap-4 border-t border-slate-100 pt-4 lg:border-l lg:border-t-0 lg:pl-5 lg:pt-0">
+      {items.map(item => (
+        <div key={item.label} className="flex items-start gap-2.5">
+          <span className={`mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-lg bg-slate-50 ${toneClass[item.tone]}`}><item.icon size={14} strokeWidth={2.25} /></span>
+          <div className="min-w-0">
+            <div className="text-[10px] font-bold uppercase tracking-[.1em] text-slate-400">{item.label}</div>
+            <div className="mt-0.5 truncate text-[15px] font-black text-cloudera-navy">{item.value}</div>
+            <div className="text-[10px] text-slate-400">{item.hint}</div>
+          </div>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 function RegionRanking({ rows }: { rows: DashboardOverview['region_sales'] }) {
