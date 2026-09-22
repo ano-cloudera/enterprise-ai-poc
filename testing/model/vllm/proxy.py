@@ -10,6 +10,11 @@ from fastapi.responses import JSONResponse, StreamingResponse
 # Configuration
 # =========================================================
 
+# Bumped whenever proxy.py changes in a way we need to verify actually
+# reached the running container (e.g. after debugging a stale-process
+# issue) -- check via GET /debug-version.
+PROXY_BUILD_MARKER = "2026-09-22-normalize-v3"
+
 VLLM_PORT = os.getenv(
     "VLLM_INTERNAL_PORT",
     "9000"
@@ -127,7 +132,22 @@ async def root():
         "service": "Tempo Scan LLM",
         "status": "running",
         "backend": "vLLM",
-        "backend_url": VLLM_BASE_URL
+        "backend_url": VLLM_BASE_URL,
+        "build": PROXY_BUILD_MARKER
+    }
+
+
+# =========================================================
+# Debug: confirm which proxy.py build is actually running
+# =========================================================
+
+@app.get("/debug-version")
+async def debug_version():
+
+    return {
+        "build": PROXY_BUILD_MARKER,
+        "file": __file__,
+        "has_normalize_messages": "normalize_messages" in globals()
     }
 
 
