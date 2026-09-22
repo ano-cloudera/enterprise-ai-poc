@@ -490,7 +490,7 @@ async def direct_chat(state: GraphState) -> GraphState:
         summary = result.reply.message
     except LLMProviderError:
         summary = (
-            "Halo, senang bisa bantu! Aku SCAN, siap gali data komersial bareng kamu. "
+            "Halo, senang bisa bantu! Saya SCAN, siap gali data komersial bersama Anda. "
             "Coba tanya soal performa sales di suatu wilayah, forecast bulan depan, atau posisi produk dibanding kompetitor ya."
             if _resolve_language(state["question"], language) == "id"
             else "Hey there! I'm SCAN, happy to dig into commercial data with you. "

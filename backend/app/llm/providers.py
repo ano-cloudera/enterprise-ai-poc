@@ -119,13 +119,13 @@ class MockLLMProvider:
         language_terms = ("bahasa indonesia", "speak indonesian", "language")
         thanks_terms = ("terima kasih", "thank you", "thanks", "makasih")
         if any(term in text for term in greeting_terms):
-            message = "Halo, senang ketemu kamu! Aku SCAN, siap bantu ngulik data komersial." if language == "id" else "Hey, great to see you! I'm SCAN, ready to help you dig into commercial data."
+            message = "Halo, senang bisa bantu! Saya SCAN, siap bantu ngulik data komersial Anda." if language == "id" else "Hey, great to see you! I'm SCAN, ready to help you dig into commercial data."
         elif any(term in text for term in identity_terms):
-            message = "Aku SCAN, teman AI kamu buat urusan data komersial Tempo Scan." if language == "id" else "I'm SCAN, your AI teammate for Tempo Scan commercial data."
+            message = "Saya SCAN, teman AI Anda buat urusan data komersial Tempo Scan." if language == "id" else "I'm SCAN, your AI teammate for Tempo Scan commercial data."
         elif any(term in text for term in language_terms):
-            message = "Bisa banget! Aku nyaman ngobrol pakai Bahasa Indonesia atau English." if language == "id" else "Sure thing! I'm comfortable chatting in either Bahasa Indonesia or English."
+            message = "Bisa banget! Saya nyaman ngobrol pakai Bahasa Indonesia atau English." if language == "id" else "Sure thing! I'm comfortable chatting in either Bahasa Indonesia or English."
         elif any(term in text for term in thanks_terms):
-            message = "Sama-sama! Ada lagi yang bisa aku bantu soal data komersial kamu?" if language == "id" else "You're very welcome! Anything else about your commercial data I can help with?"
+            message = "Sama-sama! Ada lagi yang bisa saya bantu soal data komersial Anda?" if language == "id" else "You're very welcome! Anything else about your commercial data I can help with?"
         else:
             message = (
                 f"Untuk pertanyaan di luar analisis data komersial, silakan hubungi {SUPPORT_EMAIL}."
@@ -365,10 +365,12 @@ discussed. When in doubt and there is no concrete data-related follow-up cue, pr
     @staticmethod
     def _conversational_messages(question: str, language: str, conversation_history: list[dict[str, str]]) -> list[dict[str, str]]:
         language_instruction = {
-            "id": "Reply in Bahasa Indonesia, in a warm, casual, everyday tone - like a helpful "
-            "colleague chatting on Slack, not a formal corporate assistant. It's fine to use "
-            "relaxed phrasing (\"Halo!\", \"Siap,\", \"Boleh banget\") instead of stiff, textbook "
-            "Indonesian.",
+            "id": "Reply in Bahasa Indonesia, in a warm, approachable tone for business leaders - "
+            "like a sharp colleague, not a stiff corporate script. It's fine to use relaxed "
+            "phrasing (\"Halo!\", \"Siap,\", \"Boleh banget\") instead of textbook-formal "
+            "Indonesian. Always refer to yourself as \"saya\" and the user as \"Anda\", "
+            "consistently, never switch to \"aku\"/\"kamu\" partway through - the warmth should "
+            "come from word choice and phrasing, not from dropping the polite register.",
             "en": "Reply in English, in a warm, casual, everyday tone - like a helpful colleague "
             "chatting on Slack, not a formal corporate assistant.",
         }.get(language, "Reply in the same language as the user's message, in a warm, casual tone.")
