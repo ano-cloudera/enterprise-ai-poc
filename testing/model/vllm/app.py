@@ -51,7 +51,7 @@ BASE_DIR = _resolve_base_dir()
 
 PROJECT_DIR = BASE_DIR.parent
 
-VENV_DIR = PROJECT_DIR / ".venv-vllm"
+VENV_DIR = PROJECT_DIR / ".venv-vllm-v2"
 
 PYTHON_BIN = VENV_DIR / "bin" / "python"
 VLLM_BIN = VENV_DIR / "bin" / "vllm"
