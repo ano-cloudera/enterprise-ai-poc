@@ -11,7 +11,7 @@ const dashboardState = {
   metric: 'net_sales', dimension: 'region', highlights: [], ai_applied_context: [], revision: 0,
   chat: { chart: null, table: { visible: true, columns: [] } },
 }
-const stateActions = { applyActions: vi.fn(), removeAppliedContext: vi.fn(), reset: vi.fn() }
+const stateActions = { applyDashboardAiActions: vi.fn(), removeAppliedContext: vi.fn(), reset: vi.fn() }
 const scrollIntoView = vi.fn()
 
 const response = {

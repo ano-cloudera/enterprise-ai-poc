@@ -9,7 +9,7 @@ import { api } from '../lib/api'
 import { suggestedFollowUps } from '../lib/businessPresentation'
 import { useDashboardState } from '../lib/dashboardState'
 import { formatFloatingAnswerText, formatFloatingDriver } from '../lib/floatingAnswerFormatting'
-import { createSessionId, deleteSession, loadSessions, saveSession, sessionTitle, takeHandoff, type ChatSession, type StoredMessage } from '../lib/chatSessions'
+import { createSessionId, deleteSession, loadSessions, saveSession, sessionTitle, type ChatSession, type StoredMessage } from '../lib/chatSessions'
 import type { ChatResponse } from '../types/api'
 
 const starterQuestions = [
@@ -22,7 +22,7 @@ const starterQuestions = [
 type UIMessage = StoredMessage
 
 export function AskAIPage() {
-  const { state: dashboardState, applyActions } = useDashboardState()
+  const { state: dashboardState, applyDashboardAiActions } = useDashboardState()
   const searchParams = useSearchParams()
   const initial = searchParams.get('q') || ''
   const [input, setInput] = useState('')
@@ -49,7 +49,7 @@ export function AskAIPage() {
     setLoading(true)
     try {
       const response = await api.chat(value, sessionId, dashboardState)
-      applyActions(response.ui_actions)
+      applyDashboardAiActions(response.ui_actions)
       setMessages(current => [...current, { role: 'assistant', content: response.answer.summary, response }])
     } catch {
       setMessages(current => [...current, { role: 'assistant', content: 'Unable to complete the analysis right now. Please try again.' }])
@@ -87,11 +87,6 @@ export function AskAIPage() {
   useEffect(() => {
     if (initialSubmitted.current) return
     initialSubmitted.current = true
-    const handoff = takeHandoff()
-    if (handoff) {
-      setMessages([{ role: 'user', content: handoff.question }, { role: 'assistant', content: handoff.response.answer.summary, response: handoff.response }])
-      return
-    }
     if (initial) submit(initial)
   }, [])
 

@@ -3,8 +3,18 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-li
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 
 import { DashboardStateProvider } from '../lib/dashboardState'
+import { AskAIPage } from './AskAIPage'
 import { DashboardPage } from './DashboardPage'
 import { api } from '../lib/api'
+
+// The dashboard no longer hosts its own chat surface (see DashboardPage.test.tsx:
+// "does not render a floating AI chat entry point"). All conversational AI now
+// goes through the Ask AI page, but it still needs to update the SAME shared
+// dashboard state the dashboard reads from -- that's the whole point of
+// applyDashboardAiActions over the plain applyActions used for manual filters.
+// These tests render Ask AI and Dashboard side by side under one real
+// DashboardStateProvider (no dashboardState mock) to prove that contract still
+// holds end to end now that the floating drawer is gone.
 
 const overview = {
   period: 'Current Month',
@@ -19,12 +29,16 @@ let fetchResult = { data: overview, loading: false, error: null as string | null
 
 vi.mock('../hooks/useFetch', () => ({ useFetch: () => fetchResult }))
 vi.mock('../lib/api', () => ({ api: { chat: vi.fn(), dashboard: vi.fn() } }))
-vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }) }))
+vi.mock('../lib/project', () => ({ useProject: () => ({ config: { project_name: 'Tempo Scan Commercial Intelligence Assistant' } }) }))
+vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }), useSearchParams: () => new URLSearchParams() }))
 
-describe('floating AI shared dashboard state', () => {
+describe('AI actions applied from Ask AI reach the shared dashboard state', () => {
   beforeEach(() => {
     vi.clearAllMocks()
     fetchResult = { data: overview, loading: false, error: null }
+    // jsdom doesn't implement scrollIntoView; AskAIPage calls it to keep the
+    // conversation scrolled to the latest message.
+    Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: vi.fn() })
   })
   afterEach(cleanup)
 
@@ -40,9 +54,8 @@ describe('floating AI shared dashboard state', () => {
       ],
       metadata: { trace_id: 't', session_id: 's', intent: 'analysis', resolved_context: {} as never, execution_time_ms: 1 },
     } as never)
-    render(<DashboardStateProvider><DashboardPage /></DashboardStateProvider>)
-    fireEvent.click(screen.getByRole('button', { name: 'Ask AI' }))
-    fireEvent.change(screen.getByPlaceholderText('Ask about this dashboard...'), { target: { value: 'Bagaimana sales Bodrex di Jawa Barat?' } })
+    render(<DashboardStateProvider><AskAIPage /><DashboardPage /></DashboardStateProvider>)
+    fireEvent.change(screen.getByPlaceholderText('Ask a follow-up question...'), { target: { value: 'Bagaimana sales Bodrex di Jawa Barat?' } })
     fireEvent.click(screen.getByRole('button', { name: 'Send question' }))
 
     await waitFor(() => expect((screen.getByLabelText('Region') as HTMLSelectElement).value).toBe('Jawa Barat'))
@@ -52,29 +65,10 @@ describe('floating AI shared dashboard state', () => {
     screen.getByRole('button', { name: 'Remove Bodrex' })
     screen.getByRole('button', { name: 'Remove Mar 2024' })
 
-    fireEvent.click(within(screen.getByRole('dialog', { name: 'SCAN' })).getByRole('button', { name: 'Undo AI changes' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Undo AI changes' }))
     expect((screen.getByLabelText('Region') as HTMLSelectElement).value).toBe('')
     expect((screen.getByLabelText('Product') as HTMLSelectElement).value).toBe('')
     expect(screen.queryByText('Applied by AI:')).toBeNull()
-  })
-
-  it('keeps the open assistant and its answer mounted while dashboard data refreshes', async () => {
-    vi.mocked(api.chat).mockResolvedValue({
-      status: 'ok', question: 'Kenapa sales turun bulan ini?',
-      answer: { summary: 'Sales turun dibanding periode sebelumnya.', drivers: [], recommended_actions: [], caveats: [] },
-      data: { columns: [], rows: [] }, chart_spec: null, ui_actions: [],
-      metadata: { trace_id: 't', session_id: 's', intent: 'analysis', resolved_context: {} as never, execution_time_ms: 1 },
-    } as never)
-    const view = render(<DashboardStateProvider><DashboardPage /></DashboardStateProvider>)
-    fireEvent.click(screen.getByRole('button', { name: 'Ask AI' }))
-    fireEvent.click(screen.getByRole('button', { name: 'Kenapa sales turun bulan ini?' }))
-    await screen.findByText('Sales turun dibanding periode sebelumnya.')
-
-    fetchResult = { data: overview, loading: true, error: null }
-    view.rerender(<DashboardStateProvider><DashboardPage /></DashboardStateProvider>)
-
-    screen.getByRole('dialog', { name: 'SCAN' })
-    screen.getByText('Sales turun dibanding periode sebelumnya.')
   })
 
   it('shows a controlled empty state for market signals in the default All Products context', () => {
@@ -84,7 +78,7 @@ describe('floating AI shared dashboard state', () => {
     screen.getByText('Use the Product filter or Ask AI to explore market intelligence.')
   })
 
-  it('shows governed market signals once a product context is applied', async () => {
+  it('shows governed market signals once a product context is applied from Ask AI', async () => {
     fetchResult = { data: { ...overview, market_signals: { opportunity_score: 47.9, competitive_pressure: 55.5, weather_correlation: -0.3 } }, loading: false, error: null }
     vi.mocked(api.chat).mockResolvedValue({
       status: 'ok', question: 'Bagaimana Bodrex?',
@@ -93,9 +87,8 @@ describe('floating AI shared dashboard state', () => {
       ui_actions: [{ type: 'SET_FILTER', target: 'product', value: ['Bodrex'] }],
       metadata: { trace_id: 't', session_id: 's', intent: 'analysis', resolved_context: {} as never, execution_time_ms: 1 },
     } as never)
-    render(<DashboardStateProvider><DashboardPage /></DashboardStateProvider>)
-    fireEvent.click(screen.getByRole('button', { name: 'Ask AI' }))
-    fireEvent.change(screen.getByPlaceholderText('Ask about this dashboard...'), { target: { value: 'Bagaimana Bodrex?' } })
+    render(<DashboardStateProvider><AskAIPage /><DashboardPage /></DashboardStateProvider>)
+    fireEvent.change(screen.getByPlaceholderText('Ask a follow-up question...'), { target: { value: 'Bagaimana Bodrex?' } })
     fireEvent.click(screen.getByRole('button', { name: 'Send question' }))
 
     await waitFor(() => expect((screen.getByLabelText('Product') as HTMLSelectElement).value).toBe('Bodrex'))
@@ -104,5 +97,4 @@ describe('floating AI shared dashboard state', () => {
     expect(screen.getAllByText('55.5').length).toBeGreaterThan(0)
     expect(screen.getAllByText('-0.30').length).toBeGreaterThan(0)
   })
-
 })

@@ -1,56 +1,32 @@
 'use client'
 
-import { FormEvent, useEffect, useRef, useState, type ReactNode } from 'react'
+import { useRef, type ReactNode } from 'react'
 import {
-  ArrowRight, ArrowUp, Bot, CalendarDays, CheckCircle2, ChevronDown, CircleDollarSign, LineChart as LineChartIcon,
-  CloudSun, MapPin, MessageSquareText, Package, RefreshCcw, RotateCcw, Store,
-  Target, TrendingUp, Undo2, X,
+  CalendarDays, ChevronDown, CircleDollarSign, LineChart as LineChartIcon,
+  CloudSun, MapPin, Package, RefreshCcw, RotateCcw, Store,
+  Target, TrendingUp,
 } from 'lucide-react'
 import {
   CartesianGrid, Cell, Line, LineChart, Pie, PieChart,
   ResponsiveContainer, Tooltip, XAxis, YAxis,
 } from 'recharts'
-import { useRouter } from 'next/navigation'
 import { AiAppliedContext } from '../components/AiAppliedContext'
 import { ChartCard } from '../components/ChartCard'
 import { KpiCard } from '../components/KpiCard'
 import { PageIntro } from '../components/PageIntro'
 import { api } from '../lib/api'
 import { useDashboardState } from '../lib/dashboardState'
-import { actionLabel, dashboardSectionForAction, partitionDashboardAiActions, selectDashboardActions } from '../lib/dashboardAiActions'
-import { formatFloatingAnswerText, formatFloatingDriver } from '../lib/floatingAnswerFormatting'
-import { createSessionId, setHandoff } from '../lib/chatSessions'
 import { useFetch } from '../hooks/useFetch'
-import type { AppliedContextItem, ChatResponse, DashboardOverview, UIAction } from '../types/api'
+import type { AppliedContextItem, DashboardOverview } from '../types/api'
 
 const pieColors = ['#FF5A1F', '#24135F', '#635BFF', '#9A8CFF', '#CBD5E1']
-const suggestedQuestions = [
-  'Kenapa sales turun bulan ini?',
-  'Region mana yang turun paling besar?',
-  'Channel mana yang paling terdampak?',
-  'Produk mana yang menjadi driver utama?',
-  'Bagaimana forecast bulan depan?',
-]
 
 type FilterOptions = { region: string[]; product: string[]; channel: string[] }
-type DrawerMessage = { role: 'user' | 'assistant'; content: string; response?: ChatResponse; automaticActions?: ChatResponse['ui_actions']; pendingActions?: ChatResponse['ui_actions'] }
 
 export function DashboardPage() {
-  const { state, previousDashboardState, applyActions, applyDashboardAiActions, undoAiChanges, setFilter, removeAppliedContext, reset } = useDashboardState()
+  const { state, previousDashboardState, applyActions, undoAiChanges, setFilter, removeAppliedContext, reset } = useDashboardState()
   const { data, loading, error } = useFetch(() => api.dashboard(state), [state.revision])
-  const [assistantOpen, setAssistantOpen] = useState(false)
-  const [focusedSection, setFocusedSection] = useState<string | null>(null)
-  const focusTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const cachedOptions = useRef<FilterOptions>({ region: [], product: [], channel: [] })
-
-  useEffect(() => () => { if (focusTimer.current) clearTimeout(focusTimer.current) }, [])
-
-  function focusSection(sectionId: string) {
-    focusDashboardSection(sectionId)
-    setFocusedSection(sectionId)
-    if (focusTimer.current) clearTimeout(focusTimer.current)
-    focusTimer.current = setTimeout(() => setFocusedSection(null), 2000)
-  }
 
   if (data) {
     cachedOptions.current = {
@@ -98,7 +74,7 @@ export function DashboardPage() {
       </section>
 
       <div className="mt-4 min-w-0">
-        <div id="sales-performance" data-focused={focusedSection === 'sales-performance'} className={focusClass('min-w-0 scroll-mt-4 [&>section]:h-full', focusedSection === 'sales-performance')}>
+        <div id="sales-performance" className="min-w-0 scroll-mt-4 [&>section]:h-full">
           <ChartCard title="Sales Performance" subtitle={`Historical actual sales${forecast ? ' with next-period forecast' : ''} • Million IDR`} action={<ChartKey hasForecast={Boolean(forecast)} />}>
             {trend.length ? (
               <div className="h-[280px] sm:h-[300px]">
@@ -119,17 +95,14 @@ export function DashboardPage() {
       </div>
 
       <div className="mt-4 grid min-w-0 gap-4 xl:grid-cols-12">
-        <div id="sales-by-region" data-focused={focusedSection === 'sales-by-region'} className={focusClass('min-w-0 scroll-mt-4 xl:col-span-5 [&>section]:h-full', focusedSection === 'sales-by-region')}><ChartCard title="Sales by Region" subtitle={`${latestPeriod} • Million IDR`}>{data.region_sales.length ? <RegionRanking rows={data.region_sales} /> : <EmptyState message="No regional sales are available for these filters." />}</ChartCard></div>
-        <div id="product-performance" data-focused={focusedSection === 'product-performance'} className={focusClass('min-w-0 scroll-mt-4 xl:col-span-7 [&>section]:h-full', focusedSection === 'product-performance')}><ChartCard title="Product Performance" subtitle="Top products in the selected commercial context">{data.top_products.length ? <ProductTable rows={data.top_products} /> : <EmptyState message="No product sales are available for these filters." />}</ChartCard></div>
+        <div id="sales-by-region" className="min-w-0 scroll-mt-4 xl:col-span-5 [&>section]:h-full"><ChartCard title="Sales by Region" subtitle={`${latestPeriod} • Million IDR`}>{data.region_sales.length ? <RegionRanking rows={data.region_sales} /> : <EmptyState message="No regional sales are available for these filters." />}</ChartCard></div>
+        <div id="product-performance" className="min-w-0 scroll-mt-4 xl:col-span-7 [&>section]:h-full"><ChartCard title="Product Performance" subtitle="Top products in the selected commercial context">{data.top_products.length ? <ProductTable rows={data.top_products} /> : <EmptyState message="No product sales are available for these filters." />}</ChartCard></div>
       </div>
 
       <div className="mt-4 grid min-w-0 gap-4 xl:grid-cols-12">
-        <div id="channel-contribution" data-focused={focusedSection === 'channel-contribution'} className={focusClass('min-w-0 scroll-mt-4 xl:col-span-5 [&>section]:h-full', focusedSection === 'channel-contribution')}><ChartCard title="Channel Contribution" subtitle="Share of selected-period sales">{data.channel_share.length ? <ChannelDistribution rows={data.channel_share} /> : <EmptyState message="No channel contribution is available for these filters." />}</ChartCard></div>
-        <div id="market-signals" data-focused={focusedSection === 'market-signals'} className={focusClass('min-w-0 scroll-mt-4 xl:col-span-7 [&>section]:h-full', focusedSection === 'market-signals')}><ChartCard title="Market Opportunity & External Signals" subtitle="Governed signals available for the active context"><ExternalSignals signals={data.market_signals} hasProductContext={Boolean(state.filters.product?.[0])} /></ChartCard></div>
+        <div id="channel-contribution" className="min-w-0 scroll-mt-4 xl:col-span-5 [&>section]:h-full"><ChartCard title="Channel Contribution" subtitle="Share of selected-period sales">{data.channel_share.length ? <ChannelDistribution rows={data.channel_share} /> : <EmptyState message="No channel contribution is available for these filters." />}</ChartCard></div>
+        <div id="market-signals" className="min-w-0 scroll-mt-4 xl:col-span-7 [&>section]:h-full"><ChartCard title="Market Opportunity & External Signals" subtitle="Governed signals available for the active context"><ExternalSignals signals={data.market_signals} hasProductContext={Boolean(state.filters.product?.[0])} /></ChartCard></div>
       </div>
-
-      <button onClick={() => setAssistantOpen(true)} className="fixed bottom-5 right-5 z-40 inline-flex items-center gap-2 rounded-full bg-cloudera-navy px-4 py-3 text-sm font-bold text-white shadow-xl transition hover:-translate-y-0.5 hover:bg-[#24135f] sm:bottom-7 sm:right-7" aria-label="Ask AI"><MessageSquareText size={16} strokeWidth={2} className="text-cloudera-orange" />Ask AI</button>
-      {assistantOpen && <DashboardAssistant contextItems={contextItems(latestPeriod, state.filters)} appliedItems={displayContextItems(state.ai_applied_context, latestPeriod)} periodLabel={latestPeriod} state={state} applyActions={applyActions} applyDashboardAiActions={applyDashboardAiActions} canUndo={Boolean(previousDashboardState)} onFocusSection={focusSection} onUndo={undoAiChanges} onReset={reset} onClose={() => setAssistantOpen(false)} />}
     </div>
   )
 }
@@ -156,79 +129,6 @@ function DashboardFilters({ dateLabel, datePreset, filters, options, onDateChang
 
 function FilterSelect({ label, value, options, onChange, icon: Icon }: { label: string; value: string; options: { value: string; label: string }[]; onChange: (value: string) => void; icon: typeof CalendarDays }) {
   return <label className="min-w-0"><span className="mb-1.5 block text-[10px] font-bold uppercase tracking-[.12em] text-slate-400">{label}</span><span className="relative flex items-center"><Icon size={16} strokeWidth={2} className="pointer-events-none absolute left-3 z-10 text-slate-400" /><select aria-label={label} value={value} onChange={event => onChange(event.target.value)} className="h-[42px] w-full appearance-none rounded-lg border border-slate-200 bg-white py-2 pl-9 pr-8 text-xs font-semibold text-cloudera-navy outline-none transition hover:border-slate-300 focus:border-cloudera-violet focus:ring-2 focus:ring-violet-100">{options.map(option => <option key={option.value} value={option.value}>{option.label}</option>)}</select><ChevronDown size={16} strokeWidth={2} className="pointer-events-none absolute right-3 text-slate-400" /></span></label>
-}
-
-function DashboardAssistant({ contextItems, appliedItems, periodLabel, state, applyActions, applyDashboardAiActions, canUndo, onFocusSection, onUndo, onReset, onClose }: { contextItems: string[]; appliedItems: AppliedContextItem[]; periodLabel: string; state: Parameters<typeof api.dashboard>[0]; applyActions: (actions: ChatResponse['ui_actions']) => void; applyDashboardAiActions: (actions: ChatResponse['ui_actions']) => void; canUndo: boolean; onFocusSection: (sectionId: string) => void; onUndo: () => void; onReset: () => void; onClose: () => void }) {
-  const router = useRouter()
-  const [sessionId] = useState(createSessionId)
-  const [messages, setMessages] = useState<DrawerMessage[]>([])
-  const [input, setInput] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  async function submit(question = input) {
-    const value = question.trim()
-    if (!value || loading) return
-    setMessages(current => [...current, { role: 'user', content: value }])
-    setInput('')
-    setLoading(true)
-    try {
-      const response = await api.chat(value, sessionId, state)
-      const actions = partitionDashboardAiActions(response.ui_actions)
-      if (actions.automatic.length) applyDashboardAiActions(actions.automatic)
-      setMessages(current => [...current, { role: 'assistant', content: response.answer.summary, response, automaticActions: actions.automatic, pendingActions: selectDashboardActions(actions.confirmationRequired) }])
-    } catch {
-      setMessages(current => [...current, { role: 'assistant', content: 'Unable to complete the analysis right now. Please try again.' }])
-    } finally { setLoading(false) }
-  }
-
-  function confirmAction(messageIndex: number, actionIndex: number) {
-    const message = messages[messageIndex]
-    const action = message?.pendingActions?.[actionIndex]
-    if (!action) return
-    applyActions([action])
-    setMessages(current => current.map((item, index) => index === messageIndex ? { ...item, pendingActions: item.pendingActions?.filter((_, pendingIndex) => pendingIndex !== actionIndex) } : item))
-    onFocusSection(dashboardSectionForAction(action))
-  }
-
-  function continueInAskAi() {
-    const latestQuestion = [...messages].reverse().find(message => message.role === 'user')?.content
-    const latestResponse = [...messages].reverse().find(message => message.response)?.response
-    if (latestQuestion && latestResponse) setHandoff({ question: latestQuestion, response: latestResponse })
-    router.push('/ask-ai')
-  }
-
-  return (
-    <div className="fixed inset-0 z-50 bg-cloudera-navy/15 sm:backdrop-blur-[1px]" onMouseDown={event => { if (event.target === event.currentTarget) onClose() }}>
-      <aside role="dialog" aria-modal="true" aria-label="SCAN" className="ml-auto flex h-full w-full flex-col bg-white shadow-2xl sm:max-w-[410px]">
-        <header className="sticky top-0 z-10 flex items-center justify-between border-b border-slate-200 bg-white px-4 py-3.5"><div className="flex items-center gap-2.5"><span className="grid h-8 w-8 place-items-center rounded-lg bg-violet-50 text-cloudera-violet"><Bot size={16} strokeWidth={2} /></span><div><div className="text-sm font-extrabold text-cloudera-navy">SCAN</div><div className="text-[10px] text-emerald-600">● Governed data connected</div></div></div><button onClick={onClose} aria-label="Close AI assistant" className="grid h-9 w-9 place-items-center rounded-lg text-slate-500 hover:bg-slate-100"><X size={16} strokeWidth={2} /></button></header>
-        <div className="border-b border-slate-100 bg-slate-50 px-4 py-3"><div className="text-[10px] font-bold uppercase tracking-[.12em] text-slate-400">Current dashboard context</div><div className="mt-2 flex flex-wrap gap-1.5">{contextItems.map(item => <span key={item} className="rounded-full border border-slate-200 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600">{item}</span>)}</div>{appliedItems.length > 0 && <div className="mt-2.5 flex items-center gap-3 border-t border-slate-200 pt-2"><span className="mr-auto text-[10px] font-extrabold uppercase tracking-[.1em] text-cloudera-orange">Applied by AI</span>{canUndo && <button type="button" onClick={onUndo} className="inline-flex items-center gap-1 text-[11px] font-bold text-cloudera-violet"><Undo2 size={12} />Undo AI changes</button>}<button type="button" onClick={onReset} className="text-[11px] font-bold text-slate-500">Reset all</button></div>}</div>
-        <div className="flex-1 space-y-3 overflow-y-auto p-4">
-          {messages.length === 0 && <><div className="rounded-xl border border-violet-100 bg-violet-50/60 p-3 text-xs leading-5 text-slate-600">Ask a commercial question. Answers use the same controlled API and shared dashboard context as Ask AI.</div><div className="space-y-2">{suggestedQuestions.map(question => <button key={question} onClick={() => submit(question)} className="w-full rounded-xl border border-slate-200 px-3 py-2.5 text-left text-xs font-semibold text-slate-600 transition hover:border-orange-200 hover:text-cloudera-navy">{question}</button>)}</div></>}
-          {messages.map((message, index) => message.role === 'user'
-            ? <div key={`${message.role}-${index}`} className="ml-auto max-w-[88%] rounded-xl bg-cloudera-navy px-3 py-2.5 text-xs leading-5 text-white">{message.content}</div>
-            : <DrawerAnswer key={`${message.role}-${index}`} message={message} periodLabel={periodLabel} onConfirm={actionIndex => confirmAction(index, actionIndex)} onContinue={continueInAskAi} />)}
-          {loading && <div className="flex items-center gap-2 text-xs text-slate-500"><span className="h-2 w-2 animate-pulse rounded-full bg-cloudera-orange" />Analyzing governed data…</div>}
-        </div>
-        <form onSubmit={(event: FormEvent) => { event.preventDefault(); submit() }} className="sticky bottom-0 border-t border-slate-200 bg-white p-3"><div className="flex items-end gap-2 rounded-xl border border-slate-200 p-2 focus-within:border-cloudera-violet"><textarea value={input} onChange={event => setInput(event.target.value)} onKeyDown={event => { if (event.key !== 'Enter' || event.shiftKey || !input.trim() || loading) return; event.preventDefault(); submit() }} rows={2} placeholder="Ask about this dashboard..." className="min-h-[44px] flex-1 resize-none bg-transparent px-1 py-1 text-sm outline-none" /><button disabled={loading || !input.trim()} aria-label="Send question" className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-cloudera-orange text-white disabled:opacity-40"><ArrowUp size={16} strokeWidth={2} /></button></div></form>
-      </aside>
-    </div>
-  )
-}
-
-function DrawerAnswer({ message, periodLabel, onConfirm, onContinue }: { message: DrawerMessage; periodLabel: string; onConfirm: (index: number) => void; onContinue: () => void }) {
-  const drivers = message.response?.answer.drivers.slice(0, 3).map(formatFloatingDriver).filter(Boolean) || []
-  const caveats = message.response?.answer.caveats.slice(0, 2) || []
-  const isConversational = message.response?.metadata.intent === 'conversational'
-  const showSummaryLabel = Boolean(message.response) && !isConversational
-  return <div aria-label={message.response ? 'AI response' : 'Assistant message'} className="max-w-[94%] rounded-xl border border-slate-200 bg-white p-3 text-xs leading-5 text-slate-700 shadow-sm">
-    {showSummaryLabel && <div className="text-[10px] font-extrabold uppercase tracking-[.1em] text-slate-400">Summary</div>}
-    <p className={`${showSummaryLabel ? 'mt-1.5 ' : ''}font-semibold text-cloudera-navy`}>{formatFloatingAnswerText(message.content)}</p>
-    {drivers.length > 0 && <div className="mt-3"><div className="text-[10px] font-extrabold uppercase tracking-[.1em] text-slate-400">Key drivers</div><ul className="mt-1.5 space-y-1">{drivers.map(driver => <li key={driver} className="flex gap-2"><span className="mt-1.5 h-1.5 w-1.5 shrink-0 rounded-full bg-cloudera-orange" />{driver}</li>)}</ul></div>}
-    {caveats.length > 0 && <div className="mt-3 space-y-1 border-t border-slate-100 pt-2 text-[11px] text-slate-400">{caveats.map((item, index) => <p key={`${item}-${index}`}>{formatFloatingAnswerText(item)}</p>)}</div>}
-    {Boolean(message.automaticActions?.length) && <div className="mt-3 rounded-lg border border-emerald-100 bg-emerald-50 p-2.5"><div className="flex items-center gap-1.5 text-[10px] font-extrabold uppercase tracking-[.1em] text-emerald-700"><CheckCircle2 size={13} />Applied to dashboard</div><div className="mt-1 font-semibold text-emerald-800">{automaticActionLabels(message.automaticActions || [], periodLabel).join(' • ')}</div></div>}
-    {Boolean(message.pendingActions?.length) && <div className="mt-3 space-y-2"><div className="text-[10px] font-extrabold uppercase tracking-[.1em] text-slate-400">Next actions</div>{message.pendingActions?.map((action, index) => <button key={`${action.type}-${index}`} type="button" onClick={() => onConfirm(index)} className="w-full rounded-lg border border-violet-200 bg-violet-50 px-3 py-2 text-left font-bold text-cloudera-violet hover:bg-violet-100">{actionLabel(action)}</button>)}</div>}
-    {message.response && <button type="button" onClick={onContinue} className="mt-3 inline-flex items-center gap-1.5 font-bold text-cloudera-violet hover:text-cloudera-navy">Continue analysis in Ask AI <ArrowRight size={13} /></button>}
-  </div>
 }
 
 function RegionRanking({ rows }: { rows: DashboardOverview['region_sales'] }) {
@@ -287,17 +187,5 @@ function formatAxisMonth(value: unknown) { const text = String(value); const par
 function formatRefresh(value: string) { const parsed = new Date(value); return Number.isNaN(parsed.getTime()) ? '' : new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).format(parsed) }
 function formatPeriodMonth(value: string) { const parsed = new Date(`${value.length === 7 ? `${value}-01` : value}T00:00:00Z`); return Number.isNaN(parsed.getTime()) ? value : new Intl.DateTimeFormat('en', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(parsed) }
 function periodLabel(data: DashboardOverview, preset: string | null) { const months = data.sales_trend.map(row => row.month); if (!months.length) return data.period || 'Latest period'; if (preset === 'last_3_months') return `${formatPeriodMonth(months[0])} – ${formatPeriodMonth(months[months.length - 1])}`; if (preset === 'previous_month') return formatPeriodMonth(months[Math.max(0, months.length - 2)]); return formatPeriodMonth(months[months.length - 1]) }
-function contextItems(period: string, filters: Record<string, string[]>) { return [period, filters.region?.[0] || 'All Regions', filters.product?.[0] || 'All Products', filters.channel?.[0] || 'All Channels'] }
 function displayContextItems(items: AppliedContextItem[], period: string) { return items.map(item => item.kind === 'date_range' ? { ...item, label: period } : item) }
-function automaticActionLabels(actions: UIAction[], period: string) {
-  return actions.flatMap(action => {
-    if (action.type === 'SET_FILTER') return action.value
-    if (action.type === 'SET_DATE_RANGE') return [period]
-    if (action.type === 'CHANGE_DIMENSION') return [`Dimension: ${action.value}`]
-    if (action.type === 'HIGHLIGHT_CARD') return [Array.isArray(action.value) ? action.value.join(', ') : action.value]
-    return []
-  })
-}
-function focusClass(base: string, focused: boolean) { return `${base} rounded-2xl transition-all duration-300 ${focused ? 'ring-2 ring-cloudera-orange/50 ring-offset-2' : 'ring-0'}` }
-function focusDashboardSection(id: string) { const section = typeof document === 'undefined' ? null : document.getElementById(id); if (section && typeof section.scrollIntoView === 'function') section.scrollIntoView({ behavior: 'smooth', block: 'start' }) }
 function forecastTrend(data: DashboardOverview) { const rows = data.sales_trend.map(row => ({ month: row.month, actual: Number(row.sales), forecast: null as number | null })); if (data.forecast && rows.length) { rows[rows.length - 1].forecast = rows[rows.length - 1].actual; rows.push({ month: data.forecast.period, actual: Number.NaN, forecast: Number(data.forecast.value) }) } return rows }
