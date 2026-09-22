@@ -2,6 +2,8 @@ import os
 import sys
 import time
 import subprocess
+from pathlib import Path
+
 import requests
 
 
@@ -9,7 +11,39 @@ import requests
 # Configuration
 # =========================================================
 
-BASE_DIR = "/home/cdsw/tempo_llm_vllm_test/vllm"
+def _resolve_base_dir() -> Path:
+    """Locate the vllm/ directory this file lives in.
+
+    CAI can execute an Application's script as interpreter/notebook code
+    (shown as "Cell In[N]" in the logs), where __file__ is not defined at
+    all -- so we can't just trust Path(__file__) like a normal script.
+    Fall back to CDSW_PROJECT_DIR / cwd and search for a "vllm" folder
+    that actually contains this app's files, instead of hardcoding a
+    project folder name that changes per clone/project.
+    """
+    script_path = globals().get("__file__")
+    if script_path:
+        return Path(script_path).resolve().parent
+
+    cwd = Path.cwd().resolve()
+    project_dir_env = os.getenv("CDSW_PROJECT_DIR")
+    candidates = ([Path(project_dir_env).resolve()] if project_dir_env else []) + [cwd]
+
+    for base in candidates:
+        for candidate in (base / "vllm", base):
+            if (candidate / "app.py").is_file() and (candidate / "proxy.py").is_file():
+                return candidate
+        for candidate in base.glob("*/vllm"):
+            if (candidate / "app.py").is_file() and (candidate / "proxy.py").is_file():
+                return candidate
+
+    raise RuntimeError(
+        "Unable to locate the vllm/ application directory. "
+        "Set CDSW_PROJECT_DIR or start this Application from the project root."
+    )
+
+
+BASE_DIR = str(_resolve_base_dir())
 
 MODEL_DIR = os.getenv(
     "MODEL_DIR",
