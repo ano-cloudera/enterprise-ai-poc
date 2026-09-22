@@ -1,6 +1,7 @@
 import os
 import sys
 import time
+import hashlib
 import subprocess
 from pathlib import Path
 
@@ -43,7 +44,25 @@ def _resolve_base_dir() -> Path:
     )
 
 
-BASE_DIR = str(_resolve_base_dir())
+# This file lives at <repo>/testing/model/vllm/app.py; auto-detecting
+# BASE_DIR means we never depend on ~/.local (which can be wiped whenever
+# CAI rebuilds the container) or on a hardcoded project folder name.
+BASE_DIR = _resolve_base_dir()
+
+PROJECT_DIR = BASE_DIR.parent
+
+VENV_DIR = PROJECT_DIR / ".venv-vllm"
+
+PYTHON_BIN = VENV_DIR / "bin" / "python"
+VLLM_BIN = VENV_DIR / "bin" / "vllm"
+
+REQUIREMENTS_FILE = BASE_DIR / "requirements.txt"
+REQUIREMENTS_HASH_FILE = VENV_DIR / ".requirements_hash"
+
+
+# =========================================================
+# Model / ports / vLLM settings
+# =========================================================
 
 MODEL_DIR = os.getenv(
     "MODEL_DIR",
@@ -61,8 +80,12 @@ VLLM_PORT = os.getenv(
 )
 
 MAX_WAIT_SECONDS = int(
-    os.getenv("VLLM_STARTUP_TIMEOUT", "300")
+    os.getenv("VLLM_STARTUP_TIMEOUT", "900")
 )
+
+VLLM_MAX_MODEL_LEN = os.getenv("VLLM_MAX_MODEL_LEN", "4096")
+VLLM_GPU_MEMORY_UTILIZATION = os.getenv("VLLM_GPU_MEMORY_UTILIZATION", "0.90")
+VLLM_MAX_NUM_SEQS = os.getenv("VLLM_MAX_NUM_SEQS", "4")
 
 # Qwen3 / Qwen3.5 default to "thinking" mode (long <think>...</think>
 # reasoning block prepended to every response). Default this OFF for speed
@@ -73,14 +96,28 @@ VLLM_ENABLE_THINKING = os.getenv(
 ).strip().lower() in ("1", "true", "yes")
 
 
+# =========================================================
+# Validation
+# =========================================================
+
 if not APP_PORT:
     raise RuntimeError(
         "CDSW_READONLY_PORT / CDSW_APP_PORT not found."
     )
 
+if not REQUIREMENTS_FILE.exists():
+    raise RuntimeError(
+        f"requirements.txt not found: {REQUIREMENTS_FILE}"
+    )
+
+if not Path(MODEL_DIR).exists():
+    raise RuntimeError(
+        f"Model directory not found: {MODEL_DIR}"
+    )
+
 
 os.chdir(BASE_DIR)
-sys.path.insert(0, BASE_DIR)
+sys.path.insert(0, str(BASE_DIR))
 
 
 # Disable FlashInfer sampler because CAI runtime
@@ -91,12 +128,114 @@ os.environ["VLLM_USE_FLASHINFER_SAMPLER"] = "0"
 print("=" * 60)
 print("Tempo Scan LLM Application")
 print("=" * 60)
-print("Working directory :", os.getcwd())
-print("Model directory   :", MODEL_DIR)
-print("Application port  :", APP_PORT)
-print("vLLM internal port:", VLLM_PORT)
+print("Project directory  :", PROJECT_DIR)
+print("Working directory  :", BASE_DIR)
+print("Model directory    :", MODEL_DIR)
+print("Virtual environment:", VENV_DIR)
+print("Application port   :", APP_PORT)
+print("vLLM internal port :", VLLM_PORT)
+print("Thinking mode      :", VLLM_ENABLE_THINKING)
 print("=" * 60)
 print()
+
+
+# =========================================================
+# Ensure venv + dependencies
+# =========================================================
+# Everything vLLM needs (including the `vllm` CLI itself) is installed
+# into a project-local venv instead of relying on the global/`~/.local`
+# site-packages, which is not guaranteed to survive a CAI container
+# rebuild -- that's what caused "ModuleNotFoundError: No module named
+# 'vllm'" the first time this Application was recreated from scratch.
+
+def calculate_file_hash(path: Path) -> str:
+    sha256 = hashlib.sha256()
+    with open(path, "rb") as file:
+        for chunk in iter(lambda: file.read(1024 * 1024), b""):
+            sha256.update(chunk)
+    return sha256.hexdigest()
+
+
+if not PYTHON_BIN.exists():
+
+    print("=" * 60)
+    print("CREATING VIRTUAL ENVIRONMENT")
+    print("=" * 60)
+
+    subprocess.check_call([sys.executable, "-m", "venv", str(VENV_DIR)])
+
+    print("Virtual environment created:", VENV_DIR)
+
+else:
+
+    print("Using existing virtual environment:", VENV_DIR)
+
+print()
+
+
+pip_env = os.environ.copy()
+pip_env.pop("PIP_USER", None)
+pip_env.pop("PYTHONUSERBASE", None)
+pip_env["PIP_CONFIG_FILE"] = os.devnull
+pip_env["PYTHONNOUSERSITE"] = "1"
+pip_env["VIRTUAL_ENV"] = str(VENV_DIR)
+pip_env["PATH"] = f"{VENV_DIR / 'bin'}:{pip_env.get('PATH', '')}"
+
+
+print("=" * 60)
+print("PREPARING PIP")
+print("=" * 60)
+
+subprocess.check_call(
+    [str(PYTHON_BIN), "-m", "pip", "--isolated", "install",
+     "--upgrade", "pip", "setuptools", "wheel"],
+    env=pip_env
+)
+
+
+current_hash = calculate_file_hash(REQUIREMENTS_FILE)
+installed_hash = (
+    REQUIREMENTS_HASH_FILE.read_text().strip()
+    if REQUIREMENTS_HASH_FILE.exists()
+    else None
+)
+
+if current_hash != installed_hash:
+
+    print()
+    print("=" * 60)
+    print("INSTALLING DEPENDENCIES")
+    print("=" * 60)
+
+    subprocess.check_call(
+        [str(PYTHON_BIN), "-m", "pip", "--isolated", "install",
+         "--no-cache-dir", "-r", str(REQUIREMENTS_FILE)],
+        env=pip_env
+    )
+
+    REQUIREMENTS_HASH_FILE.write_text(current_hash)
+
+else:
+
+    print()
+    print("Requirements unchanged, skipping dependency installation.")
+
+
+if not VLLM_BIN.exists():
+    raise RuntimeError(f"vLLM binary not found after install: {VLLM_BIN}")
+
+
+# =========================================================
+# Runtime env for vLLM / proxy subprocesses
+# =========================================================
+
+run_env = os.environ.copy()
+run_env.pop("PIP_USER", None)
+run_env.pop("PYTHONUSERBASE", None)
+run_env["PYTHONNOUSERSITE"] = "1"
+run_env["VIRTUAL_ENV"] = str(VENV_DIR)
+run_env["PATH"] = f"{VENV_DIR / 'bin'}:{run_env.get('PATH', '')}"
+run_env["VLLM_USE_FLASHINFER_SAMPLER"] = "0"
 
 
 # =========================================================
@@ -104,7 +243,7 @@ print()
 # =========================================================
 
 vllm_cmd = [
-    "vllm",
+    str(VLLM_BIN),
     "serve",
     MODEL_DIR,
 
@@ -115,13 +254,13 @@ vllm_cmd = [
     str(VLLM_PORT),
 
     "--max-model-len",
-    "4096",
+    str(VLLM_MAX_MODEL_LEN),
 
     "--gpu-memory-utilization",
-    "0.90",
+    str(VLLM_GPU_MEMORY_UTILIZATION),
 
     "--max-num-seqs",
-    "4",
+    str(VLLM_MAX_NUM_SEQS),
 
     "--trust-remote-code",
 
@@ -129,10 +268,7 @@ vllm_cmd = [
     # out of message.content into a separate reasoning/reasoning_content
     # field. --default-chat-template-kwargs sets the server-wide default;
     # request-level chat_template_kwargs still take priority over this
-    # default per vLLM's merge behavior. Without this flag, the model's
-    # bundled chat template runs in its default (stricter) mode, which is
-    # what was rejecting messages with "System message must be at the
-    # beginning." even after the proxy normalized them correctly.
+    # default per vLLM's merge behavior.
     "--reasoning-parser",
     "qwen3",
 
@@ -145,14 +281,18 @@ vllm_cmd = [
 ]
 
 
-print("Starting vLLM...")
+print()
+print("=" * 60)
+print("STARTING vLLM")
+print("=" * 60)
 print(" ".join(vllm_cmd))
 print()
 
 
 vllm_process = subprocess.Popen(
     vllm_cmd,
-    env=os.environ.copy()
+    cwd=str(BASE_DIR),
+    env=run_env
 )
 
 
@@ -165,10 +305,6 @@ print()
 # =========================================================
 
 MODELS_URL = f"http://127.0.0.1:{VLLM_PORT}/v1/models"
-
-MAX_WAIT_SECONDS = int(
-    os.getenv("VLLM_STARTUP_TIMEOUT", "900")
-)
 
 POLL_INTERVAL = 5
 
@@ -188,37 +324,18 @@ while True:
 
     elapsed = int(time.time() - start_time)
 
-
-    # -----------------------------------------------------
-    # Check whether vLLM process crashed
-    # -----------------------------------------------------
-
     return_code = vllm_process.poll()
 
     if return_code is not None:
-
         raise RuntimeError(
-            f"vLLM exited during startup "
-            f"with code {return_code}"
+            f"vLLM exited during startup with code {return_code}"
         )
-
-
-    # -----------------------------------------------------
-    # Try OpenAI-compatible endpoint
-    # -----------------------------------------------------
 
     try:
 
-        response = requests.get(
-            MODELS_URL,
-            timeout=10
-        )
+        response = requests.get(MODELS_URL, timeout=10)
 
-        print(
-            f"[{elapsed}s] "
-            f"/v1/models -> HTTP {response.status_code}"
-        )
-
+        print(f"[{elapsed}s] /v1/models -> HTTP {response.status_code}")
 
         if response.status_code == 200:
 
@@ -226,45 +343,26 @@ while True:
             print("=" * 60)
             print("vLLM READY")
             print("=" * 60)
-
-            print(
-                response.text[:2000]
-            )
-
+            print(response.text[:2000])
             print()
 
             vllm_ready = True
             break
 
+    except requests.RequestException:
 
-    except requests.RequestException as e:
-
-        print(
-            f"[{elapsed}s] "
-            f"vLLM still starting..."
-        )
-
-
-    # -----------------------------------------------------
-    # Timeout check AFTER request attempt
-    # -----------------------------------------------------
+        print(f"[{elapsed}s] vLLM still starting...")
 
     if elapsed >= MAX_WAIT_SECONDS:
-
         raise RuntimeError(
-            f"vLLM OpenAI API did not become ready "
-            f"within {MAX_WAIT_SECONDS} seconds."
+            f"vLLM OpenAI API did not become ready within {MAX_WAIT_SECONDS} seconds."
         )
-
 
     time.sleep(POLL_INTERVAL)
 
 
 if not vllm_ready:
-
-    raise RuntimeError(
-        "vLLM readiness validation failed."
-    )
+    raise RuntimeError("vLLM readiness validation failed.")
 
 
 # =========================================================
@@ -272,7 +370,7 @@ if not vllm_ready:
 # =========================================================
 
 proxy_cmd = [
-    sys.executable,
+    str(PYTHON_BIN),
     "-m",
     "uvicorn",
 
@@ -285,21 +383,24 @@ proxy_cmd = [
     str(APP_PORT),
 
     "--app-dir",
-    BASE_DIR,
+    str(BASE_DIR),
 
     "--log-level",
     "info"
 ]
 
 
-print("Starting CAI API proxy...")
+print("=" * 60)
+print("STARTING CAI API PROXY")
+print("=" * 60)
 print(" ".join(proxy_cmd))
 print()
 
 
 proxy_process = subprocess.Popen(
     proxy_cmd,
-    env=os.environ.copy()
+    cwd=str(BASE_DIR),
+    env=run_env
 )
 
 
@@ -308,34 +409,22 @@ print()
 
 
 # =========================================================
-# Keep Application Alive
+# Keep Application alive
 # =========================================================
 
 try:
 
     while True:
 
-        # Proxy died
         proxy_return = proxy_process.poll()
 
         if proxy_return is not None:
+            raise RuntimeError(f"Proxy exited with code {proxy_return}")
 
-            raise RuntimeError(
-                f"Proxy exited with code "
-                f"{proxy_return}"
-            )
-
-
-        # vLLM died
         vllm_return = vllm_process.poll()
 
         if vllm_return is not None:
-
-            raise RuntimeError(
-                f"vLLM exited with code "
-                f"{vllm_return}"
-            )
-
+            raise RuntimeError(f"vLLM exited with code {vllm_return}")
 
         time.sleep(5)
 
@@ -350,39 +439,24 @@ finally:
     print()
     print("Stopping application processes...")
 
-
     if proxy_process.poll() is None:
 
         print("Stopping proxy...")
-
         proxy_process.terminate()
 
         try:
-
-            proxy_process.wait(
-                timeout=10
-            )
-
+            proxy_process.wait(timeout=10)
         except subprocess.TimeoutExpired:
-
             proxy_process.kill()
-
 
     if vllm_process.poll() is None:
 
         print("Stopping vLLM...")
-
         vllm_process.terminate()
 
         try:
-
-            vllm_process.wait(
-                timeout=20
-            )
-
+            vllm_process.wait(timeout=20)
         except subprocess.TimeoutExpired:
-
             vllm_process.kill()
-
 
     print("Application stopped.")
