@@ -64,6 +64,14 @@ MAX_WAIT_SECONDS = int(
     os.getenv("VLLM_STARTUP_TIMEOUT", "300")
 )
 
+# Qwen3 / Qwen3.5 default to "thinking" mode (long <think>...</think>
+# reasoning block prepended to every response). Default this OFF for speed
+# and to avoid leaking raw chain-of-thought; override via CAI Application
+# env var VLLM_ENABLE_THINKING=true if a caller genuinely needs it.
+VLLM_ENABLE_THINKING = os.getenv(
+    "VLLM_ENABLE_THINKING", "false"
+).strip().lower() in ("1", "true", "yes")
+
 
 if not APP_PORT:
     raise RuntimeError(
@@ -116,6 +124,24 @@ vllm_cmd = [
     "4",
 
     "--trust-remote-code",
+
+    # Qwen3 / Qwen3.5 use the "qwen3" reasoning parser to split reasoning
+    # out of message.content into a separate reasoning/reasoning_content
+    # field. --default-chat-template-kwargs sets the server-wide default;
+    # request-level chat_template_kwargs still take priority over this
+    # default per vLLM's merge behavior. Without this flag, the model's
+    # bundled chat template runs in its default (stricter) mode, which is
+    # what was rejecting messages with "System message must be at the
+    # beginning." even after the proxy normalized them correctly.
+    "--reasoning-parser",
+    "qwen3",
+
+    "--default-chat-template-kwargs",
+    (
+        '{"enable_thinking": true}'
+        if VLLM_ENABLE_THINKING
+        else '{"enable_thinking": false}'
+    ),
 ]
 
 
