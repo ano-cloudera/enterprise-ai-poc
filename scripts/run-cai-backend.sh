@@ -42,6 +42,16 @@ mkdir -p runtime
 if [ -f .venv/bin/activate ]; then source .venv/bin/activate; fi
 export PYTHONPATH="$ROOT/backend:${PYTHONPATH:-}"
 
+# --- 1b. Keep the venv in sync with requirements.txt -----------------------
+# Reinstalling every start is cheap once deps are cached (pip skips already
+# satisfied packages), and it prevents a stale venv from missing a dependency
+# that was added to requirements.txt after the venv was first created.
+REQ_FILE="$ROOT/backend/requirements.txt"
+if [ -f "$REQ_FILE" ]; then
+  log "Syncing Python dependencies from backend/requirements.txt..."
+  pip install --quiet -r "$REQ_FILE" || fail "pip install -r $REQ_FILE failed"
+fi
+
 PIDS=()
 cleanup() {
   log "Shutting down..."
