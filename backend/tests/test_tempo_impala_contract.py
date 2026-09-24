@@ -35,9 +35,9 @@ def test_tempo_impala_contract_validator_passes() -> None:
     assert result.returncode == 0, result.stdout + result.stderr
     payload = json.loads(result.stdout)
     assert payload["valid"] is True
-    assert payload["datasets"] == 5
-    assert payload["metrics"] == 28
-    assert payload["golden_questions"] >= 30
+    assert payload["datasets"] == 14
+    assert payload["metrics"] == 39
+    assert payload["golden_questions"] >= 50
 
 
 def test_tempo_impala_model_uses_only_audited_semantic_views() -> None:
