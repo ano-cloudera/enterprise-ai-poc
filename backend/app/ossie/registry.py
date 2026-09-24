@@ -267,6 +267,18 @@ class TempoOssieRegistry:
             "definition": self.metric_definition(metric_name),
         }
 
+    def metric_catalog_for_classification(self) -> list[dict[str, str]]:
+        """Closed list of {name, description} for every governed metric, used
+        as the candidate set an LLM fallback classifier picks from when the
+        deterministic token matcher in resolve_metric() finds no match. Kept
+        separate from resolve_metric so the primary path stays a pure,
+        LLM-free lookup - this only feeds a downstream fallback, never
+        replaces the deterministic result when one exists."""
+        return [
+            {"name": name, "description": str(metric.get("description") or "")}
+            for name, metric in self.metrics.items()
+        ]
+
     def metric_definition(self, metric_name: str) -> dict[str, Any]:
         if metric_name not in self.metrics:
             raise KeyError(metric_name)

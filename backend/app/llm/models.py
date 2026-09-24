@@ -35,6 +35,13 @@ class IntentClassification(StrictModel):
     intent: Literal["analytical", "conversational"]
 
 
+class MetricClassification(StrictModel):
+    # None means "no governed metric in the supplied list answers this
+    # question" - the classifier must not invent a metric name outside the
+    # closed list it was given (see QwenOpenAICompatibleProvider.classify_metric).
+    metric_name: str | None = None
+
+
 class ModelTelemetry(StrictModel):
     trace_id: str
     provider: str
@@ -58,6 +65,11 @@ class AnalysisResult(StrictModel):
 
 class IntentClassificationResult(StrictModel):
     classification: IntentClassification
+    telemetry: ModelTelemetry
+
+
+class MetricClassificationResult(StrictModel):
+    classification: MetricClassification
     telemetry: ModelTelemetry
 
 

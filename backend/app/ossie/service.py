@@ -81,6 +81,42 @@ class TempoOssieService:
     def resolve(self, question: str) -> dict[str, Any]:
         return self.registry.resolve_metric(question)
 
+    async def resolve_with_llm_fallback(self, question: str, *, trace_id: str = "") -> dict[str, Any]:
+        """Tries the deterministic resolver first (resolve()); only calls the
+        LLM metric classifier if that returns anything other than "resolved".
+        The classifier picks from a closed list of governed metric names (see
+        TempoOssieRegistry.metric_catalog_for_classification) and can only
+        ever return one of those names or None - it never generates SQL or
+        invents a metric, so this keeps the "no runtime-invented joins, no
+        ungoverned fallback" governance guarantee the deterministic path
+        already provides. If the LLM call itself fails (provider
+        unavailable, timeout, etc.), the original deterministic result is
+        returned unchanged rather than raising - an LLM outage must not turn
+        a graceful "unsupported" answer into a hard error."""
+        deterministic = self.resolve(question)
+        if deterministic.get("status") == "resolved":
+            return deterministic
+
+        from app.llm.factory import get_llm_provider  # local import: avoid a hard LLM dependency for callers that never need the fallback
+        from app.llm.providers import LLMProviderError
+
+        candidates = self.registry.metric_catalog_for_classification()
+        try:
+            result = await get_llm_provider().classify_metric(question, candidates=candidates, trace_id=trace_id)
+        except LLMProviderError:
+            return deterministic
+
+        metric_name = result.classification.metric_name
+        if not metric_name:
+            return deterministic
+        return {
+            "status": "resolved",
+            "metric": metric_name,
+            "matched_alias": None,
+            "resolved_by": "llm_fallback",
+            "definition": self.registry.metric_definition(metric_name),
+        }
+
     def get_metric_definition(self, metric_name: str) -> dict[str, Any]:
         return self.registry.metric_definition(metric_name)
 

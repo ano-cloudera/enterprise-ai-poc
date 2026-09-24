@@ -101,6 +101,11 @@ class _FakeService:
             },
         }
 
+    async def resolve_with_llm_fallback(self, question, *, trace_id=""):
+        # The deterministic path already resolves in this fixture, so the
+        # LLM fallback is never reached - mirrors resolve()'s result.
+        return self.resolve(question)
+
     def execute_query(self, request, trace_id=""):
         assert request.metric == "gross_billing_value"
         assert request.dimensions == ["calmonth"]
@@ -120,9 +125,10 @@ class _FakeService:
         }
 
 
-def test_ossie_analytical_returns_governed_evidence(monkeypatch) -> None:
+@pytest.mark.asyncio
+async def test_ossie_analytical_returns_governed_evidence(monkeypatch) -> None:
     monkeypatch.setattr(graph_nodes, "get_tempo_ossie_service", lambda: _FakeService())
-    result = graph_nodes.ossie_analytical(
+    result = await graph_nodes.ossie_analytical(
         {
             "question": "Tampilkan Gross Sales per bulan",
             "language": "id",

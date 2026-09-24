@@ -120,3 +120,57 @@ def test_execute_requires_impala_even_when_ossie_enabled() -> None:
     with pytest.raises(RuntimeError, match="OSSIE_REQUIRES_IMPALA_BACKEND"):
         service.execute_query(OssieQueryRequest(metric="gross_billing_value"))
 
+
+@pytest.mark.asyncio
+async def test_llm_fallback_is_not_invoked_when_deterministic_resolver_succeeds() -> None:
+    # Verifies resolve_with_llm_fallback short-circuits on a deterministic
+    # hit and never reaches the LLM path at all (mode="mock" here would
+    # otherwise silently mask a bug that skips the deterministic result).
+    result = await _service().resolve_with_llm_fallback("Berapa Gross Sales selama Q4 2024?")
+    assert result["status"] == "resolved"
+    assert result["metric"] == "gross_billing_value"
+    assert result.get("resolved_by") != "llm_fallback"
+
+
+@pytest.mark.asyncio
+async def test_llm_fallback_returns_deterministic_unsupported_when_mock_finds_no_match() -> None:
+    # llm_mode defaults to "mock", whose classify_metric always reports no
+    # match (see MockLLMProvider.classify_metric) - the original
+    # deterministic "unsupported" result must pass through unchanged.
+    result = await _service().resolve_with_llm_fallback(
+        "Pertanyaan yang benar-benar tidak ada hubungannya dengan metric manapun xyzzy"
+    )
+    assert result["status"] == "unsupported"
+
+
+@pytest.mark.asyncio
+async def test_llm_fallback_resolves_a_metric_the_deterministic_matcher_missed(monkeypatch) -> None:
+    # Simulates the real-world gap this fallback exists for: a phrasing that
+    # shares no token/substring with any registered synonym, so the
+    # deterministic resolver returns "unsupported" even though a governed
+    # metric genuinely answers the question - the LLM path should recover it.
+    from app.llm import factory as llm_factory
+    from app.llm.models import MetricClassification, MetricClassificationResult, ModelTelemetry
+
+    service = _service()
+
+    class _FakeMetricClassifierProvider:
+        async def classify_metric(self, question, *, candidates, trace_id):
+            names = {item["name"] for item in candidates}
+            assert "sat_oos_rate" in names  # the closed list really is the governed catalog
+            return MetricClassificationResult(
+                classification=MetricClassification(metric_name="sat_oos_rate"),
+                telemetry=ModelTelemetry(
+                    trace_id=trace_id, provider="fake", model="fake", latency_ms=1,
+                    retry_count=0, success=True, structured_validation_success=True,
+                ),
+            )
+
+    monkeypatch.setattr(llm_factory, "get_llm_provider", lambda: _FakeMetricClassifierProvider())
+    result = await service.resolve_with_llm_fallback(
+        "Berapa persen survey toko yang mendapati produk habis di rak Desember 2024?"
+    )
+    assert result["status"] == "resolved"
+    assert result["metric"] == "sat_oos_rate"
+    assert result["resolved_by"] == "llm_fallback"
+

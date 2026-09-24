@@ -18,13 +18,30 @@ MODEL_PATH = PROJECT_DIR / "ossie" / "tempo_core.ossie.yaml"
 GOVERNANCE_PATH = PROJECT_DIR / "ossie" / "tempo_governance.yaml"
 GOLDEN_PATH = PROJECT_DIR / "ossie" / "golden_questions.yaml"
 
-EXPECTED_SOURCES = {
+# Original Semantic Contract v1 baseline (5 audited Gold semantic views).
+BASELINE_SOURCES = {
     "gold.rpt_sap_monthly_executive_semantic",
     "gold.rpt_sap_material_month_semantic",
     "gold.rpt_service_level_material_month_semantic",
     "gold.rpt_sap_customer_reconciliation_semantic",
     "gold.rpt_sales_office_performance_semantic",
 }
+# 24 Sep 2026 journey expansion (Stock Tempo -> Sales -> B2B -> SAT-IDM ->
+# OOS, see TEMPO_DATAMART_PLAN.md §8.1): 5 per-domain Gold views + 4
+# cross-domain journey views, all built and validated against Impala
+# (row counts + join match rates) before being registered here.
+JOURNEY_SOURCES = {
+    "gold.corr_b2b_branch_estore_month",
+    "gold.corr_b2b_material_plu",
+    "gold.corr_stock_tempo_month_seta",
+    "gold.rpt_sat_idm_dc_month",
+    "gold.rpt_sat_oos_material_month",
+    "gold.corr_stock_tempo_sales_material_month",
+    "gold.corr_sales_b2b_material_month",
+    "gold.corr_b2b_satidm_branch_month",
+    "gold.corr_satidm_oos_material_month",
+}
+EXPECTED_SOURCES = BASELINE_SOURCES | JOURNEY_SOURCES
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -165,10 +182,12 @@ def validate_contract() -> dict[str, Any]:
         elif status not in {"needs_clarification", "unsupported", "blocked"}:
             errors.append(f"Golden question {question['id']} has unknown status {status}")
 
-    if len(datasets) != 5:
-        errors.append(f"Expected 5 datasets, found {len(datasets)}")
-    if len(metrics) != 28:
-        errors.append(f"Expected 28 metrics, found {len(metrics)}")
+    # Minimums, not exact counts - see BASELINE_SOURCES/JOURNEY_SOURCES above
+    # and TempoOssieRegistry.validate()'s matching comment.
+    if len(datasets) < 5:
+        errors.append(f"Expected at least 5 datasets, found {len(datasets)}")
+    if len(metrics) < 28:
+        errors.append(f"Expected at least 28 metrics, found {len(metrics)}")
 
     return {
         "valid": not errors,

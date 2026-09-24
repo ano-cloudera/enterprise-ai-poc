@@ -195,9 +195,9 @@ def ossie_conversational(state: GraphState) -> GraphState:
     }
 
 
-def ossie_analytical(state: GraphState) -> GraphState:
+async def ossie_analytical(state: GraphState) -> GraphState:
     service = get_tempo_ossie_service()
-    resolution = service.resolve(state["question"])
+    resolution = await service.resolve_with_llm_fallback(state["question"], trace_id=state.get("trace_id", ""))
     language = _language(state["question"])
 
     if resolution["status"] == "needs_clarification":

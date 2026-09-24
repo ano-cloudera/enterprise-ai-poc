@@ -32,6 +32,9 @@ class _FakeOssieService:
             },
         }
 
+    async def resolve_with_llm_fallback(self, question, *, trace_id=""):
+        return self.resolve(question)
+
     def execute_query(self, request, trace_id=""):
         return {
             "sql": "SELECT calmonth, SUM(bill_val) FROM gold.view GROUP BY calmonth",

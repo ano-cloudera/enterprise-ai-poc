@@ -16,6 +16,8 @@ from app.llm.models import (
     ConversationalReplyResult,
     IntentClassification,
     IntentClassificationResult,
+    MetricClassification,
+    MetricClassificationResult,
     ModelHealth,
     ModelTelemetry,
     StructuredAnalysis,
@@ -34,6 +36,9 @@ ANALYSIS_TEMPERATURE = 0.35
 # Intent classification is a forced two-way choice, not prose generation -
 # keep this fully deterministic.
 CLASSIFICATION_TEMPERATURE = 0.0
+# Metric classification is a forced choice from a closed list (or "none") -
+# same reasoning as CLASSIFICATION_TEMPERATURE, must stay deterministic.
+METRIC_CLASSIFICATION_TEMPERATURE = 0.0
 # Same reasoning as ANALYSIS_TEMPERATURE: small talk needs to vary
 # naturally too, not read like the same canned reply every time.
 CONVERSATIONAL_TEMPERATURE = 0.5
@@ -52,6 +57,7 @@ class LLMProviderError(RuntimeError):
 class LLMProvider(Protocol):
     async def generate_structured(self, payload: TrustedAnalysisPayload, *, language: str, trace_id: str) -> AnalysisResult: ...
     async def classify_intent(self, question: str, *, conversation_history: list[dict[str, str]], trace_id: str) -> IntentClassificationResult: ...
+    async def classify_metric(self, question: str, *, candidates: list[dict[str, str]], trace_id: str) -> MetricClassificationResult: ...
     async def generate_conversational_reply(self, question: str, *, language: str, conversation_history: list[dict[str, str]], trace_id: str) -> ConversationalReplyResult: ...
     async def health_check(self) -> ModelHealth: ...
 
@@ -100,6 +106,20 @@ class MockLLMProvider:
             intent = "analytical" if conversation_history else "conversational"
         return IntentClassificationResult(
             classification=IntentClassification(intent=intent),
+            telemetry=ModelTelemetry(
+                trace_id=trace_id, provider="mock", model=self.settings.qwen_model,
+                latency_ms=round((time.perf_counter() - started) * 1000),
+                retry_count=0, success=True, structured_validation_success=True,
+            ),
+        )
+
+    async def classify_metric(self, question: str, *, candidates: list[dict[str, str]], trace_id: str) -> MetricClassificationResult:
+        started = time.perf_counter()
+        # No real model in mock mode - just report "no match" so the caller
+        # falls back to whatever the deterministic resolver already decided,
+        # rather than guessing at a metric name with a keyword stand-in.
+        return MetricClassificationResult(
+            classification=MetricClassification(metric_name=None),
             telemetry=ModelTelemetry(
                 trace_id=trace_id, provider="mock", model=self.settings.qwen_model,
                 latency_ms=round((time.perf_counter() - started) * 1000),
@@ -363,6 +383,81 @@ discussed. When in doubt and there is no concrete data-related follow-up cue, pr
             raise LLMProviderError("invalid_response", latency_ms=round((time.perf_counter() - started) * 1000))
 
     @staticmethod
+    def _metric_classification_messages(question: str, candidates: list[dict[str, str]]) -> list[dict[str, str]]:
+        catalog_lines = "\n".join(
+            f"- {item['name']}: {item['description']}" for item in candidates
+        )
+        system = f"""You match one business question to at most one governed metric from a
+closed catalog. You do not invent a metric name, you do not generate SQL, and you never pick a
+metric outside this exact list:
+{catalog_lines}
+
+Return JSON only: {{"metric_name": "exact_name_from_list_or_null"}}
+Pick the single best-matching metric_name (copied exactly, case-sensitive) if one of the metrics
+above genuinely answers the question. If none of them do, return {{"metric_name": null}} - do not
+guess at the closest one just to return something. A deterministic keyword matcher already tried
+and failed to find a match, so judge by meaning: the question may be phrased very differently from
+the metric's description (different words, different language register), but it still counts as a
+match if a business analyst would agree the metric answers what's being asked."""
+        user = f"Question: {question}"
+        return [{"role": "system", "content": system}, {"role": "user", "content": user}]
+
+    async def classify_metric(self, question: str, *, candidates: list[dict[str, str]], trace_id: str) -> MetricClassificationResult:
+        if not self.settings.qwen_base_url:
+            raise LLMProviderError("unavailable")
+        headers = {"Content-Type": "application/json"}
+        token = self.settings.qwen_api_token.get_secret_value()
+        if token:
+            headers["Authorization"] = f"Bearer {token}"
+        body = {
+            "model": self.settings.qwen_model,
+            "messages": self._metric_classification_messages(question, candidates),
+            "temperature": METRIC_CLASSIFICATION_TEMPERATURE,
+            "max_tokens": 60,
+            "chat_template_kwargs": {"enable_thinking": False, "preserve_thinking": False},
+        }
+        started = time.perf_counter()
+        try:
+            async with httpx.AsyncClient(
+                timeout=self.settings.qwen_request_timeout_seconds,
+                verify=self.settings.qwen_verify_ssl,
+                transport=self.transport,
+            ) as client:
+                response = await client.post(self.endpoint, headers=headers, json=body)
+            if response.status_code >= 400:
+                raise LLMProviderError("http_error", http_status=response.status_code, latency_ms=round((time.perf_counter() - started) * 1000))
+            raw = response.json()
+            content = self._strip_reasoning(raw["choices"][0]["message"]["content"])
+            match = re.search(r"\{.*\}", content, flags=re.DOTALL)
+            value = json.loads(match.group(0) if match else content)
+            classification = MetricClassification.model_validate(value)
+            # Guard against the model returning a name that isn't actually in
+            # the closed list it was given - treat that as "no match" rather
+            # than letting a hallucinated metric name reach the caller.
+            valid_names = {item["name"] for item in candidates}
+            if classification.metric_name is not None and classification.metric_name not in valid_names:
+                classification = MetricClassification(metric_name=None)
+            usage = raw.get("usage") or {}
+            return MetricClassificationResult(
+                classification=classification,
+                telemetry=ModelTelemetry(
+                    trace_id=trace_id, provider="qwen_openai_compatible", model=self.settings.qwen_model,
+                    latency_ms=round((time.perf_counter() - started) * 1000), retry_count=0, success=True,
+                    http_status=response.status_code, structured_validation_success=True,
+                    prompt_tokens=usage.get("prompt_tokens"), completion_tokens=usage.get("completion_tokens"),
+                    total_tokens=usage.get("total_tokens"),
+                ),
+            )
+        except LLMProviderError:
+            raise
+        except httpx.TimeoutException:
+            raise LLMProviderError("timeout", latency_ms=round((time.perf_counter() - started) * 1000))
+        except httpx.RequestError:
+            raise LLMProviderError("unavailable", latency_ms=round((time.perf_counter() - started) * 1000))
+        except (json.JSONDecodeError, KeyError, IndexError, TypeError, ValueError, ValidationError):
+            raise LLMProviderError("invalid_response", latency_ms=round((time.perf_counter() - started) * 1000))
+
+    @staticmethod
     def _conversational_messages(question: str, language: str, conversation_history: list[dict[str, str]]) -> list[dict[str, str]]:
         language_instruction = {
             "id": "Reply in Bahasa Indonesia, in a warm, approachable tone for business leaders - "
@@ -596,6 +691,58 @@ class LiteLLMProvider(QwenOpenAICompatibleProvider):
             classification = IntentClassification.model_validate(value)
             usage = raw.get("usage") or {}
             return IntentClassificationResult(
+                classification=classification,
+                telemetry=ModelTelemetry(
+                    trace_id=trace_id, provider="litellm", model=str(raw.get("model") or self.requested_model_group),
+                    latency_ms=round((time.perf_counter() - started) * 1000), retry_count=0, success=True,
+                    http_status=response.status_code, structured_validation_success=True,
+                    prompt_tokens=usage.get("prompt_tokens"), completion_tokens=usage.get("completion_tokens"),
+                    total_tokens=usage.get("total_tokens"),
+                ),
+            )
+        except LLMProviderError:
+            raise
+        except httpx.TimeoutException:
+            raise LLMProviderError("timeout", latency_ms=round((time.perf_counter() - started) * 1000))
+        except httpx.RequestError:
+            raise LLMProviderError("unavailable", latency_ms=round((time.perf_counter() - started) * 1000))
+        except (json.JSONDecodeError, KeyError, IndexError, TypeError, ValueError, ValidationError):
+            raise LLMProviderError("invalid_response", latency_ms=round((time.perf_counter() - started) * 1000))
+
+    async def classify_metric(self, question: str, *, candidates: list[dict[str, str]], trace_id: str) -> MetricClassificationResult:
+        if not self.settings.litellm_base_url:
+            raise LLMProviderError("unavailable")
+        headers = {"Content-Type": "application/json"}
+        api_key = self.settings.litellm_api_key.get_secret_value()
+        if api_key:
+            headers["Authorization"] = f"Bearer {api_key}"
+        body = {
+            "model": self.requested_model_group,
+            "messages": self._metric_classification_messages(question, candidates),
+            "temperature": METRIC_CLASSIFICATION_TEMPERATURE,
+            "max_tokens": 60,
+            "chat_template_kwargs": {"enable_thinking": False, "preserve_thinking": False},
+        }
+        started = time.perf_counter()
+        try:
+            async with httpx.AsyncClient(
+                timeout=self.settings.qwen_request_timeout_seconds,
+                verify=self.settings.qwen_verify_ssl,
+                transport=self.transport,
+            ) as client:
+                response = await client.post(self.endpoint, headers=headers, json=body)
+            if response.status_code >= 400:
+                raise LLMProviderError("http_error", http_status=response.status_code, latency_ms=round((time.perf_counter() - started) * 1000))
+            raw = response.json()
+            content = self._strip_reasoning(raw["choices"][0]["message"]["content"])
+            match = re.search(r"\{.*\}", content, flags=re.DOTALL)
+            value = json.loads(match.group(0) if match else content)
+            classification = MetricClassification.model_validate(value)
+            valid_names = {item["name"] for item in candidates}
+            if classification.metric_name is not None and classification.metric_name not in valid_names:
+                classification = MetricClassification(metric_name=None)
+            usage = raw.get("usage") or {}
+            return MetricClassificationResult(
                 classification=classification,
                 telemetry=ModelTelemetry(
                     trace_id=trace_id, provider="litellm", model=str(raw.get("model") or self.requested_model_group),

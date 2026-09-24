@@ -43,12 +43,25 @@ def test_tempo_impala_contract_validator_passes() -> None:
 def test_tempo_impala_model_uses_only_audited_semantic_views() -> None:
     model = _load(MODEL_PATH)
     sources = {dataset["source"] for dataset in model["datasets"]}
+    # Original Semantic Contract v1 baseline (5 views) plus the 24 Sep 2026
+    # journey expansion (9 more views, all built and validated against
+    # Impala - see TEMPO_DATAMART_PLAN.md §8.1). Every source here must stay
+    # in sync with EXPECTED_SOURCES in scripts/validate_tempo_impala_contract.py.
     assert sources == {
         "gold.rpt_sap_monthly_executive_semantic",
         "gold.rpt_sap_material_month_semantic",
         "gold.rpt_service_level_material_month_semantic",
         "gold.rpt_sap_customer_reconciliation_semantic",
         "gold.rpt_sales_office_performance_semantic",
+        "gold.corr_b2b_branch_estore_month",
+        "gold.corr_b2b_material_plu",
+        "gold.corr_stock_tempo_month_seta",
+        "gold.rpt_sat_idm_dc_month",
+        "gold.rpt_sat_oos_material_month",
+        "gold.corr_stock_tempo_sales_material_month",
+        "gold.corr_sales_b2b_material_month",
+        "gold.corr_b2b_satidm_branch_month",
+        "gold.corr_satidm_oos_material_month",
     }
     assert model["relationships"] == []
 
