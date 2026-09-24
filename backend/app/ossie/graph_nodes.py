@@ -3,6 +3,8 @@ from __future__ import annotations
 import logging
 from typing import Any
 
+from langdetect import DetectorFactory, LangDetectException, detect
+
 from app.core.schemas import ExecutiveAnswer
 from app.graph.state import GraphState
 
@@ -11,18 +13,42 @@ from .service import OssieQueryRequest, get_tempo_ossie_service
 
 logger = logging.getLogger(__name__)
 
+# langdetect samples character n-grams and needs a handful of words to be
+# reliable - fed a single greeting word ("Halo", "Hi") it guesses almost at
+# random (observed returning "so", "fi", "nl" for those). Deterministic
+# results across runs/processes also require a fixed seed (its default
+# algorithm is otherwise randomized).
+DetectorFactory.seed = 0
+
+# Exact/near-exact greeting and small-talk phrases - checked first because
+# they're exactly the short inputs langdetect is unreliable on, and because
+# the greeting response text itself is a fixed spec (see
+# _FIRST_GREETING_EXAMPLES_ID/EN below), not something a classifier's
+# confidence should decide between.
+_ID_GREETING_MARKERS = (
+    "halo", "hai", "selamat pagi", "selamat siang", "selamat sore",
+    "selamat malam", "terima kasih", "apa kabar", "makasih",
+)
+_EN_GREETING_MARKERS = (
+    "hello", "hi", "hey", "good morning", "good afternoon", "good evening",
+    "how are you", "thanks", "thank you",
+)
+
 
 def _language(question: str) -> str:
-    lowered = question.casefold()
-    markers = (
-        "berapa", "bagaimana", "material", "bulan", "yang", "dengan", "dari",
-        # Greetings/small talk carry none of the above content markers, so
-        # without these an Indonesian "Halo" or "Selamat pagi" misclassified
-        # as English (only the analytical-question markers were covered).
-        "halo", "hai", "selamat pagi", "selamat siang", "selamat sore",
-        "selamat malam", "terima kasih", "apa kabar",
-    )
-    return "id" if any(marker in lowered for marker in markers) else "en"
+    lowered = question.casefold().strip()
+    if any(marker in lowered for marker in _ID_GREETING_MARKERS):
+        return "id"
+    if any(marker in lowered for marker in _EN_GREETING_MARKERS):
+        return "en"
+    # Longer, keyword-less questions ("Bisakah Anda menjelaskan...") fall
+    # through to actual language detection rather than an ever-growing
+    # keyword list, which is what left the "Halo" gap in the first place.
+    try:
+        detected = detect(question)
+    except LangDetectException:
+        return "en"
+    return "id" if detected == "id" else "en"
 
 
 def _infer_dimensions(question: str, allowed: set[str]) -> list[str]:

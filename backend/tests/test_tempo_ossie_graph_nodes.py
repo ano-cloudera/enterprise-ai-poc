@@ -62,6 +62,23 @@ def test_ossie_conversational_later_turn_does_not_repeat_the_full_greeting() -> 
     assert result["answer"]["recommended_actions"] == []
 
 
+@pytest.mark.parametrize(
+    ("question", "expected"),
+    [
+        ("Halo", "id"),
+        ("Hai", "id"),
+        ("Hello", "en"),
+        ("Hi", "en"),
+        # Longer, keyword-less sentences - not covered by any fixed marker
+        # list, only detectable via actual language identification.
+        ("Bisakah Anda menjelaskan lebih detail mengenai hal ini", "id"),
+        ("Could you explain this in more detail please", "en"),
+    ],
+)
+def test_language_detection_handles_short_greetings_and_keyword_less_sentences(question, expected) -> None:
+    assert graph_nodes._language(question) == expected
+
+
 class _FakeRegistry:
     dataset_fields = {"monthly_executive": {"calmonth": {}}}
 

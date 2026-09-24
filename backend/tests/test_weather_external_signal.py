@@ -16,7 +16,7 @@ from app.external_signals.weather.service import (
     resolve_weather_intent,
 )
 from app.forecasting.data import load_monthly_sales
-from app.graph.nodes import route_intent, weather
+from app.graph.nodes import weather
 from app.semantic.loader import load_semantic_project
 
 
@@ -162,20 +162,6 @@ def test_correlation_is_calculated_only_with_enough_aligned_observations():
     )
     assert insufficient.status == "INSUFFICIENT_OBSERVATIONS"
     assert insufficient.evidence[0].correlation is None
-
-
-@pytest.mark.parametrize(
-    ("question", "expected"),
-    [
-        ("Kenapa sales Jawa Barat turun bulan ini?", "analytical"),
-        ("Forecast Jawa Barat bulan depan", "forecast"),
-        ("Apakah sales Jawa Barat berkorelasi dengan curah hujan?", "weather"),
-        ("Bagaimana hubungan temperatur dengan sales Jawa Timur?", "weather"),
-    ],
-)
-@pytest.mark.asyncio
-async def test_controlled_intent_routing(question, expected):
-    assert (await route_intent({"question": question}))["intent"] == expected
 
 
 def test_weather_intent_uses_only_governed_region_period_and_metric():

@@ -18,13 +18,26 @@ class Settings(BaseSettings):
     api_prefix: str = "/api"
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
 
-    project_id: str = "tempo_scan"
+    # OSSIE/Impala is the only active semantic layer and data backend now -
+    # the legacy DuckDB-synthetic semantic layer (app/semantic/, per-project
+    # YAML resolution) has been removed. "legacy" is kept as a Literal
+    # option only because forecast/weather/market intelligence still query
+    # DuckDB-synthetic tables directly and haven't been retargeted to
+    # Impala yet; they're deliberately unreachable from routing until that
+    # happens (see route_intent), not because this default still serves them.
+    project_id: str = "tempo_scan_impala"
     project_root: Path = Field(default_factory=lambda: Path(__file__).resolve().parents[3] / "projects")
-    semantic_execution_mode: Literal["legacy", "ossie"] = "legacy"
+    semantic_execution_mode: Literal["legacy", "ossie"] = "ossie"
     ossie_project_id: str = "tempo_scan_impala"
     ossie_max_rows: int = Field(default=200, ge=1, le=1000)
+    # forecast/weather/market (app/graph/nodes.py) are disconnected from
+    # routing but keep their code, and still read the synthetic tempo_scan
+    # project's semantic/*.yaml (forecast.yaml, weather.yaml, etc.) rather
+    # than the governed OSSIE project - named separately from project_id so
+    # it doesn't silently follow that default if it changes again.
+    legacy_synthetic_project_id: str = "tempo_scan"
 
-    data_backend: Literal["duckdb", "trino", "impala"] = "duckdb"
+    data_backend: Literal["duckdb", "trino", "impala"] = "impala"
     duckdb_path: Path = Field(default_factory=lambda: Path(__file__).resolve().parents[3] / "runtime" / "tempo_scan.duckdb")
 
     trino_jdbc_url: str = ""

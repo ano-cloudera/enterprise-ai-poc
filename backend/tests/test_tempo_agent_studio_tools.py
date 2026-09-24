@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 import subprocess
 import sys
@@ -10,7 +11,7 @@ ROOT = Path(__file__).resolve().parents[2]
 TOOLS = ROOT / "projects" / "tempo_scan_impala" / "agent_studio_tools"
 
 
-def _run(tool: str, params: dict) -> dict:
+def _run(tool: str, params: dict, *, env: dict | None = None) -> dict:
     result = subprocess.run(
         [
             sys.executable,
@@ -24,6 +25,7 @@ def _run(tool: str, params: dict) -> dict:
         check=False,
         capture_output=True,
         text=True,
+        env={**os.environ, **(env or {})},
     )
     assert result.returncode == 0, result.stdout + result.stderr
     prefix = "tool_output "
@@ -55,10 +57,13 @@ def test_find_join_path_refuses_unsupported_dimension() -> None:
     assert result["instruction"].startswith("Extend the semantic contract")
 
 
-def test_execute_tool_is_default_off() -> None:
+def test_execute_tool_is_blocked_when_semantic_mode_is_legacy() -> None:
+    # OSSIE/Impala is enabled by default now; this covers the explicit
+    # opt-out path (SEMANTIC_EXECUTION_MODE=legacy) rather than a default.
     result = _run(
         "execute_governed_query",
         {"metric": "gross_billing_value", "dimensions": ["calmonth"]},
+        env={"SEMANTIC_EXECUTION_MODE": "legacy"},
     )
     assert result == {
         "status": "unavailable",

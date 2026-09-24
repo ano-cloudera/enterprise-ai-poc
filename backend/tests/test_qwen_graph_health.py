@@ -6,22 +6,48 @@ from app.api.routes import health as health_route
 from app.core.config import Settings
 from app.core.schemas import ChatRequest
 from app.llm.models import ModelHealth
-from app.llm.providers import LLMProviderError
+from app.ossie import graph_nodes as ossie_graph_nodes
 from app.services import chat
 
 
-@pytest.mark.asyncio
-async def test_qwen_failure_uses_grounded_fallback_without_chat_error(monkeypatch):
-    class FailingProvider:
-        async def generate_structured(self, *_args, **_kwargs):
-            raise LLMProviderError("unavailable", retry_count=1)
+class _FakeOssieRegistry:
+    dataset_fields = {"monthly_executive": {"calmonth": {}}}
 
-    monkeypatch.setattr("app.graph.nodes.get_llm_provider", lambda: FailingProvider())
-    response = await chat.run_chat(ChatRequest(question="Kenapa sales Jawa Barat turun bulan ini?", language="id"))
+
+class _FakeOssieService:
+    registry = _FakeOssieRegistry()
+
+    def resolve(self, _question):
+        return {
+            "status": "resolved",
+            "metric": "gross_billing_value",
+            "definition": {
+                "description": "Official Gross Billing Value",
+                "metric_id": "SI-01",
+                "allowed_dimensions": ["calmonth"],
+                "base_dataset": "monthly_executive",
+                "business_approval_status": "pending_business_confirmation",
+                "governance_status": "approved_candidate",
+                "ai_context": {},
+            },
+        }
+
+    def execute_query(self, request, trace_id=""):
+        return {
+            "sql": "SELECT calmonth, SUM(bill_val) FROM gold.view GROUP BY calmonth",
+            "rows": [{"calmonth": 202410, "metric_value": 100.0}],
+            "semantic_plan": {"source_view": "gold.rpt_sap_monthly_executive_semantic", "grain": "calmonth"},
+            "telemetry": {"data_backend": "impala", "success": True},
+        }
+
+
+@pytest.mark.asyncio
+async def test_ossie_question_returns_governed_answer(monkeypatch):
+    monkeypatch.setattr(ossie_graph_nodes, "get_tempo_ossie_service", lambda: _FakeOssieService())
+    response = await chat.run_chat(ChatRequest(question="Berapa Gross Sales Q4 2024?", language="id"))
     assert response.status == "ok"
     assert response.data.rows
-    assert any("AI analysis was unavailable" in caveat for caveat in response.answer.caveats)
-    assert "stockout" not in response.model_dump_json().lower()
+    assert response.metadata.intent == "ossie_analytical"
 
 
 @pytest.mark.asyncio
@@ -59,7 +85,9 @@ async def test_deployment_readiness_reports_healthy_when_all_components_ok(monke
     result = await health_route.deployment_readiness()
     assert result.status == "healthy"
     names = {component.name for component in result.components}
-    assert names == {"backend_api", "semantic_layer", "data_backend", "market_api", "llm_provider"}
+    # market_api is only probed in legacy mode (see deployment_readiness);
+    # OSSIE is the default now, and it doesn't depend on the Mock Market API.
+    assert names == {"backend_api", "semantic_layer", "data_backend", "llm_provider"}
     assert all(component.status == "healthy" for component in result.components)
 
 
@@ -113,6 +141,8 @@ async def test_deployment_readiness_reports_unavailable_when_market_api_unreacha
         async def get(self, *_args, **_kwargs):
             raise ConnectionError("refused")
 
+    # market_api is only probed in legacy mode (see deployment_readiness).
+    monkeypatch.setattr(health_route, "get_settings", lambda: Settings(_env_file=None, semantic_execution_mode="legacy", project_id="tempo_scan"))
     monkeypatch.setattr(health_route.httpx, "AsyncClient", UnreachableAsyncClient)
     result = await health_route.deployment_readiness()
     assert result.status == "unavailable"
@@ -132,11 +162,14 @@ async def test_deployment_readiness_never_exposes_secrets(monkeypatch):
 
 @pytest.mark.asyncio
 async def test_chat_telemetry_records_safe_model_status(monkeypatch):
+    # ossie_analytical is a deterministic governed compiler (no LLM call),
+    # so telemetry comes from data_telemetry rather than model_telemetry -
+    # this still checks the same thing: nothing secret leaks into telemetry.
+    monkeypatch.setattr(ossie_graph_nodes, "get_tempo_ossie_service", lambda: _FakeOssieService())
     captured = {}
     monkeypatch.setattr(chat.telemetry, "record", lambda **event: captured.update(event))
-    response = await chat.run_chat(ChatRequest(question="Berapa sales Jawa Barat bulan ini?", language="id"))
+    response = await chat.run_chat(ChatRequest(question="Berapa Gross Sales Q4 2024?", language="id"))
     assert response.status == "ok"
-    model = captured["metadata"]["model"]
-    assert model["provider"] == "mock"
-    assert model["success"] is True
-    assert "token" not in str(model).lower() or model.get("total_tokens") is None
+    data = captured["metadata"]["data"]
+    assert data["success"] is True
+    assert "token" not in str(data).lower()

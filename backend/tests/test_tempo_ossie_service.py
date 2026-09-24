@@ -10,10 +10,10 @@ def _service(**overrides) -> TempoOssieService:
     return TempoOssieService(Settings(**overrides))
 
 
-def test_ossie_service_is_default_off() -> None:
+def test_ossie_service_is_enabled_by_default() -> None:
     service = _service()
-    assert service.enabled is False
-    assert service.status()["execution_mode"] == "legacy"
+    assert service.enabled is True
+    assert service.status()["execution_mode"] == "ossie"
     assert service.status()["datasets"] == 5
     assert service.status()["metrics"] == 28
 
@@ -110,8 +110,9 @@ def test_compile_rejects_unpublished_dimension() -> None:
 
 
 def test_execute_is_blocked_when_feature_flag_is_off() -> None:
+    service = _service(semantic_execution_mode="legacy")
     with pytest.raises(RuntimeError, match="OSSIE_SEMANTIC_MODE_DISABLED"):
-        _service().execute_query(OssieQueryRequest(metric="gross_billing_value"))
+        service.execute_query(OssieQueryRequest(metric="gross_billing_value"))
 
 
 def test_execute_requires_impala_even_when_ossie_enabled() -> None:

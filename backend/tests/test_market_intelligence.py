@@ -7,7 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 from types import SimpleNamespace
 
-from app.graph.nodes import market, route_intent
+from app.graph.nodes import market
 from app.market_intelligence.calibration import build_price_anchors, generate_calibrated_market, opportunity_score
 from app.market_intelligence.collector import MarketSnapshotCollector
 from app.market_intelligence.models import DigitalMarketSignal, MarketIntent, MarketResult
@@ -366,21 +366,6 @@ def test_unavailable_market_api_returns_controlled_number_free_fallback():
     result = MarketIntelligenceTool(MissingProvider()).analyze(MarketIntent(analysis_type="share", product_name="Bodrex", period=date(2024, 3, 1)))
     assert result.status == "EXTERNAL_MARKET_SIGNAL_NOT_AVAILABLE"
     assert result.evidence == []
-
-
-@pytest.mark.parametrize(
-    ("question", "expected"),
-    [
-        ("Kenapa sales Jawa Barat turun bulan ini?", "analytical"),
-        ("Forecast Jawa Barat bulan depan", "forecast"),
-        ("Apakah curah hujan Jawa Barat meningkat?", "weather"),
-        ("Bagaimana posisi Bodrex dibanding kompetitor?", "market"),
-        ("Region mana yang punya opportunity terbesar untuk Bodrex?", "market"),
-    ],
-)
-@pytest.mark.asyncio
-async def test_market_routing_preserves_existing_routes(question, expected):
-    assert (await route_intent({"question": question}))["intent"] == expected
 
 
 def test_market_follow_up_intent_preserves_governed_dashboard_context():

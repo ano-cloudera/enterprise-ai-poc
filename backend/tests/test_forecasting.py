@@ -14,7 +14,6 @@ from app.forecasting.inference import generate_forecasts
 from app.forecasting.persistence import LocalForecastWriter, TrinoForecastWriter, ForecastWriteSafetyError
 from app.forecasting.repository import ForecastRepository
 from app.forecasting.tool import ForecastTool, resolve_forecast_intent
-from app.graph.nodes import route_intent
 from app.graph import nodes
 from app.semantic.loader import load_semantic_project
 from app.forecasting.training import chronological_split, train_forecast_model
@@ -208,31 +207,25 @@ def test_trino_forecast_writer_rejects_arbitrary_table():
     ],
 )
 def test_forecast_intent_resolves_only_governed_dimensions(question, dimension_type, dimension_value):
-    intent = resolve_forecast_intent(question, {}, load_semantic_project())
+    intent = resolve_forecast_intent(question, {}, load_semantic_project("tempo_scan"))
     assert intent.forecast_period == date(2024, 4, 1)
     assert (intent.dimension_type, intent.dimension_value) == (dimension_type, dimension_value)
 
 
 def test_forecast_follow_up_preserves_dashboard_filter_context():
-    intent = resolve_forecast_intent("Bagaimana forecast bulan depan?", {"filters": {"region": ["Jawa Timur"]}}, load_semantic_project())
+    intent = resolve_forecast_intent("Bagaimana forecast bulan depan?", {"filters": {"region": ["Jawa Timur"]}}, load_semantic_project("tempo_scan"))
     assert (intent.dimension_type, intent.dimension_value) == ("region", "Jawa Timur")
 
 
 def test_explicit_unavailable_forecast_period_is_preserved():
-    intent = resolve_forecast_intent("Forecast Jawa Barat Januari 2025", {}, load_semantic_project())
+    intent = resolve_forecast_intent("Forecast Jawa Barat Januari 2025", {}, load_semantic_project("tempo_scan"))
     assert intent.forecast_period == date(2025, 1, 1)
-
-
-@pytest.mark.asyncio
-async def test_historical_question_does_not_route_to_forecast():
-    assert (await route_intent({"question": "Kenapa sales Jawa Barat turun bulan ini?"}))["intent"] == "analytical"
-    assert (await route_intent({"question": "Berapa forecast Jawa Barat bulan depan?"}))["intent"] == "forecast"
 
 
 def test_forecast_tool_returns_persisted_values_without_numeric_fallback():
     repository = ForecastRepository(FakeQueryService([FORECAST_RECORD]))
     result = ForecastTool(repository).get_sales_forecast(
-        resolve_forecast_intent("Forecast total sales bulan depan", {}, load_semantic_project())
+        resolve_forecast_intent("Forecast total sales bulan depan", {}, load_semantic_project("tempo_scan"))
     )
     assert result.status == "ok"
     assert result.rows[0].forecast_sales == 82400.5
@@ -241,14 +234,14 @@ def test_forecast_tool_returns_persisted_values_without_numeric_fallback():
 def test_forecast_tool_missing_result_is_structured_and_number_free():
     repository = ForecastRepository(FakeQueryService([]))
     result = ForecastTool(repository).get_sales_forecast(
-        resolve_forecast_intent("Forecast Jawa Barat Januari 2025", {}, load_semantic_project())
+        resolve_forecast_intent("Forecast Jawa Barat Januari 2025", {}, load_semantic_project("tempo_scan"))
     )
     assert result.status == "FORECAST_NOT_AVAILABLE"
     assert result.rows == []
 
 
 def test_project_owns_eight_forecast_questions_and_unavailable_case():
-    questions = load_semantic_project().forecast_golden_questions
+    questions = load_semantic_project("tempo_scan").forecast_golden_questions
     assert len(questions) >= 9
     assert sum(item.expected_status == "FORECAST_NOT_AVAILABLE" for item in questions) >= 1
     assert {item.dimension_type for item in questions}.issuperset({"total", "region", "product", "channel"})

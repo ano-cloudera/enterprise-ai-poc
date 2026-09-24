@@ -22,6 +22,11 @@ JDBC_URL = "jdbc:trino://ano03-trino-demo.dw-ano03-cdp-env.a465-9q4k.cloudera.si
 def settings(**overrides) -> Settings:
     values = {
         "data_backend": "trino",
+        # TrinoBackend._govern_and_cap loads the semantic project for its
+        # table/column allowlist - trino's governed dataset config lives
+        # under the tempo_scan synthetic project, not tempo_scan_impala
+        # (which has no app/semantic/ manifest of its own).
+        "project_id": "tempo_scan",
         "trino_jdbc_url": JDBC_URL,
         "trino_catalog": "tempo",
         "trino_schema": "commercial",
@@ -87,7 +92,7 @@ def test_factory_selects_trino():
 
 
 def test_duckdb_initialization_is_safe_for_concurrent_local_requests(tmp_path):
-    local_settings = Settings(_env_file=None, data_backend="duckdb", duckdb_path=tmp_path / "concurrent.duckdb")
+    local_settings = Settings(_env_file=None, data_backend="duckdb", project_id="tempo_scan", duckdb_path=tmp_path / "concurrent.duckdb")
     instance = DuckDBBackend(local_settings)
     sql = "SELECT region_name FROM commercial_sales_daily LIMIT 1"
     with ThreadPoolExecutor(max_workers=4) as pool:
