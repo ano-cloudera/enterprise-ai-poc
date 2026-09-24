@@ -626,6 +626,605 @@ datasets:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"domain":"sales_office_operations","grain":"reporting_period+sales_office","layer":"semantic_gold","scope":"2024Q4"}'
+- name: b2b_branch_estore
+  source: gold.corr_b2b_branch_estore_month
+  primary_key:
+  - calmonth
+  - sales_off
+  - branch
+  - e_store
+  description: B2B (Sell-Out) monthly aggregate by branch/DC and e_store (retail outlet ID under a DC), October-December 2024.
+  ai_context:
+    instructions: branch and e_store are independent dimensions (not mapped to 0SALES_OFF or to each other); one DC (branch)
+      can have many e_store values.
+    synonyms:
+    - b2b branch
+    - dc partner
+    - toko retail e-store
+  fields:
+  - name: calmonth
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: calmonth
+    datatype: Integer
+    dimension:
+      is_time: true
+  - name: sales_off
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sales_off
+    datatype: String
+    dimension: {}
+  - name: branch
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: branch
+    datatype: String
+    dimension: {}
+    label: Branch/DC
+  - name: e_store
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: e_store
+    datatype: String
+    dimension: {}
+    label: Retail Store ID
+  - name: b2b_bill_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: b2b_bill_qty
+    datatype: Decimal
+  - name: b2b_bill_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: b2b_bill_val
+    datatype: Decimal
+  - name: row_count
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: row_count
+    datatype: Integer
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"domain":"b2b","grain":"calmonth+sales_off+branch+e_store","layer":"semantic_gold","built":"2026-09-24"}'
+- name: b2b_material_plu
+  source: gold.corr_b2b_material_plu
+  primary_key:
+  - calmonth
+  - material
+  - kode_plu
+  description: B2B (Sell-Out) monthly aggregate by material and PLU code, October-December 2024.
+  ai_context:
+    instructions: material and kode_plu are independent dimensions, no confirmed mapping between them (PLU<->material mapping
+      consistency is explicitly unsupported, see B10 in the question catalog).
+    synonyms:
+    - b2b plu
+    - kode plu b2b
+  fields:
+  - name: calmonth
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: calmonth
+    datatype: Integer
+    dimension:
+      is_time: true
+  - name: material
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: material
+    datatype: String
+    dimension: {}
+  - name: kode_plu
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: kode_plu
+    datatype: String
+    dimension: {}
+    label: PLU Code
+  - name: ka_group
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: ka_group
+    datatype: String
+    dimension: {}
+  - name: b2b_bill_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: b2b_bill_qty
+    datatype: Decimal
+  - name: b2b_bill_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: b2b_bill_val
+    datatype: Decimal
+  - name: row_count
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: row_count
+    datatype: Integer
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"domain":"b2b","grain":"calmonth+material+kode_plu","layer":"semantic_gold","built":"2026-09-24"}'
+- name: stock_tempo_month
+  source: gold.corr_stock_tempo_month_seta
+  primary_key:
+  - calmonth
+  - material
+  - plant
+  description: Tempo warehouse stock monthly aggregate by material and plant, using Set A columns only (totstck/valstck/cnsstck,
+    without the duplicate _1 suffix), October-December 2024.
+  ai_context:
+    instructions: 'Set A only by PoC decision (24 Sep 2026): Set B (columns with _1 suffix) is excluded pending official Tempo
+      confirmation. See datasets/audit/16_stock_tempo_set_a_vs_b_investigation.sql for the investigation.'
+    synonyms:
+    - stok gudang tempo
+    - warehouse stock tempo
+  fields:
+  - name: calmonth
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: calmonth
+    datatype: Integer
+    dimension:
+      is_time: true
+  - name: material
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: material
+    datatype: String
+    dimension: {}
+  - name: plant
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: plant
+    datatype: String
+    dimension: {}
+  - name: total_stock_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: total_stock_qty
+    datatype: Decimal
+  - name: stock_value
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: stock_value
+    datatype: Decimal
+  - name: consignment_stock_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: consignment_stock_qty
+    datatype: Decimal
+  - name: row_count
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: row_count
+    datatype: Integer
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"domain":"stock_tempo","grain":"calmonth+material+plant","layer":"semantic_gold","built":"2026-09-24"}'
+- name: sat_idm_dc_month
+  source: gold.rpt_sat_idm_dc_month
+  primary_key:
+  - thn
+  - bln
+  - dcname
+  - plu
+  - division
+  description: Stock SAT-IDM (partner DC and retail store stock) monthly aggregate, October-December 2024.
+  ai_context:
+    instructions: bln is a 3-letter month code (OCT/NOV/DEC), not a number. division meaning is still hypothesis pending Tempo
+      confirmation.
+    synonyms:
+    - stock sat idm
+    - stok dc partner
+    - stok store idm
+  fields:
+  - name: thn
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: thn
+    datatype: Integer
+    dimension:
+      is_time: true
+    label: Year
+  - name: bln
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: bln
+    datatype: String
+    dimension:
+      is_time: true
+    label: Month (OCT/NOV/DEC)
+  - name: dcname
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: dcname
+    datatype: String
+    dimension: {}
+    label: Distribution Center
+  - name: plu
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: plu
+    datatype: String
+    dimension: {}
+  - name: division
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: division
+    datatype: String
+    dimension: {}
+  - name: dc_stock_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: dc_stock_qty
+    datatype: Decimal
+  - name: dc_stock_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: dc_stock_val
+    datatype: Decimal
+  - name: store_stock_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: store_stock_qty
+    datatype: Decimal
+  - name: store_stock_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: store_stock_val
+    datatype: Decimal
+  - name: row_count
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: row_count
+    datatype: Integer
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"domain":"stock_sat_idm","grain":"thn+bln+dcname+plu+division","layer":"semantic_gold","built":"2026-09-24"}'
+- name: sat_oos_material_month
+  source: gold.rpt_sat_oos_material_month
+  primary_key:
+  - calmonth_date
+  - cust_id
+  - material_code
+  - plu
+  description: SAT OOS (retail shelf out-of-stock survey) monthly aggregate by customer/store and material, October-December
+    2024.
+  ai_context:
+    instructions: 'Stok_akhir = 0 is used as the OOS definition (PoC default, pending official Tempo sign-off, see Kamus
+      section 6).'
+    synonyms:
+    - oos rate
+    - out of stock rate
+    - survey rak toko
+  fields:
+  - name: calmonth_date
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: calmonth_date
+    datatype: Date
+    dimension:
+      is_time: true
+  - name: cust_id
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: cust_id
+    datatype: String
+    dimension: {}
+  - name: cust_code
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: cust_code
+    datatype: String
+    dimension: {}
+  - name: material_code
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: material_code
+    datatype: String
+    dimension: {}
+  - name: plu
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: plu
+    datatype: String
+    dimension: {}
+  - name: survey_count
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: survey_count
+    datatype: Integer
+  - name: oos_count
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: oos_count
+    datatype: Integer
+  - name: oos_rate_pct
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: oos_rate_pct
+    datatype: Decimal
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"domain":"sat_oos","grain":"calmonth_date+cust_id+material_code+plu","layer":"semantic_gold","built":"2026-09-24"}'
+- name: stock_tempo_sales_material_month
+  source: gold.corr_stock_tempo_sales_material_month
+  primary_key:
+  - calmonth
+  - material
+  description: Journey view A - Tempo warehouse stock (Set A) joined to Sales Sell-In by material and month, October-December
+    2024.
+  ai_context:
+    instructions: No runtime-invented join - this is a pre-built Gold view joining stock_tempo_month and material_360 at
+      the material+calmonth grain.
+    synonyms:
+    - stok vs sell-in
+    - stock to sell-in
+  fields:
+  - name: calmonth
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: calmonth
+    datatype: Integer
+    dimension:
+      is_time: true
+  - name: material
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: material
+    datatype: String
+    dimension: {}
+  - name: total_stock_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: total_stock_qty
+    datatype: Decimal
+  - name: stock_value
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: stock_value
+    datatype: Decimal
+  - name: sell_in_bill_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sell_in_bill_val
+    datatype: Decimal
+  - name: sell_in_bill_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sell_in_bill_qty
+    datatype: Decimal
+  - name: stock_to_sell_in_ratio
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: stock_to_sell_in_ratio
+    datatype: Decimal
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"domain":"journey_stock_sales","grain":"calmonth+material","layer":"semantic_gold","built":"2026-09-24"}'
+- name: sales_b2b_material_month
+  source: gold.corr_sales_b2b_material_month
+  primary_key:
+  - calmonth
+  - material
+  description: Journey view B - Sales Sell-In joined to B2B Sell-Out by material and month, October-December 2024.
+  ai_context:
+    instructions: No runtime-invented join - pre-built Gold view joining material_360 (sell-in) and b2b_material_plu (sell-out)
+      at the material+calmonth grain.
+    synonyms:
+    - sell-in vs sell-out
+    - gap replenishment material
+  fields:
+  - name: calmonth
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: calmonth
+    datatype: Integer
+    dimension:
+      is_time: true
+  - name: material
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: material
+    datatype: String
+    dimension: {}
+  - name: sell_in_bill_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sell_in_bill_val
+    datatype: Decimal
+  - name: material_sell_out_value
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: material_sell_out_value
+    datatype: Decimal
+  - name: sell_out_to_sell_in_ratio
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sell_out_to_sell_in_ratio
+    datatype: Decimal
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"domain":"journey_sales_b2b","grain":"calmonth+material","layer":"semantic_gold","built":"2026-09-24"}'
+- name: b2b_satidm_branch_month
+  source: gold.corr_b2b_satidm_branch_month
+  primary_key:
+  - calmonth
+  - branch
+  description: Journey view C - B2B Sell-Out joined to Stock SAT-IDM (DC/store stock) by branch=dcname and month, October-December
+    2024. Highest-priority journey view - join key confirmed 100% match rate (108/108 rows) at build time (24 Sep 2026).
+  ai_context:
+    instructions: Join key is branch (B2B) = dcname (SAT-IDM) after stripping the "DC " prefix from branch and normalizing
+      case/whitespace on both sides - confirmed 100% match, not an assumption.
+    synonyms:
+    - replenishment dc
+    - sell-out vs stok dc
+  fields:
+  - name: calmonth
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: calmonth
+    datatype: Integer
+    dimension:
+      is_time: true
+  - name: branch
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: branch
+    datatype: String
+    dimension: {}
+  - name: branch_sell_out_value
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: branch_sell_out_value
+    datatype: Decimal
+  - name: bln
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: bln
+    datatype: String
+    dimension:
+      is_time: true
+  - name: dc_stock_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: dc_stock_qty
+    datatype: Decimal
+  - name: dc_stock_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: dc_stock_val
+    datatype: Decimal
+  - name: store_stock_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: store_stock_qty
+    datatype: Decimal
+  - name: store_stock_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: store_stock_val
+    datatype: Decimal
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"domain":"journey_b2b_satidm","grain":"calmonth+branch","layer":"semantic_gold","built":"2026-09-24"}'
+- name: satidm_oos_material_month
+  source: gold.corr_satidm_oos_material_month
+  primary_key:
+  - calmonth
+  - plu
+  description: Journey view D - Stock SAT-IDM (DC/store stock) joined to SAT OOS (shelf survey) by PLU and month, October-December
+    2024. Join match rate 79.6% (9125/11458 rows) at build time (24 Sep 2026).
+  ai_context:
+    instructions: Join key is plu + calmonth on both sides. Not all SAT-IDM PLU-months have a matching OOS survey in the
+      same month (match rate 79.6%, not 100%) - state this caveat when using unmatched rows.
+    synonyms:
+    - stok dc vs oos
+    - distribusi macet
+  fields:
+  - name: calmonth
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: calmonth
+    datatype: String
+    dimension:
+      is_time: true
+  - name: plu
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: plu
+    datatype: String
+    dimension: {}
+  - name: dcname
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: dcname
+    datatype: String
+    dimension: {}
+  - name: store_stock_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: store_stock_qty
+    datatype: Decimal
+  - name: oos_rate_pct
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: oos_rate_pct
+    datatype: Decimal
+  - name: survey_count
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: survey_count
+    datatype: Integer
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"domain":"journey_satidm_oos","grain":"calmonth+plu","layer":"semantic_gold","built":"2026-09-24"}'
 relationships: []
 metrics:
 - name: gross_billing_value
@@ -1053,3 +1652,174 @@ metrics:
   - vendor_name: TEMPO
     data: '{"metric_id":"XD-03-Q4","base_dataset":"sales_office_q4","allowed_dimensions":["reporting_period","sales_office"],"row_filter":"has_sell_in
       = TRUE AND has_picking = TRUE","governance_status":"supporting","business_approval_status":"pending_business_confirmation","original_kpi_id":"XD-03"}'
+- name: b2b_branch_sell_out_value
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(b2b_branch_estore.b2b_bill_val)
+  datatype: Decimal
+  description: B2B (Sell-Out) billing value by branch/DC and e_store, October-December 2024.
+  ai_context:
+    synonyms:
+    - sell-out branch
+    - sell-out dc
+    - revenue b2b cabang
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"B2B-01-BR","base_dataset":"b2b_branch_estore","allowed_dimensions":["calmonth","sales_off","branch","e_store"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"B02"}'
+- name: b2b_material_plu_value
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(b2b_material_plu.b2b_bill_val)
+  datatype: Decimal
+  description: B2B (Sell-Out) billing value by material and PLU code, October-December 2024.
+  ai_context:
+    synonyms:
+    - sell-out plu
+    - revenue b2b plu
+    instructions: PLU and material are independent dimensions, no confirmed mapping between them.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"B2B-02-PLU","base_dataset":"b2b_material_plu","allowed_dimensions":["calmonth","material","kode_plu","ka_group"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"B05"}'
+- name: stock_tempo_total_qty
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(stock_tempo_month.total_stock_qty)
+  datatype: Decimal
+  description: Tempo warehouse total stock quantity by material and plant, Set A columns only, October-December 2024.
+  ai_context:
+    synonyms:
+    - total stok gudang tempo
+    - stock tempo quantity
+    instructions: Set A only (PoC decision, 24 Sep 2026); Set B excluded pending official Tempo confirmation.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"ST-02-SETA","base_dataset":"stock_tempo_month","allowed_dimensions":["calmonth","material","plant"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"T01"}'
+- name: stock_tempo_value
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(stock_tempo_month.stock_value)
+  datatype: Decimal
+  description: Tempo warehouse stock value (IDR) by material and plant, Set A columns only, October-December 2024.
+  ai_context:
+    synonyms:
+    - valuasi stok tempo
+    - stock tempo value
+    instructions: Set A only (PoC decision, 24 Sep 2026); Set B excluded pending official Tempo confirmation.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"ST-03-SETA","base_dataset":"stock_tempo_month","allowed_dimensions":["calmonth","material","plant"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"T05"}'
+- name: sat_idm_dc_stock_quantity
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(sat_idm_dc_month.dc_stock_qty)
+  datatype: Decimal
+  description: Partner DC stock quantity by DC name, PLU, and division, October-December 2024.
+  ai_context:
+    synonyms:
+    - stok dc partner
+    - dc stock quantity
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SI-01-IDM","base_dataset":"sat_idm_dc_month","allowed_dimensions":["thn","bln","dcname","plu","division"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"I01"}'
+- name: sat_idm_store_stock_quantity
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(sat_idm_dc_month.store_stock_qty)
+  datatype: Decimal
+  description: Retail store stock quantity (under a partner DC) by DC name, PLU, and division, October-December 2024.
+  ai_context:
+    synonyms:
+    - stok store
+    - store stock quantity
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SI-02-IDM","base_dataset":"sat_idm_dc_month","allowed_dimensions":["thn","bln","dcname","plu","division"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"I02"}'
+- name: sat_oos_rate
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: ROUND(100.0 * SUM(sat_oos_material_month.oos_count) / NULLIF(SUM(sat_oos_material_month.survey_count), 0), 2)
+  datatype: Decimal
+  description: Out-of-stock rate (percentage of shelf surveys with Stok_akhir = 0) by customer/store and material, October-December
+    2024.
+  ai_context:
+    synonyms:
+    - oos rate
+    - tingkat out of stock
+    instructions: 'Stok_akhir = 0 as OOS definition is a PoC default, pending official Tempo sign-off.'
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"OOS-01","base_dataset":"sat_oos_material_month","allowed_dimensions":["calmonth_date","cust_id","cust_code","material_code","plu"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"O01"}'
+- name: stock_tempo_to_sell_in_ratio
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(stock_tempo_sales_material_month.total_stock_qty) / NULLIF(SUM(stock_tempo_sales_material_month.sell_in_bill_qty),
+        0)
+  datatype: Decimal
+  description: Journey metric - warehouse stock quantity divided by Sell-In billing quantity by material and month. High
+    ratio signals potentially stuck stock.
+  ai_context:
+    synonyms:
+    - stok macet
+    - stock to sell-in
+    instructions: Pre-built Gold view join (stock_tempo_month + material_360), no runtime join needed.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"JNY-01","base_dataset":"stock_tempo_sales_material_month","allowed_dimensions":["calmonth","material"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"T07"}'
+- name: sell_out_to_sell_in_material_ratio_v2
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(sales_b2b_material_month.material_sell_out_value) / NULLIF(SUM(sales_b2b_material_month.sell_in_bill_val),
+        0)
+  datatype: Decimal
+  description: Journey metric - B2B Sell-Out value divided by Sales Sell-In value by material and month.
+  ai_context:
+    synonyms:
+    - gap sell-out sell-in
+    - replenishment gap
+    instructions: Pre-built Gold view join (material_360 + b2b_material_plu), no runtime join needed.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"JNY-02","base_dataset":"sales_b2b_material_month","allowed_dimensions":["calmonth","material"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"B06"}'
+- name: branch_sell_out_vs_dc_stock
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(b2b_satidm_branch_month.branch_sell_out_value) / NULLIF(SUM(b2b_satidm_branch_month.dc_stock_qty), 0)
+  datatype: Decimal
+  description: Journey metric - B2B Sell-Out value divided by partner DC stock quantity by branch and month. Diagnoses whether
+    DC replenishment keeps up with sell-out.
+  ai_context:
+    synonyms:
+    - replenishment sehat
+    - sell-out vs stok dc
+    instructions: Pre-built Gold view join (b2b_branch_estore + sat_idm_dc_month), join key branch=dcname confirmed 100%
+      match rate. No runtime join needed.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"JNY-03","base_dataset":"b2b_satidm_branch_month","allowed_dimensions":["calmonth","branch"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"I06"}'
+- name: satidm_store_stock_vs_oos_rate
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(satidm_oos_material_month.store_stock_qty)
+  datatype: Decimal
+  description: Journey metric - retail store stock quantity alongside OOS rate by PLU and month, for detecting the "stock
+    exists but shelf is empty" distribution anomaly.
+  ai_context:
+    synonyms:
+    - stok ada tapi oos
+    - distribusi macet dc ke store
+    instructions: Pre-built Gold view join (sat_idm_dc_month + sat_oos_material_month), join key plu+calmonth, match rate
+      79.6% (not 100%) - not every PLU-month has a matching OOS survey.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"JNY-04","base_dataset":"satidm_oos_material_month","allowed_dimensions":["calmonth","plu","dcname"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"O10"}'
