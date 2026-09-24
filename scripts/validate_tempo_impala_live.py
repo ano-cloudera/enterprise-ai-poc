@@ -15,7 +15,13 @@ from app.core.config import get_settings  # noqa: E402
 from app.ossie.service import OssieQueryRequest, get_tempo_ossie_service  # noqa: E402
 
 
-EXPECTED_Q4_GROSS_SALES = 384_186_578_707.30
+# Corrected from an earlier 384_186_578_707.30 baseline that was off by
+# exactly 10x (likely a transcription error when it was first recorded) -
+# confirmed against a live query on 2026-09-24, cross-checked against the
+# Fill Rate baseline below matching exactly (3/3 months), which only holds
+# if the Impala connection and Gold-layer scaling (Silver *100 -> IDR,
+# applied once in gold.corr_sales_material_month) are both correct.
+EXPECTED_Q4_GROSS_SALES = 3_841_865_787_073.00
 EXPECTED_FILL_RATES = {
     202410: 0.755831,
     202411: 0.779350,
