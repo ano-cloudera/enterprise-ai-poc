@@ -1,0 +1,121 @@
+from __future__ import annotations
+
+import pytest
+
+from app.core.config import Settings
+from app.ossie.service import OssieQueryRequest, TempoOssieService
+
+
+def _service(**overrides) -> TempoOssieService:
+    return TempoOssieService(Settings(**overrides))
+
+
+def test_ossie_service_is_default_off() -> None:
+    service = _service()
+    assert service.enabled is False
+    assert service.status()["execution_mode"] == "legacy"
+    assert service.status()["datasets"] == 5
+    assert service.status()["metrics"] == 28
+
+
+def test_resolve_official_gross_sales_metric() -> None:
+    result = _service().resolve("Berapa Gross Sales selama Q4 2024?")
+    assert result["status"] == "resolved"
+    assert result["metric"] == "gross_billing_value"
+    assert result["definition"]["metric_id"] == "SI-01"
+
+
+def test_resolve_material_fill_rate_prefers_material_metric() -> None:
+    result = _service().resolve("Material mana dengan Fill Rate terendah?")
+    assert result["status"] == "resolved"
+    assert result["metric"] == "material_fill_rate"
+
+
+def test_resolve_sales_office_picking_metric() -> None:
+    result = _service().resolve("Sales office mana dengan picking delay rate tertinggi?")
+    assert result["status"] == "resolved"
+    assert result["metric"] == "picking_delay_rate"
+
+
+def test_ambiguous_sales_question_requires_clarification() -> None:
+    result = _service().resolve("Berapa total penjualan?")
+    assert result["status"] == "needs_clarification"
+    assert result["reason"] == "sales_stage"
+
+
+def test_compile_monthly_gross_sales_is_governed_and_unscaled() -> None:
+    compiled = _service().compile_query(
+        OssieQueryRequest(
+            metric="gross_billing_value",
+            dimensions=["calmonth"],
+            start_calmonth=202410,
+            end_calmonth=202412,
+        )
+    )
+    assert "FROM gold.rpt_sap_monthly_executive_semantic d" in compiled["sql"]
+    assert "SUM(d.sales_bill_val)" in compiled["sql"]
+    assert "* 100" not in compiled["sql"]
+    assert "d.calmonth >= 202410" in compiled["sql"]
+    assert "d.calmonth <= 202412" in compiled["sql"]
+    assert compiled["semantic_plan"]["business_approval_status"] == (
+        "pending_business_confirmation"
+    )
+
+
+def test_compile_material_metric_enforces_coverage_filter() -> None:
+    compiled = _service().compile_query(
+        OssieQueryRequest(
+            metric="material_warehouse_stock_quantity",
+            dimensions=["material"],
+            limit=25,
+        )
+    )
+    assert "d.has_stock = TRUE" in compiled["sql"]
+    assert "GROUP BY d.material" in compiled["sql"]
+    assert compiled["sql"].endswith("LIMIT 25")
+
+
+def test_compile_customer_reconciliation_enforces_shared_scope() -> None:
+    compiled = _service().compile_query(
+        OssieQueryRequest(
+            metric="sell_out_to_sell_in_value_ratio",
+            dimensions=["customer"],
+            start_calmonth=202410,
+            end_calmonth=202412,
+        )
+    )
+    assert "reconciliation_scope = 'shared_customer_only'" in compiled["sql"]
+    assert "FROM gold.rpt_sap_customer_reconciliation_semantic d" in compiled["sql"]
+
+
+def test_compile_low_fill_filter_is_allowlisted() -> None:
+    compiled = _service().compile_query(
+        OssieQueryRequest(
+            metric="service_fill_rate",
+            dimensions=["material", "fill_rate_band"],
+            filters={"fill_rate_band": ["low_fill"]},
+        )
+    )
+    assert "d.fill_rate_band IN ('low_fill')" in compiled["sql"]
+
+
+def test_compile_rejects_unpublished_dimension() -> None:
+    with pytest.raises(ValueError, match="does not allow dimensions"):
+        _service().compile_query(
+            OssieQueryRequest(
+                metric="gross_billing_value",
+                dimensions=["customer"],
+            )
+        )
+
+
+def test_execute_is_blocked_when_feature_flag_is_off() -> None:
+    with pytest.raises(RuntimeError, match="OSSIE_SEMANTIC_MODE_DISABLED"):
+        _service().execute_query(OssieQueryRequest(metric="gross_billing_value"))
+
+
+def test_execute_requires_impala_even_when_ossie_enabled() -> None:
+    service = _service(semantic_execution_mode="ossie", data_backend="duckdb")
+    with pytest.raises(RuntimeError, match="OSSIE_REQUIRES_IMPALA_BACKEND"):
+        service.execute_query(OssieQueryRequest(metric="gross_billing_value"))
+

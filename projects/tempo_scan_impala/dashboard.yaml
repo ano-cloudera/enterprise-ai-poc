@@ -1,0 +1,40 @@
+mode: ossie
+period: Q4 2024
+source_profile: impala_ossie
+
+sections:
+  executive_kpis:
+    - metric: gross_billing_value
+      label: Gross Sales (BILL_VAL)
+    - metric: company_fill_rate
+      label: Company Fill Rate
+    - metric: billing_quantity
+      label: Billing Quantity
+    - metric: material_sell_in_value
+      label: Top Material
+
+  sales_trend:
+    metric: gross_billing_value
+    dimensions: [calmonth]
+
+  sales_office_ranking:
+    metric: sales_office_sell_in_value
+    dimensions: [sales_office]
+    scope: 2024Q4
+
+  material_ranking:
+    metric: material_sell_in_value
+    dimensions: [material]
+    required_filters: [has_sell_in]
+
+  sell_in_sell_out_context:
+    metrics:
+      - gross_billing_value
+      - material_sell_out_value
+    note: Separate business stages; do not add as one official revenue figure.
+
+scope_badges:
+  - Q4 2024
+  - Gross Sales = BILL_VAL
+  - Candidate metrics pending business confirmation
+

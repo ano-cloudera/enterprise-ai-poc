@@ -1,0 +1,1052 @@
+version: 0.2.0.dev0
+name: tempo_q4_governed
+description: Governed TEMPO Q4 2024 semantic model over audited Impala Gold semantic views. Official revenue is Gross Billing
+  Value from BILL_VAL.
+ai_context:
+  instructions: Use only published metrics and dimensions. Gold monetary fields are already normalized to IDR. Never apply
+    another 100x scaling. Sell-In and Sell-Out are separate stages and must not be added as one revenue figure. Do not invent
+    joins. State Q4-only, shared-customer-only, proxy, data-quality, and pending-business-approval caveats.
+  synonyms:
+  - TEMPO commercial intelligence
+  - Tempo SCAN
+  - Sell-In Sell-Out analytics
+datasets:
+- name: monthly_executive
+  source: gold.rpt_sap_monthly_executive_semantic
+  primary_key:
+  - calmonth
+  description: Company-level monthly executive metrics for October–December 2024.
+  ai_context:
+    instructions: Use for company totals and Q4 monthly trends.
+    synonyms:
+    - executive summary
+    - company monthly
+    - ringkasan bulanan
+  fields:
+  - name: calmonth
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: calmonth
+    datatype: Integer
+    dimension:
+      is_time: true
+    label: Calendar Month
+  - name: sales_bill_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sales_bill_val
+    datatype: Decimal
+  - name: sales_bill_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sales_bill_qty
+    datatype: Decimal
+  - name: sales_do_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sales_do_qty
+    datatype: Decimal
+  - name: sales_do_amt
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sales_do_amt
+    datatype: Decimal
+  - name: sales_materials
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sales_materials
+    datatype: Integer
+  - name: sales_customers
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sales_customers
+    datatype: Integer
+  - name: stock_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: stock_qty
+    datatype: Decimal
+  - name: stock_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: stock_val
+    datatype: Decimal
+  - name: stock_materials
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: stock_materials
+    datatype: Integer
+  - name: svc_do_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: svc_do_qty
+    datatype: Decimal
+  - name: svc_po_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: svc_po_qty
+    datatype: Decimal
+  - name: svc_fill_rate
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: svc_fill_rate
+    datatype: Decimal
+  - name: svc_materials
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: svc_materials
+    datatype: Integer
+  - name: b2b_bill_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: b2b_bill_val
+    datatype: Decimal
+  - name: b2b_bill_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: b2b_bill_qty
+    datatype: Decimal
+  - name: b2b_materials
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: b2b_materials
+    datatype: Integer
+  - name: b2b_customers
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: b2b_customers
+    datatype: Integer
+  - name: do_amt_to_bill_val_ratio
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: do_amt_to_bill_val_ratio
+    datatype: Decimal
+  - name: stock_to_sales_bill_qty_ratio
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: stock_to_sales_bill_qty_ratio
+    datatype: Decimal
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"domain":"executive","grain":"calmonth","layer":"semantic_gold","time_scope":[202410,202411,202412]}'
+- name: material_360
+  source: gold.rpt_sap_material_month_semantic
+  primary_key:
+  - calmonth
+  - material
+  description: Material-month Sell-In, Stock, Service Level, and Sell-Out context.
+  ai_context:
+    instructions: Enforce has_* coverage flags for every requested domain.
+    synonyms:
+    - material 360
+    - sku performance
+    - performa material
+  fields:
+  - name: calmonth
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: calmonth
+    datatype: Integer
+    dimension:
+      is_time: true
+  - name: material
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: material
+    datatype: String
+    dimension: {}
+    label: Material
+  - name: sell_in_bill_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sell_in_bill_val
+    datatype: Decimal
+  - name: sell_in_bill_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sell_in_bill_qty
+    datatype: Decimal
+  - name: sales_do_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sales_do_qty
+    datatype: Decimal
+  - name: sales_do_amt
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sales_do_amt
+    datatype: Decimal
+  - name: warehouse_stock_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: warehouse_stock_qty
+    datatype: Decimal
+  - name: warehouse_stock_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: warehouse_stock_val
+    datatype: Decimal
+  - name: service_do_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: service_do_qty
+    datatype: Decimal
+  - name: service_po_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: service_po_qty
+    datatype: Decimal
+  - name: service_fill_rate
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: service_fill_rate
+    datatype: Decimal
+  - name: retail_plu
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: retail_plu
+    datatype: String
+    dimension: {}
+  - name: sell_out_bill_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sell_out_bill_val
+    datatype: Decimal
+  - name: sell_out_bill_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sell_out_bill_qty
+    datatype: Decimal
+  - name: has_sell_in
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: has_sell_in
+    datatype: Boolean
+    dimension: {}
+  - name: has_stock
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: has_stock
+    datatype: Boolean
+    dimension: {}
+  - name: has_service_level
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: has_service_level
+    datatype: Boolean
+    dimension: {}
+  - name: has_sell_out
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: has_sell_out
+    datatype: Boolean
+    dimension: {}
+  - name: sell_in_qty_per_stock_unit
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sell_in_qty_per_stock_unit
+    datatype: Decimal
+  - name: service_do_to_sell_in_bill_qty_ratio
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: service_do_to_sell_in_bill_qty_ratio
+    datatype: Decimal
+  - name: service_do_to_sales_do_qty_ratio
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: service_do_to_sales_do_qty_ratio
+    datatype: Decimal
+  - name: sell_in_to_sell_out_value_ratio
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sell_in_to_sell_out_value_ratio
+    datatype: Decimal
+  - name: sell_out_to_sell_in_value_ratio
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sell_out_to_sell_in_value_ratio
+    datatype: Decimal
+  - name: sales_do_amt_to_bill_val_ratio
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sales_do_amt_to_bill_val_ratio
+    datatype: Decimal
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"domain":"material_360","grain":"calmonth+material","layer":"semantic_gold","coverage_filters":["has_sell_in","has_stock","has_service_level","has_sell_out"]}'
+- name: service_level_material
+  source: gold.rpt_service_level_material_month_semantic
+  primary_key:
+  - calmonth
+  - material
+  description: Material-month fulfillment performance with optional Sell-In and Stock context.
+  ai_context:
+    instructions: Recompute aggregate Fill Rate from total DO and PO; never average row ratios.
+    synonyms:
+    - service level
+    - fill rate
+    - pemenuhan order
+  fields:
+  - name: calmonth
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: calmonth
+    datatype: Integer
+    dimension:
+      is_time: true
+  - name: material
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: material
+    datatype: String
+    dimension: {}
+  - name: service_do_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: service_do_qty
+    datatype: Decimal
+  - name: service_po_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: service_po_qty
+    datatype: Decimal
+  - name: service_fill_rate
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: service_fill_rate
+    datatype: Decimal
+  - name: fill_rate_band
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: fill_rate_band
+    datatype: String
+    dimension: {}
+  - name: sell_in_bill_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sell_in_bill_qty
+    datatype: Decimal
+  - name: sell_in_bill_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sell_in_bill_val
+    datatype: Decimal
+  - name: warehouse_stock_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: warehouse_stock_qty
+    datatype: Decimal
+  - name: has_service_level
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: has_service_level
+    datatype: Boolean
+    dimension: {}
+  - name: has_sell_in
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: has_sell_in
+    datatype: Boolean
+    dimension: {}
+  - name: has_stock
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: has_stock
+    datatype: Boolean
+    dimension: {}
+  - name: has_fill_rate
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: has_fill_rate
+    datatype: Boolean
+    dimension: {}
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"domain":"fulfillment","grain":"calmonth+material","layer":"semantic_gold"}'
+- name: customer_reconciliation
+  source: gold.rpt_sap_customer_reconciliation_semantic
+  primary_key:
+  - calmonth
+  - customer
+  description: Shared-customer Sell-In and Sell-Out reconciliation by month.
+  ai_context:
+    instructions: Shared customers only. This is not the full Sales customer population.
+    synonyms:
+    - customer reconciliation
+    - rekonsiliasi customer
+    - sell-in sell-out customer
+  fields:
+  - name: calmonth
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: calmonth
+    datatype: Integer
+    dimension:
+      is_time: true
+  - name: customer
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: customer
+    datatype: String
+    dimension: {}
+  - name: sell_in_bill_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sell_in_bill_val
+    datatype: Decimal
+  - name: sell_out_bill_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sell_out_bill_val
+    datatype: Decimal
+  - name: sell_in_minus_sell_out_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sell_in_minus_sell_out_val
+    datatype: Decimal
+  - name: sell_in_to_sell_out_value_ratio
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sell_in_to_sell_out_value_ratio
+    datatype: Decimal
+  - name: sell_out_to_sell_in_value_ratio
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sell_out_to_sell_in_value_ratio
+    datatype: Decimal
+  - name: absolute_variance_rate_vs_sell_out
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: absolute_variance_rate_vs_sell_out
+    datatype: Decimal
+  - name: reconciliation_scope
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: reconciliation_scope
+    datatype: String
+    dimension: {}
+  - name: has_sell_in
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: has_sell_in
+    datatype: Boolean
+    dimension: {}
+  - name: has_sell_out
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: has_sell_out
+    datatype: Boolean
+    dimension: {}
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"domain":"customer_reconciliation","grain":"calmonth+customer","layer":"semantic_gold","scope":"shared_customer_only"}'
+- name: sales_office_q4
+  source: gold.rpt_sales_office_performance_semantic
+  primary_key:
+  - reporting_period
+  - sales_office
+  description: Q4 2024 Sell-In, Picking, and Unloading performance by sales office.
+  ai_context:
+    instructions: Q4 aggregate only. Do not answer monthly office trend questions.
+    synonyms:
+    - sales office performance
+    - performa cabang
+    - office operations
+  fields:
+  - name: reporting_period
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: reporting_period
+    datatype: String
+    dimension:
+      is_time: true
+  - name: period_start_calmonth
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: period_start_calmonth
+    datatype: Integer
+  - name: period_end_calmonth
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: period_end_calmonth
+    datatype: Integer
+  - name: reporting_grain
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: reporting_grain
+    datatype: String
+  - name: sales_office
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sales_office
+    datatype: String
+    dimension: {}
+  - name: sell_in_bill_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sell_in_bill_val
+    datatype: Decimal
+  - name: sales_billing_lines
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sales_billing_lines
+    datatype: Integer
+  - name: picking_delay_rate
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: picking_delay_rate
+    datatype: Decimal
+  - name: average_picking_minutes
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: average_picking_minutes
+    datatype: Decimal
+  - name: picking_rows
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: picking_rows
+    datatype: Integer
+  - name: average_unloading_minutes
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: average_unloading_minutes
+    datatype: Decimal
+  - name: unloading_rows
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: unloading_rows
+    datatype: Integer
+  - name: has_sell_in
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: has_sell_in
+    datatype: Boolean
+    dimension: {}
+  - name: has_picking
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: has_picking
+    datatype: Boolean
+    dimension: {}
+  - name: has_unloading
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: has_unloading
+    datatype: Boolean
+    dimension: {}
+  - name: picking_rows_per_sales_line
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: picking_rows_per_sales_line
+    datatype: Decimal
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"domain":"sales_office_operations","grain":"reporting_period+sales_office","layer":"semantic_gold","scope":"2024Q4"}'
+relationships: []
+metrics:
+- name: gross_billing_value
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(monthly_executive.sales_bill_val)
+  datatype: Decimal
+  description: Official TEMPO revenue figure, Gross Billing Value from BILL_VAL in IDR.
+  ai_context:
+    synonyms:
+    - gross sales
+    - gross billing value
+    - official revenue
+    - bill value
+    - pendapatan resmi
+    instructions: Use for official revenue. Gold is already IDR; never multiply by 100 again.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SI-01","base_dataset":"monthly_executive","allowed_dimensions":["calmonth"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-01"}'
+- name: billing_quantity
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(monthly_executive.sales_bill_qty)
+  datatype: Decimal
+  description: Total Sell-In billing quantity.
+  ai_context:
+    synonyms:
+    - billing quantity
+    - sell-in quantity
+    - volume billing
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SI-02","base_dataset":"monthly_executive","allowed_dimensions":["calmonth"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-02"}'
+- name: company_fill_rate
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(monthly_executive.svc_do_qty) / NULLIF(SUM(monthly_executive.svc_po_qty), 0)
+  datatype: Decimal
+  description: Company weighted Fill Rate based on total fulfilled DO quantity divided by total PO quantity.
+  ai_context:
+    synonyms:
+    - company fill rate
+    - service level perusahaan
+    - tingkat pemenuhan perusahaan
+    instructions: Recompute from total DO and PO; never average monthly ratios.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"FL-01-EXEC","base_dataset":"monthly_executive","allowed_dimensions":["calmonth"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-01"}'
+- name: do_amount_to_billing_value_ratio
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(monthly_executive.sales_do_amt) / NULLIF(SUM(monthly_executive.sales_bill_val), 0)
+  datatype: Decimal
+  description: Data-quality alignment ratio between Sales DO amount and Gross Billing Value.
+  ai_context:
+    synonyms:
+    - do to bill ratio
+    - rasio do terhadap billing
+    instructions: Data-quality metric, not an official revenue KPI.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SI-DQ-01","base_dataset":"monthly_executive","allowed_dimensions":["calmonth"],"governance_status":"data_quality_metric","business_approval_status":"internal_technical_review","original_kpi_id":"SI-05"}'
+- name: stock_to_sell_in_quantity_ratio
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(monthly_executive.stock_qty) / NULLIF(SUM(monthly_executive.sales_bill_qty), 0)
+  datatype: Decimal
+  description: Proxy ratio of warehouse stock snapshot to monthly Sell-In billing quantity.
+  ai_context:
+    synonyms:
+    - stock to sales ratio
+    - rasio stok terhadap sell-in
+    instructions: Supporting proxy; stock is a snapshot, not inventory flow.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"ST-SI-01","base_dataset":"monthly_executive","allowed_dimensions":["calmonth"],"governance_status":"supporting","business_approval_status":"pending_business_confirmation","original_kpi_id":"ST-06"}'
+- name: material_sell_in_value
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(material_360.sell_in_bill_val)
+  datatype: Decimal
+  description: Sell-In Gross Billing Value by material and month.
+  ai_context:
+    synonyms:
+    - material sell-in value
+    - revenue material
+    - nilai sell-in sku
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SI-01-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-01"}'
+- name: material_sell_in_quantity
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(material_360.sell_in_bill_qty)
+  datatype: Decimal
+  description: Sell-In billing quantity by material and month.
+  ai_context:
+    synonyms:
+    - material sell-in quantity
+    - volume material
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SI-02-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-02"}'
+- name: material_warehouse_stock_quantity
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(material_360.warehouse_stock_qty)
+  datatype: Decimal
+  description: Tempo warehouse stock snapshot quantity by material and month.
+  ai_context:
+    synonyms:
+    - stok material
+    - warehouse stock
+    - stok gudang tempo
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"ST-01-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_stock"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"ST-01"}'
+- name: material_fill_rate
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(material_360.service_do_qty) / NULLIF(SUM(material_360.service_po_qty), 0)
+  datatype: Decimal
+  description: Weighted material Fill Rate by month.
+  ai_context:
+    synonyms:
+    - material fill rate
+    - service level material
+    - fill rate
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"FL-01-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_service_level"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-01"}'
+- name: material_sell_out_value
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(material_360.sell_out_bill_val)
+  datatype: Decimal
+  description: B2B Sell-Out billing value by material and month.
+  ai_context:
+    synonyms:
+    - material sell-out value
+    - nilai sell-out sku
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SO-01-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material","retail_plu"],"required_filters":["has_sell_out"],"governance_status":"scoped_metric","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-01"}'
+- name: material_sell_out_to_sell_in_value_ratio
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(material_360.sell_out_bill_val) / NULLIF(SUM(material_360.sell_in_bill_val), 0)
+  datatype: Decimal
+  description: Material Sell-Out value divided by Sell-In value.
+  ai_context:
+    synonyms:
+    - material sell-out to sell-in ratio
+    - rasio sell-out material
+    instructions: Not official sell-through; price bases can differ.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SO-07-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in","has_sell_out"],"governance_status":"approved_candidate_with_caveat","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-07"}'
+- name: sell_in_quantity_per_stock_unit
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(material_360.sell_in_bill_qty) / NULLIF(SUM(material_360.warehouse_stock_qty), 0)
+  datatype: Decimal
+  description: Proxy Sell-In quantity per warehouse stock unit.
+  ai_context:
+    synonyms:
+    - inventory velocity proxy
+    - sell-in per stock unit
+    instructions: Proxy only; not official inventory turnover.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SI-16-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in","has_stock"],"governance_status":"supporting","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-16"}'
+- name: material_do_amount_to_billing_value_ratio
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(material_360.sales_do_amt) / NULLIF(SUM(material_360.sell_in_bill_val), 0)
+  datatype: Decimal
+  description: Material-level data-quality ratio between Sales DO amount and billing value.
+  ai_context:
+    synonyms:
+    - material do to bill ratio
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SI-DQ-02","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in"],"governance_status":"data_quality_metric","business_approval_status":"internal_technical_review","original_kpi_id":"SI-05"}'
+- name: service_fill_rate
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(service_level_material.service_do_qty) / NULLIF(SUM(service_level_material.service_po_qty), 0)
+  datatype: Decimal
+  description: Weighted material Service Level Fill Rate.
+  ai_context:
+    synonyms:
+    - fill rate
+    - service level
+    - tingkat pemenuhan
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"FL-01","base_dataset":"service_level_material","allowed_dimensions":["calmonth","material","fill_rate_band"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-01"}'
+- name: service_po_quantity
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(service_level_material.service_po_qty)
+  datatype: Decimal
+  description: Purchase Order demand quantity.
+  ai_context:
+    synonyms:
+    - po quantity
+    - demand quantity
+    - jumlah pesanan
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"FL-04","base_dataset":"service_level_material","allowed_dimensions":["calmonth","material","fill_rate_band"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-04"}'
+- name: service_do_quantity
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(service_level_material.service_do_qty)
+  datatype: Decimal
+  description: Fulfilled Delivery Order quantity.
+  ai_context:
+    synonyms:
+    - do quantity
+    - fulfilled quantity
+    - jumlah terpenuhi
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"FL-05","base_dataset":"service_level_material","allowed_dimensions":["calmonth","material","fill_rate_band"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-05"}'
+- name: service_material_month_count
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: COUNT(service_level_material.material)
+  datatype: Integer
+  description: Count of material-month Service Level records, sliceable by Fill Rate Band.
+  ai_context:
+    synonyms:
+    - fill rate band count
+    - jumlah material per band
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"FL-06","base_dataset":"service_level_material","allowed_dimensions":["calmonth","material","fill_rate_band"],"governance_status":"fixed_pending_business_approval","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-06"}'
+- name: sell_in_minus_sell_out_value
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(customer_reconciliation.sell_in_bill_val) - SUM(customer_reconciliation.sell_out_bill_val)
+  datatype: Decimal
+  description: Shared-customer Sell-In value minus Sell-Out value.
+  ai_context:
+    synonyms:
+    - sell-in sell-out variance
+    - gap sell-in sell-out
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SO-06","base_dataset":"customer_reconciliation","allowed_dimensions":["calmonth","customer"],"row_filter":"reconciliation_scope
+      = ''shared_customer_only''","governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-06"}'
+- name: sell_out_to_sell_in_value_ratio
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(customer_reconciliation.sell_out_bill_val) / NULLIF(SUM(customer_reconciliation.sell_in_bill_val), 0)
+  datatype: Decimal
+  description: Shared-customer Sell-Out value divided by Sell-In value.
+  ai_context:
+    synonyms:
+    - sell-out to sell-in ratio
+    - rasio sell-out terhadap sell-in
+    instructions: Canonical ratio direction. Not official sell-through.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SO-07","base_dataset":"customer_reconciliation","allowed_dimensions":["calmonth","customer"],"row_filter":"reconciliation_scope
+      = ''shared_customer_only''","governance_status":"approved_candidate_with_caveat","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-07"}'
+- name: sell_in_to_sell_out_value_ratio
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(customer_reconciliation.sell_in_bill_val) / NULLIF(SUM(customer_reconciliation.sell_out_bill_val), 0)
+  datatype: Decimal
+  description: Shared-customer Sell-In value divided by Sell-Out value.
+  ai_context:
+    synonyms:
+    - sell-in to sell-out ratio
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SO-07-INVERSE","base_dataset":"customer_reconciliation","allowed_dimensions":["calmonth","customer"],"row_filter":"reconciliation_scope
+      = ''shared_customer_only''","governance_status":"supporting","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-07"}'
+- name: absolute_variance_rate_vs_sell_out
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: ABS(SUM(customer_reconciliation.sell_in_bill_val) - SUM(customer_reconciliation.sell_out_bill_val)) / NULLIF(SUM(customer_reconciliation.sell_out_bill_val),
+        0)
+  datatype: Decimal
+  description: Absolute Sell-In/Sell-Out value gap relative to Sell-Out.
+  ai_context:
+    synonyms:
+    - absolute reconciliation variance rate
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SO-06-PCT","base_dataset":"customer_reconciliation","allowed_dimensions":["calmonth","customer"],"row_filter":"reconciliation_scope
+      = ''shared_customer_only''","governance_status":"supporting","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-06"}'
+- name: shared_customer_sell_in_value
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(customer_reconciliation.sell_in_bill_val)
+  datatype: Decimal
+  description: Sell-In value for shared customers only.
+  ai_context:
+    synonyms:
+    - shared customer sell-in
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SI-01-SHARED","base_dataset":"customer_reconciliation","allowed_dimensions":["calmonth","customer"],"row_filter":"reconciliation_scope
+      = ''shared_customer_only''","governance_status":"scoped_metric","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-01"}'
+- name: shared_customer_sell_out_value
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(customer_reconciliation.sell_out_bill_val)
+  datatype: Decimal
+  description: Sell-Out value for shared customers only.
+  ai_context:
+    synonyms:
+    - shared customer sell-out
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SO-01-SHARED","base_dataset":"customer_reconciliation","allowed_dimensions":["calmonth","customer"],"row_filter":"reconciliation_scope
+      = ''shared_customer_only''","governance_status":"scoped_metric","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-01"}'
+- name: sales_office_sell_in_value
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(sales_office_q4.sell_in_bill_val)
+  datatype: Decimal
+  description: Q4 Sell-In Gross Billing Value by sales office.
+  ai_context:
+    synonyms:
+    - sales office revenue
+    - nilai sell-in cabang
+    instructions: Q4 aggregate only.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SI-13-Q4","base_dataset":"sales_office_q4","allowed_dimensions":["reporting_period","sales_office"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-13"}'
+- name: picking_delay_rate
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(sales_office_q4.picking_delay_rate * sales_office_q4.picking_rows) / NULLIF(SUM(sales_office_q4.picking_rows),
+        0)
+  datatype: Decimal
+  description: Picking-row weighted Q4 delay rate by sales office.
+  ai_context:
+    synonyms:
+    - picking delay rate
+    - tingkat keterlambatan picking
+    instructions: Q4 aggregate; only offices with Picking data.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"PK-01-Q4","base_dataset":"sales_office_q4","allowed_dimensions":["reporting_period","sales_office"],"row_filter":"has_picking
+      = TRUE","governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"PK-01"}'
+- name: average_picking_minutes
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(sales_office_q4.average_picking_minutes * sales_office_q4.picking_rows) / NULLIF(SUM(sales_office_q4.picking_rows),
+        0)
+  datatype: Decimal
+  description: Picking-row weighted average picking duration in minutes.
+  ai_context:
+    synonyms:
+    - average picking time
+    - rata-rata waktu picking
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"PK-03-Q4","base_dataset":"sales_office_q4","allowed_dimensions":["reporting_period","sales_office"],"row_filter":"has_picking
+      = TRUE","governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"PK-03"}'
+- name: average_unloading_minutes
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(sales_office_q4.average_unloading_minutes * sales_office_q4.unloading_rows) / NULLIF(SUM(sales_office_q4.unloading_rows),
+        0)
+  datatype: Decimal
+  description: Unloading-row weighted average unloading duration in minutes.
+  ai_context:
+    synonyms:
+    - average unloading time
+    - rata-rata waktu unloading
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"UL-01-Q4","base_dataset":"sales_office_q4","allowed_dimensions":["reporting_period","sales_office"],"row_filter":"has_unloading
+      = TRUE","governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"UL-01"}'
+- name: picking_rows_per_sales_line
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(sales_office_q4.picking_rows) / NULLIF(SUM(sales_office_q4.sales_billing_lines), 0)
+  datatype: Decimal
+  description: Q4 picking workload rows divided by Sales billing lines.
+  ai_context:
+    synonyms:
+    - picking workload ratio
+    - picking rows per sales line
+    instructions: Supporting workload proxy, not productivity.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"XD-03-Q4","base_dataset":"sales_office_q4","allowed_dimensions":["reporting_period","sales_office"],"row_filter":"has_sell_in
+      = TRUE AND has_picking = TRUE","governance_status":"supporting","business_approval_status":"pending_business_confirmation","original_kpi_id":"XD-03"}'

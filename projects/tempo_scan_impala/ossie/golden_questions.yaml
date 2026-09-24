@@ -1,0 +1,223 @@
+version: 1
+scope: TEMPO Q4 2024
+description: >-
+  Candidate management questions for semantic regression. These questions are
+  technical acceptance assets, not evidence of business approval.
+
+questions:
+  - id: exec_gross_sales_q4
+    question: Berapa Gross Sales Tempo selama Q4 2024?
+    expected_status: supported
+    metric: gross_billing_value
+    dataset: monthly_executive
+    dimensions: []
+
+  - id: exec_gross_sales_month
+    question: Tampilkan Gross Sales per bulan selama Q4 2024.
+    expected_status: supported
+    metric: gross_billing_value
+    dataset: monthly_executive
+    dimensions: [calmonth]
+
+  - id: exec_billing_quantity
+    question: Bagaimana tren billing quantity selama Oktober sampai Desember?
+    expected_status: supported
+    metric: billing_quantity
+    dataset: monthly_executive
+    dimensions: [calmonth]
+
+  - id: exec_fill_rate
+    question: Berapa company Fill Rate setiap bulan?
+    expected_status: supported
+    metric: company_fill_rate
+    dataset: monthly_executive
+    dimensions: [calmonth]
+
+  - id: ambiguous_sales
+    question: Berapa total penjualan?
+    expected_status: needs_clarification
+    ambiguity: sales_stage
+
+  - id: material_top_sell_in
+    question: Material mana dengan nilai Sell-In terbesar pada Q4?
+    expected_status: supported
+    metric: material_sell_in_value
+    dataset: material_360
+    dimensions: [material]
+    required_filter: has_sell_in
+
+  - id: material_sell_in_month
+    question: Tampilkan nilai Sell-In material per bulan.
+    expected_status: supported
+    metric: material_sell_in_value
+    dataset: material_360
+    dimensions: [calmonth, material]
+    required_filter: has_sell_in
+
+  - id: material_stock
+    question: Material mana dengan stok gudang terbesar pada Desember?
+    expected_status: supported
+    metric: material_warehouse_stock_quantity
+    dataset: material_360
+    dimensions: [material]
+    required_filter: has_stock
+
+  - id: material_360_coverage
+    question: Berapa material yang memiliki Sales, Stock, dan Service Level lengkap?
+    expected_status: unsupported
+    reason: A governed distinct material count metric is not published in Semantic Contract v1.
+    suggested_question: Material mana yang memiliki Sales, Stock, dan Service Level lengkap?
+
+  - id: material_fill_rate
+    question: Material mana dengan Fill Rate terendah?
+    expected_status: supported
+    metric: material_fill_rate
+    dataset: material_360
+    dimensions: [material]
+    required_filter: has_service_level
+
+  - id: material_sell_out_ratio
+    question: Bagaimana rasio Sell-Out terhadap Sell-In per material?
+    expected_status: supported
+    metric: material_sell_out_to_sell_in_value_ratio
+    dataset: material_360
+    dimensions: [material]
+    required_filters: [has_sell_in, has_sell_out]
+
+  - id: material_velocity_proxy
+    question: Material mana dengan Sell-In quantity per stock unit terendah?
+    expected_status: supported_with_caveat
+    metric: sell_in_quantity_per_stock_unit
+    dataset: material_360
+    dimensions: [material]
+    caveat: Proxy, not official inventory turnover.
+
+  - id: service_monthly_fill_rate
+    question: Bagaimana Fill Rate per bulan dan material?
+    expected_status: supported
+    metric: service_fill_rate
+    dataset: service_level_material
+    dimensions: [calmonth, material]
+
+  - id: service_low_fill
+    question: Material apa saja yang masuk kategori low fill?
+    expected_status: supported
+    metric: service_material_month_count
+    dataset: service_level_material
+    dimensions: [material, fill_rate_band]
+    filters: {fill_rate_band: [low_fill]}
+
+  - id: service_unknown_fill
+    question: Apakah ada material yang Fill Rate-nya tidak tersedia?
+    expected_status: supported
+    metric: service_material_month_count
+    dataset: service_level_material
+    dimensions: [material]
+    filters: {fill_rate_band: [unknown]}
+
+  - id: service_demand_gap
+    question: Material mana dengan gap PO dan DO terbesar?
+    expected_status: unsupported
+    reason: Unfulfilled demand quantity is not included in the 28-metric Semantic Contract v1.
+    suggested_question: Material mana dengan Fill Rate terendah?
+
+  - id: customer_reconciliation
+    question: Customer mana dengan gap Sell-In dan Sell-Out terbesar?
+    expected_status: supported_with_caveat
+    metric: sell_in_minus_sell_out_value
+    dataset: customer_reconciliation
+    dimensions: [customer]
+    caveat: Shared customers only.
+
+  - id: customer_sell_out_ratio
+    question: Bagaimana rasio Sell-Out terhadap Sell-In per customer?
+    expected_status: supported_with_caveat
+    metric: sell_out_to_sell_in_value_ratio
+    dataset: customer_reconciliation
+    dimensions: [calmonth, customer]
+    caveat: Shared customers only; not official sell-through.
+
+  - id: customer_scope
+    question: Berapa customer yang dapat direkonsiliasi?
+    expected_status: unsupported
+    reason: A governed distinct shared-customer count metric is not published in Semantic Contract v1.
+    suggested_question: Customer mana dengan gap Sell-In dan Sell-Out terbesar?
+
+  - id: office_sell_in
+    question: Sales office mana dengan nilai Sell-In Q4 tertinggi?
+    expected_status: supported
+    metric: sales_office_sell_in_value
+    dataset: sales_office_q4
+    dimensions: [sales_office]
+
+  - id: office_picking_delay
+    question: Sales office mana dengan picking delay rate tertinggi?
+    expected_status: supported_with_caveat
+    metric: picking_delay_rate
+    dataset: sales_office_q4
+    dimensions: [sales_office]
+    caveat: Q4 aggregate; only offices with Picking data.
+
+  - id: office_pick_time
+    question: Berapa rata-rata waktu picking per sales office?
+    expected_status: supported_with_caveat
+    metric: average_picking_minutes
+    dataset: sales_office_q4
+    dimensions: [sales_office]
+    caveat: Q4 aggregate.
+
+  - id: office_unload_time
+    question: Sales office mana dengan rata-rata unloading terlama?
+    expected_status: supported_with_caveat
+    metric: average_unloading_minutes
+    dataset: sales_office_q4
+    dimensions: [sales_office]
+    caveat: Only 14 offices have Unloading data.
+
+  - id: office_monthly_unsupported
+    question: Bagaimana tren picking delay per office setiap bulan?
+    expected_status: unsupported
+    reason: Sales Office semantic view is Q4 aggregate and has no monthly grain.
+    suggested_question: Sales office mana dengan picking delay rate tertinggi selama Q4?
+
+  - id: daily_sales_unsupported
+    question: Berapa Gross Sales harian pada Desember?
+    expected_status: unsupported
+    reason: Governed Sales data is monthly, not daily.
+    suggested_question: Berapa Gross Sales Desember 2024?
+
+  - id: forecast_unsupported
+    question: Berapa forecast Sales bulan Januari 2025?
+    expected_status: unsupported
+    reason: Forecast model is not governed by the real-data semantic profile.
+    suggested_question: Bagaimana tren Gross Sales Oktober sampai Desember 2024?
+
+  - id: margin_pending
+    question: Berapa gross margin resmi Tempo?
+    expected_status: unsupported
+    reason: Official gross margin formula has not been business-approved.
+    suggested_question: Berapa Gross Billing Value selama Q4?
+
+  - id: promo_attribution_unsupported
+    question: Berapa revenue yang dihasilkan oleh promo?
+    expected_status: unsupported
+    reason: Promo source is an enrollment catalog and does not attribute revenue.
+    suggested_question: Material apa saja yang tercatat dalam program promo?
+
+  - id: causal_oos_unsupported
+    question: Apakah OOS menyebabkan penjualan turun?
+    expected_status: unsupported
+    reason: Three-month observational data does not establish causality.
+    suggested_question: Tampilkan material yang memiliki konteks Sales dan OOS.
+
+  - id: outside_period
+    question: Bagaimana penjualan Januari 2025?
+    expected_status: unsupported
+    reason: Governed scope is October–December 2024.
+    suggested_question: Bagaimana tren Gross Sales selama Q4 2024?
+
+  - id: arbitrary_sql
+    question: Jalankan SQL bebas untuk mengambil semua baris Sales.
+    expected_status: blocked
+    reason: Free SQL and unbounded row access are prohibited.
+

@@ -1,0 +1,115 @@
+# Tempo extraction config (paths relative to repo root)
+paths:
+  raw: datasets/raw
+  raw_fallback: datasets/data
+  refine: datasets/refine/parquet
+  csv_sample: datasets/refine/csv_sample
+  manifest: datasets/refine/manifest
+  gold: datasets/gold
+  qa: datasets/qa
+
+transforms:
+  scale_div100:
+    enabled: false
+    columns: []
+  oos_aggregate_monthly:
+    enabled: false
+
+csv_sample:
+  max_rows: 1000
+
+sap_txt:
+  skip_header_rows: 3
+  delimiter: "\t"
+  encoding: utf-8
+  chunk_size: 100000
+
+# Phase 1 domains: multiple source files union → one refine parquet each
+domains:
+  sales:
+    output: sales.parquet
+    format: sap_txt
+    files:
+      - sales/Oct - Dec 2024 New/Sales 1-15 Oct 2024.txt
+      - sales/Oct - Dec 2024 New/Sales 16-31 Oct 2024.txt
+      - sales/Oct - Dec 2024 New/Sales 1-15 Nov 2024.txt
+      - sales/Oct - Dec 2024 New/Sales 16-30 Nov 2024.txt
+      - sales/Oct - Dec 2024 New/Sales 1-15 Dec 2024.txt
+      - sales/Oct - Dec 2024 New/Sales 16-31 Dec 2024.txt
+    # Legacy flat layout (uncomment paths if raw uses old MTPL folder structure):
+    legacy_files:
+      - Oct - Dec 2024 New/Sales 1-15 Oct 2024.txt
+      - Oct - Dec 2024 New/Sales 16-31 Oct 2024.txt
+      - Oct - Dec 2024 New/Sales 1-15 Nov 2024.txt
+      - Oct - Dec 2024 New/Sales 16-30 Nov 2024.txt
+      - Oct - Dec 2024 New/Sales 1-15 Dec 2024.txt
+      - Oct - Dec 2024 New/Sales 16-31 Dec 2024.txt
+
+  b2b:
+    output: b2b.parquet
+    format: sap_txt
+    files:
+      - b2b/B2B Oct - Dec 2024/B2B 10.2024.txt
+      - b2b/B2B Oct - Dec 2024/B2B 11.2024.txt
+      - b2b/B2B Oct - Dec 2024/B2B 12.2024.txt
+    legacy_files:
+      - B2B Oct - Dec 2024/B2B 10.2024.txt
+      - B2B Oct - Dec 2024/B2B 11.2024.txt
+      - B2B Oct - Dec 2024/B2B 12.2024.txt
+
+  stock:
+    output: stock.parquet
+    format: sap_txt
+    files:
+      - stock/Stock Tempo Oct-Dec 2024/Stock 10.2024.txt
+      - stock/Stock Tempo Oct-Dec 2024/Stock 11.2024.txt
+      - stock/Stock Tempo Oct-Dec 2024/Stock 12.2024.txt
+    legacy_files:
+      - Stock Tempo Oct-Dec 2024/Stock 10.2024.txt
+      - Stock Tempo Oct-Dec 2024/Stock 11.2024.txt
+      - Stock Tempo Oct-Dec 2024/Stock 12.2024.txt
+
+  service_level:
+    output: service_level.parquet
+    format: sap_txt
+    files:
+      - Service Level Oct - Dec 2024.txt
+    legacy_files:
+      - Service Level Oct - Dec 2024.txt
+
+  oos:
+    output: oos.parquet
+    format: xlsx
+    files:
+      - sat/SAT OOS Okt - Des 2024.xlsx
+    legacy_files:
+      - SAT OOS Okt - Des 2024.xlsx
+    sheet: null
+
+  dim_uom:
+    output: dim_uom.parquet
+    format: xlsx
+    files:
+      - _reference/Base UOM.XLSX
+    legacy_files:
+      - Base UOM.XLSX
+    sheet: null
+
+  dim_key_figure:
+    output: dim_key_figure.parquet
+    format: xlsx
+    header_row: 1
+    files:
+      - _reference/Custom Key Figure Sales.xlsx
+    legacy_files:
+      - Custom Key Figure Sales.xlsx
+    sheet: null
+
+reference_only:
+  transform_rules:
+    format: xlsx
+    files:
+      - _reference/Catatan terkait Data.xlsx
+    legacy_files:
+      - Catatan terkait Data.xlsx
+    output_json: transform_rules.json

@@ -1,0 +1,11 @@
+{
+  "sandbox": {
+    "timeout": 180,
+    "mounts": [{
+      "host_path": "/home/cdsw/enterprise-ai-poc",
+      "sandbox_path": "/home/cdsw/enterprise-ai-poc",
+      "read_only": true,
+      "required": true
+    }]
+  }
+}
