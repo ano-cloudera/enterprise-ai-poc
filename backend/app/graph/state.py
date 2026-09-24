@@ -19,6 +19,9 @@ class GraphState(TypedDict, total=False):
     intent: str
     semantic_context: str
     semantic_resolution: dict[str, Any]
+    semantic_plan: dict[str, Any]
+    capability_status: str
+    scope_notice: str
     analytical_intent: dict[str, Any]
     forecast_intent: dict[str, Any]
     weather_intent: dict[str, Any]

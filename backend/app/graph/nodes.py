@@ -89,6 +89,11 @@ async def route_intent(state: GraphState) -> GraphState:
     q = state["question"].lower()
     if state.get("guardrail_error"):
         return {**state, "intent": "blocked"}
+    if settings.semantic_execution_mode == "ossie":
+        return {
+            **state,
+            "intent": "ossie_conversational" if _is_greeting(q) else "ossie_analytical",
+        }
     forecast_terms = ("forecast", "proyeksi", "ramalan", "bulan depan", "next month")
     weather_terms = (
         "weather", "cuaca", "curah hujan", "hujan", "rainy day", "hari hujan",
@@ -456,7 +461,11 @@ def output_guard(state: GraphState) -> GraphState:
         return fallback({**state, "guardrail_error": result.reason or "Output rejected"})
     # contract validation also prevents arbitrary UI action types from escaping
     actions = [ui_action_adapter.validate_python(a) for a in state.get("ui_actions", [])]
-    validate_action_targets(actions, load_semantic_project())
+    if settings.semantic_execution_mode == "ossie":
+        if any(not isinstance(action, ShowTableAction) for action in actions):
+            return fallback({**state, "guardrail_error": "Unsupported OSSIE UI action"})
+    else:
+        validate_action_targets(actions, load_semantic_project())
     ChartSpec.model_validate(state.get("chart_spec") or {"type": "none"})
     return state
 

@@ -253,6 +253,8 @@ class PublicConfigResponse(BaseModel):
     brand: dict[str, str]
     model_name: str
     data_backend: str
+    semantic_execution_mode: str = "legacy"
+    semantic_capabilities_enabled: bool = False
     guardrails_enabled: bool
 
 
@@ -263,6 +265,7 @@ class SettingsPatch(BaseModel):
 
 
 class DashboardOverview(BaseModel):
+    profile: str | None = None
     period: str
     kpis: list[dict[str, Any]]
     sales_trend: list[dict[str, Any]]
@@ -270,6 +273,9 @@ class DashboardOverview(BaseModel):
     top_products: list[dict[str, Any]]
     channel_share: list[dict[str, Any]]
     ai_insight: dict[str, Any]
+    labels: dict[str, str] = Field(default_factory=dict)
+    scope_badges: list[str] = Field(default_factory=list)
+    refreshed_at: str | None = None
 
 
 class MonitoringSummary(BaseModel):
