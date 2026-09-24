@@ -20,6 +20,9 @@ class Settings(BaseSettings):
 
     project_id: str = "tempo_scan"
     project_root: Path = Field(default_factory=lambda: Path(__file__).resolve().parents[3] / "projects")
+    semantic_execution_mode: Literal["legacy", "ossie"] = "legacy"
+    ossie_project_id: str = "tempo_scan_impala"
+    ossie_max_rows: int = Field(default=200, ge=1, le=1000)
 
     data_backend: Literal["duckdb", "trino", "impala"] = "duckdb"
     duckdb_path: Path = Field(default_factory=lambda: Path(__file__).resolve().parents[3] / "runtime" / "tempo_scan.duckdb")
@@ -45,6 +48,13 @@ class Settings(BaseSettings):
     impala_user: str = ""
     impala_password: str = ""
     impala_use_ssl: bool = False
+    # CDP coordinators fronted by a gateway (e.g. the ano03 Impala VW) require
+    # HTTP transport over 443 rather than the raw Thrift binary protocol on
+    # 21050 - impyla's connect() only enables that when use_http_transport is
+    # explicitly True and http_path is set. Defaults keep the prior binary
+    # Thrift behavior unchanged for any existing direct-coordinator setup.
+    impala_use_http_transport: bool = False
+    impala_http_path: str = ""
 
     llm_mode: Literal["mock", "remote"] = "mock"
     qwen_base_url: str = ""

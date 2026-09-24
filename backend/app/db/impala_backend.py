@@ -1,7 +1,9 @@
 from __future__ import annotations
 
+from time import perf_counter
+
 from app.core.config import get_settings
-from app.db.base import BackendColumn, BackendExecutionContext, BackendQueryResult, DataBackendHealth, QueryTelemetry, normalize_value
+from app.db.base import BackendColumn, BackendExecutionContext, BackendQueryResult, DataBackendError, DataBackendHealth, QueryTelemetry, normalize_value
 
 
 class ImpalaBackend:
@@ -31,6 +33,8 @@ class ImpalaBackend:
             user=self.settings.impala_user or None,
             password=self.settings.impala_password or None,
             use_ssl=self.settings.impala_use_ssl,
+            use_http_transport=self.settings.impala_use_http_transport,
+            http_path=self.settings.impala_http_path,
         )
         cursor = conn.cursor()
         try:
@@ -42,7 +46,18 @@ class ImpalaBackend:
             conn.close()
 
     def execute(self, sql: str, context: BackendExecutionContext | None = None) -> BackendQueryResult:
-        records = self.query(sql)
+        started = perf_counter()
+        try:
+            records = self.query(sql)
+        except Exception as exc:
+            telemetry = QueryTelemetry(
+                data_backend="impala",
+                query_latency_ms=(perf_counter() - started) * 1000,
+                row_count=0,
+                success=False,
+                safe_error_code="IMPALA_QUERY_FAILED",
+            )
+            raise DataBackendError("IMPALA_QUERY_FAILED", telemetry) from exc
         names = list(records[0]) if records else []
         rows = [[normalize_value(record.get(name)) for name in names] for record in records]
         return BackendQueryResult(
@@ -51,7 +66,7 @@ class ImpalaBackend:
             row_count=len(rows),
             telemetry=QueryTelemetry(
                 data_backend="impala",
-                query_latency_ms=0,
+                query_latency_ms=(perf_counter() - started) * 1000,
                 row_count=len(rows),
                 success=True,
             ),
