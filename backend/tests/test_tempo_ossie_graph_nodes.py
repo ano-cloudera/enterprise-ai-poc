@@ -23,13 +23,43 @@ async def test_ossie_mode_routes_greeting_and_analysis_without_legacy_resolution
     assert forecast["intent"] == "ossie_analytical"
 
 
-def test_ossie_conversational_returns_capability_context() -> None:
+def test_ossie_conversational_first_turn_shows_the_full_greeting_in_indonesian() -> None:
     result = graph_nodes.ossie_conversational(
         {"question": "Halo", "language": "id", "dashboard_state": {}}
     )
     assert result["status"] == "ok"
-    assert "Q4 2024" in result["answer"]["summary"]
-    assert result["answer"]["recommended_actions"]
+    assert "Halo, saya SCAN" in result["answer"]["summary"]
+    assert "Oktober" in result["answer"]["summary"]
+    # The 4 fixed sample questions requested by the user, verbatim.
+    assert result["answer"]["recommended_actions"] == [
+        "Bagaimana tren Gross Sales selama Q4?",
+        "Material mana dengan Fill Rate terendah?",
+        "Bagaimana perbandingan Sell-In dan Sell-Out?",
+        "Sales office mana dengan picking delay tertinggi?",
+    ]
+
+
+def test_ossie_conversational_first_turn_shows_the_full_greeting_in_english() -> None:
+    result = graph_nodes.ossie_conversational(
+        {"question": "Hello", "language": "en", "dashboard_state": {}}
+    )
+    assert "Hello, I'm SCAN" in result["answer"]["summary"]
+    assert len(result["answer"]["recommended_actions"]) == 4
+
+
+def test_ossie_conversational_later_turn_does_not_repeat_the_full_greeting() -> None:
+    # state["history"] non-empty signals this isn't the first message in the
+    # session - a later "halo" should get a short reply, not the full pitch
+    # with the 4 sample questions again.
+    result = graph_nodes.ossie_conversational({
+        "question": "Halo",
+        "language": "id",
+        "dashboard_state": {},
+        "history": [{"role": "user", "content": "Berapa Gross Sales Q4?"}],
+    })
+    assert result["status"] == "ok"
+    assert "Halo, saya SCAN" not in result["answer"]["summary"]
+    assert result["answer"]["recommended_actions"] == []
 
 
 class _FakeRegistry:

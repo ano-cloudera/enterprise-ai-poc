@@ -14,7 +14,14 @@ logger = logging.getLogger(__name__)
 
 def _language(question: str) -> str:
     lowered = question.casefold()
-    markers = ("berapa", "bagaimana", "material", "bulan", "yang", "dengan", "dari")
+    markers = (
+        "berapa", "bagaimana", "material", "bulan", "yang", "dengan", "dari",
+        # Greetings/small talk carry none of the above content markers, so
+        # without these an Indonesian "Halo" or "Selamat pagi" misclassified
+        # as English (only the analytical-question markers were covered).
+        "halo", "hai", "selamat pagi", "selamat siang", "selamat sore",
+        "selamat malam", "terima kasih", "apa kabar",
+    )
     return "id" if any(marker in lowered for marker in markers) else "en"
 
 
@@ -74,29 +81,78 @@ def _scope_caveats(definition: dict[str, Any]) -> list[str]:
     return caveats
 
 
+# Fixed 4-question sample shown on the first greeting of a session - chosen
+# to span the breadth of governed capability (executive trend, material
+# service level, Sell-In/Sell-Out comparison, sales office operations)
+# rather than whatever happens to sort first in golden_questions.yaml, so a
+# new user immediately sees the range of what SCAN can answer.
+_FIRST_GREETING_EXAMPLES_ID = (
+    "Bagaimana tren Gross Sales selama Q4?",
+    "Material mana dengan Fill Rate terendah?",
+    "Bagaimana perbandingan Sell-In dan Sell-Out?",
+    "Sales office mana dengan picking delay tertinggi?",
+)
+_FIRST_GREETING_EXAMPLES_EN = (
+    "How has Gross Sales trended over Q4?",
+    "Which material has the lowest Fill Rate?",
+    "How do Sell-In and Sell-Out compare?",
+    "Which sales office has the highest picking delay?",
+)
+
+
 def ossie_conversational(state: GraphState) -> GraphState:
-    service = get_tempo_ossie_service()
-    capabilities = service.capabilities()
     language = _language(state["question"])
-    if language == "id":
-        summary = (
-            "Halo, saya SCAN. Saya dapat membantu analisis governed TEMPO Q4 2024 "
-            "untuk Sell-In, Sell-Out, Material 360, Service Level, stok gudang, "
-            "sales office, dan rekonsiliasi customer."
-        )
-        actions = capabilities["examples"][:4]
+    # The full "here's what I can do" greeting is only useful the first time
+    # a session says hello - state["history"] is empty exactly then, since
+    # it holds prior turns from this same session. A later "halo" mid-chat
+    # gets a short, natural reply instead of repeating the whole pitch.
+    is_first_turn = not state.get("history")
+
+    if is_first_turn:
+        if language == "id":
+            summary = (
+                "Halo, saya SCAN. Saya dapat membantu analisis data Tempo periode "
+                "Oktober–Desember 2024 terkait Sell-In, Sell-Out, Material 360, "
+                "Service Level, stok gudang, performa sales office, dan "
+                "rekonsiliasi customer."
+            )
+            actions = list(_FIRST_GREETING_EXAMPLES_ID)
+            caveat = (
+                "Untuk pertanyaan di luar cakupan data, saya akan menjelaskan "
+                "informasi yang belum tersedia. Periode data yang tersedia: "
+                "Oktober–Desember 2024."
+            )
+        else:
+            summary = (
+                "Hello, I'm SCAN. I can help analyze Tempo's October–December "
+                "2024 data covering Sell-In, Sell-Out, Material 360, Service "
+                "Level, warehouse stock, sales office performance, and customer "
+                "reconciliation."
+            )
+            actions = list(_FIRST_GREETING_EXAMPLES_EN)
+            caveat = (
+                "For questions outside this data's scope, I'll explain what "
+                "isn't available. Available reporting period: October–December "
+                "2024."
+            )
     else:
         summary = (
-            "Hello, I am SCAN. I can help with governed TEMPO Q4 2024 analysis "
-            "covering Sell-In, Sell-Out, Material 360, Service Level, warehouse "
-            "stock, sales offices, and customer reconciliation."
+            "Halo lagi! Ada yang bisa saya bantu soal data Tempo Q4 2024?"
+            if language == "id"
+            else "Hey again! Anything else I can help with on Tempo's Q4 2024 data?"
         )
-        actions = capabilities["examples"][:4]
+        actions = []
+        caveat = (
+            "Periode data yang tersedia: Oktober–Desember 2024."
+            if language == "id"
+            else "Available reporting period: October–December 2024."
+        )
+
     answer = ExecutiveAnswer(
         summary=summary,
         drivers=[],
         recommended_actions=actions,
-        caveats=["Available reporting period: October–December 2024."],
+        caveats=[caveat],
     )
     return {
         **state,
