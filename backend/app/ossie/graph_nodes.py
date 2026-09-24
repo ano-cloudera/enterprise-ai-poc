@@ -326,6 +326,7 @@ async def ossie_analytical(state: GraphState) -> GraphState:
         ),
         "dimension": dimensions[0] if len(dimensions) == 1 else None,
         "metric": metric,
+        "unit_format": definition.get("unit_format"),
         "target": "chat",
     }
     ui_actions = (

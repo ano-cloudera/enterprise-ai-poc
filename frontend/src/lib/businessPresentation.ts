@@ -24,10 +24,41 @@ export function formatBusinessLabel(value: string): string {
     .replace(/\b\w/g, character => character.toUpperCase())
 }
 
-export function formatBusinessValue(field: string, value: unknown, metric?: string): string {
+// Governed metrics (OSSIE/Impala) declare their own unit_format
+// (currency_idr/quantity/percent/ratio/minutes/count) in tempo_core.ossie.yaml
+// - when present, it is authoritative and skips the field/metric-name
+// heuristics below entirely. Those heuristics remain as a fallback only for
+// non-governed domains (forecast/weather/market) that don't carry a
+// unit_format yet, since the generic SQL column name "metric_value" used
+// for every governed metric previously made "value" in that name match the
+// currency regex for ANY metric, including quantity/percent ones.
+function formatByUnit(unitFormat: string, value: number): string | null {
+  switch (unitFormat) {
+    case 'currency_idr':
+      return formatMillionIdr(value)
+    case 'percent':
+      return `${value > 0 ? '+' : ''}${value.toFixed(1)}%`
+    case 'quantity':
+    case 'count':
+      return Math.round(value).toLocaleString('en-US')
+    case 'ratio':
+      return value.toFixed(2)
+    case 'minutes':
+      return `${value.toLocaleString('en-US', { maximumFractionDigits: 1 })} min`
+    default:
+      return null
+  }
+}
+
+export function formatBusinessValue(field: string, value: unknown, metric?: string, unitFormat?: string | null): string {
   if (value === null || value === undefined || value === '') return '—'
   if (typeof value !== 'number') return String(value)
   if (!Number.isFinite(value)) return 'Unavailable'
+
+  if (unitFormat) {
+    const formatted = formatByUnit(unitFormat, value)
+    if (formatted !== null) return formatted
+  }
 
   const key = field.toLowerCase()
   const metricKey = metric?.toLowerCase() ?? ''

@@ -48,6 +48,11 @@ async def run_chat(request: ChatRequest) -> ChatResponse:
         answer = ExecutiveAnswer.model_validate(state.get("answer") or {"summary": "No validated answer.", "drivers": [], "recommended_actions": [], "caveats": []})
         raw_chart = state.get("chart_spec")
         chart = ChartSpec.model_validate(raw_chart) if raw_chart and raw_chart.get("type") != "none" else None
+        # unit_format is read from raw_chart directly (not from `chart`,
+        # which becomes None whenever type == "none" - the common case for
+        # a single-value, no-dimension answer) so DataTable still gets it
+        # even when there's no chart to render.
+        unit_format = raw_chart.get("unit_format") if raw_chart else None
         rows = state.get("rows", [])
         columns = list(rows[0].keys()) if rows else []
         status = state.get("status", "ok")
@@ -72,7 +77,7 @@ async def run_chat(request: ChatRequest) -> ChatResponse:
             status=status if status in {"ok", "fallback", "error"} else "ok",
             question=request.question,
             answer=answer,
-            data=QueryData(columns=columns, rows=rows),
+            data=QueryData(columns=columns, rows=rows, unit_format=unit_format),
             chart_spec=chart,
             ui_actions=[ui_action_adapter.validate_python(a) for a in state.get("ui_actions", [])],
             metadata=ChatMetadata(

@@ -1244,7 +1244,7 @@ metrics:
     instructions: Use for official revenue. Gold is already IDR; never multiply by 100 again.
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SI-01","base_dataset":"monthly_executive","allowed_dimensions":["calmonth"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-01"}'
+    data: '{"metric_id":"SI-01","base_dataset":"monthly_executive","allowed_dimensions":["calmonth"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-01","unit_format":"currency_idr"}'
 - name: billing_quantity
   expression:
     dialects:
@@ -1259,7 +1259,7 @@ metrics:
     - volume billing
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SI-02","base_dataset":"monthly_executive","allowed_dimensions":["calmonth"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-02"}'
+    data: '{"metric_id":"SI-02","base_dataset":"monthly_executive","allowed_dimensions":["calmonth"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-02","unit_format":"quantity"}'
 - name: company_fill_rate
   expression:
     dialects:
@@ -1278,7 +1278,7 @@ metrics:
       is the intended metric (company-wide aggregate).
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"FL-01-EXEC","base_dataset":"monthly_executive","allowed_dimensions":["calmonth"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-01"}'
+    data: '{"metric_id":"FL-01-EXEC","base_dataset":"monthly_executive","allowed_dimensions":["calmonth"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-01","unit_format":"percent"}'
 - name: do_amount_to_billing_value_ratio
   expression:
     dialects:
@@ -1293,7 +1293,7 @@ metrics:
     instructions: Data-quality metric, not an official revenue KPI.
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SI-DQ-01","base_dataset":"monthly_executive","allowed_dimensions":["calmonth"],"governance_status":"data_quality_metric","business_approval_status":"internal_technical_review","original_kpi_id":"SI-05"}'
+    data: '{"metric_id":"SI-DQ-01","base_dataset":"monthly_executive","allowed_dimensions":["calmonth"],"governance_status":"data_quality_metric","business_approval_status":"internal_technical_review","original_kpi_id":"SI-05","unit_format":"ratio"}'
 - name: stock_to_sell_in_quantity_ratio
   expression:
     dialects:
@@ -1308,7 +1308,7 @@ metrics:
     instructions: Supporting proxy; stock is a snapshot, not inventory flow.
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"ST-SI-01","base_dataset":"monthly_executive","allowed_dimensions":["calmonth"],"governance_status":"supporting","business_approval_status":"pending_business_confirmation","original_kpi_id":"ST-06"}'
+    data: '{"metric_id":"ST-SI-01","base_dataset":"monthly_executive","allowed_dimensions":["calmonth"],"governance_status":"supporting","business_approval_status":"pending_business_confirmation","original_kpi_id":"ST-06","unit_format":"ratio"}'
 - name: material_sell_in_value
   expression:
     dialects:
@@ -1323,7 +1323,7 @@ metrics:
     - nilai sell-in sku
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SI-01-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-01"}'
+    data: '{"metric_id":"SI-01-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-01","unit_format":"currency_idr"}'
 - name: material_sell_in_quantity
   expression:
     dialects:
@@ -1337,7 +1337,7 @@ metrics:
     - volume material
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SI-02-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-02"}'
+    data: '{"metric_id":"SI-02-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-02","unit_format":"quantity"}'
 - name: material_warehouse_stock_quantity
   expression:
     dialects:
@@ -1352,7 +1352,7 @@ metrics:
     - stok gudang tempo
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"ST-01-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_stock"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"ST-01"}'
+    data: '{"metric_id":"ST-01-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_stock"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"ST-01","unit_format":"quantity"}'
 - name: material_fill_rate
   expression:
     dialects:
@@ -1367,7 +1367,7 @@ metrics:
     - fill rate
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"FL-01-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_service_level"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-01"}'
+    data: '{"metric_id":"FL-01-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_service_level"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-01","unit_format":"percent"}'
 - name: material_sell_out_value
   expression:
     dialects:
@@ -1381,7 +1381,7 @@ metrics:
     - nilai sell-out sku
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SO-01-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material","retail_plu"],"required_filters":["has_sell_out"],"governance_status":"scoped_metric","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-01"}'
+    data: '{"metric_id":"SO-01-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material","retail_plu"],"required_filters":["has_sell_out"],"governance_status":"scoped_metric","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-01","unit_format":"currency_idr"}'
 - name: material_sell_out_to_sell_in_value_ratio
   expression:
     dialects:
@@ -1396,7 +1396,7 @@ metrics:
     instructions: Not official sell-through; price bases can differ.
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SO-07-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in","has_sell_out"],"governance_status":"approved_candidate_with_caveat","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-07"}'
+    data: '{"metric_id":"SO-07-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in","has_sell_out"],"governance_status":"approved_candidate_with_caveat","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-07","unit_format":"ratio"}'
 - name: sell_in_quantity_per_stock_unit
   expression:
     dialects:
@@ -1411,7 +1411,7 @@ metrics:
     instructions: Proxy only; not official inventory turnover.
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SI-16-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in","has_stock"],"governance_status":"supporting","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-16"}'
+    data: '{"metric_id":"SI-16-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in","has_stock"],"governance_status":"supporting","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-16","unit_format":"ratio"}'
 - name: material_do_amount_to_billing_value_ratio
   expression:
     dialects:
@@ -1424,7 +1424,7 @@ metrics:
     - material do to bill ratio
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SI-DQ-02","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in"],"governance_status":"data_quality_metric","business_approval_status":"internal_technical_review","original_kpi_id":"SI-05"}'
+    data: '{"metric_id":"SI-DQ-02","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in"],"governance_status":"data_quality_metric","business_approval_status":"internal_technical_review","original_kpi_id":"SI-05","unit_format":"ratio"}'
 - name: service_fill_rate
   expression:
     dialects:
@@ -1439,7 +1439,7 @@ metrics:
     - tingkat pemenuhan
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"FL-01","base_dataset":"service_level_material","allowed_dimensions":["calmonth","material","fill_rate_band"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-01"}'
+    data: '{"metric_id":"FL-01","base_dataset":"service_level_material","allowed_dimensions":["calmonth","material","fill_rate_band"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-01","unit_format":"percent"}'
 - name: service_po_quantity
   expression:
     dialects:
@@ -1454,7 +1454,7 @@ metrics:
     - jumlah pesanan
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"FL-04","base_dataset":"service_level_material","allowed_dimensions":["calmonth","material","fill_rate_band"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-04"}'
+    data: '{"metric_id":"FL-04","base_dataset":"service_level_material","allowed_dimensions":["calmonth","material","fill_rate_band"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-04","unit_format":"quantity"}'
 - name: service_do_quantity
   expression:
     dialects:
@@ -1469,7 +1469,7 @@ metrics:
     - jumlah terpenuhi
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"FL-05","base_dataset":"service_level_material","allowed_dimensions":["calmonth","material","fill_rate_band"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-05"}'
+    data: '{"metric_id":"FL-05","base_dataset":"service_level_material","allowed_dimensions":["calmonth","material","fill_rate_band"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-05","unit_format":"quantity"}'
 - name: service_material_month_count
   expression:
     dialects:
@@ -1483,7 +1483,7 @@ metrics:
     - jumlah material per band
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"FL-06","base_dataset":"service_level_material","allowed_dimensions":["calmonth","material","fill_rate_band"],"governance_status":"fixed_pending_business_approval","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-06"}'
+    data: '{"metric_id":"FL-06","base_dataset":"service_level_material","allowed_dimensions":["calmonth","material","fill_rate_band"],"governance_status":"fixed_pending_business_approval","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-06","unit_format":"count"}'
 - name: sell_in_minus_sell_out_value
   expression:
     dialects:
@@ -1497,8 +1497,7 @@ metrics:
     - gap sell-in sell-out
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SO-06","base_dataset":"customer_reconciliation","allowed_dimensions":["calmonth","customer"],"row_filter":"reconciliation_scope
-      = ''shared_customer_only''","governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-06"}'
+    data: '{"metric_id":"SO-06","base_dataset":"customer_reconciliation","allowed_dimensions":["calmonth","customer"],"row_filter":"reconciliation_scope = ''shared_customer_only''","governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-06","unit_format":"currency_idr"}'
 - name: sell_out_to_sell_in_value_ratio
   expression:
     dialects:
@@ -1513,8 +1512,7 @@ metrics:
     instructions: Canonical ratio direction. Not official sell-through.
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SO-07","base_dataset":"customer_reconciliation","allowed_dimensions":["calmonth","customer"],"row_filter":"reconciliation_scope
-      = ''shared_customer_only''","governance_status":"approved_candidate_with_caveat","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-07"}'
+    data: '{"metric_id":"SO-07","base_dataset":"customer_reconciliation","allowed_dimensions":["calmonth","customer"],"row_filter":"reconciliation_scope = ''shared_customer_only''","governance_status":"approved_candidate_with_caveat","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-07","unit_format":"ratio"}'
 - name: sell_in_to_sell_out_value_ratio
   expression:
     dialects:
@@ -1527,8 +1525,7 @@ metrics:
     - sell-in to sell-out ratio
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SO-07-INVERSE","base_dataset":"customer_reconciliation","allowed_dimensions":["calmonth","customer"],"row_filter":"reconciliation_scope
-      = ''shared_customer_only''","governance_status":"supporting","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-07"}'
+    data: '{"metric_id":"SO-07-INVERSE","base_dataset":"customer_reconciliation","allowed_dimensions":["calmonth","customer"],"row_filter":"reconciliation_scope = ''shared_customer_only''","governance_status":"supporting","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-07","unit_format":"ratio"}'
 - name: absolute_variance_rate_vs_sell_out
   expression:
     dialects:
@@ -1542,8 +1539,7 @@ metrics:
     - absolute reconciliation variance rate
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SO-06-PCT","base_dataset":"customer_reconciliation","allowed_dimensions":["calmonth","customer"],"row_filter":"reconciliation_scope
-      = ''shared_customer_only''","governance_status":"supporting","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-06"}'
+    data: '{"metric_id":"SO-06-PCT","base_dataset":"customer_reconciliation","allowed_dimensions":["calmonth","customer"],"row_filter":"reconciliation_scope = ''shared_customer_only''","governance_status":"supporting","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-06","unit_format":"ratio"}'
 - name: shared_customer_sell_in_value
   expression:
     dialects:
@@ -1556,8 +1552,7 @@ metrics:
     - shared customer sell-in
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SI-01-SHARED","base_dataset":"customer_reconciliation","allowed_dimensions":["calmonth","customer"],"row_filter":"reconciliation_scope
-      = ''shared_customer_only''","governance_status":"scoped_metric","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-01"}'
+    data: '{"metric_id":"SI-01-SHARED","base_dataset":"customer_reconciliation","allowed_dimensions":["calmonth","customer"],"row_filter":"reconciliation_scope = ''shared_customer_only''","governance_status":"scoped_metric","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-01","unit_format":"currency_idr"}'
 - name: shared_customer_sell_out_value
   expression:
     dialects:
@@ -1570,8 +1565,7 @@ metrics:
     - shared customer sell-out
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SO-01-SHARED","base_dataset":"customer_reconciliation","allowed_dimensions":["calmonth","customer"],"row_filter":"reconciliation_scope
-      = ''shared_customer_only''","governance_status":"scoped_metric","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-01"}'
+    data: '{"metric_id":"SO-01-SHARED","base_dataset":"customer_reconciliation","allowed_dimensions":["calmonth","customer"],"row_filter":"reconciliation_scope = ''shared_customer_only''","governance_status":"scoped_metric","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-01","unit_format":"currency_idr"}'
 - name: sales_office_sell_in_value
   expression:
     dialects:
@@ -1586,7 +1580,7 @@ metrics:
     instructions: Q4 aggregate only.
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SI-13-Q4","base_dataset":"sales_office_q4","allowed_dimensions":["reporting_period","sales_office"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-13"}'
+    data: '{"metric_id":"SI-13-Q4","base_dataset":"sales_office_q4","allowed_dimensions":["reporting_period","sales_office"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-13","unit_format":"currency_idr"}'
 - name: picking_delay_rate
   expression:
     dialects:
@@ -1602,8 +1596,7 @@ metrics:
     instructions: Q4 aggregate; only offices with Picking data.
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"PK-01-Q4","base_dataset":"sales_office_q4","allowed_dimensions":["reporting_period","sales_office"],"row_filter":"has_picking
-      = TRUE","governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"PK-01"}'
+    data: '{"metric_id":"PK-01-Q4","base_dataset":"sales_office_q4","allowed_dimensions":["reporting_period","sales_office"],"row_filter":"has_picking = TRUE","governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"PK-01","unit_format":"percent"}'
 - name: average_picking_minutes
   expression:
     dialects:
@@ -1618,8 +1611,7 @@ metrics:
     - rata-rata waktu picking
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"PK-03-Q4","base_dataset":"sales_office_q4","allowed_dimensions":["reporting_period","sales_office"],"row_filter":"has_picking
-      = TRUE","governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"PK-03"}'
+    data: '{"metric_id":"PK-03-Q4","base_dataset":"sales_office_q4","allowed_dimensions":["reporting_period","sales_office"],"row_filter":"has_picking = TRUE","governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"PK-03","unit_format":"minutes"}'
 - name: average_unloading_minutes
   expression:
     dialects:
@@ -1634,8 +1626,7 @@ metrics:
     - rata-rata waktu unloading
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"UL-01-Q4","base_dataset":"sales_office_q4","allowed_dimensions":["reporting_period","sales_office"],"row_filter":"has_unloading
-      = TRUE","governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"UL-01"}'
+    data: '{"metric_id":"UL-01-Q4","base_dataset":"sales_office_q4","allowed_dimensions":["reporting_period","sales_office"],"row_filter":"has_unloading = TRUE","governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"UL-01","unit_format":"minutes"}'
 - name: picking_rows_per_sales_line
   expression:
     dialects:
@@ -1650,8 +1641,7 @@ metrics:
     instructions: Supporting workload proxy, not productivity.
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"XD-03-Q4","base_dataset":"sales_office_q4","allowed_dimensions":["reporting_period","sales_office"],"row_filter":"has_sell_in
-      = TRUE AND has_picking = TRUE","governance_status":"supporting","business_approval_status":"pending_business_confirmation","original_kpi_id":"XD-03"}'
+    data: '{"metric_id":"XD-03-Q4","base_dataset":"sales_office_q4","allowed_dimensions":["reporting_period","sales_office"],"row_filter":"has_sell_in = TRUE AND has_picking = TRUE","governance_status":"supporting","business_approval_status":"pending_business_confirmation","original_kpi_id":"XD-03","unit_format":"ratio"}'
 - name: b2b_branch_sell_out_value
   expression:
     dialects:
@@ -1666,7 +1656,7 @@ metrics:
     - revenue b2b cabang
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"B2B-01-BR","base_dataset":"b2b_branch_estore","allowed_dimensions":["calmonth","sales_off","branch","e_store"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"B02"}'
+    data: '{"metric_id":"B2B-01-BR","base_dataset":"b2b_branch_estore","allowed_dimensions":["calmonth","sales_off","branch","e_store"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"B02","unit_format":"currency_idr"}'
 - name: b2b_material_plu_value
   expression:
     dialects:
@@ -1681,7 +1671,7 @@ metrics:
     instructions: PLU and material are independent dimensions, no confirmed mapping between them.
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"B2B-02-PLU","base_dataset":"b2b_material_plu","allowed_dimensions":["calmonth","material","kode_plu","ka_group"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"B05"}'
+    data: '{"metric_id":"B2B-02-PLU","base_dataset":"b2b_material_plu","allowed_dimensions":["calmonth","material","kode_plu","ka_group"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"B05","unit_format":"currency_idr"}'
 - name: stock_tempo_total_qty
   expression:
     dialects:
@@ -1696,7 +1686,7 @@ metrics:
     instructions: Set A only (PoC decision, 24 Sep 2026); Set B excluded pending official Tempo confirmation.
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"ST-02-SETA","base_dataset":"stock_tempo_month","allowed_dimensions":["calmonth","material","plant"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"T01"}'
+    data: '{"metric_id":"ST-02-SETA","base_dataset":"stock_tempo_month","allowed_dimensions":["calmonth","material","plant"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"T01","unit_format":"quantity"}'
 - name: stock_tempo_value
   expression:
     dialects:
@@ -1711,7 +1701,7 @@ metrics:
     instructions: Set A only (PoC decision, 24 Sep 2026); Set B excluded pending official Tempo confirmation.
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"ST-03-SETA","base_dataset":"stock_tempo_month","allowed_dimensions":["calmonth","material","plant"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"T05"}'
+    data: '{"metric_id":"ST-03-SETA","base_dataset":"stock_tempo_month","allowed_dimensions":["calmonth","material","plant"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"T05","unit_format":"currency_idr"}'
 - name: sat_idm_dc_stock_quantity
   expression:
     dialects:
@@ -1725,7 +1715,7 @@ metrics:
     - dc stock quantity
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SI-01-IDM","base_dataset":"sat_idm_dc_month","allowed_dimensions":["thn","bln","dcname","plu","division"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"I01"}'
+    data: '{"metric_id":"SI-01-IDM","base_dataset":"sat_idm_dc_month","allowed_dimensions":["thn","bln","dcname","plu","division"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"I01","unit_format":"quantity"}'
 - name: sat_idm_store_stock_quantity
   expression:
     dialects:
@@ -1739,7 +1729,7 @@ metrics:
     - store stock quantity
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SI-02-IDM","base_dataset":"sat_idm_dc_month","allowed_dimensions":["thn","bln","dcname","plu","division"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"I02"}'
+    data: '{"metric_id":"SI-02-IDM","base_dataset":"sat_idm_dc_month","allowed_dimensions":["thn","bln","dcname","plu","division"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"I02","unit_format":"quantity"}'
 - name: sat_oos_rate
   expression:
     dialects:
@@ -1755,7 +1745,7 @@ metrics:
     instructions: 'Stok_akhir = 0 as OOS definition is a PoC default, pending official Tempo sign-off.'
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"OOS-01","base_dataset":"sat_oos_material_month","allowed_dimensions":["calmonth_date","cust_id","cust_code","material_code","plu"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"O01"}'
+    data: '{"metric_id":"OOS-01","base_dataset":"sat_oos_material_month","allowed_dimensions":["calmonth_date","cust_id","cust_code","material_code","plu"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"O01","unit_format":"percent"}'
 - name: stock_tempo_to_sell_in_ratio
   expression:
     dialects:
@@ -1772,7 +1762,7 @@ metrics:
     instructions: Pre-built Gold view join (stock_tempo_month + material_360), no runtime join needed.
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"JNY-01","base_dataset":"stock_tempo_sales_material_month","allowed_dimensions":["calmonth","material"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"T07"}'
+    data: '{"metric_id":"JNY-01","base_dataset":"stock_tempo_sales_material_month","allowed_dimensions":["calmonth","material"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"T07","unit_format":"ratio"}'
 - name: sell_out_to_sell_in_material_ratio_v2
   expression:
     dialects:
@@ -1788,7 +1778,7 @@ metrics:
     instructions: Pre-built Gold view join (material_360 + b2b_material_plu), no runtime join needed.
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"JNY-02","base_dataset":"sales_b2b_material_month","allowed_dimensions":["calmonth","material"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"B06"}'
+    data: '{"metric_id":"JNY-02","base_dataset":"sales_b2b_material_month","allowed_dimensions":["calmonth","material"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"B06","unit_format":"ratio"}'
 - name: branch_sell_out_vs_dc_stock
   expression:
     dialects:
@@ -1805,7 +1795,7 @@ metrics:
       match rate. No runtime join needed.
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"JNY-03","base_dataset":"b2b_satidm_branch_month","allowed_dimensions":["calmonth","branch"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"I06"}'
+    data: '{"metric_id":"JNY-03","base_dataset":"b2b_satidm_branch_month","allowed_dimensions":["calmonth","branch"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"I06","unit_format":"ratio"}'
 - name: satidm_store_stock_vs_oos_rate
   expression:
     dialects:
@@ -1822,4 +1812,4 @@ metrics:
       79.6% (not 100%) - not every PLU-month has a matching OOS survey.
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"JNY-04","base_dataset":"satidm_oos_material_month","allowed_dimensions":["calmonth","plu","dcname"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"O10"}'
+    data: '{"metric_id":"JNY-04","base_dataset":"satidm_oos_material_month","allowed_dimensions":["calmonth","plu","dcname"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"O10","unit_format":"quantity"}'

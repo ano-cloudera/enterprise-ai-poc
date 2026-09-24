@@ -297,6 +297,7 @@ class TempoOssieRegistry:
             "governance_status": config.get("governance_status"),
             "business_approval_status": config.get("business_approval_status"),
             "original_kpi_id": config.get("original_kpi_id"),
+            "unit_format": config.get("unit_format"),
             "ai_context": metric.get("ai_context", {}),
         }
 

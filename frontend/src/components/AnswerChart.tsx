@@ -11,7 +11,7 @@ const legendStyle = { fontSize: 11, paddingTop: 8 }
 export function AnswerChart({ chart }: { chart: ChartSpec | null }) {
   if (!chart || chart.type === 'none' || chart.type === 'table') return null
   const rows = chart.x.map((x, index) => ({ x, ...(Object.fromEntries(chart.series.map(series => [series.name, Number(series.data[index] ?? 0)]))) }))
-  const formatValue = (value: number) => formatBusinessValue(chart.metric || chart.y_label || 'value', value, chart.metric || undefined)
+  const formatValue = (value: number) => formatBusinessValue(chart.metric || chart.y_label || 'value', value, chart.metric || undefined, chart.unit_format)
   const tooltipFormatter = (value: TooltipValueType | undefined, name: number | string | undefined) => {
     const displayValue = Array.isArray(value) ? value[0] : value
     return [formatValue(Number(displayValue ?? 0)), formatBusinessLabel(String(name ?? 'Value'))] as [string, string]

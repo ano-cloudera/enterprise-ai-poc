@@ -23,6 +23,10 @@ export type ChartSpec = {
   y_label?: string | null
   dimension?: string | null
   metric?: string | null
+  // Governed unit for this metric's numeric value (currency_idr, quantity,
+  // percent, ratio, minutes, count) - declared per-metric in
+  // tempo_core.ossie.yaml, not guessed from the field/metric name.
+  unit_format?: string | null
   target?: 'chat' | 'dashboard' | 'both'
 }
 
@@ -58,6 +62,7 @@ export type ChatResponse = {
   data: {
     columns: string[]
     rows: Record<string, unknown>[]
+    unit_format?: string | null
   }
   chart_spec: ChartSpec | null
   ui_actions: UIAction[]
@@ -71,6 +76,7 @@ export type ChatResponse = {
 }
 
 export type DashboardOverview = {
+  profile?: string
   period: string
   kpis: { key: string; label: string; value: number | string; format: string; delta: number | null }[]
   sales_trend: { month: string; sales: number }[]
@@ -78,6 +84,8 @@ export type DashboardOverview = {
   top_products: { product: string; category: string; sales: number }[]
   channel_share: { channel: string; sales: number; share: number }[]
   ai_insight: { headline: string; summary: string; actions: string[] }
+  labels?: Record<string, string>
+  scope_badges?: string[]
   refreshed_at?: string
   forecast?: { value: number; format: string; period: string; delta?: number | null }
   market_signals?: {

@@ -79,6 +79,13 @@ class ChartSpec(StrictModel):
     y_label: str | None = None
     dimension: str | None = None
     metric: str | None = None
+    # How the metric's numeric value should be rendered (currency_idr,
+    # quantity, percent, ratio, minutes, count) - set from the governed
+    # metric's declared unit_format (see tempo_core.ossie.yaml) so the
+    # frontend renders it correctly instead of guessing from the field
+    # name, which previously misformatted quantity/percent metrics as IDR
+    # currency just because the generic SQL column is named "metric_value".
+    unit_format: str | None = None
     target: Literal["chat", "dashboard", "both"] = "chat"
 
 
@@ -182,6 +189,11 @@ ui_action_adapter = TypeAdapter(UIAction)
 class QueryData(StrictModel):
     columns: list[str] = Field(default_factory=list)
     rows: list[dict[str, Any]] = Field(default_factory=list)
+    # Same unit_format as ChartSpec.unit_format, duplicated here because the
+    # table-rendering path (DataTable, incl. the single-value "metric_value"
+    # case with no chart) is reached even when chart_spec.type == "none" and
+    # doesn't otherwise see the resolved metric's declared format.
+    unit_format: str | None = None
 
 
 class ChatMetadata(StrictModel):

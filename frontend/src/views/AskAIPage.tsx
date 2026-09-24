@@ -9,6 +9,7 @@ import { ScanMark } from '../components/ScanMark'
 import { api } from '../lib/api'
 import { suggestedFollowUps } from '../lib/businessPresentation'
 import { useDashboardState } from '../lib/dashboardState'
+import { useProject } from '../lib/project'
 import { formatFloatingAnswerText, formatFloatingDriver } from '../lib/floatingAnswerFormatting'
 import { createSessionId, deleteSession, loadSessions, saveSession, sessionTitle, type ChatSession, type StoredMessage } from '../lib/chatSessions'
 import type { ChatResponse } from '../types/api'
@@ -20,10 +21,18 @@ const starterQuestions = [
   'Bagaimana forecast bulan depan?',
 ]
 
+const impalaStarterQuestions = [
+  'Bagaimana tren Gross Sales selama Q4 2024?',
+  'Material mana dengan Fill Rate terendah?',
+  'Bagaimana rasio Sell-Out terhadap Sell-In per customer?',
+  'Sales office mana dengan picking delay tertinggi selama Q4?',
+]
+
 type UIMessage = StoredMessage
 
 export function AskAIPage() {
   const { state: dashboardState, applyDashboardAiActions } = useDashboardState()
+  const { config: projectConfig } = useProject()
   const searchParams = useSearchParams()
   const initial = searchParams.get('q') || ''
   const [input, setInput] = useState('')
@@ -31,10 +40,18 @@ export function AskAIPage() {
   const [messages, setMessages] = useState<UIMessage[]>([])
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [loading, setLoading] = useState(false)
+  const [capabilityExamples, setCapabilityExamples] = useState<string[]>([])
   const initialSubmitted = useRef(false)
   const conversationEnd = useRef<HTMLDivElement>(null)
 
   useEffect(() => { setSessions(loadSessions()) }, [])
+
+  useEffect(() => {
+    if (!projectConfig.semantic_capabilities_enabled) return
+    api.semanticCapabilities()
+      .then(response => setCapabilityExamples(Array.isArray(response.examples) ? response.examples.slice(0, 4) : []))
+      .catch(() => setCapabilityExamples([]))
+  }, [projectConfig.semantic_capabilities_enabled])
 
   useEffect(() => {
     if (!messages.length) return
@@ -96,6 +113,11 @@ export function AskAIPage() {
     conversationEnd.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [messages, loading])
 
+  const semanticMode = projectConfig.semantic_capabilities_enabled
+  const activeStarterQuestions = semanticMode
+    ? (capabilityExamples.length ? capabilityExamples : impalaStarterQuestions)
+    : starterQuestions
+
   return (
     <div className="flex h-[calc(100dvh-112px)] min-w-0 flex-col sm:h-[calc(100dvh-128px)] xl:h-[calc(100dvh-136px)] 2xl:h-[calc(100dvh-144px)]">
       <div className="grid min-h-0 min-w-0 flex-1 gap-4 xl:grid-cols-[214px_minmax(0,1fr)]">
@@ -118,16 +140,16 @@ export function AskAIPage() {
         <section className="card order-1 flex h-full min-h-0 min-w-0 flex-col overflow-hidden xl:order-none">
           <div className="flex flex-wrap items-center justify-between gap-3 border-b border-slate-200 px-5 py-4">
             <div className="flex items-center gap-2"><ScanMark size={32} /><div><div className="text-sm font-extrabold text-cloudera-navy">SCAN</div><div className="text-[11px] text-emerald-600">● Connected to governed data</div></div></div>
-            <div className="chip"><Database size={13} />Governed Data</div>
+            <div className="chip"><Database size={13} />{semanticMode ? 'Impala · Q4 2024' : 'Governed Data'}</div>
           </div>
 
           <div role="log" aria-label="Conversation" aria-live="polite" className={`min-h-0 flex-1 overflow-y-auto bg-[radial-gradient(circle_at_top_right,rgba(99,91,255,.04),transparent_30%),radial-gradient(circle_at_bottom_left,rgba(255,90,31,.05),transparent_30%)] p-4 sm:p-5 ${messages.length === 0 ? 'flex' : 'space-y-5'}`}>
             {messages.length === 0 && (
               <div className="m-auto w-full max-w-3xl text-center">
                 <ScanMark size={56} className="mx-auto" rounded="2xl" />
-                <h2 className="mt-5 text-2xl font-black text-cloudera-navy">Ask your commercial data</h2>
-                <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-500">Ask a management question to get a concise answer, supporting evidence, and practical next steps.</p>
-                <div className="mt-7 grid gap-3 sm:grid-cols-2">{starterQuestions.map(item => <button type="button" onClick={() => submit(item)} key={item} className="rounded-xl border border-slate-200 bg-white p-5 text-left text-sm font-semibold text-slate-600 shadow-sm transition hover:border-orange-200 hover:text-cloudera-navy">{item}<ChevronRight className="mt-2.5 text-cloudera-orange" size={14} /></button>)}</div>
+                <h2 className="mt-5 text-2xl font-black text-cloudera-navy">{semanticMode ? 'Ask SCAN about TEMPO Q4 2024' : 'Ask your commercial data'}</h2>
+                <p className="mx-auto mt-2 max-w-2xl text-sm leading-6 text-slate-500">{semanticMode ? 'I can help with governed Sell-In, Sell-Out, Material 360, Service Level, warehouse stock, sales office, and shared-customer reconciliation. Unsupported questions are qualified rather than guessed.' : 'Ask a management question to get a concise answer, supporting evidence, and practical next steps.'}</p>
+                <div className="mt-7 grid gap-3 sm:grid-cols-2">{activeStarterQuestions.map(item => <button type="button" onClick={() => submit(item)} key={item} className="rounded-xl border border-slate-200 bg-white p-5 text-left text-sm font-semibold text-slate-600 shadow-sm transition hover:border-orange-200 hover:text-cloudera-navy">{item}<ChevronRight className="mt-2.5 text-cloudera-orange" size={14} /></button>)}</div>
               </div>
             )}
             {messages.map((message, index) => message.role === 'user' ? (
@@ -179,7 +201,7 @@ function StructuredAnswer({ response, onSelectFollowUp }: { response: ChatRespon
         <p className="mt-2 break-words text-sm leading-6 text-slate-700">{formatFloatingAnswerText(response.answer.summary)}</p>
       </section>
       {drivers.length > 0 && <section className="mt-5"><div className="text-xs font-extrabold text-cloudera-navy">Key Drivers</div><div className="mt-2 space-y-2">{drivers.map((item, index) => <div key={`${item}-${index}`} className="flex gap-2.5 text-sm leading-6 text-slate-700"><span className="mt-0.5 grid h-5 w-5 shrink-0 place-items-center rounded-full bg-violet-50 text-[10px] font-black text-cloudera-violet">{index + 1}</span><span className="min-w-0 break-words">{item}</span></div>)}</div></section>}
-      {(showChart || showTable) && <section className="mt-5"><div className="text-xs font-extrabold text-cloudera-navy">Supporting Evidence</div>{showChart && <AnswerChart chart={response.chart_spec} />}{showTable && <DataTable columns={response.data.columns} rows={response.data.rows} metric={response.metadata.resolved_context.metric} />}</section>}
+      {(showChart || showTable) && <section className="mt-5"><div className="text-xs font-extrabold text-cloudera-navy">Supporting Evidence</div>{showChart && <AnswerChart chart={response.chart_spec} />}{showTable && <DataTable columns={response.data.columns} rows={response.data.rows} metric={response.metadata.resolved_context.metric} unitFormat={response.data.unit_format} />}</section>}
       {actions.length > 0 && <section className="mt-5 rounded-2xl border border-orange-100 bg-orange-50/60 p-4"><div className="flex items-center gap-2 text-xs font-extrabold text-cloudera-navy"><Lightbulb size={15} className="text-cloudera-orange" />Recommended Actions</div><div className="mt-2 space-y-2">{actions.map((item, index) => <div key={`${item}-${index}`} className="flex gap-2 text-sm leading-6 text-slate-700"><CheckCircle2 size={15} className="mt-1 shrink-0 text-emerald-500" /><span className="min-w-0 break-words">{formatFloatingAnswerText(item)}</span></div>)}</div></section>}
       {caveats.length > 0 && <section className="mt-4 flex gap-2 rounded-xl border border-slate-200 bg-slate-50 p-3"><Info size={14} className="mt-0.5 shrink-0 text-slate-400" /><div className="space-y-1 text-xs leading-5 text-slate-500">{caveats.map((item, index) => <p key={`${item}-${index}`} className="break-words">{formatFloatingAnswerText(item)}</p>)}</div></section>}
       <div role="group" aria-label="Suggested follow-up questions" className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
