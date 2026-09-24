@@ -673,7 +673,10 @@ metrics:
     - company fill rate
     - service level perusahaan
     - tingkat pemenuhan perusahaan
+    - fill rate
     instructions: Recompute from total DO and PO; never average monthly ratios.
+      When "fill rate" is asked without a material/SKU/office qualifier, this
+      is the intended metric (company-wide aggregate).
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"FL-01-EXEC","base_dataset":"monthly_executive","allowed_dimensions":["calmonth"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-01"}'

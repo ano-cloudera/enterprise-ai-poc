@@ -12,6 +12,30 @@ def _normalize(value: str) -> str:
     return re.sub(r"[\s_\-.,!?;:'\"/]+", "", value).casefold()
 
 
+# Words that carry no metric-identifying meaning on their own (Indonesian and
+# English function words, plus generic question phrasing) - excluded from
+# token-overlap matching in resolve_metric so a short/common word like
+# "nilai" or "value" doesn't dominate the score or cause spurious partial
+# matches across unrelated metrics.
+_STOPWORDS = frozenset({
+    "yang", "dengan", "dan", "atau", "untuk", "dari", "pada", "ini", "itu",
+    "mana", "apa", "apakah", "bagaimana", "berapa", "adalah", "the", "a",
+    "an", "of", "for", "with", "and", "or", "is", "are", "value", "nilai",
+    "per", "each", "setiap", "total", "jumlah",
+})
+
+
+def _tokenize(value: str) -> set[str]:
+    """Splits into lowercase word tokens (letters/digits only, "sell-in"
+    becomes ["sell", "in"]) and drops stopwords - used for word-overlap
+    matching, distinct from _normalize's whitespace-stripped exact-substring
+    form. A phrase like "nilai Sell-In terbesar" and a synonym like
+    "material sell-in value" share {"sell", "in"} either way, but
+    tokenization also lets each individual content word be checked for
+    membership regardless of the words around it."""
+    return {word for word in re.findall(r"[a-z0-9]+", value.casefold()) if word and word not in _STOPWORDS}
+
+
 class TempoOssieRegistry:
     """Read-only registry for the official-root Apache Ossie model."""
 
@@ -168,7 +192,17 @@ class TempoOssieRegistry:
             _normalize(term) in normalized
             for term in ("company", "perusahaan", "tempo total", "total tempo")
         )
+        # A question with no dimension hint beyond calmonth ("Fill Rate per
+        # bulan?", no mention of "material"/"sku"/"produk"/"cabang"/etc.) is
+        # most naturally read as asking for the company-wide aggregate, not
+        # a specific breakdown - several metrics share generic aliases like
+        # "fill rate" (company/material/service-level fill rate all do), so
+        # without this the shortest alias wins by token-count alone and a
+        # plain, unqualified question resolves to a granular per-material
+        # metric instead of the aggregate one golden_questions.yaml expects.
+        unqualified_scope = hinted_dimensions <= {"calmonth"}
 
+        question_tokens = _tokenize(question)
         candidates: list[tuple[int, str, str]] = []
         for metric_name in self.metrics:
             config = self.metric_configs[metric_name]
@@ -176,17 +210,41 @@ class TempoOssieRegistry:
             dataset_name = config.get("base_dataset")
             for alias in self.metric_aliases(metric_name):
                 normalized_alias = _normalize(alias)
-                if normalized_alias and normalized_alias in normalized:
-                    score = len(normalized_alias)
-                    score += 100 * len(hinted_dimensions & allowed_dimensions)
-                    if any(
-                        dimension in metric_name
-                        for dimension in hinted_dimensions
-                    ):
-                        score += 50
-                    if company_scope and dataset_name == "monthly_executive":
-                        score += 100
-                    candidates.append((score, metric_name, alias))
+                alias_tokens = _tokenize(alias)
+                # Two ways an alias can match a question, checked together so
+                # neither phrasing style is required: (1) an exact,
+                # whitespace-stripped substring match - the strongest signal,
+                # since it means the alias's exact wording appears verbatim;
+                # (2) every content word (stopwords excluded) in the alias
+                # also appears somewhere in the question, in any order - this
+                # is what makes phrasing like "nilai Sell-In terbesar" match
+                # a synonym written as "material sell-in value" (both reduce
+                # to the shared token {"sell", "in"} once stopwords like
+                # "nilai"/"value" are dropped), without resorting to an
+                # LLM/embedding call for what's meant to stay a deterministic,
+                # governed lookup.
+                is_substring_match = bool(normalized_alias) and normalized_alias in normalized
+                is_token_match = bool(alias_tokens) and alias_tokens <= question_tokens
+                if not (is_substring_match or is_token_match):
+                    continue
+                score = len(normalized_alias) if is_substring_match else len(alias_tokens)
+                if not is_substring_match:
+                    # Token-overlap matches are inherently less certain than
+                    # an exact substring (word order/context is ignored), so
+                    # rank every substring match above every token-only match
+                    # regardless of alias length.
+                    score -= 1000
+                score += 100 * len(hinted_dimensions & allowed_dimensions)
+                if any(
+                    dimension in metric_name
+                    for dimension in hinted_dimensions
+                ):
+                    score += 50
+                if company_scope and dataset_name == "monthly_executive":
+                    score += 100
+                if unqualified_scope and allowed_dimensions <= {"calmonth"}:
+                    score += 75
+                candidates.append((score, metric_name, alias))
         if not candidates:
             return {
                 "status": "unsupported",
