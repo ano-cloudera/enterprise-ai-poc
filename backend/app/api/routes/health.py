@@ -1,4 +1,5 @@
 from datetime import datetime, timezone
+import os
 from fastapi import APIRouter
 import httpx
 
@@ -9,6 +10,28 @@ from app.llm.factory import get_llm_provider
 from app.semantic.loader import load_semantic_project
 
 router = APIRouter(tags=["health"])
+
+
+@router.get("/debug/settings")
+async def debug_settings() -> dict:
+    """Diagnostic-only: confirms what a *running* process actually resolved
+    for semantic_execution_mode/project_id, separate from what's stored in
+    CAI's Environment Variables UI - a mismatch here means the process
+    hasn't picked up a config change yet (stale process, not a bad value).
+    Deliberately excludes secrets (no impala_password/user, no tokens)."""
+    settings = get_settings()
+    return {
+        "semantic_execution_mode": settings.semantic_execution_mode,
+        "project_id": settings.project_id,
+        "ossie_project_id": settings.ossie_project_id,
+        "data_backend": settings.data_backend,
+        "impala_database": settings.impala_database,
+        "impala_use_http_transport": settings.impala_use_http_transport,
+        "impala_http_path": settings.impala_http_path,
+        "os_environ_semantic_execution_mode": os.environ.get("SEMANTIC_EXECUTION_MODE"),
+        "os_environ_project_id": os.environ.get("PROJECT_ID"),
+        "pid": os.getpid(),
+    }
 
 
 @router.get("/health", response_model=HealthResponse)
@@ -43,8 +66,23 @@ async def deployment_readiness() -> ReadinessResponse:
     ]
 
     try:
-        project = load_semantic_project(settings.project_id)
-        components.append(ComponentReadiness(name="semantic_layer", status="healthy", detail=f"{len(project.datasets)} dataset(s) loaded"))
+        if settings.semantic_execution_mode == "ossie":
+            from app.ossie.service import get_tempo_ossie_service
+
+            semantic_status = get_tempo_ossie_service().status()
+            components.append(
+                ComponentReadiness(
+                    name="semantic_layer",
+                    status="healthy",
+                    detail=(
+                        f"Apache Ossie: {semantic_status['datasets']} dataset(s), "
+                        f"{semantic_status['metrics']} metric(s)"
+                    ),
+                )
+            )
+        else:
+            project = load_semantic_project(settings.project_id)
+            components.append(ComponentReadiness(name="semantic_layer", status="healthy", detail=f"{len(project.datasets)} dataset(s) loaded"))
     except Exception:
         components.append(ComponentReadiness(name="semantic_layer", status="unavailable", detail="Semantic project failed to load"))
 
@@ -55,17 +93,18 @@ async def deployment_readiness() -> ReadinessResponse:
         detail=f"{data_health.type} backend",
     ))
 
-    market_status, market_detail = "unavailable", "Mock Market API not reachable"
-    try:
-        async with httpx.AsyncClient(timeout=3.0) as client:
-            response = await client.get(f"{settings.market_api_base_url}/health")
-            if response.status_code == 200:
-                market_status, market_detail = "healthy", "Mock Market API reachable"
-            else:
-                market_status, market_detail = "degraded", "Mock Market API returned a non-200 response"
-    except Exception:
-        pass
-    components.append(ComponentReadiness(name="market_api", status=market_status, detail=market_detail))
+    if settings.semantic_execution_mode != "ossie":
+        market_status, market_detail = "unavailable", "Mock Market API not reachable"
+        try:
+            async with httpx.AsyncClient(timeout=3.0) as client:
+                response = await client.get(f"{settings.market_api_base_url}/health")
+                if response.status_code == 200:
+                    market_status, market_detail = "healthy", "Mock Market API reachable"
+                else:
+                    market_status, market_detail = "degraded", "Mock Market API returned a non-200 response"
+        except Exception:
+            pass
+        components.append(ComponentReadiness(name="market_api", status=market_status, detail=market_detail))
 
     model = await get_llm_provider(settings).health_check()
     if model.mode == "mock":
