@@ -142,3 +142,66 @@ async def test_ossie_analytical_returns_governed_evidence(monkeypatch) -> None:
     assert result["ui_actions"][0]["type"] == "SHOW_TABLE"
     assert any("pending TEMPO" in caveat for caveat in result["answer"]["caveats"])
 
+
+@pytest.mark.asyncio
+async def test_ossie_analytical_uses_llm_narrative_when_available(monkeypatch) -> None:
+    # Verifies the LLM narrative path actually replaces the deterministic
+    # template summary/drivers, while still keeping the deterministic
+    # Metric/Source/Grain drivers and governance caveats prepended so the
+    # checkable evidence isn't lost just because the LLM wrote the prose.
+    from app.llm.models import AnalysisResult, ModelTelemetry, StructuredAnalysis, AnalysisDriver
+
+    monkeypatch.setattr(graph_nodes, "get_tempo_ossie_service", lambda: _FakeService())
+
+    class _FakeNarrativeProvider:
+        async def generate_structured(self, payload, *, language, trace_id):
+            assert payload.query_result["rows"]  # got real governed rows, not empty
+            return AnalysisResult(
+                analysis=StructuredAnalysis(
+                    summary="Gross Sales Tempo turun tipis di November dibanding Oktober.",
+                    drivers=[AnalysisDriver(title="Tren bulanan", description="Penurunan kecil dari Rp100 ke Rp90.", evidence="calmonth=202411; metric_value=90.0")],
+                    recommended_actions=[],
+                    caveats=[],
+                ),
+                telemetry=ModelTelemetry(trace_id=trace_id, provider="fake", model="fake", latency_ms=1, retry_count=0, success=True, structured_validation_success=True),
+            )
+
+    monkeypatch.setattr(graph_nodes, "get_llm_provider", lambda: _FakeNarrativeProvider())
+    result = await graph_nodes.ossie_analytical(
+        {
+            "question": "Tampilkan Gross Sales per bulan",
+            "language": "id",
+            "dashboard_state": {},
+            "trace_id": "test",
+        }
+    )
+    assert result["answer"]["summary"] == "Gross Sales Tempo turun tipis di November dibanding Oktober."
+    assert any(driver.startswith("Metric: SI-01") for driver in result["answer"]["drivers"])
+    assert any("Tren bulanan" in driver for driver in result["answer"]["drivers"])
+    assert any("pending TEMPO" in caveat for caveat in result["answer"]["caveats"])
+
+
+@pytest.mark.asyncio
+async def test_ossie_analytical_falls_back_to_deterministic_summary_on_llm_failure(monkeypatch) -> None:
+    from app.llm.providers import LLMProviderError
+
+    monkeypatch.setattr(graph_nodes, "get_tempo_ossie_service", lambda: _FakeService())
+
+    class _FailingProvider:
+        async def generate_structured(self, payload, *, language, trace_id):
+            raise LLMProviderError("unavailable")
+
+    monkeypatch.setattr(graph_nodes, "get_llm_provider", lambda: _FailingProvider())
+    result = await graph_nodes.ossie_analytical(
+        {
+            "question": "Tampilkan Gross Sales per bulan",
+            "language": "id",
+            "dashboard_state": {},
+            "trace_id": "test",
+        }
+    )
+    # Falls back to the deterministic template rather than failing the request.
+    assert result["status"] == "ok"
+    assert "Official Gross Billing Value" in result["answer"]["summary"]
+    assert any("pending TEMPO" in caveat for caveat in result["answer"]["caveats"])
+

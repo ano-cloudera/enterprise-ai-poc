@@ -7,6 +7,10 @@ from langdetect import DetectorFactory, LangDetectException, detect
 
 from app.core.schemas import ExecutiveAnswer
 from app.graph.state import GraphState
+from app.llm.factory import get_llm_provider
+from app.llm.models import TrustedAnalysisPayload
+from app.llm.payload import to_executive_answer
+from app.llm.providers import LLMProviderError
 
 from .service import OssieQueryRequest, get_tempo_ossie_service
 
@@ -291,29 +295,56 @@ async def ossie_analytical(state: GraphState) -> GraphState:
         }
 
     rows = result["rows"]
+    deterministic_drivers = [
+        f"Metric: {definition['metric_id']} · {metric}",
+        f"Source: {result['semantic_plan']['source_view']}",
+        f"Grain: {result['semantic_plan'].get('grain')}",
+    ]
     if not dimensions and rows:
-        value = rows[0].get("metric_value")
-        summary = (
-            f"{definition['description']}: {value}"
-            if language == "en"
-            else f"{definition['description']}: {value}"
-        )
+        deterministic_summary = f"{definition['description']}: {rows[0].get('metric_value')}"
     else:
-        summary = (
+        deterministic_summary = (
             f"Analisis {definition['description']} menghasilkan {len(rows)} baris governed."
             if language == "id"
             else f"The governed {definition['description']} analysis returned {len(rows)} rows."
         )
-    answer = ExecutiveAnswer(
-        summary=summary,
-        drivers=[
-            f"Metric: {definition['metric_id']} · {metric}",
-            f"Source: {result['semantic_plan']['source_view']}",
-            f"Grain: {result['semantic_plan'].get('grain')}",
-        ],
-        recommended_actions=[],
-        caveats=_scope_caveats(definition),
-    )
+    try:
+        payload = TrustedAnalysisPayload(
+            question=state["question"],
+            language=language,
+            intent={"metric": metric, "dimensions": dimensions, "filters": filters},
+            business_context={
+                "metric_definition": {
+                    "name": metric,
+                    "metric_id": definition["metric_id"],
+                    "description": definition["description"],
+                    "unit_format": definition.get("unit_format"),
+                    "governance_status": definition.get("governance_status"),
+                    "business_approval_status": definition.get("business_approval_status"),
+                },
+                "grain": result["semantic_plan"].get("grain"),
+                "source_view": result["semantic_plan"]["source_view"],
+                "instruction": "This is governed TEMPO Q4 2024 data. Never claim causes or context not present in query_result.",
+            },
+            query_result={"columns": list(rows[0]) if rows else [], "rows": rows[:200]},
+            conversation_history=state.get("history", []),
+        )
+        model_result = await get_llm_provider().generate_structured(
+            payload, language=language, trace_id=state.get("trace_id", "")
+        )
+        answer = to_executive_answer(model_result.analysis)
+        answer = answer.model_copy(update={
+            "drivers": [*deterministic_drivers, *answer.drivers],
+            "caveats": [*_scope_caveats(definition), *answer.caveats],
+        })
+    except LLMProviderError:
+        logger.warning("Ossie narrative generation unavailable trace_id=%s; using deterministic summary", state.get("trace_id"))
+        answer = ExecutiveAnswer(
+            summary=deterministic_summary,
+            drivers=deterministic_drivers,
+            recommended_actions=[],
+            caveats=_scope_caveats(definition),
+        )
     chart_type = "line" if dimensions == ["calmonth"] else ("bar" if len(dimensions) == 1 else "table")
     chart_spec = {
         "type": chart_type if rows else "none",
