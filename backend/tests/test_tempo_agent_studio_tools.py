@@ -70,3 +70,57 @@ def test_execute_tool_is_blocked_when_semantic_mode_is_legacy() -> None:
         "reason": "OSSIE_SEMANTIC_MODE_DISABLED",
     }
 
+
+def test_resolve_semantic_object_uses_llm_fallback_env(monkeypatch_unused=None) -> None:
+    # llm_mode defaults to "mock" in this subprocess (no QWEN_BASE_URL set),
+    # so MockLLMProvider.classify_metric always reports no match - this only
+    # confirms the deterministic-hit path still resolves correctly end to
+    # end now that the tool calls resolve_with_llm_fallback() instead of
+    # resolve(). A genuine LLM-fallback hit is covered at the unit level by
+    # backend/tests/test_tempo_ossie_service.py's
+    # test_llm_fallback_resolves_a_metric_the_deterministic_matcher_missed.
+    result = _run(
+        "resolve_semantic_object",
+        {"question": "Berapa Gross Sales Q4 2024?"},
+    )
+    assert result["status"] == "resolved"
+    assert result["metric"] == "gross_billing_value"
+
+
+def _run_readonly_sql(sql: str) -> dict:
+    return _run("execute_readonly_sql", {"sql": sql})
+
+
+def test_execute_readonly_sql_rejects_non_select() -> None:
+    result = _run_readonly_sql("DROP TABLE gold.rpt_sat_oos_material_month")
+    assert result["status"] == "rejected"
+    assert result["governed"] is False
+    assert "denylist" in result["reason"] or "select" in result["reason"]
+
+
+def test_execute_readonly_sql_rejects_non_gold_schema() -> None:
+    result = _run_readonly_sql("SELECT * FROM silver.b2b_oct_dec_2024")
+    assert result["status"] == "rejected"
+    assert result["governed"] is False
+    assert "schema_not_allowed" in result["reason"]
+
+
+def test_execute_readonly_sql_rejects_multiple_statements() -> None:
+    result = _run_readonly_sql(
+        "SELECT * FROM gold.corr_b2b_material_plu; DROP TABLE gold.foo;"
+    )
+    assert result["status"] == "rejected"
+    assert result["governed"] is False
+
+
+def test_execute_readonly_sql_accepts_a_valid_gold_select_and_labels_it_ungoverned() -> None:
+    # Impala isn't reachable in this test environment, so the query is
+    # expected to be accepted by validation and then fail at execution -
+    # this still proves the validator does not reject a legitimate gold.*
+    # SELECT, and that governed stays false regardless of outcome.
+    result = _run_readonly_sql(
+        "SELECT calmonth, dc_stock_qty FROM gold.rpt_sat_idm_dc_month LIMIT 5"
+    )
+    assert result["status"] in {"success", "unavailable"}
+    assert result["governed"] is False
+
