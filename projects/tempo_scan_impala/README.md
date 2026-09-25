@@ -37,10 +37,14 @@ SEMANTIC_EXECUTION_MODE=ossie
 These values are opt-in. Existing deployment behavior must remain unchanged when
 they are absent.
 
+## Multi-agent (Agent Studio)
+
+Master Orchestration + 9 domain agents: [agents/README.md](agents/README.md).
+
 ## Delivery gates
 
 1. OSSIE Core model validates.
-2. Golden questions pass.
+2. Golden questions pass (59 prompts in `ossie/golden_questions.yaml`, target ≥50).
 3. Impala shadow execution reconciles with audited Gold values.
 4. Dashboard/API contract tests pass.
 5. Business owners review candidate metrics.

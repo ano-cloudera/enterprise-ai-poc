@@ -4,12 +4,14 @@
 
 ## Current regression set
 
-- Total prompts: 31
-- Supported: 13
-- Supported with caveat: 6
-- Requires clarification: 1
-- Unsupported by governed scope: 10
+- Total prompts: 59 (includes catalog seed F1 with `catalog_question_id` + `chart_primary` + `domain_agent`)
+- Supported: ~22 (incl. catalog_* governed)
+- Supported with caveat: ~12
+- Requires clarification: 2
+- Unsupported by governed scope: ~22
 - Blocked by governance: 1
+
+See `ossie/golden_questions.yaml` for authoritative counts. Run `scripts/validate_tempo_impala_contract.py` after dependency install.
 
 The unsupported set intentionally includes scope and safety boundaries:
 

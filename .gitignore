@@ -1,5 +1,21 @@
 .env
 .venv/
+.venv-datasets/
+
+# Customer data — never commit (catalog README is allowed)
+datasets/**
+!datasets/README.md
+!datasets/TEMPO_DATA_UNDERSTANDING.md
+!datasets/TEMPO_KLARIFIKASI_JAWABAN.md
+!datasets/TEMPO_KLARIFIKASI_FOLLOWUP.md
+!datasets/TEMPO_EXTRACTION_PLAN.md
+!datasets/TEMPO_FILE_MAPPING.md
+!datasets/TEMPO_DATAMART_PLAN.md
+!datasets/TEMPO_DATAMART_ERD.drawio
+!datasets/audit/
+datasets/audit/*
+!datasets/audit/*.md
+!datasets/audit/*.sql
 __pycache__/
 *.py[cod]
 .pytest_cache/
@@ -8,10 +24,17 @@ frontend/node_modules/
 frontend/.next/
 frontend/out/
 frontend/.tsbuildinfo
+frontend/tsconfig.tsbuildinfo
 frontend/.node-runtime/
 
 litellm/.venv-litellm/
 
+datasets/raw/
+datasets/refine/
+datasets/gold/
+datasets/qa/
+runtime/tempo/
+runtime/apache-ossie-*/
 runtime/*.duckdb
 runtime/*.sqlite
 runtime/*.wal

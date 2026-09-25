@@ -221,3 +221,320 @@ questions:
     expected_status: blocked
     reason: Free SQL and unbounded row access are prohibited.
 
+  # --- Catalog seed (F1): Sales domain ---
+  - id: catalog_s01_gross_q4
+    catalog_question_id: S01
+    chart_primary: KPI
+    domain_agent: sales
+    question: Berapa total gross revenue Sell-In Tempo Q4 2024 nasional?
+    expected_status: supported
+    metric: gross_billing_value
+    dataset: monthly_executive
+    dimensions: []
+
+  - id: catalog_s03_top_material
+    catalog_question_id: S03
+    chart_primary: PARETO
+    domain_agent: sales
+    question: Top 10 material by revenue Sell-In Q4 (Pareto).
+    expected_status: supported
+    metric: material_sell_in_value
+    dataset: material_360
+    dimensions: [material]
+    required_filter: has_sell_in
+
+  - id: catalog_s05_top_office
+    catalog_question_id: S05
+    chart_primary: HBAR
+    domain_agent: sales
+    question: Top 10 sales office by nilai Sell-In Q4.
+    expected_status: supported
+    metric: sales_office_sell_in_value
+    dataset: sales_office_q4
+    dimensions: [sales_office]
+
+  - id: catalog_s11_prescriptive_branch
+    catalog_question_id: S11
+    chart_primary: MULTI
+    domain_agent: sales
+    question: Revenue turun di cabang tertentu — apakah karena retur, volume, atau diskon?
+    expected_status: unsupported
+    reason: Governed grain does not decompose retur vs discount drivers per office in v1.
+    suggested_question: Sales office mana dengan nilai Sell-In Q4 tertinggi?
+
+  # --- B2B domain ---
+  - id: catalog_b06_sell_out_in_ratio
+    catalog_question_id: B06
+    chart_primary: SCATTER
+    domain_agent: b2b
+    question: Bagaimana rasio Sell-Out terhadap Sell-In per material (gap supply chain)?
+    expected_status: supported
+    metric: material_sell_out_to_sell_in_value_ratio
+    dataset: material_360
+    dimensions: [material]
+    required_filters: [has_sell_in, has_sell_out]
+
+  - id: catalog_b11_prescriptive_dc
+    catalog_question_id: B11
+    chart_primary: MULTI
+    domain_agent: b2b
+    question: Sell-out DC turun — cek OOS dan stock SAT-IDM sebelum menyalahkan sales team.
+    expected_status: unsupported
+    reason: Multi-domain SAT-IDM/OOS join is not in governed OSSIE v1.
+    suggested_question: Customer mana dengan gap Sell-In dan Sell-Out terbesar?
+
+  - id: catalog_b15_promo_des_b2b
+    catalog_question_id: B15
+    chart_primary: KPI
+    domain_agent: b2b
+    question: Siapkan analisis B2B Desember untuk join ke data promo.
+    expected_status: needs_clarification
+    ambiguity: promo_scope
+    suggested_question: Bagaimana rasio Sell-Out terhadap Sell-In per shared customer pada Desember?
+
+  # --- Stock SAT-IDM domain ---
+  - id: catalog_i03_dc_store_split
+    catalog_question_id: I03
+    chart_primary: STACK
+    domain_agent: stock_sat_idm
+    question: Per DC partner, berapa split stok DC vs stok store?
+    expected_status: unsupported
+    reason: Stock SAT-IDM is not in governed Semantic Contract v1.
+    suggested_question: Material mana dengan stok gudang terbesar pada Desember?
+
+  - id: catalog_i11_prescriptive_replenish
+    catalog_question_id: I11
+    chart_primary: MULTI
+    domain_agent: stock_sat_idm
+    question: Sell-in tinggi + dcstock tinggi + storestock rendah — push replenishment DC ke store?
+    expected_status: unsupported
+    reason: Cross-domain replenishment narrative requires SAT-IDM + B2B views not yet governed.
+    suggested_question: Bagaimana rasio Sell-Out terhadap Sell-In per material?
+
+  # --- SAT OOS domain ---
+  - id: catalog_o01_oos_rate
+    catalog_question_id: O01
+    chart_primary: KPI
+    domain_agent: sat_oos
+    question: Berapa persen survey SAT OOS dengan stok akhir nol?
+    expected_status: unsupported
+    reason: OOS rate is exploratory; not a published governed metric in v1.
+    suggested_question: Material mana dengan Fill Rate terendah?
+
+  - id: catalog_o11_ptt_oos
+    catalog_question_id: O11
+    chart_primary: MULTI
+    domain_agent: sat_oos
+    question: PTT sales tinggi tetapi OOS tinggi — audit replenishment?
+    expected_status: unsupported
+    reason: Causal and multi-source OOS narrative is not governed in v1.
+    suggested_question: Customer mana dengan gap Sell-In dan Sell-Out terbesar?
+
+  # --- Stock Tempo domain ---
+  - id: catalog_t02_top_stock_des
+    catalog_question_id: T02
+    chart_primary: PARETO
+    domain_agent: stock_tempo
+    question: Top material by stok gudang Tempo Desember 2024.
+    expected_status: supported
+    metric: material_warehouse_stock_quantity
+    dataset: material_360
+    dimensions: [material]
+    required_filter: has_stock
+
+  - id: catalog_t14_promo_stock_cover
+    catalog_question_id: T14
+    chart_primary: COMBO
+    domain_agent: stock_tempo
+    question: Apakah stok Tempo cukup untuk SKU promo Desember?
+    expected_status: unsupported
+    reason: Promo × stock join is exploratory only (December promo scope).
+    suggested_question: Material mana dengan stok gudang terbesar pada Desember?
+
+  # --- Service Level domain ---
+  - id: catalog_l01_fill_rate_month
+    catalog_question_id: L01
+    chart_primary: LINE
+    domain_agent: service_level
+    question: Company fill rate per bulan Q4 2024?
+    expected_status: supported
+    metric: company_fill_rate
+    dataset: monthly_executive
+    dimensions: [calmonth]
+
+  - id: catalog_l11_sl_lost_sales
+    catalog_question_id: L11
+    chart_primary: MULTI
+    domain_agent: service_level
+    question: Service level di bawah 80% — risiko lost sales?
+    expected_status: supported_with_caveat
+    metric: service_fill_rate
+    dataset: service_level_material
+    dimensions: [calmonth, material]
+    caveat: Observational; causality not established.
+
+  # --- Picking domain ---
+  - id: catalog_kq1_picking_delay
+    catalog_question_id: KQ1
+    chart_primary: HBAR
+    domain_agent: picking
+    question: Sales office mana dengan picking delay rate tertinggi Q4?
+    expected_status: supported_with_caveat
+    metric: picking_delay_rate
+    dataset: sales_office_q4
+    dimensions: [sales_office]
+    caveat: Q4 aggregate; offices with picking data only.
+
+  - id: catalog_kq8_pick_rows_ratio
+    catalog_question_id: KQ8
+    chart_primary: SCATTER
+    domain_agent: picking
+    question: Picking rows per sales line per office — overload?
+    expected_status: supported_with_caveat
+    metric: picking_rows_per_sales_line
+    dataset: sales_office_q4
+    dimensions: [sales_office]
+    caveat: Workload proxy, not official productivity KPI.
+
+  - id: catalog_k15_pick_sl_risk
+    catalog_question_id: K15
+    chart_primary: MULTI
+    domain_agent: picking
+    question: Picking delay tinggi dan service level rendah — risiko customer experience?
+    expected_status: unsupported
+    reason: Picking Q4 aggregate cannot join monthly service level at governed grain.
+    suggested_question: Sales office mana dengan picking delay rate tertinggi selama Q4?
+
+  # --- Unloading domain ---
+  - id: catalog_uq1_slowest_unload
+    catalog_question_id: UQ1
+    chart_primary: HBAR
+    domain_agent: unloading
+    question: Cabang mana dengan rata-rata unloading terlama Q4?
+    expected_status: supported_with_caveat
+    metric: average_unloading_minutes
+    dataset: sales_office_q4
+    dimensions: [sales_office]
+    caveat: Only offices with unloading data.
+
+  - id: catalog_uq10_prescriptive_sla
+    catalog_question_id: UQ10
+    chart_primary: MULTI
+    domain_agent: unloading
+    question: Rekomendasi SLA bongkar menit per 1000 qty berdasarkan cabang terbaik?
+    expected_status: unsupported
+    reason: Prescriptive SLA benchmark is not a governed metric.
+    suggested_question: Sales office mana dengan rata-rata unloading terlama?
+
+  # --- Promo domain ---
+  - id: catalog_p01_promo_mekanisme
+    catalog_question_id: P01
+    chart_primary: BAR
+    domain_agent: data_promo
+    question: Jumlah observasi promo per mekanisme Desember 2024?
+    expected_status: unsupported
+    reason: SAT Promo is not in governed OSSIE v1 datasets.
+    suggested_question: Material apa saja yang tercatat dalam program promo?
+
+  - id: catalog_pq1_promo_vs_no_promo_sales
+    catalog_question_id: PQ1
+    chart_primary: BAR
+    domain_agent: data_promo
+    question: Sell-In Des — material dengan observasi promo vs tanpa promo, bandingkan revenue.
+    expected_status: unsupported
+    reason: Promo-attributed revenue split requires exploratory December join, not governed v1.
+    suggested_question: Berapa Gross Sales Desember 2024?
+
+  - id: catalog_p15_promo_budget
+    catalog_question_id: P15
+    chart_primary: TABLE
+    domain_agent: data_promo
+    question: Budget promo Rp1 miliar — promo mana paling efektif?
+    expected_status: unsupported
+    reason: Promo cost and ROI are not in source data.
+    suggested_question: Material apa saja yang tercatat dalam program promo?
+
+  # --- Additional governed coverage ---
+  - id: catalog_s02_revenue_month
+    catalog_question_id: S02
+    chart_primary: LINE
+    domain_agent: sales
+    question: Tampilkan revenue Sell-In per bulan Oktober sampai Desember 2024.
+    expected_status: supported
+    metric: gross_billing_value
+    dataset: monthly_executive
+    dimensions: [calmonth]
+
+  - id: catalog_l03_worst_material_fill
+    catalog_question_id: L03
+    chart_primary: HBAR
+    domain_agent: service_level
+    question: Material dengan fill rate terendah Q4?
+    expected_status: supported
+    metric: material_fill_rate
+    dataset: material_360
+    dimensions: [material]
+    required_filter: has_service_level
+
+  - id: catalog_b02_branch_sell_out
+    catalog_question_id: B02
+    chart_primary: HBAR
+    domain_agent: b2b
+    question: Top branch by sell-out value Q4?
+    expected_status: unsupported
+    reason: B2B branch dimension is not in governed customer reconciliation grain.
+    suggested_question: Bagaimana rasio Sell-Out terhadap Sell-In per shared customer?
+
+  - id: catalog_exec_do_ratio
+    catalog_question_id: S14
+    chart_primary: SCATTER
+    domain_agent: sales
+    question: Billing quantity naik tetapi gross billing flat — per bulan?
+    expected_status: supported_with_caveat
+    metric: do_amount_to_billing_value_ratio
+    dataset: monthly_executive
+    dimensions: [calmonth]
+    caveat: Company monthly proxy, not price decomposition.
+
+  - id: catalog_stock_velocity
+    catalog_question_id: T07
+    chart_primary: SCATTER
+    domain_agent: stock_tempo
+    question: Material dengan stok tinggi vs sell-in rendah?
+    expected_status: supported_with_caveat
+    metric: sell_in_quantity_per_stock_unit
+    dataset: material_360
+    dimensions: [material]
+    caveat: Proxy velocity, not official turnover.
+
+  - id: catalog_shared_customer_sell_in
+    catalog_question_id: B04
+    chart_primary: HBAR
+    domain_agent: b2b
+    question: Total Sell-In pada shared customers Q4?
+    expected_status: supported_with_caveat
+    metric: shared_customer_sell_in_value
+    dataset: customer_reconciliation
+    dimensions: [customer]
+    caveat: Shared customers only.
+
+  - id: catalog_service_po_do
+    catalog_question_id: L05
+    chart_primary: COMBO
+    domain_agent: service_level
+    question: Total PO quantity vs DO quantity per bulan?
+    expected_status: supported
+    metric: service_po_quantity
+    dataset: service_level_material
+    dimensions: [calmonth]
+
+  - id: catalog_office_pick_time_kq2
+    catalog_question_id: KQ2
+    chart_primary: HBAR
+    domain_agent: picking
+    question: Rata-rata waktu picking per sales office Q4?
+    expected_status: supported_with_caveat
+    metric: average_picking_minutes
+    dataset: sales_office_q4
+    dimensions: [sales_office]
+

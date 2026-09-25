@@ -1,6 +1,10 @@
 # Agent Studio Setup — TEMPO OSSIE (No PuppyGraph)
 
-## Agent
+## Orchestration (recommended for multi-domain)
+
+Master + 9 domain agents: see [../agents/AGENT_STUDIO_ORCHESTRATION.md](../agents/AGENT_STUDIO_ORCHESTRATION.md) and [../agents/README.md](../agents/README.md).
+
+## Single governed agent (regression baseline)
 
 Create one Agent named:
 
