@@ -11,13 +11,13 @@ ROOT = Path(__file__).resolve().parents[2]
 TOOLS = ROOT / "projects" / "tempo_scan_impala" / "agent_studio_tools"
 
 
-def _run(tool: str, params: dict, *, env: dict | None = None) -> dict:
+def _run(tool: str, params: dict, *, env: dict | None = None, user_params: dict | None = None) -> dict:
     result = subprocess.run(
         [
             sys.executable,
             str(TOOLS / tool / "tool.py"),
             "--user-params",
-            json.dumps({"project_root": str(ROOT)}),
+            json.dumps({"project_root": str(ROOT), **(user_params or {})}),
             "--tool-params",
             json.dumps(params),
         ],
@@ -85,6 +85,26 @@ def test_resolve_semantic_object_uses_llm_fallback_env(monkeypatch_unused=None) 
     )
     assert result["status"] == "resolved"
     assert result["metric"] == "gross_billing_value"
+
+
+def test_execute_governed_query_forwards_impala_credentials_from_user_params() -> None:
+    # Agent Studio's tool Configure UI only exposes User Parameters (no
+    # separate env-var section), so Impala credentials must be passed as
+    # UserParameters fields and copied into the process environment before
+    # Settings() is built - see execute_governed_query/tool.py's
+    # _apply_impala_env(). An unreachable custom host still reaches the
+    # Impala client (fails at connection, not at "no host configured") -
+    # the failure reason is deliberately a safe, generic error code (see
+    # DataBackendError/safe_error_code in backend/app/db/base.py), never the
+    # raw hostname/credentials, so this only asserts the safe failure path
+    # was reached at all rather than the default "no backend configured"
+    # error that would occur if the User Parameters were never applied.
+    result = _run(
+        "execute_governed_query",
+        {"metric": "gross_billing_value", "dimensions": ["calmonth"]},
+        user_params={"impala_host": "impala-host-from-user-params.invalid", "impala_port": 21050},
+    )
+    assert result == {"status": "unavailable", "reason": "IMPALA_QUERY_FAILED"}
 
 
 def _run_readonly_sql(sql: str) -> dict:
