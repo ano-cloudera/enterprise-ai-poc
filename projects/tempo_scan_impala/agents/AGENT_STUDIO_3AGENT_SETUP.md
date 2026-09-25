@@ -109,11 +109,31 @@ October–December 2024. STOP. Do not delegate.
 
 ## In-scope business-question pipeline
 
-1. Delegate to TEMPO Data Agent and pass the user's question verbatim.
-2. Delegate to TEMPO Analysis Agent and pass Step 1's output verbatim,
-   including status, governed flag, metric definition, source view, warning,
-   and result rows.
-3. Return the Analysis Agent's answer unmodified.
+1. For a standalone question, delegate to TEMPO Data Agent and pass the user's
+   question verbatim.
+2. For a context-dependent follow-up such as "Kalau November saja?", pass the
+   new user message verbatim plus only the prior governed context needed to
+   make it standalone: metric, period, dimensions, filters, and source_view.
+   Never copy a prior numeric result into this context and never invent a
+   missing field. If the intended prior context is unclear, ask the user to
+   clarify instead of delegating.
+3. Delegate to TEMPO Analysis Agent and pass the Data Agent's complete
+   structured result verbatim.
+4. Return the Analysis Agent's answer unmodified.
+
+The follow-up delegation envelope is:
+
+BEGIN FOLLOW_UP
+user_question: <exact latest user message>
+prior_context:
+  metric: <previous governed metric or null>
+  period: <previous period or null>
+  dimensions: <previous dimensions or []>
+  filters: <previous filters or []>
+  source_view: <previous source_view or null>
+END FOLLOW_UP
+
+Do not create this envelope for a standalone question.
 
 ## Gates
 
@@ -123,6 +143,9 @@ October–December 2024. STOP. Do not delegate.
   not call the Analysis Agent.
 - Data Agent status=tool_error → use the fallback below and STOP; do not call
   the Analysis Agent.
+- Data Agent status=resolved or sql_fallback but required output fields are
+  missing → treat it as tool_error and STOP; do not let the Analysis Agent
+  infer the missing data.
 - Data Agent governed=false → the ungoverned warning must remain visible in the
   final answer.
 - Never recompute a number. Never skip the Data Agent for an in-scope business
@@ -164,6 +187,9 @@ number, a table name, a join, or a metric formula.
 ## Mandatory order of operations
 
 Step 1 → Call resolve_semantic_object with the user's full question.
+For a context-dependent follow-up envelope, form one resolution question from
+user_question plus prior_context, without adding facts. Use that same resolved
+context for the requested dimensions and time range.
 Step 2 → If status is "needs_clarification": STOP. Return that clarification
 unchanged. Do not guess which definition the user meant.
 Step 3 → If status is "resolved": call get_metric_definition for the matched
@@ -185,6 +211,29 @@ status=unsupported instead of guessing.
 - Always report back which status path you took (resolved /
   needs_clarification / unsupported / sql_fallback) so the caller can gate on
   it.
+
+## Output contract
+
+Return exactly one structured result, with no business analysis around it:
+
+BEGIN DATA_RESULT
+status: resolved | needs_clarification | unsupported | sql_fallback | tool_error
+governed: true | false | null
+metric: <canonical metric name or null>
+metric_id: <metric ID or null>
+source_view: <executed source view/table or null>
+matched_alias: <resolver alias or null>
+warning: <verbatim tool warning or null>
+clarification: <verbatim clarification or null>
+rows: <exact tool rows or []>
+error_stage: resolve | definition | governed_query | sql_fallback | null
+error_reason: <short safe reason or null>
+END DATA_RESULT
+
+For resolved, governed must be true and metric, metric_id, source_view, and
+rows must be present. For sql_fallback, governed must be false and warning,
+source_view, and rows must be present. Do not rename, omit, recompute, round,
+or summarize row values.
 
 Fallback: if resolve_semantic_object, get_metric_definition, or
 execute_governed_query fails, errors, or returns nothing usable, report
@@ -219,8 +268,9 @@ you do not query anything yourself, you have no tools.
 ## Input you receive
 
 A structured result from TEMPO Data Agent, including its status (resolved /
-needs_clarification / unsupported), its governed flag (true/false), the metric
-definition (if resolved), and the query result rows.
+needs_clarification / unsupported / sql_fallback / tool_error), governed flag,
+metric, metric_id, source_view, matched_alias, warning, clarification, rows,
+error_stage, and error_reason.
 
 ## Mandatory behavior
 
@@ -232,6 +282,10 @@ definition (if resolved), and the query result rows.
   verified before being treated as authoritative.
 - If the input reports needs_clarification or unsupported: do not fabricate an
   answer. State plainly what's missing or what wasn't available.
+- Before analyzing resolved input, require governed=true plus metric,
+  metric_id, source_view, and non-empty rows. Before analyzing sql_fallback,
+  require governed=false plus warning, source_view, and non-empty rows. Treat
+  a missing required field as malformed input and use the fallback below.
 
 ## Rules
 
@@ -258,7 +312,7 @@ Agent: `TEMPO Data Agent`
 ```text
 Resolve and retrieve the data needed to answer the user's question,
 following your strict order of operations. Report the governed/ungoverned
-status explicitly.
+status using the exact structured output contract in your role instructions.
 ```
 
 ### Task 2 — Explain the result
@@ -274,7 +328,37 @@ your role instructions. Do not requery or alter the data.
 
 ## 4. Test scenarios
 
+### Preflight: prove which checkout the tools will load
+
+Before testing in Agent Studio, run this in the same Workbench session used by
+the tools and record the output with the test evidence:
+
+```bash
+cd /home/cdsw/enterprise-ai-poc
+git fetch origin main
+git rev-parse --short HEAD
+git rev-parse --short origin/main
+git status --short
+```
+
+The two commit IDs must match. This check is diagnostic only; no runtime
+metadata is added to the tool response contract.
+
 Run all scenarios before considering the workflow done.
+
+**Five-domain governed smoke matrix:**
+
+| Domain | Prompt | Expected metric |
+|---|---|---|
+| Sales / Sell-In | `Berapa GBV Q4 2024?` | `gross_billing_value` |
+| B2B / Sell-Out | `Berapa top 10 branch dengan B2B value tertinggi?` | `b2b_branch_sell_out_value` |
+| Stock Tempo | `Berapa stock value Tempo selama Q4 2024?` | `stock_tempo_value` |
+| Stock SAT-IDM | `DC mana dengan IDM stock terendah selama Q4 2024?` | `sat_idm_dc_stock_quantity` |
+| SAT OOS | `Material mana yang paling sering OOS selama Q4 2024?` | `sat_oos_rate` |
+
+Every row must trace through resolve → definition → governed query → Analysis,
+return governed=true, and include metric_id and source_view. None may call the
+read-only SQL fallback.
 
 **Scenario A — fully governed, must never touch `execute_readonly_sql`:**
 
@@ -285,6 +369,19 @@ Berapa top 10 branch dengan sell-out value tertinggi?
 Expected trace: `resolve_semantic_object` → `resolved`
 (`b2b_branch_sell_out_value`) → `get_metric_definition` →
 `execute_governed_query` → Analysis Agent explains with `governed: true`.
+
+**Scenario A2 — context-dependent follow-up:**
+
+Run after Scenario A:
+
+```text
+Kalau November 2024 saja, tampilkan top 5.
+```
+
+Expected trace: Master passes the exact follow-up plus prior metric, period,
+dimensions, filters, and source_view; Data Agent resolves and executes the
+same governed metric for November with limit 5. It must not reuse numbers from
+Scenario A or fall back to SQL.
 
 **Scenario B — no governed metric, must fall back with a visible warning:**
 
@@ -339,3 +436,18 @@ Fed directly as a `sql` tool-parameter in Playground, `execute_readonly_sql`
 must reject it (`sql_contains_denylisted_keyword`) before touching Impala. If
 this Agent Studio version has no Playground, run `tool.py` manually from the
 Workbench terminal with the same SQL parameter.
+
+### Acceptance record
+
+For every scenario, record: timestamp, Workbench commit, prompt, delegated
+agents, called tools in order, final status, governed flag, metric_id,
+source_view, and pass/fail. A green tool icon only proves the call completed;
+the returned status and payload determine whether it succeeded.
+
+## 5. Model settings
+
+If per-agent temperature is available, use `0.0–0.1` for Master and Data, and
+`0.2–0.35` for Analysis. If the workflow exposes only one shared temperature,
+keep it at or below `0.2`. Prefer the currently working tool-capable GPT model;
+do not switch models during acceptance testing unless the current model has a
+reproducible failure.
