@@ -1742,6 +1742,7 @@ metrics:
   ai_context:
     synonyms:
     - oos rate
+    - tingkat oos
     - tingkat out of stock
     instructions: 'Stok_akhir = 0 as OOS definition is a PoC default, pending official Tempo sign-off.'
   custom_extensions:

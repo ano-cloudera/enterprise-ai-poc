@@ -39,6 +39,14 @@ def test_resolve_store_stock_by_dc_to_sat_idm_metric() -> None:
     assert result["metric"] == "sat_idm_store_stock_quantity"
 
 
+def test_resolve_indonesian_oos_rate_wording() -> None:
+    result = _service().resolve(
+        "Material mana yang memiliki tingkat OOS tertinggi selama Q4 2024?"
+    )
+    assert result["status"] == "resolved"
+    assert result["metric"] == "sat_oos_rate"
+
+
 def test_resolve_material_fill_rate_prefers_material_metric() -> None:
     result = _service().resolve("Material mana dengan Fill Rate terendah?")
     assert result["status"] == "resolved"
