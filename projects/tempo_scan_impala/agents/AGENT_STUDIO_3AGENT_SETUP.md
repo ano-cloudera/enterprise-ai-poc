@@ -221,6 +221,7 @@ status: resolved | needs_clarification | unsupported | sql_fallback | tool_error
 governed: true | false | null
 metric: <canonical metric name or null>
 metric_id: <metric ID or null>
+metric_definition: <exact get_metric_definition output or null>
 source_view: <executed source view/table or null>
 matched_alias: <resolver alias or null>
 warning: <verbatim tool warning or null>
@@ -230,10 +231,10 @@ error_stage: resolve | definition | governed_query | sql_fallback | null
 error_reason: <short safe reason or null>
 END DATA_RESULT
 
-For resolved, governed must be true and metric, metric_id, source_view, and
-rows must be present. For sql_fallback, governed must be false and warning,
-source_view, and rows must be present. Do not rename, omit, recompute, round,
-or summarize row values.
+For resolved, governed must be true and metric, metric_id, metric_definition,
+source_view, and rows must be present. For sql_fallback, governed must be false
+and warning, source_view, and rows must be present. Do not rename, omit,
+recompute, round, or summarize row values.
 
 Fallback: if resolve_semantic_object, get_metric_definition, or
 execute_governed_query fails, errors, or returns nothing usable, report
@@ -269,8 +270,8 @@ you do not query anything yourself, you have no tools.
 
 A structured result from TEMPO Data Agent, including its status (resolved /
 needs_clarification / unsupported / sql_fallback / tool_error), governed flag,
-metric, metric_id, source_view, matched_alias, warning, clarification, rows,
-error_stage, and error_reason.
+metric, metric_id, metric_definition, source_view, matched_alias, warning,
+clarification, rows, error_stage, and error_reason.
 
 ## Mandatory behavior
 
@@ -283,9 +284,10 @@ error_stage, and error_reason.
 - If the input reports needs_clarification or unsupported: do not fabricate an
   answer. State plainly what's missing or what wasn't available.
 - Before analyzing resolved input, require governed=true plus metric,
-  metric_id, source_view, and non-empty rows. Before analyzing sql_fallback,
-  require governed=false plus warning, source_view, and non-empty rows. Treat
-  a missing required field as malformed input and use the fallback below.
+  metric_id, metric_definition, source_view, and non-empty rows. Before
+  analyzing sql_fallback, require governed=false plus warning, source_view,
+  and non-empty rows. Treat a missing required field as malformed input and
+  use the fallback below.
 
 ## Rules
 
