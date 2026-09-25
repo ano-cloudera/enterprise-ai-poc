@@ -25,6 +25,12 @@ def test_resolve_official_gross_sales_metric() -> None:
     assert result["definition"]["metric_id"] == "SI-01"
 
 
+def test_resolve_gross_sell_wording_to_official_revenue_metric() -> None:
+    result = _service().resolve("berapa total gross sell 2024 q4 ?")
+    assert result["status"] == "resolved"
+    assert result["metric"] == "gross_billing_value"
+
+
 def test_resolve_material_fill_rate_prefers_material_metric() -> None:
     result = _service().resolve("Material mana dengan Fill Rate terendah?")
     assert result["status"] == "resolved"
@@ -173,4 +179,3 @@ async def test_llm_fallback_resolves_a_metric_the_deterministic_matcher_missed(m
     assert result["status"] == "resolved"
     assert result["metric"] == "sat_oos_rate"
     assert result["resolved_by"] == "llm_fallback"
-

@@ -1237,6 +1237,7 @@ metrics:
   ai_context:
     synonyms:
     - gross sales
+    - gross sell
     - gross billing value
     - official revenue
     - bill value
