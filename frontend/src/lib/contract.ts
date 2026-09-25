@@ -40,7 +40,8 @@ export function validateChatResponse(value: unknown): ChatResponse {
   if (!exactKeys(answer, ['summary', 'drivers', 'recommended_actions', 'caveats'])) throw new Error('Unexpected answer field')
   if (typeof answer.summary !== 'string' || !Array.isArray(answer.drivers) || !Array.isArray(answer.recommended_actions) || !Array.isArray(answer.caveats)) throw new Error('Invalid answer payload')
   if (!Array.isArray(value.data.columns) || !Array.isArray(value.data.rows)) throw new Error('Invalid data payload')
-  if (!exactKeys(value.data, ['columns', 'rows'])) throw new Error('Unexpected data field')
+  if (!exactKeys(value.data, ['columns', 'rows', 'unit_format'])) throw new Error('Unexpected data field')
+  if ('unit_format' in value.data && value.data.unit_format !== null && typeof value.data.unit_format !== 'string') throw new Error('Invalid unit_format payload')
   const metadata = value.metadata
   if (!exactKeys(metadata, ['trace_id', 'session_id', 'intent', 'resolved_context', 'execution_time_ms'])) throw new Error('Unexpected metadata field')
   if (typeof metadata.trace_id !== 'string' || typeof metadata.session_id !== 'string' || typeof metadata.intent !== 'string' || !isRecord(metadata.resolved_context) || typeof metadata.execution_time_ms !== 'number') throw new Error('Invalid metadata payload')
