@@ -94,7 +94,7 @@ class TempoOssieService:
         returned unchanged rather than raising - an LLM outage must not turn
         a graceful "unsupported" answer into a hard error."""
         deterministic = self.resolve(question)
-        if deterministic.get("status") == "resolved":
+        if deterministic.get("status") != "unsupported":
             return deterministic
 
         from app.llm.factory import get_llm_provider  # local import: avoid a hard LLM dependency for callers that never need the fallback
@@ -277,4 +277,3 @@ class TempoOssieService:
 @lru_cache(maxsize=1)
 def get_tempo_ossie_service() -> TempoOssieService:
     return TempoOssieService()
-

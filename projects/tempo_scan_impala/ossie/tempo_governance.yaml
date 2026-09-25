@@ -38,12 +38,18 @@ ambiguities:
   - name: stock_scope
     trigger_terms: [stock, stok, inventory, persediaan]
     question: >-
-      Apakah Anda ingin melihat stok gudang Tempo atau konteks stok retail?
-      Semantic Contract v1 hanya menerbitkan stok gudang Tempo.
+      Apakah Anda ingin melihat stok gudang Tempo, stok DC partner, atau stok
+      store retail?
     options:
       - metric: material_warehouse_stock_quantity
         label: Tempo Warehouse Stock
         discriminators: [gudang tempo, warehouse, dc tempo, plant]
+      - metric: sat_idm_dc_stock_quantity
+        label: Partner Distribution Center Stock
+        discriminators: [stok dc partner, dc stock, distribution center stock]
+      - metric: sat_idm_store_stock_quantity
+        label: Partner Retail Store Stock
+        discriminators: [stok store, store stock, retail stock]
 
 unknown_metric_question: >-
   Saya belum menemukan KPI yang sesuai pada Semantic Contract Q4 2024.
@@ -87,4 +93,3 @@ answer_contract:
     - identify proxy and data-quality metrics
     - identify shared-customer-only scope
     - identify Q4-only scope
-

@@ -31,6 +31,14 @@ def test_resolve_gross_sell_wording_to_official_revenue_metric() -> None:
     assert result["metric"] == "gross_billing_value"
 
 
+def test_resolve_store_stock_by_dc_to_sat_idm_metric() -> None:
+    result = _service().resolve(
+        "DC mana yang memiliki stok store paling rendah selama Oktober sampai Desember 2024?"
+    )
+    assert result["status"] == "resolved"
+    assert result["metric"] == "sat_idm_store_stock_quantity"
+
+
 def test_resolve_material_fill_rate_prefers_material_metric() -> None:
     result = _service().resolve("Material mana dengan Fill Rate terendah?")
     assert result["status"] == "resolved"
@@ -136,6 +144,19 @@ async def test_llm_fallback_is_not_invoked_when_deterministic_resolver_succeeds(
     assert result["status"] == "resolved"
     assert result["metric"] == "gross_billing_value"
     assert result.get("resolved_by") != "llm_fallback"
+
+
+@pytest.mark.asyncio
+async def test_llm_fallback_preserves_deterministic_clarification(monkeypatch) -> None:
+    from app.llm import factory as llm_factory
+
+    def _unexpected_provider_call():
+        raise AssertionError("LLM fallback must not override a governed clarification")
+
+    monkeypatch.setattr(llm_factory, "get_llm_provider", _unexpected_provider_call)
+    result = await _service().resolve_with_llm_fallback("Berapa total penjualan?")
+    assert result["status"] == "needs_clarification"
+    assert result["reason"] == "sales_stage"
 
 
 @pytest.mark.asyncio
