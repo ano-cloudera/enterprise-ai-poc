@@ -43,13 +43,13 @@ ambiguities:
     options:
       - metric: material_warehouse_stock_quantity
         label: Tempo Warehouse Stock
-        discriminators: [gudang tempo, warehouse, dc tempo, plant]
+        discriminators: [gudang tempo, stok gudang, stock tempo, stok tempo, stock value tempo, warehouse, dc tempo, plant]
       - metric: sat_idm_dc_stock_quantity
         label: Partner Distribution Center Stock
-        discriminators: [stok dc partner, dc stock, distribution center stock]
+        discriminators: [stok dc partner, dc stock, dcstock, idm stock, stock idm, distribution center stock]
       - metric: sat_idm_store_stock_quantity
         label: Partner Retail Store Stock
-        discriminators: [stok store, store stock, retail stock]
+        discriminators: [stok store, store stock, storestock, retail stock]
 
 unknown_metric_question: >-
   Saya belum menemukan KPI yang sesuai pada Semantic Contract Q4 2024.

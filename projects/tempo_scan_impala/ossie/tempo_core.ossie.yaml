@@ -1236,6 +1236,8 @@ metrics:
   description: Official TEMPO revenue figure, Gross Billing Value from BILL_VAL in IDR.
   ai_context:
     synonyms:
+    - gbv
+    - gross sale
     - gross sales
     - gross sell
     - gross billing value
@@ -1255,7 +1257,10 @@ metrics:
   description: Total Sell-In billing quantity.
   ai_context:
     synonyms:
+    - billing qty
     - billing quantity
+    - sell-in qty
+    - sell in qty
     - sell-in quantity
     - volume billing
   custom_extensions:
@@ -1349,6 +1354,7 @@ metrics:
   ai_context:
     synonyms:
     - stok material
+    - stok gudang
     - warehouse stock
     - stok gudang tempo
   custom_extensions:
@@ -1652,6 +1658,10 @@ metrics:
   description: B2B (Sell-Out) billing value by branch/DC and e_store, October-December 2024.
   ai_context:
     synonyms:
+    - b2b branch value
+    - branch b2b value
+    - branch sellout
+    - sellout branch
     - sell-out branch
     - sell-out dc
     - revenue b2b cabang
@@ -1667,6 +1677,8 @@ metrics:
   description: B2B (Sell-Out) billing value by material and PLU code, October-December 2024.
   ai_context:
     synonyms:
+    - b2b plu value
+    - plu b2b value
     - sell-out plu
     - revenue b2b plu
     instructions: PLU and material are independent dimensions, no confirmed mapping between them.
@@ -1682,6 +1694,8 @@ metrics:
   description: Tempo warehouse total stock quantity by material and plant, Set A columns only, October-December 2024.
   ai_context:
     synonyms:
+    - stok tempo
+    - stock tempo
     - total stok gudang tempo
     - stock tempo quantity
     instructions: Set A only (PoC decision, 24 Sep 2026); Set B excluded pending official Tempo confirmation.
@@ -1698,6 +1712,8 @@ metrics:
   ai_context:
     synonyms:
     - valuasi stok tempo
+    - stock value tempo
+    - tempo stock value
     - stock tempo value
     instructions: Set A only (PoC decision, 24 Sep 2026); Set B excluded pending official Tempo confirmation.
   custom_extensions:
@@ -1712,6 +1728,9 @@ metrics:
   description: Partner DC stock quantity by DC name, PLU, and division, October-December 2024.
   ai_context:
     synonyms:
+    - idm stock
+    - stock idm
+    - dcstock
     - stok dc partner
     - dc stock quantity
   custom_extensions:
@@ -1726,6 +1745,7 @@ metrics:
   description: Retail store stock quantity (under a partner DC) by DC name, PLU, and division, October-December 2024.
   ai_context:
     synonyms:
+    - storestock
     - stok store
     - store stock quantity
   custom_extensions:
@@ -1741,7 +1761,9 @@ metrics:
     2024.
   ai_context:
     synonyms:
+    - oos
     - oos rate
+    - out of stock
     - tingkat oos
     - tingkat out of stock
     instructions: 'Stok_akhir = 0 as OOS definition is a PoC default, pending official Tempo sign-off.'

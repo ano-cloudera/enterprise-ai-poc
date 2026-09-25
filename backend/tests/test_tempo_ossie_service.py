@@ -47,6 +47,60 @@ def test_resolve_indonesian_oos_rate_wording() -> None:
     assert result["metric"] == "sat_oos_rate"
 
 
+@pytest.mark.parametrize(
+    ("question", "expected_metric"),
+    [
+        ("Berapa GBV Q4 2024?", "gross_billing_value"),
+        ("Berapa gross sale Q4 2024?", "gross_billing_value"),
+        ("Berapa billing qty Q4 2024?", "billing_quantity"),
+        ("Berapa sell-in qty Q4 2024?", "billing_quantity"),
+        ("Branch mana dengan B2B value tertinggi?", "b2b_branch_sell_out_value"),
+        ("Branch mana dengan sellout tertinggi?", "b2b_branch_sell_out_value"),
+        ("PLU mana dengan nilai B2B tertinggi?", "b2b_material_plu_value"),
+        ("Berapa stok Tempo Q4 2024?", "stock_tempo_total_qty"),
+        ("Berapa stock value Tempo?", "stock_tempo_value"),
+        ("SKU mana dengan stok gudang terbesar?", "material_warehouse_stock_quantity"),
+        ("DC mana dengan IDM stock terendah?", "sat_idm_dc_stock_quantity"),
+        ("DC mana dengan dcstock terendah?", "sat_idm_dc_stock_quantity"),
+        ("DC mana dengan storestock terendah?", "sat_idm_store_stock_quantity"),
+        ("Material mana dengan OOS tertinggi?", "sat_oos_rate"),
+        ("SKU mana paling sering OOS?", "sat_oos_rate"),
+        ("PLU mana dengan out of stock tertinggi?", "sat_oos_rate"),
+    ],
+)
+def test_resolve_common_five_domain_abbreviations(
+    question: str, expected_metric: str
+) -> None:
+    result = _service().resolve(question)
+    assert result["status"] == "resolved"
+    assert result["metric"] == expected_metric
+
+
+def test_generic_stock_question_still_requires_scope_clarification() -> None:
+    result = _service().resolve("Berapa total stok Q4 2024?")
+    assert result["status"] == "needs_clarification"
+    assert result["reason"] == "stock_scope"
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Berapa SO Q4 2024?",
+        "Berapa SI Q4 2024?",
+        "Berapa SL Q4 2024?",
+    ],
+)
+def test_ambiguous_initialisms_are_not_guessed(question: str) -> None:
+    result = _service().resolve(question)
+    assert result["status"] == "unsupported"
+
+
+def test_bare_dc_stock_still_requires_scope_clarification() -> None:
+    result = _service().resolve("Berapa stok DC Q4 2024?")
+    assert result["status"] == "needs_clarification"
+    assert result["reason"] == "stock_scope"
+
+
 def test_resolve_material_fill_rate_prefers_material_metric() -> None:
     result = _service().resolve("Material mana dengan Fill Rate terendah?")
     assert result["status"] == "resolved"

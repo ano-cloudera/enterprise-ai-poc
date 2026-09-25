@@ -145,6 +145,12 @@ class TempoOssieRegistry:
     def resolve_ambiguity(self, question: str) -> dict[str, Any] | None:
         normalized = _normalize(question)
         for ambiguity in self.governance.get("ambiguities", []):
+            # "Out of stock" is the published SAT OOS KPI, not a request to
+            # choose between warehouse, partner-DC, and retail-store stock.
+            if ambiguity.get("name") == "stock_scope" and any(
+                term in normalized for term in ("oos", "outofstock")
+            ):
+                continue
             if (
                 ambiguity.get("name") == "sales_stage"
                 and "salesoffice" in normalized
@@ -322,4 +328,3 @@ class TempoOssieRegistry:
                 if item.get("expected_status") in {"supported", "supported_with_caveat"}
             ][:8],
         }
-
