@@ -26,19 +26,22 @@ ffc7d4e refactor: make OSSIE/Impala the permanent default, remove legacy semanti
 
 The 3-agent Cloudera Agent Studio workflow (`TEMPO Master Agent` → `TEMPO Data Agent` / `TEMPO Analysis Agent`, docs in `projects/tempo_scan_impala/agents/AGENT_STUDIO_3AGENT_SETUP.md`) is now fully built in the UI: all 4 custom tools (`resolve_semantic_object`, `get_metric_definition`, `execute_governed_query`, `execute_readonly_sql`) exist in the Tools Catalog and are attached to TEMPO Data Agent, each with `project_root=/home/cdsw/enterprise-ai-poc` set, and the two Impala-backed tools (`execute_governed_query`, `execute_readonly_sql`) additionally have `impala_host`/`impala_port`/`impala_database`/`impala_auth_mechanism`/`impala_user`/`impala_password`/`impala_use_ssl`/`impala_use_http_transport`/`impala_http_path` filled in as User Parameters (see commit `ec19a8d` for why — Agent Studio's tool Configure UI only exposes User Parameters, no separate env-var section, so credentials are threaded through `UserParameters` → `os.environ` inside each tool before `Settings()`/`TempoOssieService()` is constructed).
 
-Testing via the full agent conversation ("Berapa Gross Sales Q4 2024?") still showed `resolve_semantic_object` failing inside the Data Agent — note this tool needs **no Impala at all** (pure YAML lookup), so this is unrelated to the credential work above. This is the exact same class of failure the `376da58` `duckdb` lazy-import fix was meant to resolve, but it was hit again *after* that fix was pushed — most likely explanation: the CAI Workbench Session/Agent Studio tool sandbox was still running against a stale checkout from before the fix landed. **Not yet confirmed** — next action:
+Testing via the full agent conversation ("Berapa Gross Sales Q4 2024?") initially showed `resolve_semantic_object` failing inside the Data Agent. **Root cause confirmed and resolved (25 Sep 2026, later same day)**: it was a stale CAI Workbench checkout predating the `376da58`/`ec19a8d` fixes — after `git pull origin main` in the Workbench terminal, the exact same manual command now succeeds cleanly:
 
 ```bash
 cd /home/cdsw/enterprise-ai-poc
-git pull origin main   # make sure the sandbox checkout actually has ec19a8d
 python3 projects/tempo_scan_impala/agent_studio_tools/resolve_semantic_object/tool.py \
   --user-params '{"project_root": "/home/cdsw/enterprise-ai-poc"}' \
   --tool-params '{"question": "Berapa Gross Sales Q4 2024?"}'
+# -> {"status": "resolved", "metric": "gross_billing_value", "matched_alias": "gross sales",
+#     "definition": {..., "unit_format": "currency_idr", ...}}
 ```
 
-If this now succeeds (returns `{"status": "resolved", "metric": "gross_billing_value", ...}`), the fix was correct and it was purely a stale-checkout issue — re-test through the full Agent Studio conversation next. If it still fails, capture the *exact* traceback (the Agent Studio UI only shows a friendly fallback message by design — see the Manager/Data/Analysis Agent fallback instructions in `AGENT_STUDIO_3AGENT_SETUP.md` — so the terminal run is the only way to see the real error) and diagnose from there; don't assume it's the same `duckdb` bug without checking.
+This confirms the `duckdb` lazy-import fix, the LLM-fallback resolver, and `unit_format` are all working correctly against the real CAI environment. **Not yet done**: this was validated via the manual terminal command only, not yet re-tested through the full Agent Studio agent conversation (the earlier UI test predates this fix). Next actions, in order:
 
-Once `resolve_semantic_object` resolves cleanly end to end, re-test the other 3 tools the same way if any of them also show trouble, then run the full test scenarios from `AGENT_STUDIO_3AGENT_SETUP.md` §4 (governed path, ungoverned SQL-fallback path, negative-control DROP TABLE rejection).
+1. Re-run the same "Berapa Gross Sales Q4 2024?" question through the actual Agent Studio conversation (not the terminal) and confirm TEMPO Data Agent now succeeds end to end (resolve → get_metric_definition → execute_governed_query, the last one requiring the Impala credentials configured in `ec19a8d` to actually connect and return real Q4 2024 numbers).
+2. If `execute_governed_query` or `execute_readonly_sql` show trouble (these are the only 2 of the 4 tools that touch Impala), validate them individually with the same manual-terminal-first approach before assuming the agent conversation UI's error is the full story.
+3. Once the governed path works end to end, run the full test scenarios from `AGENT_STUDIO_3AGENT_SETUP.md` §4 (governed path, ungoverned SQL-fallback path via `execute_readonly_sql`, and the negative-control `DROP TABLE` rejection).
 
 **Known Agent Studio quirks hit so far** (all worked around, not blockers):
 - Gemini as the LLM backend threw `litellm.BadRequestError ... "Requests ending with a model turn are not supported"` specifically when the Manager Agent delegated to a sub-agent (not on direct replies) — switching to a GPT model in the same workflow made this go away; root cause in Agent Studio's Gemini message formatting was not investigated further.
