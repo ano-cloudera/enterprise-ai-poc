@@ -1,7 +1,52 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 24 Sep 2026 — OSSIE/Impala is now the permanent default; legacy DuckDB-synthetic semantic layer removed from the Ask AI request path.
+**Updated**: 25 Sep 2026 — 9 journey Gold views + LLM-fallback metric resolver + unit-aware formatting + 3-agent Cloudera Agent Studio workflow (all 4 tools built and attached, end-to-end test in progress). All pushed to `origin/main`.
+
+**⚠️ Handoff note (25 Sep 2026, switching from Claude Code to Codex)**:
+
+Everything through commit `ec19a8d` is committed **and pushed** to `origin/main` — no local-only commits pending. Recent history (newest first):
+
+```
+ec19a8d feat: accept Impala credentials as Agent Studio User Parameters
+376da58 fix: lazy-import backend implementations in build_data_backend()
+ddb095f feat: add 3-agent Cloudera Agent Studio workflow (Master, Data, Analysis)
+eec480a fix: validateChatResponse rejected every response after adding data.unit_format
+2ef48b8 feat: generate governed answer narratives with the LLM instead of a static template
+283334d fix: format governed metric values by their declared unit, not by field name
+d6df38a feat: add LLM fallback for governed metric resolution
+9bbff4a fix: relax OSSIE registry validator to a minimum, not an exact count
+f450314 fix: add missing langdetect to backend/requirements-lock.txt
+eb59d27 fix: sync venv with requirements.txt on every CAI backend start
+6734d64 feat: add 9 journey Gold views (Stock Tempo→Sales→B2B→SAT-IDM→OOS) to OSSIE semantic layer
+ffc7d4e refactor: make OSSIE/Impala the permanent default, remove legacy semantic layer from the request path
+```
+
+**Immediate next step — Agent Studio end-to-end test is mid-flight, not finished:**
+
+The 3-agent Cloudera Agent Studio workflow (`TEMPO Master Agent` → `TEMPO Data Agent` / `TEMPO Analysis Agent`, docs in `projects/tempo_scan_impala/agents/AGENT_STUDIO_3AGENT_SETUP.md`) is now fully built in the UI: all 4 custom tools (`resolve_semantic_object`, `get_metric_definition`, `execute_governed_query`, `execute_readonly_sql`) exist in the Tools Catalog and are attached to TEMPO Data Agent, each with `project_root=/home/cdsw/enterprise-ai-poc` set, and the two Impala-backed tools (`execute_governed_query`, `execute_readonly_sql`) additionally have `impala_host`/`impala_port`/`impala_database`/`impala_auth_mechanism`/`impala_user`/`impala_password`/`impala_use_ssl`/`impala_use_http_transport`/`impala_http_path` filled in as User Parameters (see commit `ec19a8d` for why — Agent Studio's tool Configure UI only exposes User Parameters, no separate env-var section, so credentials are threaded through `UserParameters` → `os.environ` inside each tool before `Settings()`/`TempoOssieService()` is constructed).
+
+Testing via the full agent conversation ("Berapa Gross Sales Q4 2024?") still showed `resolve_semantic_object` failing inside the Data Agent — note this tool needs **no Impala at all** (pure YAML lookup), so this is unrelated to the credential work above. This is the exact same class of failure the `376da58` `duckdb` lazy-import fix was meant to resolve, but it was hit again *after* that fix was pushed — most likely explanation: the CAI Workbench Session/Agent Studio tool sandbox was still running against a stale checkout from before the fix landed. **Not yet confirmed** — next action:
+
+```bash
+cd /home/cdsw/enterprise-ai-poc
+git pull origin main   # make sure the sandbox checkout actually has ec19a8d
+python3 projects/tempo_scan_impala/agent_studio_tools/resolve_semantic_object/tool.py \
+  --user-params '{"project_root": "/home/cdsw/enterprise-ai-poc"}' \
+  --tool-params '{"question": "Berapa Gross Sales Q4 2024?"}'
+```
+
+If this now succeeds (returns `{"status": "resolved", "metric": "gross_billing_value", ...}`), the fix was correct and it was purely a stale-checkout issue — re-test through the full Agent Studio conversation next. If it still fails, capture the *exact* traceback (the Agent Studio UI only shows a friendly fallback message by design — see the Manager/Data/Analysis Agent fallback instructions in `AGENT_STUDIO_3AGENT_SETUP.md` — so the terminal run is the only way to see the real error) and diagnose from there; don't assume it's the same `duckdb` bug without checking.
+
+Once `resolve_semantic_object` resolves cleanly end to end, re-test the other 3 tools the same way if any of them also show trouble, then run the full test scenarios from `AGENT_STUDIO_3AGENT_SETUP.md` §4 (governed path, ungoverned SQL-fallback path, negative-control DROP TABLE rejection).
+
+**Known Agent Studio quirks hit so far** (all worked around, not blockers):
+- Gemini as the LLM backend threw `litellm.BadRequestError ... "Requests ending with a model turn are not supported"` specifically when the Manager Agent delegated to a sub-agent (not on direct replies) — switching to a GPT model in the same workflow made this go away; root cause in Agent Studio's Gemini message formatting was not investigated further.
+- The combined system prompt across all 3 agents exceeded Qwen3.8-27B-AWQ's 4096-token context window before any tool was even attached — fixed by shortening each agent's Backstory to terse bullet points (routing rules, numbered pipeline, gates) rather than prose. If more agents/tools are added later and this recurs, shorten further or pick a larger-context model if one becomes available.
+- This version of Agent Studio (v2.3.0-b40) has no separate "Tools Playground" for isolated per-tool testing before attaching to an agent — validate tools either by running `tool.py` manually in a Workbench terminal (fastest for real errors) or by testing through the full agent conversation. The agent conversation UI only ever shows the agent's own friendly fallback wording on tool failure, never the underlying Python traceback — always cross-check with a manual terminal run when something looks wrong.
+- Each tool's Configure UI in Agent Studio only exposes fields declared in that tool's `UserParameters` Pydantic model — there is no separate environment-variable configuration surface per tool. Any external config a tool needs (Impala credentials, feature flags, etc.) must be declared as an explicit `UserParameters` field and copied into `os.environ` inside `run_tool()` before importing anything from `backend/app/`.
+
+Older handoff context (OSSIE/Impala cutover, 24 Sep 2026) is preserved below in "Live Impala cutover + resolver fixes + legacy cleanup (24 Sep 2026)" further down this file — still accurate, just no longer the most recent work.
 
 This is a running snapshot to paste into ChatGPT (where the original plan/milestones live) to sync it with what's actually been built.
 
