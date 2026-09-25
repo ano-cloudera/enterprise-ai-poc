@@ -1711,6 +1711,7 @@ metrics:
   description: Tempo warehouse stock value (IDR) by material and plant, Set A columns only, October-December 2024.
   ai_context:
     synonyms:
+    - nilai stock tempo
     - valuasi stok tempo
     - stock value tempo
     - tempo stock value

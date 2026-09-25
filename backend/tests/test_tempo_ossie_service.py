@@ -47,6 +47,15 @@ def test_resolve_indonesian_oos_rate_wording() -> None:
     assert result["metric"] == "sat_oos_rate"
 
 
+def test_resolve_indonesian_stock_tempo_value_wording() -> None:
+    result = _service().resolve(
+        "Berapa total nilai Stock Tempo untuk masing-masing bulan selama Q4 2024?"
+    )
+    assert result["status"] == "resolved"
+    assert result["metric"] == "stock_tempo_value"
+    assert result["definition"]["unit_format"] == "currency_idr"
+
+
 @pytest.mark.parametrize(
     ("question", "expected_metric"),
     [
