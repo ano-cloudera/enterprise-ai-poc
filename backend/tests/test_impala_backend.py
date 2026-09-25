@@ -11,8 +11,11 @@ from app.db.impala_backend import ImpalaBackend
 
 def test_impala_execute_returns_safe_error_and_telemetry(monkeypatch) -> None:
     backend = ImpalaBackend()
+    attempts = 0
 
     def fail(_sql: str):
+        nonlocal attempts
+        attempts += 1
         raise RuntimeError("driver detail must not escape")
 
     monkeypatch.setattr(backend, "query", fail)
@@ -24,6 +27,57 @@ def test_impala_execute_returns_safe_error_and_telemetry(monkeypatch) -> None:
     assert error.value.telemetry.success is False
     assert error.value.telemetry.safe_error_code == "IMPALA_QUERY_FAILED"
     assert "driver detail" not in str(error.value)
+    assert attempts == 1
+
+
+def test_impala_execute_retries_one_transient_connection_failure(monkeypatch) -> None:
+    backend = ImpalaBackend()
+    attempts = 0
+
+    def flaky_query(_sql: str):
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise ConnectionError("connection reset by peer")
+        return [{"n": 1}]
+
+    monkeypatch.setattr(backend, "query", flaky_query)
+
+    result = backend.execute("SELECT 1")
+
+    assert attempts == 2
+    assert result.records() == [{"n": 1}]
+    assert result.telemetry.success is True
+
+
+def test_impala_execute_retries_http_503_with_falsey_response(monkeypatch) -> None:
+    backend = ImpalaBackend()
+    attempts = 0
+
+    class FalseyResponse:
+        status_code = 503
+
+        def __bool__(self) -> bool:
+            return False
+
+    class ServiceUnavailable(RuntimeError):
+        def __init__(self) -> None:
+            super().__init__("gateway rejected request")
+            self.response = FalseyResponse()
+
+    def flaky_query(_sql: str):
+        nonlocal attempts
+        attempts += 1
+        if attempts == 1:
+            raise ServiceUnavailable()
+        return [{"n": 1}]
+
+    monkeypatch.setattr(backend, "query", flaky_query)
+
+    result = backend.execute("SELECT 1")
+
+    assert attempts == 2
+    assert result.records() == [{"n": 1}]
 
 
 def _install_fake_impyla(monkeypatch, captured: dict) -> None:
@@ -94,4 +148,3 @@ def test_impala_query_passes_http_transport_when_configured(monkeypatch) -> None
 
     assert captured["use_http_transport"] is True
     assert captured["http_path"] == "cliservice"
-
