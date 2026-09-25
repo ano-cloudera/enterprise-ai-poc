@@ -7,7 +7,7 @@ from fastapi.responses import JSONResponse
 import uuid
 import logging
 
-from app.api.routes import chat, config, dashboard, health, monitoring
+from app.api.routes import chat, config, dashboard, health, monitoring, semantic
 from app.core.config import get_settings
 
 settings = get_settings()
@@ -25,7 +25,14 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-for router in (health.router, config.router, dashboard.router, chat.router, monitoring.router):
+for router in (
+    health.router,
+    config.router,
+    dashboard.router,
+    chat.router,
+    monitoring.router,
+    semantic.router,
+):
     app.include_router(router, prefix=settings.api_prefix)
 
 

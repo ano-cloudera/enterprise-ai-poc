@@ -21,6 +21,8 @@ def public_config() -> PublicConfigResponse:
         brand=project.get("brand", {}),
         model_name=runtime["model_name"],
         data_backend=settings.data_backend,
+        semantic_execution_mode=settings.semantic_execution_mode,
+        semantic_capabilities_enabled=settings.semantic_execution_mode == "ossie",
         guardrails_enabled=settings.guardrails_enabled,
     )
 
