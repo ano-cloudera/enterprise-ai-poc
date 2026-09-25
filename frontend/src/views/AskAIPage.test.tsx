@@ -13,6 +13,10 @@ const dashboardState = {
 }
 const stateActions = { applyDashboardAiActions: vi.fn(), removeAppliedContext: vi.fn(), reset: vi.fn() }
 const scrollIntoView = vi.fn()
+const projectConfig = {
+  project_name: 'Tempo Scan Commercial Intelligence Assistant',
+  semantic_capabilities_enabled: false,
+}
 
 const response = {
   status: 'ok', question: 'Kenapa sales turun?',
@@ -30,16 +34,18 @@ const response = {
   metadata: { trace_id: 'secret-trace', session_id: 'developer-session', intent: 'analytical', resolved_context: dashboardState, execution_time_ms: 123 },
 } as const
 
-vi.mock('../lib/api', () => ({ api: { chat: vi.fn() } }))
-vi.mock('../lib/project', () => ({ useProject: () => ({ config: { project_name: 'Tempo Scan Commercial Intelligence Assistant' } }) }))
+vi.mock('../lib/api', () => ({ api: { chat: vi.fn(), semanticCapabilities: vi.fn() } }))
+vi.mock('../lib/project', () => ({ useProject: () => ({ config: projectConfig }) }))
 vi.mock('../lib/dashboardState', () => ({ useDashboardState: () => ({ state: dashboardState, ...stateActions }) }))
 vi.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }))
 
 describe('Ask AI business UX', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    projectConfig.semantic_capabilities_enabled = false
     Object.defineProperty(HTMLElement.prototype, 'scrollIntoView', { configurable: true, value: scrollIntoView })
     vi.mocked(api.chat).mockResolvedValue(response as never)
+    vi.mocked(api.semanticCapabilities).mockResolvedValue({ examples: [] } as never)
   })
   afterEach(cleanup)
 
@@ -63,6 +69,19 @@ describe('Ask AI business UX', () => {
     expect(conversation.className).toContain('flex')
     expect(recentHeading.className).toContain('text-sm')
     expect(screen.getByText('SCAN').className).toContain('text-sm')
+  })
+
+  it('shows governed Q4 capabilities only for the opt-in Impala profile', async () => {
+    projectConfig.semantic_capabilities_enabled = true
+    vi.mocked(api.semanticCapabilities).mockResolvedValue({
+      examples: ['Bagaimana tren Gross Sales selama Q4 2024?'],
+    } as never)
+    render(<AskAIPage />)
+
+    await screen.findByRole('heading', { name: 'Ask SCAN about TEMPO Q4 2024' })
+    screen.getByText('Impala · Q4 2024')
+    screen.getByText('Bagaimana tren Gross Sales selama Q4 2024?')
+    expect(api.semanticCapabilities).toHaveBeenCalledOnce()
   })
 
   it('keeps the composer outside a viewport-bounded scrolling conversation', () => {

@@ -10,6 +10,8 @@ type ProjectConfig = {
   brand: Record<string, string>
   model_name: string
   data_backend: string
+  semantic_execution_mode: string
+  semantic_capabilities_enabled: boolean
   guardrails_enabled: boolean
 }
 
@@ -20,6 +22,8 @@ const fallback: ProjectConfig = {
   brand: {},
   model_name: 'Qwen3.8-27B-AWQ',
   data_backend: 'duckdb',
+  semantic_execution_mode: 'legacy',
+  semantic_capabilities_enabled: false,
   guardrails_enabled: false,
 }
 

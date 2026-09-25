@@ -25,16 +25,25 @@ const overview = {
   channel_share: [{ channel: 'Modern Trade', sales: 126400, share: 100 }],
   ai_insight: { headline: 'Review context', summary: 'Governed summary', actions: [] },
 }
-let fetchResult = { data: overview, loading: false, error: null as string | null }
+let fetchResult: { data: any; loading: boolean; error: string | null } = {
+  data: overview,
+  loading: false,
+  error: null,
+}
+const projectConfig = {
+  project_name: 'Tempo Scan Commercial Intelligence Assistant',
+  semantic_capabilities_enabled: false,
+}
 
 vi.mock('../hooks/useFetch', () => ({ useFetch: () => fetchResult }))
-vi.mock('../lib/api', () => ({ api: { chat: vi.fn(), dashboard: vi.fn() } }))
-vi.mock('../lib/project', () => ({ useProject: () => ({ config: { project_name: 'Tempo Scan Commercial Intelligence Assistant' } }) }))
+vi.mock('../lib/api', () => ({ api: { chat: vi.fn(), dashboard: vi.fn(), semanticCapabilities: vi.fn() } }))
+vi.mock('../lib/project', () => ({ useProject: () => ({ config: projectConfig }) }))
 vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn() }), useSearchParams: () => new URLSearchParams() }))
 
 describe('AI actions applied from Ask AI reach the shared dashboard state', () => {
   beforeEach(() => {
     vi.clearAllMocks()
+    projectConfig.semantic_capabilities_enabled = false
     fetchResult = { data: overview, loading: false, error: null }
     // jsdom doesn't implement scrollIntoView; AskAIPage calls it to keep the
     // conversation scrolled to the latest message.
@@ -96,5 +105,48 @@ describe('AI actions applied from Ask AI reach the shared dashboard state', () =
     expect(screen.getAllByText('47.9').length).toBeGreaterThan(0)
     expect(screen.getAllByText('55.5').length).toBeGreaterThan(0)
     expect(screen.getAllByText('-0.30').length).toBeGreaterThan(0)
+  })
+
+  it('renders the opt-in Impala/Ossie dashboard without synthetic forecast or market claims', () => {
+    projectConfig.semantic_capabilities_enabled = true
+    fetchResult = {
+      data: {
+        profile: 'impala_ossie',
+        period: 'Q4 2024',
+        kpis: [
+          { key: 'gross_billing_value', label: 'Gross Sales', value: 127465426308, format: 'currency_idr', delta: 6.6 },
+          { key: 'growth', label: 'Growth', value: 6.6, format: 'percent', delta: 6.6 },
+          { key: 'fill_rate', label: 'Fill Rate', value: 79.52, format: 'percent', delta: null },
+          { key: 'top_material', label: 'Top Material', value: '035-28-07', format: 'text', delta: null },
+        ],
+        sales_trend: [{ month: '202410', sales: 137196.03 }, { month: '202411', sales: 119525.12 }, { month: '202412', sales: 127465.43 }],
+        region_sales: [{ region: '0201', sales: 8000 }],
+        top_products: [{ product: '035-28-07', category: 'Material', sales: 5000 }],
+        channel_share: [{ channel: 'Sell-In', sales: 384186.58, share: 91.4 }, { channel: 'Sell-Out', sales: 35990.2, share: 8.6 }],
+        labels: {
+          sales_trend: 'Gross Sales Trend',
+          region_sales: 'Sell-In by Sales Office',
+          top_products: 'Top Materials',
+          channel_share: 'Sell-In vs Sell-Out Context',
+        },
+        scope_badges: ['Q4 2024', 'Gross Sales = BILL_VAL'],
+        ai_insight: { headline: 'Governed', summary: 'Audited Impala Gold semantic views.', actions: [] },
+      },
+      loading: false,
+      error: null,
+    }
+
+    render(<DashboardStateProvider><DashboardPage /></DashboardStateProvider>)
+
+    screen.getByText('Gross Sales (BILL_VAL)')
+    screen.getByText('Company Fill Rate')
+    screen.getByText('Top Material')
+    screen.getByText('Sell-In by Sales Office')
+    screen.getByText('Top Materials')
+    screen.getByText('Sell-In vs Sell-Out Context')
+    screen.getByText('Audited Impala Gold semantic views.')
+    expect(screen.queryByText('Forecast Next Period')).toBeNull()
+    expect(screen.queryByText('Market Opportunity')).toBeNull()
+    expect(screen.queryByLabelText('Region')).toBeNull()
   })
 })

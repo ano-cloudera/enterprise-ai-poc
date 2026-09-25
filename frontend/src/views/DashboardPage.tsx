@@ -15,6 +15,7 @@ import { ChartCard } from '../components/ChartCard'
 import { KpiCard } from '../components/KpiCard'
 import { api } from '../lib/api'
 import { useDashboardState } from '../lib/dashboardState'
+import { useProject } from '../lib/project'
 import { useFetch } from '../hooks/useFetch'
 import type { AppliedContextItem, DashboardOverview } from '../types/api'
 
@@ -24,6 +25,7 @@ type FilterOptions = { region: string[]; product: string[]; channel: string[] }
 
 export function DashboardPage() {
   const { state, previousDashboardState, applyActions, undoAiChanges, setFilter, removeAppliedContext, reset } = useDashboardState()
+  const { config: projectConfig } = useProject()
   const { data, loading, error } = useFetch(() => api.dashboard(state), [state.revision])
   const cachedOptions = useRef<FilterOptions>({ region: [], product: [], channel: [] })
 
@@ -37,9 +39,11 @@ export function DashboardPage() {
   if (loading && !data) return <PageLoading label="Loading governed business view..." />
   if (error || !data) return <PageError message={error || 'Dashboard unavailable'} />
 
-  const netSales = data.kpis.find(item => item.key === 'net_sales')
+  const semanticMode = data.profile === 'impala_ossie' || projectConfig.semantic_capabilities_enabled
+  const netSales = data.kpis.find(item => item.key === (semanticMode ? 'gross_billing_value' : 'net_sales'))
   const growth = data.kpis.find(item => item.key === 'growth')
-  const topRegion = data.kpis.find(item => item.key === 'top_region')
+  const health = data.kpis.find(item => item.key === (semanticMode ? 'fill_rate' : 'inventory'))
+  const topRegion = data.kpis.find(item => item.key === (semanticMode ? 'top_material' : 'top_region'))
   const latestPeriod = periodLabel(data, state.date_range.preset)
   const forecast = data.forecast
   const opportunity = data.market_signals?.opportunity_score
@@ -48,6 +52,8 @@ export function DashboardPage() {
   return (
     <div className="min-w-0">
       <DashboardFilters
+        semanticMode={semanticMode}
+        scopeBadges={data.scope_badges}
         dateLabel={latestPeriod}
         options={cachedOptions.current}
         datePreset={state.date_range.preset || 'current_month'}
@@ -60,16 +66,18 @@ export function DashboardPage() {
       <AiAppliedContext items={displayContextItems(state.ai_applied_context, latestPeriod)} onRemove={removeAppliedContext} onReset={reset} onUndo={undoAiChanges} canUndo={Boolean(previousDashboardState)} />
 
       <section id="executive-kpis" aria-label="Executive KPIs" className="mt-4 scroll-mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5">
-        <KpiCard label="Net Sales" value={netSales?.value} format={netSales?.format || 'text'} delta={netSales?.delta} icon={CircleDollarSign} context="Selected period" highlighted={isHighlighted(state.highlights, 'net_sales')} />
+        <KpiCard label={semanticMode ? 'Gross Sales (BILL_VAL)' : 'Net Sales'} value={netSales?.value} format={netSales?.format || 'text'} delta={netSales?.delta} icon={CircleDollarSign} context={semanticMode ? 'Official revenue · latest month' : 'Selected period'} highlighted={isHighlighted(state.highlights, semanticMode ? 'gross_billing_value' : 'net_sales')} />
         <KpiCard label="Growth vs Previous Period" value={growth?.value} format={growth?.format || 'percent'} delta={growth?.delta} icon={TrendingUp} context="Compared with prior period" highlighted={isHighlighted(state.highlights, 'growth')} />
-        <KpiCard label="Forecast Next Period" value={forecast?.value} format={forecast?.format || 'currency_billion'} delta={forecast?.delta} icon={LineChartIcon} context={forecast?.period || 'No governed forecast in this response'} highlighted={isHighlighted(state.highlights, 'forecast')} />
-        <KpiCard label="Top Region" value={topRegion?.value} format={topRegion?.format || 'text'} delta={topRegion?.delta} icon={MapPin} context={latestPeriod} highlighted={isHighlighted(state.highlights, 'top_region')} />
-        <KpiCard label="Market Opportunity" value={opportunity} format="score" delta={null} icon={Target} context={data.market_signals?.opportunity_context || 'No governed market signal in this response'} highlighted={isHighlighted(state.highlights, 'market_opportunity')} />
+        {semanticMode
+          ? <KpiCard label="Company Fill Rate" value={health?.value} format={health?.format || 'percent'} delta={health?.delta} icon={Target} context="Latest governed month" highlighted={isHighlighted(state.highlights, 'fill_rate')} />
+          : <KpiCard label="Forecast Next Period" value={forecast?.value} format={forecast?.format || 'currency_billion'} delta={forecast?.delta} icon={LineChartIcon} context={forecast?.period || 'No governed forecast in this response'} highlighted={isHighlighted(state.highlights, 'forecast')} />}
+        <KpiCard label={semanticMode ? 'Top Material' : 'Top Region'} value={topRegion?.value} format={topRegion?.format || 'text'} delta={topRegion?.delta} icon={semanticMode ? Package : MapPin} context={latestPeriod} highlighted={isHighlighted(state.highlights, semanticMode ? 'top_material' : 'top_region')} />
+        {!semanticMode && <KpiCard label="Market Opportunity" value={opportunity} format="score" delta={null} icon={Target} context={data.market_signals?.opportunity_context || 'No governed market signal in this response'} highlighted={isHighlighted(state.highlights, 'market_opportunity')} />}
       </section>
 
       <div className="mt-4 min-w-0">
         <div id="sales-performance" className="min-w-0 scroll-mt-4 [&>section]:h-full">
-          <ChartCard title="Sales Performance" subtitle={`Historical actual sales${forecast ? ' with next-period forecast' : ''} • Million IDR`} action={<ChartKey hasForecast={Boolean(forecast)} />}>
+          <ChartCard title={data.labels?.sales_trend || 'Sales Performance'} subtitle={`${semanticMode ? 'Gross Sales (BILL_VAL)' : 'Historical actual sales'}${forecast ? ' with next-period forecast' : ''} • Million IDR`} action={<ChartKey hasForecast={Boolean(forecast)} />}>
             {trend.length ? (
               <div className="grid gap-5 lg:grid-cols-[1fr_200px]">
                 <div className="h-[260px] sm:h-[280px]">
@@ -92,19 +100,23 @@ export function DashboardPage() {
       </div>
 
       <div className="mt-4 grid min-w-0 gap-4 xl:grid-cols-12">
-        <div id="sales-by-region" className="min-w-0 scroll-mt-4 xl:col-span-5 [&>section]:h-full"><ChartCard title="Sales by Region" subtitle={`${latestPeriod} • Million IDR`}>{data.region_sales.length ? <RegionRanking rows={data.region_sales} /> : <EmptyState message="No regional sales are available for these filters." />}</ChartCard></div>
-        <div id="product-performance" className="min-w-0 scroll-mt-4 xl:col-span-7 [&>section]:h-full"><ChartCard title="Product Performance" subtitle="Top products in the selected commercial context">{data.top_products.length ? <ProductTable rows={data.top_products} /> : <EmptyState message="No product sales are available for these filters." />}</ChartCard></div>
+        <div id="sales-by-region" className="min-w-0 scroll-mt-4 xl:col-span-5 [&>section]:h-full"><ChartCard title={data.labels?.region_sales || 'Sales by Region'} subtitle={`${latestPeriod} • Million IDR`}>{data.region_sales.length ? <RegionRanking rows={data.region_sales} /> : <EmptyState message="No governed sales-office values are available." />}</ChartCard></div>
+        <div id="product-performance" className="min-w-0 scroll-mt-4 xl:col-span-7 [&>section]:h-full"><ChartCard title={data.labels?.top_products || 'Product Performance'} subtitle={semanticMode ? 'Top material codes by Gross Sales' : 'Top products in the selected commercial context'}>{data.top_products.length ? <ProductTable rows={data.top_products} /> : <EmptyState message="No governed material values are available." />}</ChartCard></div>
       </div>
 
       <div className="mt-4 grid min-w-0 gap-4 xl:grid-cols-12">
-        <div id="channel-contribution" className="min-w-0 scroll-mt-4 xl:col-span-5 [&>section]:h-full"><ChartCard title="Channel Contribution" subtitle="Share of selected-period sales">{data.channel_share.length ? <ChannelDistribution rows={data.channel_share} /> : <EmptyState message="No channel contribution is available for these filters." />}</ChartCard></div>
-        <div id="market-signals" className="min-w-0 scroll-mt-4 xl:col-span-7 [&>section]:h-full"><ChartCard title="Market Opportunity & External Signals" subtitle="Governed signals available for the active context"><ExternalSignals signals={data.market_signals} hasProductContext={Boolean(state.filters.product?.[0])} /></ChartCard></div>
+        <div id="channel-contribution" className="min-w-0 scroll-mt-4 xl:col-span-5 [&>section]:h-full"><ChartCard title={data.labels?.channel_share || 'Channel Contribution'} subtitle={semanticMode ? 'Separate business stages; values are not additive revenue' : 'Share of selected-period sales'}>{data.channel_share.length ? <ChannelDistribution rows={data.channel_share} /> : <EmptyState message="No governed stage comparison is available." />}</ChartCard></div>
+        {semanticMode
+          ? <div id="semantic-scope" className="min-w-0 scroll-mt-4 xl:col-span-7 [&>section]:h-full"><ChartCard title="Governed Scope" subtitle="Applied to Dashboard and Ask AI"><SemanticScope badges={data.scope_badges || []} summary={data.ai_insight.summary} /></ChartCard></div>
+          : <div id="market-signals" className="min-w-0 scroll-mt-4 xl:col-span-7 [&>section]:h-full"><ChartCard title="Market Opportunity & External Signals" subtitle="Governed signals available for the active context"><ExternalSignals signals={data.market_signals} hasProductContext={Boolean(state.filters.product?.[0])} /></ChartCard></div>}
       </div>
     </div>
   )
 }
 
-function DashboardFilters({ dateLabel, datePreset, filters, options, onDateChange, onFilterChange, onReset, refreshedAt }: {
+function DashboardFilters({ semanticMode, scopeBadges, dateLabel, datePreset, filters, options, onDateChange, onFilterChange, onReset, refreshedAt }: {
+  semanticMode: boolean
+  scopeBadges?: string[]
   dateLabel: string
   datePreset: string
   filters: Record<string, string[]>
@@ -114,6 +126,17 @@ function DashboardFilters({ dateLabel, datePreset, filters, options, onDateChang
   onReset: () => void
   refreshedAt?: string
 }) {
+  if (semanticMode) {
+    return (
+      <section aria-label="Dashboard filters" className="card flex flex-wrap items-center justify-between gap-3 p-3">
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="flex items-center gap-2 text-xs font-bold text-cloudera-navy"><CalendarDays size={16} className="text-cloudera-violet" />Q4 2024</span>
+          {(scopeBadges || []).map(badge => <span key={badge} className="chip">{badge}</span>)}
+        </div>
+        {refreshedAt && <span className="flex items-center gap-1 whitespace-nowrap text-[10px] text-slate-400"><RefreshCcw size={12} strokeWidth={2} />{formatRefresh(refreshedAt)}</span>}
+      </section>
+    )
+  }
   return (
     <section aria-label="Dashboard filters" className="card grid gap-3 p-3 sm:grid-cols-2 lg:grid-cols-[1.15fr_1fr_1fr_1fr_auto] lg:items-end">
       <FilterSelect label="Date Range" icon={CalendarDays} value={datePreset} onChange={onDateChange} options={[{ value: 'current_month', label: dateLabel }, { value: 'previous_month', label: 'Previous period' }, { value: 'last_3_months', label: 'Last 3 months' }]} />
@@ -227,6 +250,18 @@ function businessSignalRows(signals?: DashboardOverview['market_signals']) {
     .map(row => ({ label: row.label, display: row.display(row.value) }))
 }
 
+function SemanticScope({ badges, summary }: { badges: string[]; summary: string }) {
+  return (
+    <div className="flex min-h-[250px] flex-col justify-center">
+      <p className="text-sm leading-6 text-slate-600">{summary}</p>
+      <div className="mt-5 flex flex-wrap gap-2">{badges.map(badge => <span key={badge} className="chip">{badge}</span>)}</div>
+      <div className="mt-5 rounded-xl border border-amber-100 bg-amber-50/60 p-3 text-xs leading-5 text-amber-800">
+        Candidate business metrics remain pending TEMPO confirmation. SCAN will label proxies, technical metrics, and restricted scopes.
+      </div>
+    </div>
+  )
+}
+
 function ChartKey({ hasForecast }: { hasForecast: boolean }) { return <div className="hidden items-center gap-3 text-[10px] font-semibold text-slate-500 sm:flex"><span className="flex items-center gap-1.5"><span className="h-0.5 w-4 bg-cloudera-orange" />Actual</span>{hasForecast && <span className="flex items-center gap-1.5"><span className="w-4 border-t-2 border-dashed border-cloudera-violet" />Forecast</span>}</div> }
 function EmptyState({ message, icon, hint }: { message: string; icon?: ReactNode; hint?: string }) { return <div className="flex min-h-[120px] flex-col items-center justify-center rounded-xl border border-dashed border-slate-200 bg-slate-50/70 px-5 text-center text-xs leading-5 text-slate-500">{icon && <span className="mb-2 text-slate-400">{icon}</span>}{message}{hint && <span className="mt-1 text-[11px] text-slate-400">{hint}</span>}</div> }
 function PageLoading({ label }: { label: string }) { return <div className="card-pad flex min-h-[280px] items-center justify-center"><div className="text-center"><div className="mx-auto h-8 w-8 animate-spin rounded-full border-2 border-slate-200 border-t-cloudera-orange" /><div className="mt-3 text-sm font-semibold text-slate-500">{label}</div></div></div> }
@@ -236,9 +271,9 @@ function mergeOptions(current: string[], incoming: string[]) { return [...new Se
 function isHighlighted(highlights: { target: string }[], key: string) { return highlights.some(item => item.target === key || (item.target === 'region' && key === 'top_region')) }
 function formatSales(value: number) { return value >= 1_000_000 ? `Rp ${(value / 1_000_000).toFixed(2)}T` : value >= 1_000 ? `Rp ${(value / 1_000).toFixed(1)}B` : `Rp ${value.toFixed(0)}M` }
 function formatAxisSales(value: number) { return value >= 1_000 ? `${(value / 1_000).toFixed(0)}B` : `${value.toFixed(0)}M` }
-function formatAxisMonth(value: unknown) { const text = String(value); const parsed = new Date(`${text.length === 7 ? `${text}-01` : text}T00:00:00Z`); return Number.isNaN(parsed.getTime()) ? text : new Intl.DateTimeFormat('en', { month: 'short', year: '2-digit', timeZone: 'UTC' }).format(parsed) }
+function formatAxisMonth(value: unknown) { const raw = String(value); const text = /^\d{6}$/.test(raw) ? `${raw.slice(0, 4)}-${raw.slice(4)}` : raw; const parsed = new Date(`${text.length === 7 ? `${text}-01` : text}T00:00:00Z`); return Number.isNaN(parsed.getTime()) ? text : new Intl.DateTimeFormat('en', { month: 'short', year: '2-digit', timeZone: 'UTC' }).format(parsed) }
 function formatRefresh(value: string) { const parsed = new Date(value); return Number.isNaN(parsed.getTime()) ? '' : new Intl.DateTimeFormat('en-GB', { day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Jakarta' }).format(parsed) }
-function formatPeriodMonth(value: string) { const parsed = new Date(`${value.length === 7 ? `${value}-01` : value}T00:00:00Z`); return Number.isNaN(parsed.getTime()) ? value : new Intl.DateTimeFormat('en', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(parsed) }
+function formatPeriodMonth(value: string) { const normalized = /^\d{6}$/.test(value) ? `${value.slice(0, 4)}-${value.slice(4)}` : value; const parsed = new Date(`${normalized.length === 7 ? `${normalized}-01` : normalized}T00:00:00Z`); return Number.isNaN(parsed.getTime()) ? value : new Intl.DateTimeFormat('en', { month: 'short', year: 'numeric', timeZone: 'UTC' }).format(parsed) }
 function periodLabel(data: DashboardOverview, preset: string | null) { const months = data.sales_trend.map(row => row.month); if (!months.length) return data.period || 'Latest period'; if (preset === 'last_3_months') return `${formatPeriodMonth(months[0])} – ${formatPeriodMonth(months[months.length - 1])}`; if (preset === 'previous_month') return formatPeriodMonth(months[Math.max(0, months.length - 2)]); return formatPeriodMonth(months[months.length - 1]) }
 function displayContextItems(items: AppliedContextItem[], period: string) { return items.map(item => item.kind === 'date_range' ? { ...item, label: period } : item) }
 function forecastTrend(data: DashboardOverview) { const rows = data.sales_trend.map(row => ({ month: row.month, actual: Number(row.sales), forecast: null as number | null })); if (data.forecast && rows.length) { rows[rows.length - 1].forecast = rows[rows.length - 1].actual; rows.push({ month: data.forecast.period, actual: Number.NaN, forecast: Number(data.forecast.value) }) } return rows }

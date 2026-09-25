@@ -22,6 +22,7 @@ async function request<T>(path: string, options?: RequestInit): Promise<T> {
 
 export const api = {
   publicConfig: () => request<any>('/config/public'),
+  semanticCapabilities: () => request<any>('/semantic/capabilities'),
   settings: () => request<any>('/settings'),
   updateSettings: (body: unknown) => request<any>('/settings', { method: 'PUT', body: JSON.stringify(body) }),
   dashboard: (context: DashboardState) => request<DashboardOverview>('/dashboard/overview', { method: 'POST', body: JSON.stringify({ context: dashboardContext(context) }) }),
