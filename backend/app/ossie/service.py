@@ -48,6 +48,21 @@ def _literal(value: Scalar) -> str:
     return "'" + value.replace("'", "''") + "'"
 
 
+def _calmonth_date_literal(calmonth: int) -> str:
+    year, month = divmod(calmonth, 100)
+    if not 1 <= month <= 12:
+        raise ValueError(f"Invalid calendar month: {calmonth}")
+    return f"CAST('{year:04d}-{month:02d}-01' AS DATE)"
+
+
+_TEXT_MONTH_CALMONTH_EXPRESSION = """(d.thn * 100 + CASE UPPER(d.bln)
+    WHEN 'JAN' THEN 1 WHEN 'FEB' THEN 2 WHEN 'MAR' THEN 3
+    WHEN 'APR' THEN 4 WHEN 'MAY' THEN 5 WHEN 'JUN' THEN 6
+    WHEN 'JUL' THEN 7 WHEN 'AUG' THEN 8 WHEN 'SEP' THEN 9
+    WHEN 'OCT' THEN 10 WHEN 'NOV' THEN 11 WHEN 'DEC' THEN 12
+  END)"""
+
+
 class TempoOssieService:
     """Deterministic single-dataset compiler and optional Impala executor."""
 
@@ -206,14 +221,49 @@ class TempoOssieService:
             rendered = ", ".join(_literal(value) for value in values)
             predicates.append(f"d.{field_name} IN ({rendered})")
 
-        has_calmonth = "calmonth" in fields
         if request.start_calmonth is not None or request.end_calmonth is not None:
-            if not has_calmonth:
+            if "calmonth" in fields:
+                time_expression = "d.calmonth"
+                start_value = (
+                    str(request.start_calmonth)
+                    if request.start_calmonth is not None
+                    else None
+                )
+                end_value = (
+                    str(request.end_calmonth)
+                    if request.end_calmonth is not None
+                    else None
+                )
+            elif "calmonth_date" in fields:
+                time_expression = "d.calmonth_date"
+                start_value = (
+                    _calmonth_date_literal(request.start_calmonth)
+                    if request.start_calmonth is not None
+                    else None
+                )
+                end_value = (
+                    _calmonth_date_literal(request.end_calmonth)
+                    if request.end_calmonth is not None
+                    else None
+                )
+            elif {"thn", "bln"} <= set(fields):
+                time_expression = _TEXT_MONTH_CALMONTH_EXPRESSION
+                start_value = (
+                    str(request.start_calmonth)
+                    if request.start_calmonth is not None
+                    else None
+                )
+                end_value = (
+                    str(request.end_calmonth)
+                    if request.end_calmonth is not None
+                    else None
+                )
+            else:
                 raise ValueError(f"Dataset {dataset_name} has no calmonth field")
-            if request.start_calmonth is not None:
-                predicates.append(f"d.calmonth >= {request.start_calmonth}")
-            if request.end_calmonth is not None:
-                predicates.append(f"d.calmonth <= {request.end_calmonth}")
+            if start_value is not None:
+                predicates.append(f"{time_expression} >= {start_value}")
+            if end_value is not None:
+                predicates.append(f"{time_expression} <= {end_value}")
 
         query = [
             "SELECT",

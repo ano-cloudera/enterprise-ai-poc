@@ -110,6 +110,36 @@ def test_compile_customer_reconciliation_enforces_shared_scope() -> None:
     assert "FROM gold.rpt_sap_customer_reconciliation_semantic d" in compiled["sql"]
 
 
+def test_compile_sat_idm_q4_filter_uses_year_and_month_code_fields() -> None:
+    compiled = _service().compile_query(
+        OssieQueryRequest(
+            metric="sat_idm_store_stock_quantity",
+            dimensions=["dcname"],
+            start_calmonth=202410,
+            end_calmonth=202412,
+            order="asc",
+            limit=10,
+        )
+    )
+    assert "d.thn * 100 + CASE UPPER(d.bln)" in compiled["sql"]
+    assert ">= 202410" in compiled["sql"]
+    assert "<= 202412" in compiled["sql"]
+
+
+def test_compile_sat_oos_q4_filter_uses_date_field() -> None:
+    compiled = _service().compile_query(
+        OssieQueryRequest(
+            metric="sat_oos_rate",
+            dimensions=["material_code"],
+            start_calmonth=202410,
+            end_calmonth=202412,
+            limit=10,
+        )
+    )
+    assert "d.calmonth_date >= CAST('2024-10-01' AS DATE)" in compiled["sql"]
+    assert "d.calmonth_date <= CAST('2024-12-01' AS DATE)" in compiled["sql"]
+
+
 def test_compile_low_fill_filter_is_allowlisted() -> None:
     compiled = _service().compile_query(
         OssieQueryRequest(
