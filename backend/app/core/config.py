@@ -93,6 +93,20 @@ class Settings(BaseSettings):
     litellm_agent_studio_model_group: str = "agent-studio-workflow"
     litellm_use_agent_studio: bool = False
 
+    # Selects run_chat()'s implementation (app/services/chat.py): "graph"
+    # keeps the existing LangGraph workflow untouched; "agent_studio" calls
+    # the deployed Agent Studio workflow's REST API directly
+    # (createSession/kickoff/events) and adapts its Markdown answer into
+    # ChatResponse (see app/services/agent_studio_client.py and
+    # app/services/markdown_chart_adapter.py). A plain env var toggle, not a
+    # DB-backed runtime setting, so a dev can flip it per-environment
+    # (.env / CAI Application env vars) without touching runtime_settings.
+    chat_backend: Literal["graph", "agent_studio"] = "graph"
+    agent_studio_base_url: str = ""
+    agent_studio_api_key: SecretStr = SecretStr("")
+    agent_studio_poll_timeout_seconds: float = Field(default=90, gt=0, le=600)
+    agent_studio_poll_interval_seconds: float = Field(default=2, gt=0, le=30)
+
     serpapi_api_key: SecretStr = SecretStr("")
     serpapi_enabled: bool = True
     serpapi_max_queries: int = Field(default=5, ge=1, le=11)
