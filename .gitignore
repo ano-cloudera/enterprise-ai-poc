@@ -47,3 +47,8 @@ artifacts/forecasting/
 
 .DS_Store
 *.log
+
+# Colleagues' reference/exploratory material (e.g. Irvan's Agent Studio
+# workflow exports) - never commit. Has been found to contain live-looking
+# credentials (Neo4j/Qdrant/Impala hosts, a CDSW API key) in demo_config.py.
+reference/
