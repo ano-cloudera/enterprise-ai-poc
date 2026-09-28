@@ -420,6 +420,108 @@ datasets:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"domain":"fulfillment","grain":"calmonth+material","layer":"semantic_gold"}'
+- name: customer_material_360
+  source: gold.rpt_sap_customer_material_month_semantic
+  primary_key:
+  - calmonth
+  - material
+  - customer
+  description: Sell-In value and quantity by customer, material, and month (full Sales customer population, not shared-customer-only).
+  ai_context:
+    instructions: Unlike customer_reconciliation (shared customers only, no material dimension), this dataset covers every Sales customer at the material+month grain.
+    synonyms:
+    - sell-in per customer
+    - penjualan per customer
+    - top customer sell-in
+  fields:
+  - name: calmonth
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: calmonth
+    datatype: Integer
+    dimension:
+      is_time: true
+  - name: material
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: material
+    datatype: String
+    dimension: {}
+  - name: customer
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: customer
+    datatype: String
+    dimension: {}
+  - name: sell_in_bill_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sell_in_bill_val
+    datatype: Decimal
+  - name: sell_in_bill_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sell_in_bill_qty
+    datatype: Decimal
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"domain":"sales_sell_in","grain":"calmonth+material+customer","layer":"semantic_gold"}'
+- name: sales_office_material_360
+  source: gold.rpt_sap_sales_office_material_month_semantic
+  primary_key:
+  - calmonth
+  - material
+  - sales_office
+  description: Sell-In value and quantity by sales office, material, and month.
+  ai_context:
+    instructions: sales_office here is a working PoC assumption ("a branch in a given region"), not yet a Tempo-confirmed business definition - see TEMPO_SALES_FIELD_CATALOG.md's note that 0SALES_OFF is pending Tempo follow-up. Always preserve the pending-confirmation caveat. This is a separate, finer-grained view from sales_office_q4 (which is Q4-total-only, no material dimension, and also covers Picking/Unloading).
+    synonyms:
+    - sell-in per sales office
+    - penjualan per sales office
+    - top sales office sell-in
+  fields:
+  - name: calmonth
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: calmonth
+    datatype: Integer
+    dimension:
+      is_time: true
+  - name: material
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: material
+    datatype: String
+    dimension: {}
+  - name: sales_office
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sales_office
+    datatype: String
+    dimension: {}
+  - name: sell_in_bill_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sell_in_bill_val
+    datatype: Decimal
+  - name: sell_in_bill_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sell_in_bill_qty
+    datatype: Decimal
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"domain":"sales_sell_in","grain":"calmonth+material+sales_office","layer":"semantic_gold"}'
 - name: customer_reconciliation
   source: gold.rpt_sap_customer_reconciliation_semantic
   primary_key:
@@ -1418,6 +1520,67 @@ metrics:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"SI-02-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-02","unit_format":"quantity"}'
+- name: customer_sell_in_value
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(customer_material_360.sell_in_bill_val)
+  datatype: Decimal
+  description: Sell-In Gross Billing Value by customer, material, and month (full Sales customer population).
+  ai_context:
+    synonyms:
+    - top customer sell-in
+    - customer dengan sell-in terbesar
+    - penjualan per customer
+    - revenue per customer
+    instructions: Full Sales customer population, unlike shared_customer_sell_in_value which is shared-customer-only and has no material dimension. Use this for "which customer buys the most" or "top customer by sell-in" questions.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SI-01-CUST","base_dataset":"customer_material_360","allowed_dimensions":["calmonth","material","customer"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-01","unit_format":"currency_idr"}'
+- name: customer_sell_in_quantity
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(customer_material_360.sell_in_bill_qty)
+  datatype: Decimal
+  description: Sell-In billing quantity by customer, material, and month.
+  ai_context:
+    synonyms:
+    - customer sell-in quantity
+    - volume per customer
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SI-02-CUST","base_dataset":"customer_material_360","allowed_dimensions":["calmonth","material","customer"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-02","unit_format":"quantity"}'
+- name: sales_office_material_sell_in_value
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(sales_office_material_360.sell_in_bill_val)
+  datatype: Decimal
+  description: Sell-In Gross Billing Value by sales office, material, and month.
+  ai_context:
+    synonyms:
+    - sell-in per sales office
+    - sales office dengan sell-in terbesar
+    - penjualan per sales office
+    instructions: sales_office is a working PoC assumption (a branch in a given region), not yet Tempo-confirmed - see the sales_office_material_360 dataset's instructions. This is a finer grain than sales_office_sell_in_value (SI-13-Q4), which is Q4-total-only with no material dimension.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SI-13-MAT","base_dataset":"sales_office_material_360","allowed_dimensions":["calmonth","material","sales_office"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-13","unit_format":"currency_idr"}'
+- name: sales_office_material_sell_in_quantity
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(sales_office_material_360.sell_in_bill_qty)
+  datatype: Decimal
+  description: Sell-In billing quantity by sales office, material, and month.
+  ai_context:
+    synonyms:
+    - sell-in quantity per sales office
+    - volume per sales office
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SI-13-MAT-QTY","base_dataset":"sales_office_material_360","allowed_dimensions":["calmonth","material","sales_office"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-13","unit_format":"quantity"}'
 - name: material_delivery_order_quantity
   expression:
     dialects:

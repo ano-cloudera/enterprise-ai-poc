@@ -35,8 +35,8 @@ def test_tempo_impala_contract_validator_passes() -> None:
     assert result.returncode == 0, result.stdout + result.stderr
     payload = json.loads(result.stdout)
     assert payload["valid"] is True
-    assert payload["datasets"] == 15
-    assert payload["metrics"] == 50
+    assert payload["datasets"] == 17
+    assert payload["metrics"] == 54
     assert payload["golden_questions"] >= 50
 
 
@@ -45,8 +45,11 @@ def test_tempo_impala_model_uses_only_audited_semantic_views() -> None:
     sources = {dataset["source"] for dataset in model["datasets"]}
     # Original Semantic Contract v1 baseline (5 views) plus the 24 Sep 2026
     # journey expansion (9 more views, all built and validated against
-    # Impala - see TEMPO_DATAMART_PLAN.md §8.1). Every source here must stay
-    # in sync with EXPECTED_SOURCES in scripts/validate_tempo_impala_contract.py.
+    # Impala - see TEMPO_DATAMART_PLAN.md §8.1), the SAT Promo view, and the
+    # 28 Sep 2026 Sales/Sell-In customer + sales_office breakdown (see
+    # datasets/gold/24_rpt_sap_customer_office_material_month_semantic.sql).
+    # Every source here must stay in sync with EXPECTED_SOURCES in
+    # scripts/validate_tempo_impala_contract.py.
     assert sources == {
         "gold.rpt_sap_monthly_executive_semantic",
         "gold.rpt_sap_material_month_semantic",
@@ -63,6 +66,8 @@ def test_tempo_impala_model_uses_only_audited_semantic_views() -> None:
         "gold.corr_b2b_satidm_branch_month",
         "gold.corr_satidm_oos_material_month",
         "gold.rpt_sat_promo_material_december_semantic",
+        "gold.rpt_sap_customer_material_month_semantic",
+        "gold.rpt_sap_sales_office_material_month_semantic",
     }
     assert model["relationships"] == []
 

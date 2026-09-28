@@ -63,6 +63,25 @@ questions:
     dimensions: [material]
     required_filter: has_sell_in
 
+  - id: customer_top_sell_in
+    # 2026-09-28: Sales/Sell-In previously only supported calmonth/material
+    # dimensions - no customer or sales_office breakdown existed at the
+    # material grain. See gold.rpt_sap_customer_material_month_semantic.
+    question: Customer mana dengan nilai Sell-In terbesar pada Q4?
+    expected_status: supported
+    metric: customer_sell_in_value
+    dataset: customer_material_360
+    dimensions: [customer]
+
+  - id: sales_office_top_sell_in_material
+    # sales_office is a working PoC assumption here ("a branch in a given
+    # region"), not yet Tempo-confirmed - same caveat as SI-13-Q4.
+    question: Sales office mana dengan nilai Sell-In terbesar per material pada Q4?
+    expected_status: supported
+    metric: sales_office_material_sell_in_value
+    dataset: sales_office_material_360
+    dimensions: [material, sales_office]
+
   - id: material_sell_in_month
     question: Tampilkan nilai Sell-In material per bulan.
     expected_status: supported

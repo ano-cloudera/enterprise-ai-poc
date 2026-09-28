@@ -44,7 +44,16 @@ JOURNEY_SOURCES = {
 SAT_PROMO_SOURCES = {
     "gold.rpt_sat_promo_material_december_semantic",
 }
-EXPECTED_SOURCES = BASELINE_SOURCES | JOURNEY_SOURCES | SAT_PROMO_SOURCES
+# 28 Sep 2026: Sales/Sell-In customer and sales_office breakdown at the
+# material+month grain (previously Sell-In only supported calmonth and
+# material dimensions). See datasets/gold/24_rpt_sap_customer_office_
+# material_month_semantic.sql. sales_office is a working PoC assumption,
+# not yet Tempo-confirmed - see that view's header comment.
+SALES_CUSTOMER_OFFICE_SOURCES = {
+    "gold.rpt_sap_customer_material_month_semantic",
+    "gold.rpt_sap_sales_office_material_month_semantic",
+}
+EXPECTED_SOURCES = BASELINE_SOURCES | JOURNEY_SOURCES | SAT_PROMO_SOURCES | SALES_CUSTOMER_OFFICE_SOURCES
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
