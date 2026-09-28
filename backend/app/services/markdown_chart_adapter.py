@@ -24,6 +24,12 @@ _TABLE_ROW_RE = re.compile(r"^\|(.+)\|\s*$")
 _TABLE_SEPARATOR_RE = re.compile(r"^\|?[\s:|-]+\|?$")
 _HEADING_RE = re.compile(r"^#{1,6}\s+(.*)$")
 _BULLET_RE = re.compile(r"^\s*[-*]\s+(.*)$")
+# The Master Agent's greeting/general-question answers use numbered lists
+# ("1. Stock Tempo: ...") rather than "-"/"*" bullets, observed for the
+# five-domain capability list - without matching this too, each numbered
+# item gets swallowed into one run-on fallback paragraph instead of
+# staying as separate Key Drivers entries.
+_ORDERED_LIST_RE = re.compile(r"^\s*\d+[.)]\s+(.*)$")
 
 # Substring match (not exact) on a section's heading, since the Analysis
 # Agent's Backstory names these sections loosely in practice (observed:
@@ -91,12 +97,22 @@ def _extract_summary(sections: list[tuple[str, list[str]]]) -> str:
         if not text:
             continue
         # First non-empty paragraph anywhere (usually right after the H3
-        # title, before any table) - skip pure table/bullet blocks.
+        # title, before any table) - skip pure table/bullet/numbered-list
+        # blocks.
         for paragraph in text.split("\n\n"):
             paragraph = paragraph.strip()
-            if paragraph and not paragraph.startswith("|") and not paragraph.startswith(("-", "*")):
+            if paragraph and not paragraph.startswith("|") and not _match_list_item(paragraph):
                 return _strip_markdown_emphasis(paragraph.split("\n")[0])
     return ""
+
+
+def _match_list_item(line: str) -> re.Match[str] | None:
+    """Matches either a "-"/"*" bullet or a "1."/"1)" numbered list item -
+    the Master Agent's own answers (e.g. the five-domain capability list)
+    use numbered lists rather than bullets, and without this a numbered
+    list gets swallowed into one run-on paragraph by the fallback path
+    below instead of staying as separate driver entries."""
+    return _BULLET_RE.match(line) or _ORDERED_LIST_RE.match(line)
 
 
 def _collect_by_heading_keywords(
@@ -115,7 +131,7 @@ def _collect_by_heading_keywords(
         section_bullets = [
             _strip_markdown_emphasis(match.group(1).strip())
             for line in lines
-            if (match := _BULLET_RE.match(line)) and not _is_technical_reference_line(match.group(1))
+            if (match := _match_list_item(line)) and not _is_technical_reference_line(match.group(1))
         ]
         if section_bullets:
             bullets.extend(section_bullets)
@@ -140,7 +156,12 @@ def _is_technical_reference_line(text: str) -> bool:
 
 
 def _fallback_paragraphs_after_summary(sections: list[tuple[str, list[str]]], summary: str) -> list[str]:
-    paragraphs: list[str] = []
+    """Last-resort driver extraction when no heading matched a known
+    keyword. Bullet/numbered-list lines are emitted one per entry (not
+    joined into the paragraph they sit in) so a numbered capability list
+    like "1. Stock Tempo: ... / 2. Sales / Sell-In: ..." stays as separate
+    Key Drivers items instead of one run-on paragraph."""
+    entries: list[str] = []
     skipped_summary = False
     for _heading, lines in sections:
         text = "\n".join(lines).strip()
@@ -148,14 +169,21 @@ def _fallback_paragraphs_after_summary(sections: list[tuple[str, list[str]]], su
             continue
         for paragraph in text.split("\n\n"):
             paragraph = paragraph.strip()
-            if not paragraph or paragraph.startswith(("|", "-", "*", ">")):
+            if not paragraph or paragraph.startswith(("|", ">")):
+                continue
+            list_lines = paragraph.split("\n")
+            if all(_match_list_item(line) for line in list_lines):
+                for line in list_lines:
+                    match = _match_list_item(line)
+                    if match and not _is_technical_reference_line(match.group(1)):
+                        entries.append(_strip_markdown_emphasis(match.group(1).strip()))
                 continue
             cleaned = _strip_markdown_emphasis(paragraph.replace("\n", " "))
             if not skipped_summary and cleaned == summary:
                 skipped_summary = True
                 continue
-            paragraphs.append(cleaned)
-    return paragraphs
+            entries.append(cleaned)
+    return entries
 
 
 def _strip_markdown_emphasis(text: str) -> str:

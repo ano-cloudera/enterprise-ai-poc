@@ -143,3 +143,24 @@ Data ini masih bersifat sementara sampai proses rekonsiliasi akhir bulan selesai
     assert parsed.answer.summary == "Total Gross Sales TEMPO Q4 2024 adalah Rp 3.8T."
     assert any("Sell-In di bulan Desember" in driver for driver in parsed.answer.drivers)
     assert any("rekonsiliasi akhir bulan" in driver for driver in parsed.answer.drivers)
+
+
+def test_numbered_capability_list_stays_as_separate_drivers_not_one_run_on_paragraph() -> None:
+    # Captured shape from a real Master Agent greeting answer ("selain itu
+    # bisa bantu apa lagi ya?") - a numbered list under a heading that
+    # matches no known keyword, which used to collapse into a single
+    # fallback paragraph mashing all five domains together.
+    markdown = """### Kemampuan Saya sebagai Asisten TEMPO
+
+Halo! Saya adalah asisten TEMPO dari SCAN. Saya dapat membantu Anda dengan pertanyaan bisnis terkait data TEMPO untuk periode Oktober-Desember 2024 dalam lima domain berikut:
+
+1. Stock Tempo: Stok gudang internal Tempo.
+2. Sales / Sell-In: Penjualan dari Tempo ke pelanggan atau distributor.
+3. B2B / Sell-Out: Penjualan mitra ke channel atau outlet.
+"""
+    parsed = markdown_chart_adapter.parse(markdown, "selain itu bisa bantu apa lagi ya?")
+    assert parsed.answer.drivers == [
+        "Stock Tempo: Stok gudang internal Tempo.",
+        "Sales / Sell-In: Penjualan dari Tempo ke pelanggan atau distributor.",
+        "B2B / Sell-Out: Penjualan mitra ke channel atau outlet.",
+    ]
