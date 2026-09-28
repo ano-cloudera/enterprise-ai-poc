@@ -805,7 +805,8 @@ datasets:
   description: B2B (Sell-Out) monthly aggregate by material and PLU code, October-December 2024.
   ai_context:
     instructions: material and kode_plu are independent dimensions, no confirmed mapping between them (PLU<->material mapping
-      consistency is explicitly unsupported, see B10 in the question catalog).
+      consistency is explicitly unsupported, see B10 in the question catalog). ka_group is confirmed constant ("101") for
+      every row in this Oct-Dec 2024 period - do not offer a ka_group breakdown as meaningful; it will not differentiate rows.
     synonyms:
     - b2b plu
     - kode plu b2b
@@ -944,7 +945,7 @@ datasets:
   - kode_plu
   description: B2B (Sell-Out) monthly aggregate by customer, material, and PLU code, October-December 2024.
   ai_context:
-    instructions: customer, material, and kode_plu are independent dimensions - no confirmed mapping between material and kode_plu (see b2b_material_plu's instructions).
+    instructions: customer, material, and kode_plu are independent dimensions - no confirmed mapping between material and kode_plu (see b2b_material_plu's instructions). ka_group is confirmed constant ("101") for every row in this Oct-Dec 2024 period - do not offer a ka_group breakdown as meaningful; it will not differentiate rows.
     synonyms:
     - b2b customer material
     - top customer produk b2b

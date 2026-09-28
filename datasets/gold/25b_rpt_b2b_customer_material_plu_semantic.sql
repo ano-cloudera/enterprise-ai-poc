@@ -8,6 +8,15 @@
 -- c_0material, kode_plu, ka_group, c_0bill_qty, bill_val (no c_0 prefix on
 -- kode_plu/ka_group). B2B's bill_val is NOT multiplied by *100, matching
 -- gold.corr_b2b_material_plu.
+--
+-- DATA QUALITY NOTE (confirmed in Workbench, 28 Sep 2026): ka_group is the
+-- string "101" for all 4,881,348 rows in this Oct-Dec 2024 source table -
+-- not a bug in this view, the column is simply constant for this period.
+-- It therefore does not break out any additional grain and every row's
+-- ka_group grouping key is the same value. Kept in the view (matches the
+-- existing corr_b2b_material_plu's grain, which already includes it) for
+-- schema consistency and in case a future period has more than one value,
+-- but do not expect ka_group to differentiate anything in this dataset.
 
 CREATE VIEW gold.corr_b2b_customer_material_plu_month AS
 SELECT
