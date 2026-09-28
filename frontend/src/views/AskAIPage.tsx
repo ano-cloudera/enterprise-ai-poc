@@ -40,9 +40,14 @@ export function AskAIPage() {
   const [messages, setMessages] = useState<UIMessage[]>([])
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [loading, setLoading] = useState(false)
+  // Only populated while streaming through the agent_studio backend's
+  // multi-agent chain (see api.chatStream) - null means either not
+  // loading, or loading via the plain non-streaming api.chat() path.
+  const [progressLabel, setProgressLabel] = useState<string | null>(null)
   const [capabilityExamples, setCapabilityExamples] = useState<string[]>([])
   const initialSubmitted = useRef(false)
   const conversationEnd = useRef<HTMLDivElement>(null)
+  const semanticMode = projectConfig.semantic_capabilities_enabled
 
   useEffect(() => { setSessions(loadSessions()) }, [])
 
@@ -66,13 +71,29 @@ export function AskAIPage() {
     setInput('')
     setLoading(true)
     try {
-      const response = await api.chat(value, sessionId, dashboardState)
-      applyDashboardAiActions(response.ui_actions)
-      setMessages(current => [...current, { role: 'assistant', content: response.answer.summary, response }])
+      // Streaming only matters for the agent_studio backend's much longer
+      // multi-agent chain (semanticMode) - the legacy graph backend
+      // already answers in a couple seconds, so it keeps the plain
+      // request/response call.
+      if (semanticMode) {
+        for await (const event of api.chatStream(value, sessionId, dashboardState)) {
+          if (event.type === 'progress') {
+            setProgressLabel(event.label)
+          } else {
+            applyDashboardAiActions(event.response.ui_actions)
+            setMessages(current => [...current, { role: 'assistant', content: event.response.answer.summary, response: event.response }])
+          }
+        }
+      } else {
+        const response = await api.chat(value, sessionId, dashboardState)
+        applyDashboardAiActions(response.ui_actions)
+        setMessages(current => [...current, { role: 'assistant', content: response.answer.summary, response }])
+      }
     } catch {
       setMessages(current => [...current, { role: 'assistant', content: 'Unable to complete the analysis right now. Please try again.' }])
     } finally {
       setLoading(false)
+      setProgressLabel(null)
     }
   }
 
@@ -113,7 +134,6 @@ export function AskAIPage() {
     conversationEnd.current?.scrollIntoView({ behavior: 'smooth', block: 'end' })
   }, [messages, loading])
 
-  const semanticMode = projectConfig.semantic_capabilities_enabled
   const activeStarterQuestions = semanticMode
     ? (capabilityExamples.length ? capabilityExamples : impalaStarterQuestions)
     : starterQuestions
@@ -157,7 +177,7 @@ export function AskAIPage() {
             ) : (
               <div key={index} className="flex min-w-0 items-start gap-3"><ScanMark size={36} /><div className="min-w-0 max-w-[760px] flex-1 rounded-2xl rounded-tl-md border border-slate-200 bg-white p-4 shadow-sm sm:p-5">{message.response ? <StructuredAnswer response={message.response} onSelectFollowUp={submit} /> : <div className="text-sm leading-6 text-slate-700">{message.content}</div>}</div></div>
             ))}
-            {loading && <div className="flex items-center gap-3"><ScanMark size={36} /><div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-500"><span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-cloudera-orange" />Analyzing governed data...</div></div>}
+            {loading && <div className="flex items-center gap-3"><ScanMark size={36} /><div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-semibold text-slate-500"><span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-cloudera-orange" />{progressLabel || 'Analyzing governed data...'}</div></div>}
             <div ref={conversationEnd} aria-hidden="true" />
           </div>
 

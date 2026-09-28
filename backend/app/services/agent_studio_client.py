@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import time
+from collections.abc import AsyncIterator
 from dataclasses import dataclass, field
 from typing import Any
 
@@ -28,6 +29,35 @@ class AgentStudioResult:
 
 async def run_workflow(user_input: str, context: str = "") -> AgentStudioResult:
     """Create a session, kick off the workflow, and poll until it completes.
+
+    Non-streaming convenience wrapper around stream_workflow() for callers
+    that only want the final result (e.g. tests, or a future non-SSE
+    caller) - drains the generator and keeps every event it yielded.
+    """
+    events: list[dict[str, Any]] = []
+    trace_id = ""
+    output = ""
+    async for item in stream_workflow(user_input, context):
+        if item["kind"] == "event":
+            events.append(item["event"])
+            trace_id = item["trace_id"]
+        elif item["kind"] == "completed":
+            return AgentStudioResult(trace_id=item["trace_id"], output=item["output"], events=events)
+    # Only reached if stream_workflow's polling loop hit its deadline
+    # without a crew_kickoff_completed event - mirrors the old
+    # run_workflow's timeout behavior.
+    raise AgentStudioError(
+        f"Workflow did not complete within {get_settings().agent_studio_poll_timeout_seconds}s "
+        f"(trace_id={trace_id})."
+    )
+
+
+async def stream_workflow(user_input: str, context: str = "") -> AsyncIterator[dict[str, Any]]:
+    """Create a session, kick off the workflow, and yield progress as it
+    happens - one dict per raw Agent Studio event as it's polled, plus a
+    final {"kind": "completed", ...} item once crew_kickoff_completed
+    appears. Powers the SSE route (app/api/routes/chat.py's /chat/stream)
+    so the frontend can show real progress instead of a static spinner.
 
     Mirrors the exact REST contract validated manually against the
     Tempo-Scan-Intelligence-Prod deployment: createSession -> kickoff ->
@@ -60,31 +90,17 @@ async def run_workflow(user_input: str, context: str = "") -> AgentStudioResult:
         if not trace_id:
             raise AgentStudioError("kickoff response did not include a trace_id.")
 
-        events = await _poll_events(client, trace_id)
-
-    completed = [e for e in events if e.get("type") == "crew_kickoff_completed"]
-    if not completed:
-        raise AgentStudioError(
-            f"Workflow did not complete within {settings.agent_studio_poll_timeout_seconds}s "
-            f"(trace_id={trace_id})."
-        )
-    output = completed[-1].get("output", "")
-    return AgentStudioResult(trace_id=trace_id, output=output, events=events)
-
-
-async def _poll_events(client: httpx.AsyncClient, trace_id: str) -> list[dict[str, Any]]:
-    settings = get_settings()
-    deadline = time.monotonic() + settings.agent_studio_poll_timeout_seconds
-    events: list[dict[str, Any]] = []
-    while time.monotonic() < deadline:
-        try:
-            response = await client.get("/api/workflow/events", params={"trace_id": trace_id})
-            response.raise_for_status()
-        except httpx.HTTPError as exc:
-            raise AgentStudioError(f"events poll failed: {exc}") from exc
-        chunk = response.json().get("events", [])
-        events.extend(chunk)
-        if any(e.get("type") == "crew_kickoff_completed" for e in chunk):
-            return events
-        await asyncio.sleep(settings.agent_studio_poll_interval_seconds)
-    return events
+        deadline = time.monotonic() + settings.agent_studio_poll_timeout_seconds
+        while time.monotonic() < deadline:
+            try:
+                response = await client.get("/api/workflow/events", params={"trace_id": trace_id})
+                response.raise_for_status()
+            except httpx.HTTPError as exc:
+                raise AgentStudioError(f"events poll failed: {exc}") from exc
+            chunk = response.json().get("events", [])
+            for event in chunk:
+                yield {"kind": "event", "trace_id": trace_id, "event": event}
+                if event.get("type") == "crew_kickoff_completed":
+                    yield {"kind": "completed", "trace_id": trace_id, "output": event.get("output", "")}
+                    return
+            await asyncio.sleep(settings.agent_studio_poll_interval_seconds)

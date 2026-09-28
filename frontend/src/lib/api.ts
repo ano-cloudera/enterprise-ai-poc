@@ -40,6 +40,48 @@ export const api = {
       context: dashboardContext(dashboardState),
     }),
   })),
+  // SSE version of chat() for the agent_studio backend's much longer
+  // multi-agent chain: yields {type: 'progress', label} frames while the
+  // answer is worked on, then one {type: 'done', response: ChatResponse}.
+  // Uses fetch()+ReadableStream (not EventSource, which can't POST) so the
+  // question/session/context body matches chat()'s exactly.
+  chatStream: async function* (
+    question: string,
+    sessionId: string,
+    dashboardState: DashboardState,
+  ): AsyncGenerator<{ type: 'progress'; label: string } | { type: 'done'; response: ChatResponse }> {
+    const response = await fetch('/api/chat/stream', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        question,
+        session_id: sessionId,
+        language: 'auto',
+        context: dashboardContext(dashboardState),
+      }),
+    })
+    if (!response.ok || !response.body) throw new Error(`${response.status} ${response.statusText}`)
+    const reader = response.body.getReader()
+    const decoder = new TextDecoder()
+    let buffer = ''
+    while (true) {
+      const { done, value } = await reader.read()
+      if (done) break
+      buffer += decoder.decode(value, { stream: true })
+      const frames = buffer.split('\n\n')
+      buffer = frames.pop() ?? ''
+      for (const frame of frames) {
+        const line = frame.split('\n').find(l => l.startsWith('data: '))
+        if (!line) continue
+        const payload = JSON.parse(line.slice('data: '.length))
+        if (payload.type === 'done') {
+          yield { type: 'done', response: validateChatResponse(payload.response) }
+        } else if (payload.type === 'progress') {
+          yield { type: 'progress', label: payload.label }
+        }
+      }
+    }
+  },
 }
 
 function dashboardContext(state: DashboardState) {

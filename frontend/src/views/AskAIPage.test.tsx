@@ -34,7 +34,7 @@ const response = {
   metadata: { trace_id: 'secret-trace', session_id: 'developer-session', intent: 'analytical', resolved_context: dashboardState, execution_time_ms: 123 },
 } as const
 
-vi.mock('../lib/api', () => ({ api: { chat: vi.fn(), semanticCapabilities: vi.fn() } }))
+vi.mock('../lib/api', () => ({ api: { chat: vi.fn(), chatStream: vi.fn(), semanticCapabilities: vi.fn() } }))
 vi.mock('../lib/project', () => ({ useProject: () => ({ config: projectConfig }) }))
 vi.mock('../lib/dashboardState', () => ({ useDashboardState: () => ({ state: dashboardState, ...stateActions }) }))
 vi.mock('next/navigation', () => ({ useSearchParams: () => new URLSearchParams() }))
@@ -82,6 +82,42 @@ describe('Ask AI business UX', () => {
     screen.getByText('Impala · Q4 2024')
     screen.getByText('Bagaimana tren Gross Sales selama Q4 2024?')
     expect(api.semanticCapabilities).toHaveBeenCalledOnce()
+  })
+
+  it('shows live progress labels and the final answer when the Impala profile streams via chatStream', async () => {
+    projectConfig.semantic_capabilities_enabled = true
+    vi.mocked(api.semanticCapabilities).mockResolvedValue({ examples: [] } as never)
+    let releaseDone: () => void = () => undefined
+    const doneGate = new Promise<void>(resolve => { releaseDone = resolve })
+    vi.mocked(api.chatStream).mockImplementation((async function* () {
+      yield { type: 'progress', label: 'Memahami pertanyaan kamu...' }
+      yield { type: 'progress', label: 'Mengambil angka dari data governed...' }
+      await doneGate
+      yield { type: 'done', response }
+    }) as never)
+    render(<AskAIPage />)
+    fireEvent.change(screen.getByPlaceholderText('Ask a follow-up question...'), { target: { value: 'Berapa Gross Sales Q4 2024?' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send question' }))
+
+    await screen.findByText('Mengambil angka dari data governed...')
+    releaseDone()
+    await screen.findByText('Executive Summary')
+    expect(api.chat).not.toHaveBeenCalled()
+  })
+
+  it('shows a safe error when chatStream fails partway through', async () => {
+    projectConfig.semantic_capabilities_enabled = true
+    vi.mocked(api.semanticCapabilities).mockResolvedValue({ examples: [] } as never)
+    vi.mocked(api.chatStream).mockImplementation((async function* () {
+      yield { type: 'progress', label: 'Memahami pertanyaan kamu...' }
+      throw new Error('502 upstream secret')
+    }) as never)
+    render(<AskAIPage />)
+    fireEvent.change(screen.getByPlaceholderText('Ask a follow-up question...'), { target: { value: 'Berapa Gross Sales Q4 2024?' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send question' }))
+
+    await screen.findByText('Unable to complete the analysis right now. Please try again.')
+    expect(screen.queryByText(/upstream secret/)).toBeNull()
   })
 
   it('keeps the composer outside a viewport-bounded scrolling conversation', () => {

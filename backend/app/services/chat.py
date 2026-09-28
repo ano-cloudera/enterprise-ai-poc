@@ -3,6 +3,8 @@ from __future__ import annotations
 import time
 import uuid
 import logging
+from collections.abc import AsyncIterator
+from typing import Any
 
 from app.core.config import get_settings
 from app.core.schemas import (
@@ -17,7 +19,7 @@ from app.core.schemas import (
 )
 from app.graph.workflow import workflow
 from app.monitoring.store import TelemetryStore
-from app.services import agent_studio_client, markdown_chart_adapter
+from app.services import agent_studio_client, agent_studio_progress, markdown_chart_adapter
 from app.services.conversation_store import ConversationStore
 
 
@@ -30,6 +32,82 @@ async def run_chat(request: ChatRequest) -> ChatResponse:
     if get_settings().chat_backend == "agent_studio":
         return await _run_chat_agent_studio(request)
     return await _run_chat_graph(request)
+
+
+async def run_chat_stream(request: ChatRequest) -> AsyncIterator[dict[str, Any]]:
+    """Yields {"type": "progress", "label": ...} while the answer is being
+    worked on, then a final {"type": "done", "response": ChatResponse} -
+    powers /chat/stream (SSE) so the frontend can show real progress
+    instead of a static spinner.
+
+    The "graph" backend already answers in a couple seconds, so it yields
+    no progress events, only the final "done" - progress messaging is only
+    worth it for the agent_studio backend's much longer multi-agent chain.
+    """
+    if get_settings().chat_backend != "agent_studio":
+        yield {"type": "done", "response": await _run_chat_graph(request)}
+        return
+
+    trace_id = str(uuid.uuid4())
+    started = time.perf_counter()
+    seen_data_retrieval = False
+    try:
+        async for item in agent_studio_client.stream_workflow(user_input=request.question):
+            if item["kind"] == "event":
+                event = item["event"]
+                message = agent_studio_progress.stage_message(event, seen_data_retrieval=seen_data_retrieval)
+                if agent_studio_progress.is_data_retrieval_stage(event):
+                    seen_data_retrieval = True
+                if message:
+                    yield {"type": "progress", "label": message}
+                continue
+
+            # item["kind"] == "completed"
+            parsed = markdown_chart_adapter.parse(item["output"], request.question)
+            latency_ms = round((time.perf_counter() - started) * 1000)
+            telemetry.record(
+                trace_id=item["trace_id"],
+                question=request.question,
+                intent="agent_studio",
+                status="ok",
+                latency_ms=latency_ms,
+                metadata={"agent_studio_trace_id": item["trace_id"]},
+            )
+            yield {
+                "type": "done",
+                "response": ChatResponse(
+                    status="ok",
+                    question=request.question,
+                    answer=parsed.answer,
+                    data=parsed.data,
+                    chart_spec=parsed.chart_spec,
+                    ui_actions=[],
+                    metadata=ChatMetadata(
+                        trace_id=item["trace_id"],
+                        session_id=request.session_id,
+                        intent="agent_studio",
+                        resolved_context=request.context,
+                        execution_time_ms=latency_ms,
+                    ),
+                ),
+            }
+            return
+    except agent_studio_client.AgentStudioError:
+        logger.exception("Agent Studio chat stream failed trace_id=%s", trace_id)
+        latency_ms = round((time.perf_counter() - started) * 1000)
+        telemetry.record(trace_id=trace_id, question=request.question, intent="agent_studio", status="error", latency_ms=latency_ms, metadata={"safe_error": True})
+        yield {
+            "type": "done",
+            "response": ChatResponse(
+                status="error",
+                question=request.question,
+                answer=ExecutiveAnswer(summary="Governed data could not be retrieved right now.", drivers=[], recommended_actions=["Try again in a moment or rephrase the question."], caveats=["Internal error details are not exposed."]),
+                data=QueryData(),
+                chart_spec=None,
+                ui_actions=[],
+                metadata=ChatMetadata(trace_id=trace_id, session_id=request.session_id, intent="agent_studio", resolved_context=request.context, execution_time_ms=latency_ms),
+            ),
+        }
 
 
 async def _run_chat_agent_studio(request: ChatRequest) -> ChatResponse:
