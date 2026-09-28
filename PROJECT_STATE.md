@@ -1,9 +1,77 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 25 Sep 2026 — 9 journey Gold views + LLM-fallback metric resolver + unit-aware formatting + 3-agent Cloudera Agent Studio workflow (all 4 tools built and attached, end-to-end test in progress). All pushed to `origin/main`.
+**Updated**: 28 Sep 2026 — Agent Studio workflow is live in Production and now genuinely fast (~9 LLM calls down to ~5, ~20s total for a simple question), full Markdown rendering pipeline shipped end-to-end, follow-up questions now carry context. All pushed to `origin/main`, nothing local-only pending.
 
-**⚠️ Handoff note (25 Sep 2026, switching from Claude Code to Codex)**:
+**⚠️ Handoff note (28 Sep 2026, switching from Claude Code to ChatGPT for planning)**:
+
+Everything through commit `ea5f5f7` is committed and pushed to `origin/main`. Today's session was almost entirely Agent Studio production debugging + latency optimization, working live against the deployed `Tempo-Scan-Intelligence-Prod` workflow via its REST API (`createSession`/`kickoff`/`events` — see below). Recent history (newest first):
+
+```
+ea5f5f7 feat: add execute_governed_metric_query tool to shorten the Data Agent's LLM chain
+76c3690 chore: gitignore reference/ - found live-looking credentials in it
+bf9e47d fix: follow-up questions to the agent_studio backend had no context
+d28e10e refactor: render Agent Studio's Markdown answers verbatim instead of parsing them into a fixed card
+758e5ac fix: numbered lists collapsed into one run-on Key Drivers paragraph
+5bd7df1 fix: add anti-buffering headers to /chat/stream so progress actually streams
+b452391 fix: analysis was disappearing from Ask AI answers, empty drivers/caveats
+69d6a13 fix: chatStream() was dropping the terminal done frame on Cloudera AI
+7bfdfec fix: send SSE keep-alive heartbeats to survive CAI's proxy idle timeout
+02ec1b8 feat: stream Agent Studio progress to Ask AI instead of a static spinner
+738901e feat: add Agent Studio chat backend behind CHAT_BACKEND env var flag
+```
+
+### What actually got fixed today (in the order they were found)
+
+1. **`CHAT_BACKEND=agent_studio` wired up** (`738901e`) — `backend/app/services/chat.py`'s `run_chat()` now branches on `settings.chat_backend`: `"graph"` (default, unchanged LangGraph path) or `"agent_studio"` (new — calls the deployed Agent Studio workflow's REST API and adapts its Markdown output). Requires 3 new env vars on the `tempo-backend` CAI Application: `CHAT_BACKEND=agent_studio`, `AGENT_STUDIO_BASE_URL` (the workflow's own base URL, e.g. `https://workflow-a9ac1dd9-....cloudera.site`), `AGENT_STUDIO_API_KEY` (a Cloudera AI API v2 key, same as `$CDSW_APIV2_KEY` in a session).
+2. **SSE progress streaming** (`02ec1b8`, `7bfdfec`, `69d6a13`, `5bd7df1`) — `POST /api/chat/stream` streams `{"type": "progress", "label": "..."}` frames (translated from raw Agent Studio events into natural Indonesian, e.g. "Mengambil angka dari data governed...") while the multi-agent chain runs, then one final `{"type": "done", "response": ChatResponse}`. Took 3 follow-up fixes to actually work end-to-end against Cloudera AI's own reverse proxy and the browser's `ReadableStream` behavior — see "Non-obvious infra lessons" below.
+3. **Markdown rendered verbatim, not parsed into a fixed card** (`b452391`, `758e5ac`, `d28e10e`) — the original design tried to extract `summary`/`drivers`/`caveats` from Agent Studio's Markdown answer by pattern-matching section headings. This kept breaking (exact-heading mismatch, then a numbered-list answer got flattened into one run-on paragraph) because real Analysis Agent answers vary in shape more than a fixed schema can represent. Replaced with `react-markdown` + `remark-gfm` rendering the Markdown directly (`ExecutiveAnswer.markdown` field, `MarkdownAnswer` component in `AskAIPage.tsx`); `markdown_chart_adapter.py` now only extracts the first table for `chart_spec`/`ChartSpec` (Recharts still needs structured data — everything else is untouched raw Markdown).
+4. **Follow-up questions lost context** (`bf9e47d`) — `agent_studio_client.stream_workflow()`/`run_workflow()` both accept a `context` param, but nothing was passing one, so every question went to Agent Studio standalone. Fixed by loading the last assistant turn's Markdown from `ConversationStore` and passing it as `context` — the Master Agent's own Backstory already defines a `FOLLOW_UP` envelope for this, it just never received input to build one from.
+5. **`execute_governed_metric_query` — new combined Agent Studio tool** (`ea5f5f7`) — biggest latency win. Colleague Irvan's separate Agent Studio workflow (`reference/workflow irvan/`, gitignored — **found live-looking credentials in `demo_config.py`, tell Irvan to rotate them**) uses a single-agent/single-tool/no-delegation design (`crew_ai_allow_delegation: false`) that answers in ~1-2 LLM calls by wrapping an entire resolve→query→execute pipeline in one Python tool call. Adopted that pattern for just the Data Agent's three technical tool calls: `projects/tempo_scan_impala/agent_studio_tools/execute_governed_metric_query/tool.py` runs `resolve_with_llm_fallback` → `get_metric_definition` → `execute_query` (the exact same `TempoOssieService` calls the 3 standalone tools already used) as one Python function instead of three separate LLM-driven ReAct tool calls. Master Agent and Analysis Agent (LLM narration) were deliberately left untouched.
+
+### Agent Studio manual fixes applied today (not in this repo — done directly in the Agent Studio UI, not version-controlled)
+
+- **Registered `execute_governed_metric_query` as a 5th tool on TEMPO Data Agent** (the 3 original tools — `resolve_semantic_object`, `get_metric_definition`, `execute_governed_query` — were kept attached, not removed, as a fallback for edge cases like re-executing with different filters against an already-resolved metric).
+- **Added a "Preferred tool" section to TEMPO Data Agent's Backstory** instructing it to call `execute_governed_metric_query` once instead of the three separate tools for standard metric questions.
+- **Added a "Response length policy" section to TEMPO Analysis Agent's Backstory** — simple single-metric questions now get a 2-3 sentence answer (still always including `metric_id`/`source_view`/governance caveat) instead of the full Ringkasan/Implikasi Bisnis/Status structure, which is now reserved for genuinely complex questions (breakdowns, trends, ratios, or an explicit request for analysis).
+- **Fixed a recurring Master Agent bug**: the Master Agent's Backstory few-shot examples used the coworkers' display **Name** (`"TEMPO Data Agent"`, `"TEMPO Analysis Agent"`) in the `"coworker"` field of every `Ask question to coworker` tool call, but CrewAI matches coworkers by **Role** (`"TEMPO Governed Data Retriever"`, `"TEMPO Business Insight Explainer"`), not Name. This caused the Master Agent to fail its first delegation attempt on nearly every turn and silently self-correct with a retry — wasting one full LLM round-trip every time. Fixed by rewriting every `"coworker"` value in the Backstory's few-shot examples to use the Role string.
+
+**Net result**: a simple single-metric question (e.g. "Berapa Company Fill Rate selama Q4 2024?") now completes in **~20 seconds** (Data Agent ~13s including one fast tool call, Analysis Agent ~7s with the short-form response) — down from the original 3-agent chain's ~9 LLM calls taking 40-60+ seconds. Confirmed via live testing directly in the Agent Studio "Test" tab (Thoughts panel timing), not just theoretical.
+
+### Non-obvious infra lessons from today (useful if this recurs)
+
+- **Cloudera AI's own reverse proxy aborts SSE connections that go quiet** (`net/http: abort Handler` from a Go/gin component, not app code) if no bytes flow for a stretch — fixed with a `: keep-alive\n\n` SSE comment heartbeat every 15s during Agent Studio's polling gaps. Also needed explicit `X-Accel-Buffering: no` / `Cache-Control: no-cache, no-transform` headers, or an intermediate layer buffered the *entire* SSE response before forwarding it (progress looked frozen, then the whole answer appeared at once).
+- **Browser `ReadableStream.getReader().read()` can report `done: true` in the same call that delivers the final chunk**, not only in a separate empty final read — a naive `if (done) break` before processing that chunk's buffer silently drops the last SSE frame(s), including the terminal `{"type": "done"}` payload. `frontend/src/lib/api.ts`'s `chatStream()` now always drains the buffer before checking whether to stop.
+- **Agent Studio matches `"coworker"` in a delegation tool call by the coworker's Role field, not its Name field** — easy to get backwards when writing few-shot examples by hand (see above).
+- **`markdown_chart_adapter.py`'s repeated fragile-parsing failures were symptomatic, not a one-off bug** — every fix (exact heading match → keyword match → per-line exclusion → numbered-list support) fixed one shape of Agent Studio's Markdown output but broke on the next variation. The actual fix was to stop parsing meaning out of free-form Markdown at all and render it verbatim; this is documented in the module's own docstring now as the reasoning, not just "here's how it works."
+
+### Colleague Irvan's parallel Agent Studio infrastructure — confirmed live, not just code
+
+Irvan has separately built and deployed (confirmed via CAI Applications screenshot, all "Running" for 3-5 days under project "Semantic M...", user `izarkasie`): **Vector DB** (Qdrant), **Graph DB** (Neo4j), and several iterations of **Workflow: TEMPO KPI Analyst** (v1.4.4 through v1.4.6, single-agent/single-tool/no-delegation architecture — see point 5 above). His KPI catalog (`TEMPO_KPI_query_catalog.json`, generated 2026-09-24) has **66 KPIs/measures** cataloged vs our 39 governed metrics — covers our 5 in-scope domains plus promo/pricing/assortment/qa/executive/finance/lead_time. Not yet integrated or reused beyond the `execute_governed_metric_query` architectural pattern above — his tool itself was not called from our workflow. Worth a direct conversation with Irvan about whether his Neo4j/Qdrant instances are meant to be shared infrastructure for this project or his own scoped experiment, and about the `demo_config.py` credential rotation.
+
+### Next planned work (not started yet — this is what the ChatGPT handoff below is for)
+
+The user's explicit next step: **expand the OSSIE semantic layer to the domains that aren't governed yet**, informed by the latest meeting with the Tempo team. Current coverage snapshot (from `datasets/TEMPO_BUSINESS_QUESTIONS_CATALOG.md`'s 165-question catalog, gitignored but present on disk):
+
+| Domain | Total Qs | Governed now | Needs new Gold view | Out of scope |
+|---|---|---|---|---|
+| Sales/Sell-In | 15 | 5 | 7 | 3 |
+| B2B/Sell-Out | 15 | 11 | 2 | 2 |
+| Stock SAT-IDM | 15 | 9 | 6 | 0 |
+| SAT OOS | 15 | 6 | 9 | 0 |
+| Stock Tempo | 15 | 8 | 7 | 0 |
+| Service Level | 15 | 6 | 6 | 3 |
+| Unloading | 25 | 9 | 16 | 0 |
+| Picking | 25 | 11 | 10 | 4 |
+| **SAT Promo** | 25 | **0** | 21 | 4 |
+| **Total** | 165 | 65 | 84 | 16 |
+
+SAT Promo has zero coverage (no Gold view exists at all). The user mentioned having fresh input from a recent Tempo team meeting specifically about the Sales domain that hasn't been incorporated yet — that should shape prioritization before building anything.
+
+Older handoff context (3-agent Agent Studio build-out, 25 Sep 2026) is preserved below in the next section — still accurate as history, just no longer the most recent work.
+
+<details>
+<summary>Previous handoff note (25 Sep 2026, switching from Claude Code to Codex) — historical, superseded above</summary>
 
 Everything through commit `ec19a8d` is committed **and pushed** to `origin/main` — no local-only commits pending. Recent history (newest first):
 
@@ -52,6 +120,8 @@ This confirms the `duckdb` lazy-import fix, the LLM-fallback resolver, and `unit
 Older handoff context (OSSIE/Impala cutover, 24 Sep 2026) is preserved below in "Live Impala cutover + resolver fixes + legacy cleanup (24 Sep 2026)" further down this file — still accurate, just no longer the most recent work.
 
 This is a running snapshot to paste into ChatGPT (where the original plan/milestones live) to sync it with what's actually been built.
+
+</details>
 
 ---
 
