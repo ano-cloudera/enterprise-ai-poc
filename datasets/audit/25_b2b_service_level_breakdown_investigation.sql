@@ -24,58 +24,65 @@
 --   - SAT OOS: already has cust_id/cust_code as dimensions
 --     (gold.rpt_sat_oos_material_month) - no gap, no action needed.
 --
--- This script only discovers exact column names (DESCRIBE) and checks
--- cardinality/nulls - it does not create any view. Write the CREATE VIEW
--- DDL only after confirming the real column names here; do not guess them
--- from the SAP InfoObject names in the field catalogs, which are not
--- always the literal silver column name (see c_0cust_grp3 vs 0CUST_GRP3,
--- t_group vs ..._GROUP, confirmed in-session from an actual DESCRIBE).
+-- This script discovers exact column names (DESCRIBE) and checks
+-- cardinality/nulls. Do not guess column names from the SAP InfoObject
+-- names in the field catalogs, which are not always the literal silver
+-- column name (see c_0cust_grp3 vs 0CUST_GRP3, t_group vs ..._GROUP,
+-- confirmed in-session from an actual DESCRIBE).
+--
+-- UPDATE 28 Sep 2026: DESCRIBE silver.b2b_oct_dec_2024 has been run and
+-- confirmed all 15 columns, including c_0customer, c_0material,
+-- c_0sales_off, branch, e_store, ka_group, kode_plu, c_0bill_qty,
+-- bill_val (no c_0 prefix on branch/e_store/ka_group/kode_plu - unlike
+-- Sales, not every B2B dimension column follows the c_0 prefix pattern).
+-- The CREATE VIEW DDL for B2B is already written using these confirmed
+-- names - see datasets/gold/25_rpt_b2b_customer_breakdown_semantic.sql.
+-- It extends the two existing views (corr_b2b_branch_estore_month,
+-- corr_b2b_material_plu) with customer as a new dimension on each,
+-- rather than one six-dimension view, per the same "independent
+-- dimensions" decision already applied to those two views
+-- (TEMPO_KAMUS_DATA_AI.md §4).
+--
+-- Service Level's DESCRIBE has NOT been run yet - c_0sales_off and
+-- c_0cust_grp3 below remain unverified guesses for that table only.
 --
 -- Run every block in Cloudera Workbench.
 
 DESCRIBE silver.b2b_oct_dec_2024;
 DESCRIBE silver.service_level_oct_dec_2024;
 
--- 1. B2B: cardinality/null-rate check for customer, sales_off, material
---    together on the same source row (not yet confirmed to coexist
---    cleanly on every row - the field catalog's grain note is a summary,
---    not a per-row guarantee).
--- NOTE: column names below (c_0sales_off, c_0branch, c_0e_store) are
--- guesses by analogy with silver.sales_oct_dec_2024's confirmed
--- c_0sales_off - verify against the DESCRIBE output above and correct
--- before running.
+-- 1. B2B: cardinality check for the two new view grains, before deploying
+--    the CREATE VIEW statements. Confirms neither grain has a row-count
+--    blow-up relative to the source table.
 SELECT
-  COUNT(*) AS total_rows,
-  COUNT(DISTINCT c_0calmonth) AS distinct_calmonths,
-  COUNT(DISTINCT c_0material) AS distinct_materials,
+  COUNT(*) AS total_source_rows,
   COUNT(DISTINCT c_0customer) AS distinct_customers,
   COUNT(DISTINCT c_0sales_off) AS distinct_sales_offices,
+  COUNT(DISTINCT branch) AS distinct_branches,
+  COUNT(DISTINCT e_store) AS distinct_e_stores,
+  COUNT(DISTINCT c_0material) AS distinct_materials,
+  COUNT(DISTINCT kode_plu) AS distinct_kode_plu,
+  COUNT(DISTINCT ka_group) AS distinct_ka_groups,
   SUM(CASE WHEN c_0customer IS NULL OR TRIM(CAST(c_0customer AS STRING)) = '' THEN 1 ELSE 0 END)
-    AS null_or_blank_customer,
-  SUM(CASE WHEN c_0sales_off IS NULL OR TRIM(CAST(c_0sales_off AS STRING)) = '' THEN 1 ELSE 0 END)
-    AS null_or_blank_sales_off
+    AS null_or_blank_customer
 FROM silver.b2b_oct_dec_2024
-WHERE c_0calmonth IS NOT NULL AND c_0material IS NOT NULL;
+WHERE c_0calmonth IS NOT NULL;
 
--- 2. B2B candidate grain: calmonth + material + customer + sales_off, all
---    four together. Compare row_count here against corr_b2b_material_plu's
---    existing row count for the same period as a sanity check.
 SELECT
-  c_0calmonth AS calmonth,
-  c_0material AS material,
-  c_0customer AS customer,
-  c_0sales_off AS sales_off,
-  SUM(bill_val) AS b2b_bill_val,
-  SUM(c_0bill_qty) AS b2b_bill_qty,
-  COUNT(*) AS source_rows
-FROM silver.b2b_oct_dec_2024
-WHERE c_0calmonth IS NOT NULL
-  AND c_0material IS NOT NULL
-  AND c_0customer IS NOT NULL
-  AND c_0sales_off IS NOT NULL
-GROUP BY c_0calmonth, c_0material, c_0customer, c_0sales_off
-ORDER BY b2b_bill_val DESC
-LIMIT 20;
+  COUNT(*) AS branch_estore_grain_rows
+FROM (
+  SELECT DISTINCT c_0calmonth, c_0customer, c_0sales_off, branch, e_store
+  FROM silver.b2b_oct_dec_2024
+  WHERE c_0customer IS NOT NULL AND TRIM(CAST(c_0customer AS STRING)) <> ''
+) t;
+
+SELECT
+  COUNT(*) AS material_plu_grain_rows
+FROM (
+  SELECT DISTINCT c_0calmonth, c_0customer, c_0material, kode_plu, ka_group
+  FROM silver.b2b_oct_dec_2024
+  WHERE c_0customer IS NOT NULL AND TRIM(CAST(c_0customer AS STRING)) <> ''
+) t;
 
 -- 3. Service Level: cardinality/null-rate check for sales_off and
 --    cust_grp3 alongside the existing calmonth+material grain.
@@ -140,5 +147,44 @@ GROUP BY c_0calmonth
 ORDER BY calmonth;
 
 SELECT calmonth, svc_do_qty, svc_po_qty
+FROM gold.rpt_sap_monthly_executive_semantic
+ORDER BY calmonth;
+
+-- Post-create contract checks for the two new B2B views (run after
+-- datasets/gold/25_rpt_b2b_customer_breakdown_semantic.sql's CREATE VIEW
+-- statements have been applied).
+DESCRIBE gold.corr_b2b_customer_branch_estore_month;
+DESCRIBE gold.corr_b2b_customer_material_plu_month;
+
+SELECT COUNT(*) AS duplicate_grain_rows
+FROM (
+  SELECT calmonth, customer, sales_off, branch, e_store, COUNT(*) AS grain_rows
+  FROM gold.corr_b2b_customer_branch_estore_month
+  GROUP BY calmonth, customer, sales_off, branch, e_store
+  HAVING COUNT(*) > 1
+) duplicate_grains;
+
+SELECT COUNT(*) AS duplicate_grain_rows
+FROM (
+  SELECT calmonth, customer, material, kode_plu, ka_group, COUNT(*) AS grain_rows
+  FROM gold.corr_b2b_customer_material_plu_month
+  GROUP BY calmonth, customer, material, kode_plu, ka_group
+  HAVING COUNT(*) > 1
+) duplicate_grains;
+
+-- Reconciliation: SUM(b2b_bill_val) from each new view, grouped only by
+-- calmonth, should match the existing governed company-level B2B total
+-- for the same period.
+SELECT calmonth, SUM(b2b_bill_val) AS b2b_bill_val_via_customer_branch_estore
+FROM gold.corr_b2b_customer_branch_estore_month
+GROUP BY calmonth
+ORDER BY calmonth;
+
+SELECT calmonth, SUM(b2b_bill_val) AS b2b_bill_val_via_customer_material_plu
+FROM gold.corr_b2b_customer_material_plu_month
+GROUP BY calmonth
+ORDER BY calmonth;
+
+SELECT calmonth, b2b_bill_val
 FROM gold.rpt_sap_monthly_executive_semantic
 ORDER BY calmonth;

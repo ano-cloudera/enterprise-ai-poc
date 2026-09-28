@@ -53,7 +53,20 @@ SALES_CUSTOMER_OFFICE_SOURCES = {
     "gold.rpt_sap_customer_material_month_semantic",
     "gold.rpt_sap_sales_office_material_month_semantic",
 }
-EXPECTED_SOURCES = BASELINE_SOURCES | JOURNEY_SOURCES | SAT_PROMO_SOURCES | SALES_CUSTOMER_OFFICE_SOURCES
+# 28 Sep 2026: B2B customer breakdown, extending the existing branch/
+# e_store and material/PLU views with the customer dimension. See
+# datasets/gold/25_rpt_b2b_customer_breakdown_semantic.sql.
+B2B_CUSTOMER_SOURCES = {
+    "gold.corr_b2b_customer_branch_estore_month",
+    "gold.corr_b2b_customer_material_plu_month",
+}
+EXPECTED_SOURCES = (
+    BASELINE_SOURCES
+    | JOURNEY_SOURCES
+    | SAT_PROMO_SOURCES
+    | SALES_CUSTOMER_OFFICE_SOURCES
+    | B2B_CUSTOMER_SOURCES
+)
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:

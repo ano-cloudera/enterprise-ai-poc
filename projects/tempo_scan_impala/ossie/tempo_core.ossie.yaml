@@ -861,6 +861,152 @@ datasets:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"domain":"b2b","grain":"calmonth+material+kode_plu","layer":"semantic_gold","built":"2026-09-24"}'
+- name: b2b_customer_branch_estore
+  source: gold.corr_b2b_customer_branch_estore_month
+  primary_key:
+  - calmonth
+  - customer
+  - sales_off
+  - branch
+  - e_store
+  description: B2B (Sell-Out) monthly aggregate by customer, sales office, branch, and e-store, October-December 2024.
+  ai_context:
+    instructions: customer, sales_off, and branch/e_store are independent dimensions by a direct user decision (see TEMPO_KAMUS_DATA_AI.md §4) - do not unify sales_off with branch/dcname, and do not assume a fixed customer-to-branch mapping.
+    synonyms:
+    - b2b customer
+    - top customer b2b
+    - customer dengan b2b terbesar
+    - penjualan b2b per customer
+  fields:
+  - name: calmonth
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: calmonth
+    datatype: Integer
+    dimension:
+      is_time: true
+  - name: customer
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: customer
+    datatype: String
+    dimension: {}
+  - name: sales_off
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sales_off
+    datatype: String
+    dimension: {}
+  - name: branch
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: branch
+    datatype: String
+    dimension: {}
+  - name: e_store
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: e_store
+    datatype: String
+    dimension: {}
+  - name: b2b_bill_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: b2b_bill_qty
+    datatype: Decimal
+  - name: b2b_bill_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: b2b_bill_val
+    datatype: Decimal
+  - name: row_count
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: row_count
+    datatype: Integer
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"domain":"b2b","grain":"calmonth+customer+sales_off+branch+e_store","layer":"semantic_gold","built":"2026-09-28"}'
+- name: b2b_customer_material_plu
+  source: gold.corr_b2b_customer_material_plu_month
+  primary_key:
+  - calmonth
+  - customer
+  - material
+  - kode_plu
+  description: B2B (Sell-Out) monthly aggregate by customer, material, and PLU code, October-December 2024.
+  ai_context:
+    instructions: customer, material, and kode_plu are independent dimensions - no confirmed mapping between material and kode_plu (see b2b_material_plu's instructions).
+    synonyms:
+    - b2b customer material
+    - top customer produk b2b
+  fields:
+  - name: calmonth
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: calmonth
+    datatype: Integer
+    dimension:
+      is_time: true
+  - name: customer
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: customer
+    datatype: String
+    dimension: {}
+  - name: material
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: material
+    datatype: String
+    dimension: {}
+  - name: kode_plu
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: kode_plu
+    datatype: String
+    dimension: {}
+    label: PLU Code
+  - name: ka_group
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: ka_group
+    datatype: String
+    dimension: {}
+  - name: b2b_bill_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: b2b_bill_qty
+    datatype: Decimal
+  - name: b2b_bill_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: b2b_bill_val
+    datatype: Decimal
+  - name: row_count
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: row_count
+    datatype: Integer
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"domain":"b2b","grain":"calmonth+customer+material+kode_plu","layer":"semantic_gold","built":"2026-09-28"}'
 - name: stock_tempo_month
   source: gold.corr_stock_tempo_month_seta
   primary_key:
@@ -2043,6 +2189,65 @@ metrics:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"B2B-03-PLU","base_dataset":"b2b_material_plu","allowed_dimensions":["calmonth","material","kode_plu","ka_group"],"governance_status":"approved_candidate","business_approval_status":"confirmed_by_tempo_meeting_2026_09_28","original_kpi_id":"SO-02","unit_format":"quantity"}'
+- name: b2b_customer_sell_out_value
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(b2b_customer_branch_estore.b2b_bill_val)
+  datatype: Decimal
+  description: B2B (Sell-Out) billing value by customer, sales office, branch, and e-store, October-December 2024.
+  ai_context:
+    synonyms:
+    - b2b customer value
+    - top customer b2b
+    - customer dengan b2b terbesar
+    - revenue b2b per customer
+    instructions: customer, sales_off, and branch/e_store are independent dimensions (see b2b_customer_branch_estore's instructions). Use this for "which customer has the highest B2B/Sell-Out value" questions.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"B2B-01-CUST","base_dataset":"b2b_customer_branch_estore","allowed_dimensions":["calmonth","customer","sales_off","branch","e_store"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"B02","unit_format":"currency_idr"}'
+- name: b2b_customer_sell_out_quantity
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(b2b_customer_branch_estore.b2b_bill_qty)
+  datatype: Decimal
+  description: B2B (Sell-Out) billed quantity by customer, sales office, branch, and e-store, October-December 2024.
+  ai_context:
+    synonyms:
+    - b2b customer quantity
+    - volume b2b per customer
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"B2B-02-CUST","base_dataset":"b2b_customer_branch_estore","allowed_dimensions":["calmonth","customer","sales_off","branch","e_store"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"B02","unit_format":"quantity"}'
+- name: b2b_customer_material_plu_value
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(b2b_customer_material_plu.b2b_bill_val)
+  datatype: Decimal
+  description: B2B (Sell-Out) billing value by customer, material, and PLU code, October-December 2024.
+  ai_context:
+    synonyms:
+    - b2b customer material value
+    - top customer produk b2b
+    instructions: customer, material, and kode_plu are independent dimensions, no confirmed mapping between material and kode_plu.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"B2B-02-PLU-CUST","base_dataset":"b2b_customer_material_plu","allowed_dimensions":["calmonth","customer","material","kode_plu","ka_group"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"B05","unit_format":"currency_idr"}'
+- name: b2b_customer_material_plu_quantity
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(b2b_customer_material_plu.b2b_bill_qty)
+  datatype: Decimal
+  description: B2B (Sell-Out) billed quantity by customer, material, and PLU code, October-December 2024.
+  ai_context:
+    synonyms:
+    - b2b customer material quantity
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"B2B-03-PLU-CUST","base_dataset":"b2b_customer_material_plu","allowed_dimensions":["calmonth","customer","material","kode_plu","ka_group"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-02","unit_format":"quantity"}'
 - name: stock_tempo_total_qty
   expression:
     dialects:

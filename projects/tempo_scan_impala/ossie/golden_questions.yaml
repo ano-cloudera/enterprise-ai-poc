@@ -556,6 +556,24 @@ questions:
     dataset: b2b_branch_estore
     dimensions: [branch]
 
+  - id: b2b_customer_top_sell_out
+    # 2026-09-28: B2B previously had no customer dimension in its gold
+    # layer, despite silver.b2b_oct_dec_2024 carrying customer alongside
+    # sales_off/branch/e_store on every row. See
+    # gold.corr_b2b_customer_branch_estore_month.
+    question: Customer mana dengan nilai B2B Sell-Out terbesar pada Q4?
+    expected_status: supported
+    metric: b2b_customer_sell_out_value
+    dataset: b2b_customer_branch_estore
+    dimensions: [customer]
+
+  - id: b2b_customer_material_top_sell_out
+    question: Customer mana dengan nilai B2B Sell-Out terbesar per material pada Q4?
+    expected_status: supported
+    metric: b2b_customer_material_plu_value
+    dataset: b2b_customer_material_plu
+    dimensions: [material, customer]
+
   - id: catalog_exec_do_ratio
     catalog_question_id: S14
     chart_primary: SCATTER
