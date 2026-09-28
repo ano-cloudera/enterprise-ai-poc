@@ -112,6 +112,16 @@ questions:
     dimensions: [material]
     required_filter: has_service_level
 
+  - id: sales_office_service_fill_rate
+    # 2026-09-28: Service Level previously only supported calmonth/material
+    # dimensions - no sales_office breakdown existed. See
+    # gold.corr_service_sales_office_material_month.
+    question: Sales office mana dengan Fill Rate terendah?
+    expected_status: supported
+    metric: sales_office_service_fill_rate
+    dataset: service_level_sales_office
+    dimensions: [sales_off]
+
   - id: material_sell_out_ratio
     question: Bagaimana rasio Sell-Out terhadap Sell-In per material?
     expected_status: supported

@@ -60,12 +60,23 @@ B2B_CUSTOMER_SOURCES = {
     "gold.corr_b2b_customer_branch_estore_month",
     "gold.corr_b2b_customer_material_plu_month",
 }
+# 28 Sep 2026: Service Level sales_office breakdown, extending the
+# existing calmonth+material grain with sales_off. See
+# datasets/gold/26_rpt_service_level_sales_office_semantic.sql. The
+# source's customer-group dimension (c_0cust_grp3) was confirmed
+# constant for this period and is deliberately not exposed as a
+# dimension; a separate unconfirmed SAP characteristic-group code
+# (0AF_CGR6) is also deliberately excluded pending Tempo confirmation.
+SERVICE_LEVEL_SALES_OFFICE_SOURCES = {
+    "gold.corr_service_sales_office_material_month",
+}
 EXPECTED_SOURCES = (
     BASELINE_SOURCES
     | JOURNEY_SOURCES
     | SAT_PROMO_SOURCES
     | SALES_CUSTOMER_OFFICE_SOURCES
     | B2B_CUSTOMER_SOURCES
+    | SERVICE_LEVEL_SALES_OFFICE_SOURCES
 )
 
 
