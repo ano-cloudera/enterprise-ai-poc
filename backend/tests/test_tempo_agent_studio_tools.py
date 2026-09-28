@@ -107,6 +107,56 @@ def test_execute_governed_query_forwards_impala_credentials_from_user_params() -
     assert result == {"status": "unavailable", "reason": "IMPALA_QUERY_FAILED"}
 
 
+def test_execute_governed_metric_query_resolves_defines_and_executes_in_one_call() -> None:
+    # This is the combined tool proposed to shorten the Data Agent's Agent
+    # Studio chain: resolve_semantic_object + get_metric_definition +
+    # execute_governed_query as one LLM-visible tool call instead of three.
+    # Impala isn't reachable in this test environment (no real
+    # IMPALA_HOST), so execution is expected to fail safely - this still
+    # proves resolution and definition both ran and were included in the
+    # combined result before execution was attempted.
+    result = _run(
+        "execute_governed_metric_query",
+        {"question": "Berapa Gross Sales Q4 2024?", "dimensions": ["calmonth"]},
+    )
+    assert result["resolution"]["status"] == "resolved"
+    assert result["resolution"]["metric"] == "gross_billing_value"
+    assert result["definition"]["metric_id"] is not None
+    assert result["execution"]["status"] in {"unavailable", "success"}
+
+
+def test_execute_governed_metric_query_skips_definition_and_execution_when_unresolved() -> None:
+    result = _run(
+        "execute_governed_metric_query",
+        {"question": "Berapa harga saham Tesla hari ini?"},
+    )
+    assert result["resolution"]["status"] in {"unsupported", "needs_clarification"}
+    assert result["definition"] is None
+    assert result["execution"] is None
+
+
+def test_execute_governed_metric_query_forwards_impala_credentials_from_user_params() -> None:
+    # Same contract as execute_governed_query's own equivalent test - the
+    # combined tool must apply UserParameters-supplied Impala credentials
+    # the same way, not silently ignore them because it goes through one
+    # extra layer (resolve + definition) before execute_query() is called.
+    result = _run(
+        "execute_governed_metric_query",
+        {"question": "Berapa Gross Sales Q4 2024?", "dimensions": ["calmonth"]},
+        user_params={"impala_host": "impala-host-from-user-params.invalid", "impala_port": 21050},
+    )
+    assert result["execution"] == {"status": "unavailable", "reason": "IMPALA_QUERY_FAILED"}
+
+
+def test_execute_governed_metric_query_blocked_when_semantic_mode_is_legacy() -> None:
+    result = _run(
+        "execute_governed_metric_query",
+        {"question": "Berapa Gross Sales Q4 2024?"},
+        env={"SEMANTIC_EXECUTION_MODE": "legacy"},
+    )
+    assert result["execution"] == {"status": "unavailable", "reason": "OSSIE_SEMANTIC_MODE_DISABLED"}
+
+
 def _run_readonly_sql(sql: str) -> dict:
     return _run("execute_readonly_sql", {"sql": sql})
 
