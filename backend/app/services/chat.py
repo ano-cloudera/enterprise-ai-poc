@@ -28,6 +28,31 @@ conversations = ConversationStore()
 logger = logging.getLogger(__name__)
 
 
+def _agent_studio_context(session_id: str) -> str:
+    """The Master Agent's Backstory already defines a FOLLOW_UP envelope
+    (user_question + prior_context: metric/period/dimensions/filters/
+    source_view) for context-dependent questions like "Kalau November
+    saja?" - but it expects the CALLER to assemble that envelope, and
+    until now nothing did: every question was sent with an empty context,
+    so a genuine follow-up like "breakdown per bulan?" got "saya belum
+    memiliki konteks pertanyaan sebelumnya" instead of being resolved
+    against the prior turn.
+
+    Deliberately NOT re-parsing our own structured envelope here (metric/
+    period/etc as separate fields) - that would resurrect the same
+    fragile-parsing problem markdown_chart_adapter.py just moved away
+    from. Instead, the last assistant answer's full Markdown (already
+    exactly what ConversationStore stores as this backend's
+    answer_summary - see the two call sites of append_turn) is handed to
+    the Master Agent as free-form context text, and its own LLM reasoning
+    extracts whatever's relevant, the same way a human pasting the
+    previous answer back in would.
+    """
+    history = conversations.load_history(session_id, limit=2)
+    assistant_turns = [turn["content"] for turn in history if turn["role"] == "assistant"]
+    return assistant_turns[-1] if assistant_turns else ""
+
+
 async def run_chat(request: ChatRequest) -> ChatResponse:
     if get_settings().chat_backend == "agent_studio":
         return await _run_chat_agent_studio(request)
@@ -52,7 +77,8 @@ async def run_chat_stream(request: ChatRequest) -> AsyncIterator[dict[str, Any]]
     started = time.perf_counter()
     seen_data_retrieval = False
     try:
-        async for item in agent_studio_client.stream_workflow(user_input=request.question):
+        context = _agent_studio_context(request.session_id)
+        async for item in agent_studio_client.stream_workflow(user_input=request.question, context=context):
             if item["kind"] == "event":
                 event = item["event"]
                 message = agent_studio_progress.stage_message(event, seen_data_retrieval=seen_data_retrieval)
@@ -64,6 +90,7 @@ async def run_chat_stream(request: ChatRequest) -> AsyncIterator[dict[str, Any]]
 
             # item["kind"] == "completed"
             parsed = markdown_chart_adapter.parse(item["output"], request.question)
+            conversations.append_turn(request.session_id, request.question, parsed.answer.markdown or "")
             latency_ms = round((time.perf_counter() - started) * 1000)
             telemetry.record(
                 trace_id=item["trace_id"],
@@ -116,18 +143,21 @@ async def _run_chat_agent_studio(request: ChatRequest) -> ChatResponse:
     adapts its Markdown output into ChatResponse. See
     app/services/agent_studio_client.py and markdown_chart_adapter.py.
 
-    Deliberately does not touch conversation_store/TelemetryStore's
-    intent/validation_status fields the graph path fills in - Agent
-    Studio's own trace_id/events are the source of truth for this path, and
-    multi-turn memory is Agent Studio's session state, not
-    ConversationStore's (see agent_studio_client.run_workflow's context
-    param for how a future follow-up turn would be threaded through).
+    Uses ConversationStore purely to thread the previous answer's Markdown
+    into Agent Studio's `context` param (see _agent_studio_context) so a
+    follow-up question ("breakdown per bulan?") can be resolved against
+    what was just asked, matching the FOLLOW_UP envelope the Master
+    Agent's Backstory expects a caller to provide - not for
+    intent/validation_status telemetry, which stay Agent Studio's own
+    trace_id/events, same as the streaming path.
     """
     trace_id = str(uuid.uuid4())
     started = time.perf_counter()
     try:
-        result = await agent_studio_client.run_workflow(user_input=request.question)
+        context = _agent_studio_context(request.session_id)
+        result = await agent_studio_client.run_workflow(user_input=request.question, context=context)
         parsed = markdown_chart_adapter.parse(result.output, request.question)
+        conversations.append_turn(request.session_id, request.question, parsed.answer.markdown or "")
         latency_ms = round((time.perf_counter() - started) * 1000)
         telemetry.record(
             trace_id=result.trace_id,
