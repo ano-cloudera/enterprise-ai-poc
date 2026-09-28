@@ -1,9 +1,68 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 28 Sep 2026 — Agent Studio workflow is live in Production and now genuinely fast (~9 LLM calls down to ~5, ~20s total for a simple question), full Markdown rendering pipeline shipped end-to-end, follow-up questions now carry context. All pushed to `origin/main`, nothing local-only pending.
+**Updated**: 28 Sep 2026 — Governed semantic layer expanded to nine domains and committed locally. SAT Promo Gold view is deployed and validated in Workbench. The updated OSSIE runtime has not yet been rebuilt/redeployed to Agent Studio, and the newest local commits have not yet been pushed to `origin/main`.
 
-**⚠️ Handoff note (28 Sep 2026, switching from Claude Code to ChatGPT for planning)**:
+## Current checkpoint: nine-domain semantic layer (28 Sep 2026)
+
+### Repository state
+
+- Semantic implementation commit: `bc517b7 feat: expand TEMPO semantic layer to nine domains`.
+- Previous planning commit: `b4ea934 docs: design full TEMPO metric coverage`.
+- `origin/main` is still at `a3bc9fb`; the planning, implementation, and this checkpoint update are local-only and still need an explicit push.
+- The semantic expansion commit contains the OSSIE model, resolver/governance changes, business-question catalogs, Gold/audit SQL, Agent Studio instructions, tests, and acceptance evidence.
+
+### Frozen semantic contract
+
+- **9 domains**: Sales/Sell-In, B2B/Sell-Out, Stock Tempo, Stock SAT-IDM, SAT OOS, Service Level, Picking, Unloading, and SAT Promo.
+- **15 OSSIE datasets**.
+- **50 governed/candidate metrics**.
+- **75 golden questions**.
+- Contract validator result: `valid=true`, with no validation errors. Metrics marked `pending business confirmation` remain intentional governance warnings, not technical failures.
+- Latest verification before commit:
+  - Full backend suite: **449 passed**, 2 dependency deprecation warnings.
+  - Next.js production build: **PASS**.
+  - Focused OSSIE/Agent Studio/Impala suite: **104 passed**.
+
+### Business definitions locked into the model
+
+- Stock SAT-IDM DC Stock and Store Stock are separate analytical levels. They must never be added into a synthetic total-pipeline metric or converted into an unapproved imbalance/ratio KPI.
+- Sales and B2B terminology is explicit: `bill_qty`/`bill_val` are billing quantity/value; `do_qty`/`do_amt` are Delivery Order quantity/amount.
+- B2B branch and Tempo sales office are separate dimensions and are not aliases.
+- SAT OOS represents field-audit availability at the evaluated DC or B2B unit.
+- SAT Promo currently supports December 2024 observation counts and distinct-material counts by raw `mekanisme` and raw `program_status`.
+- SAT Promo `program_status` values `Y`, `X`, and `T` remain raw/unmapped codes. The workflow must not call them active/inactive/success/failed until Tempo supplies the controlled definition.
+- Promo ROI, uplift, cost, attributed revenue, and October-November trend remain intentionally unsupported because the available source does not govern those claims.
+
+### SAT Promo Gold status
+
+Canonical view: `gold.rpt_sat_promo_material_december_semantic`.
+
+- View successfully deployed in Cloudera Workbench using Impala-compatible `DROP VIEW IF EXISTS` + `CREATE VIEW` syntax.
+- Semantic rows: **297**.
+- Source observations represented: **67,837**, exactly matching the Silver source total.
+- Duplicate canonical-grain rows: **0**.
+- Negative observation rows: **0**.
+- Rows outside December 2024: **0**.
+- Null/blank material rows: **0**.
+- Evidence: `datasets/qa/23_sat_promo_gold_contract.md`.
+
+### Agent Studio deployment status
+
+The existing production workflow remains live with the earlier latency and stability improvements, but it has **not yet been redeployed with the new nine-domain OSSIE bundle**.
+
+Next actions, in order:
+
+1. Push the local `main` commits to `origin/main` when approved.
+2. Pull the updated `main` branch in the Cloudera Workbench checkout.
+3. Run `scripts/validate_tempo_impala_contract.py --json` in Workbench and confirm `15 datasets / 50 metrics / 75 golden questions`.
+4. Rebuild `workflow_data/enterprise-ai-poc`, redeploy `Tempo-Scan-Intelligence-Prod`, and verify the deployed artifact contains the updated OSSIE model, governance, golden questions, and tool files.
+5. Execute the nine-domain UI/API acceptance matrix in `docs/qa/2026-09-28-agent-studio-nine-domain-acceptance.md`, including SAT Promo happy paths and safety controls.
+6. Only after the Agent Studio baseline passes, begin the deferred Semantica implementation assessment/PoC. Current work is assessment documentation only (`docs/SEMANTICA_ASSESSMENT.md`); no additional Cloudera AI Application has been created for Semantica.
+
+---
+
+**⚠️ Historical handoff note (earlier on 28 Sep 2026, before the nine-domain expansion)**:
 
 Everything through commit `ea5f5f7` is committed and pushed to `origin/main`. Today's session was almost entirely Agent Studio production debugging + latency optimization, working live against the deployed `Tempo-Scan-Intelligence-Prod` workflow via its REST API (`createSession`/`kickoff`/`events` — see below). Recent history (newest first):
 
