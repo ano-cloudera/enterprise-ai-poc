@@ -47,6 +47,24 @@ def test_stream_emits_progress_then_done() -> None:
     assert frames[1]["response"]["answer"]["summary"] == "Rp 3.8T"
 
 
+def test_stream_sends_anti_buffering_headers() -> None:
+    # Without these, an intermediate reverse proxy (observed happening
+    # against Cloudera AI's own gateway) can buffer the entire response
+    # before forwarding it — every progress frame and the final "done"
+    # frame arrive all at once instead of as they're produced, which looks
+    # to the user exactly like the old static, never-updating spinner.
+    async def fake_stream(request):
+        yield {"type": "progress", "label": "Memahami pertanyaan kamu..."}
+        yield {"type": "done", "response": _make_response()}
+
+    with patch("app.api.routes.chat.run_chat_stream", fake_stream):
+        client = TestClient(app)
+        response = client.post("/api/chat/stream", json={"question": "Berapa Gross Sales Q4 2024?", "session_id": "s1"})
+
+    assert response.headers["x-accel-buffering"] == "no"
+    assert "no-cache" in response.headers["cache-control"]
+
+
 def test_stream_emits_heartbeat_comment_during_a_long_gap() -> None:
     async def slow_stream(request):
         await asyncio.sleep(0.2)

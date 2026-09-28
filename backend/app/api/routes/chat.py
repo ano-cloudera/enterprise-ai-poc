@@ -56,4 +56,20 @@ async def chat_stream(request: ChatRequest) -> StreamingResponse:
         finally:
             pending.cancel()
 
-    return StreamingResponse(event_source(), media_type="text/event-stream")
+    return StreamingResponse(
+        event_source(),
+        media_type="text/event-stream",
+        headers={
+            # Without these, an intermediate reverse proxy (observed: CAI's
+            # own gateway, and this is also standard practice for Nginx and
+            # its derivatives) can buffer the ENTIRE response before
+            # forwarding it, defeating streaming outright — progress
+            # frames and the final "done" frame all arrive at once instead
+            # of as they're produced. Cache-Control also stops any
+            # HTTP-level caching from doing the same for a repeated
+            # question.
+            "Cache-Control": "no-cache, no-transform",
+            "X-Accel-Buffering": "no",
+            "Connection": "keep-alive",
+        },
+    )
