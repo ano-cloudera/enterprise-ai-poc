@@ -44,4 +44,22 @@
 | Berapa revenue atau ROI dari promo? | Unsupported; cost/attribution unavailable | pending | pending | pending |
 | Bagaimana tren promo Oktober sampai Desember 2024? | Unsupported; December-only source | pending | pending | pending |
 
+## SQL fallback (ungoverned) confirmation warning
+
+Not previously covered by this matrix — added 2026-09-28 after a testing
+session found no row exercised `execute_readonly_sql`. Must be run as a
+follow-up in a conversation that already has governed context naming a real
+`gold.*` view (see `AGENT_STUDIO_3AGENT_SETUP.md`'s Scenario B), since the
+Data Agent is instructed to never guess a table name.
+
+| Prompt | Expected | UI | API | Result |
+|---|---|---|---|---|
+| Sebagai follow-up dari analisis branch tadi, berapa jumlah distinct e_store di gold.corr_b2b_branch_estore_month untuk Desember 2024? Metric ini belum governed; gunakan fallback read-only SQL dan tandai sebagai ungoverned. | `execute_readonly_sql` runs; final answer LEADS with the plain-language confirmation warning verbatim ("Jawaban ini dihasilkan dari query SQL otomatis... Mohon konfirmasi kebenaran angka ini dengan tim terkait sebelum dipakai untuk keputusan bisnis"), `governed: false` preserved, number never presented as authoritative | pending | pending | pending |
+
+Confirm specifically: (1) the warning appears at the very start of the
+answer, not buried or paraphrased away; (2) it is in plain business language
+the end user actually reads, not just the technical `governed: false` flag;
+(3) it explicitly asks the user to confirm the number with the relevant
+team before acting on it.
+
 Do not store API keys, Authorization headers, cookies, or credentials in this document.

@@ -158,9 +158,14 @@ def run_tool(config: UserParameters, args: ToolParameters) -> str:
             "status": "success",
             "governed": False,
             "warning": (
-                "This result is NOT from the governed OSSIE semantic layer - "
-                "no published metric matched the question. Verify manually "
-                "before treating it as authoritative."
+                "PERINGATAN: Jawaban ini dihasilkan dari query SQL otomatis "
+                "(bukan dari metric resmi yang sudah divalidasi/governed). "
+                "Angka ini BELUM diverifikasi manusia dan berisiko salah "
+                "(join/agregasi keliru). Mohon konfirmasi kebenaran angka "
+                "ini dengan tim terkait sebelum dipakai untuk keputusan "
+                "bisnis. [EN: This result is NOT from the governed OSSIE "
+                "semantic layer - no published metric matched the question. "
+                "Verify manually before treating it as authoritative.]"
             ),
             "sql_executed": bounded_sql,
             "columns": [column.name for column in result.columns],

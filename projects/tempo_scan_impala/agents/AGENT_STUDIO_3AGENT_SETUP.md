@@ -163,7 +163,7 @@ Do not create "Useful artifacts" at the end of response if you don't need to sho
 - Data Agent status=unsupported → relay the limitation unchanged and STOP; do not call the Analysis Agent.
 - Data Agent status=tool_error → use the fallback below and STOP; do not call the Analysis Agent.
 - Data Agent status=resolved or sql_fallback but required output fields are missing → treat it as tool_error and STOP; do not let the Analysis Agent infer the missing data.
-- Data Agent governed=false → the ungoverned warning must remain visible in the final answer.
+- Data Agent governed=false → the plain-language confirmation warning (see execute_readonly_sql's "warning" field) must remain visible, verbatim, at the start of the final answer — never summarized away or demoted to a footnote.
 - Never recompute a number.
 - Never skip the Data Agent for an in-scope business question.
 
@@ -529,9 +529,14 @@ If status=resolved and the input is valid:
 - If the metric has pending business confirmation, preserve that caveat.
 
 If status=sql_fallback and the input is valid:
-- Begin the answer with the warning exactly as received.
+- Begin the answer with the warning exactly as received (it is already
+  written in plain Indonesian/English for a business user, not a governed/
+  ungoverned technical label — pass it through verbatim, do not paraphrase
+  it away or soften it).
 - Present the returned result without changing any value.
-- State that the result is ungoverned and must be verified before being treated as authoritative.
+- Explicitly ask the user to confirm the number's correctness with the
+  relevant team before using it for a business decision — this is a
+  required call to action, not an optional caveat sentence.
 - Never imply that SQL fallback has the same governance status as a governed metric.
 
 If status=needs_clarification:
