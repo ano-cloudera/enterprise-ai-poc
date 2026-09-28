@@ -1,16 +1,29 @@
 # TEMPO Apache Ossie Agent Studio Tools
 
-Five default-off tools expose the same governed service used by the backend:
+Seven default-off tools expose the same governed service used by the backend:
 
-1. `resolve_semantic_object`
-2. `get_metric_definition`
-3. `query_ontology`
-4. `find_join_path`
-5. `execute_governed_query`
+1. `execute_governed_metric_query` — **preferred** combined tool. Wraps
+   `resolve_semantic_object` + `get_metric_definition` + `execute_governed_query`
+   as a single LLM-visible call, which is what the production three-agent
+   workflow's Data Agent attaches instead of the three individual tools below.
+   Cuts the Data Agent's chain from three LLM-visible tool calls to one (see
+   `../agents/AGENT_STUDIO_3AGENT_SETUP.md`'s "Why execute_governed_metric_query
+   is preferred" note for the measured latency: ~20s total vs. ~40-60s with the
+   individual tools).
+2. `resolve_semantic_object`
+3. `get_metric_definition`
+4. `query_ontology`
+5. `find_join_path`
+6. `execute_governed_query`
 
-A sixth tool, `execute_readonly_sql`, is a deliberate, bounded exception to the
-"no free SQL" rule below — see its own section under Safety before attaching
-it to any agent.
+Tools 2-6 remain available individually — useful for the Tools Playground,
+debugging one step at a time, or the single-agent regression baseline (see
+`AGENT_STUDIO_SETUP.md`) — but production attaches tool 1 instead of 2/3/6
+combined.
+
+A seventh tool, `execute_readonly_sql`, is a deliberate, bounded exception to
+the "no free SQL" rule below — see its own section under Safety before
+attaching it to any agent.
 
 PuppyGraph tools are intentionally excluded from this phase.
 
