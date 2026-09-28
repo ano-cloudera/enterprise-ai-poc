@@ -64,22 +64,31 @@ export const api = {
     const reader = response.body.getReader()
     const decoder = new TextDecoder()
     let buffer = ''
-    while (true) {
-      const { done, value } = await reader.read()
-      if (done) break
-      buffer += decoder.decode(value, { stream: true })
+    // Processes every frame currently in `buffer` (used both per network
+    // chunk and once more after the stream ends, in case the final chunk
+    // arrived in the same read() as done: true — reader.read() can report
+    // done alongside data rather than only after an empty final read, so a
+    // naive "break on done" loses whatever was still unflushed in buffer,
+    // including the terminal {type: "done"} frame itself).
+    function* drain(flushRemainder: boolean) {
       const frames = buffer.split('\n\n')
-      buffer = frames.pop() ?? ''
+      buffer = flushRemainder ? '' : (frames.pop() ?? '')
       for (const frame of frames) {
         const line = frame.split('\n').find(l => l.startsWith('data: '))
         if (!line) continue
         const payload = JSON.parse(line.slice('data: '.length))
         if (payload.type === 'done') {
-          yield { type: 'done', response: validateChatResponse(payload.response) }
+          yield { type: 'done' as const, response: validateChatResponse(payload.response) }
         } else if (payload.type === 'progress') {
-          yield { type: 'progress', label: payload.label }
+          yield { type: 'progress' as const, label: payload.label }
         }
       }
+    }
+    while (true) {
+      const { done, value } = await reader.read()
+      if (value) buffer += decoder.decode(value, { stream: true })
+      yield* drain(done)
+      if (done) return
     }
   },
 }
