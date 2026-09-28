@@ -117,7 +117,7 @@ def test_safe_sat_promo_questions_resolve_through_agent_studio_tool(
 @pytest.mark.parametrize(
     "question",
     [
-        "Berapa promo aktif Desember 2024?",
+        "Berapa promo tidak aktif Desember 2024?",
         "Berapa revenue atau ROI dari promo?",
         "Bagaimana tren promo Oktober sampai Desember 2024?",
     ],
@@ -128,6 +128,22 @@ def test_unsafe_or_out_of_period_sat_promo_questions_fail_closed(
     result = _run("resolve_semantic_object", {"question": question})
     assert result["status"] == "unsupported"
     assert result["reason"] == "promo_business_definition_unavailable"
+
+
+def test_plain_promo_aktif_question_now_resolves() -> None:
+    # Tempo confirmed 28 Sep 2026 (Pak Hieronimus Gunawan, WhatsApp) that
+    # every row in the SAT Promo December data is an active promo
+    # observation - program_status does not distinguish active/inactive.
+    # A plain "promo aktif" question (no implied active/inactive split,
+    # no ROI/attribution, no out-of-period request) is therefore now
+    # answerable via promo_observation_count, unlike before this
+    # confirmation when it was blocked outright.
+    result = _run(
+        "resolve_semantic_object",
+        {"question": "Berapa promo aktif Desember 2024?"},
+    )
+    assert result["status"] == "resolved"
+    assert result["metric"] == "promo_observation_count"
 
 
 def test_three_agent_setup_exposes_nine_domains_and_safe_promo_controls() -> None:

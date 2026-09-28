@@ -146,14 +146,25 @@ class TempoOssieRegistry:
         normalized = _normalize(question)
 
         # SAT Promo currently covers December 2024 field-audit observations
-        # only. Raw status codes Y/X/T may be grouped, but their business
-        # meaning is unconfirmed and the source has no promo cost or causal
-        # revenue attribution. Stop those requests before generic Sales
-        # ambiguity can redirect a promo ROI/revenue question to Sell-In.
+        # only. The source has no promo cost or causal revenue attribution.
+        # Stop those requests before generic Sales ambiguity can redirect a
+        # promo ROI/revenue question to Sell-In.
+        #
+        # Tempo confirmed on 28 Sep 2026 (Pak Hieronimus Gunawan, WhatsApp,
+        # replying to "Y = active kah?" with "abaikan saja pak, di list
+        # tersebut, artinya aktif") that every row in this data represents
+        # an active promo observation - program_status codes Y/X/T do not
+        # distinguish active from inactive. This means a plain "promo
+        # aktif" question is now answerable (the whole dataset is active,
+        # see promo_observation_count/promo_material_count's ai_context),
+        # so it is intentionally NOT in the blocklist below anymore. A
+        # request that still implies an active/inactive SPLIT by status
+        # (mixed_status_meaning below) remains blocked, since that
+        # distinction was never confirmed - only "all active" was.
         mentions_promo = "promo" in normalized
-        requests_unapproved_status_meaning = any(
+        requests_mixed_status_meaning = any(
             term in normalized
-            for term in ("promoaktif", "aktifpromo", "promotidakaktif")
+            for term in ("promotidakaktif", "promononaktif", "promoinaktif")
         )
         requests_promo_attribution = any(
             term in normalized
@@ -171,7 +182,7 @@ class TempoOssieRegistry:
             for term in ("oktober", "november", "q4", "kuartal4")
         )
         if mentions_promo and (
-            requests_unapproved_status_meaning
+            requests_mixed_status_meaning
             or requests_promo_attribution
             or requests_unavailable_promo_period
         ):
@@ -180,8 +191,9 @@ class TempoOssieRegistry:
                 "reason": "promo_business_definition_unavailable",
                 "question": (
                     "SAT Promo hanya mendukung observasi audit Desember 2024. "
-                    "Kode status Y/X/T boleh ditampilkan sebagai kode mentah, "
-                    "tetapi belum boleh diartikan aktif/tidak aktif. Data biaya, "
+                    "Seluruh data ini adalah observasi promo aktif (dikonfirmasi "
+                    "Tempo); kode status Y/X/T tidak membedakan aktif/tidak aktif, "
+                    "jadi tidak bisa memilah subset yang tidak aktif. Data biaya, "
                     "uplift, ROI, dan atribusi revenue juga belum tersedia."
                 ),
                 "suggested_questions": [

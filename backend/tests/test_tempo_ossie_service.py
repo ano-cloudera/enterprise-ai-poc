@@ -233,8 +233,24 @@ def test_resolve_safe_sat_promo_metrics(
     assert expected_dimension in result["definition"]["allowed_dimensions"]
 
 
-def test_active_promo_is_not_inferred_from_raw_program_status() -> None:
+def test_plain_active_promo_question_resolves_since_all_rows_are_confirmed_active() -> None:
+    # Tempo confirmed 28 Sep 2026 (Pak Hieronimus Gunawan, WhatsApp,
+    # replying to "Y = active kah?" with "abaikan saja pak, di list
+    # tersebut, artinya aktif") that every row in the SAT Promo December
+    # data is an active promo observation. A plain "promo aktif" question
+    # is therefore answerable now - see promo_observation_count's
+    # ai_context.instructions for the caveat that program_status still
+    # does not distinguish active from inactive within that data.
     result = _service().resolve("Berapa jumlah promo aktif Desember 2024?")
+    assert result["status"] == "resolved"
+    assert result["metric"] == "promo_observation_count"
+
+
+def test_inactive_promo_split_is_still_not_inferred_from_raw_program_status() -> None:
+    # The Tempo confirmation only established "all rows are active" - it
+    # never established a way to distinguish an inactive subset, so a
+    # question implying that split must remain blocked.
+    result = _service().resolve("Berapa jumlah promo tidak aktif Desember 2024?")
     assert result["status"] == "unsupported"
 
 

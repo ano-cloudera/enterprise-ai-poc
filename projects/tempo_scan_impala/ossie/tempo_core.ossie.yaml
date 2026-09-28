@@ -1482,7 +1482,7 @@ datasets:
   - program_status
   description: December 2024 SAT Promo field-audit observations aggregated by material, raw mechanism, and raw program-status code.
   ai_context:
-    instructions: Use only for December 2024 field-audit coverage. Mekanisme and program_status are raw source codes/text. Never translate Y, X, or T to active/inactive, and never claim revenue attribution, uplift, effectiveness, or ROI.
+    instructions: Use only for December 2024 field-audit coverage. Mekanisme is a raw source code/text with no confirmed business mapping - never infer meaning from it. program_status is confirmed by Tempo (Pak Hieronimus Gunawan, WhatsApp, 28 Sep 2026, replying to "Y = active kah?" with "abaikan saja pak, di list tersebut, artinya aktif") - every row/status code in this list represents an active promo observation, so program_status does not distinguish active from inactive and must not be used to filter, count, or report an "active promo" subset differently from the total. Still never claim revenue attribution, uplift, effectiveness, or ROI from this data - the active-status confirmation does not extend to those.
     synonyms:
     - sat promo desember
     - audit promo lapangan
@@ -1529,7 +1529,7 @@ datasets:
     datatype: Integer
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"domain":"sat_promo","grain":"reporting_month+material_code+mekanisme+program_status","layer":"semantic_gold","time_scope":[202412],"status_semantics":"raw_unmapped"}'
+    data: '{"domain":"sat_promo","grain":"reporting_month+material_code+mekanisme+program_status","layer":"semantic_gold","time_scope":[202412],"status_semantics":"all_rows_confirmed_active_by_tempo_2026_09_28"}'
 relationships: []
 metrics:
 - name: gross_billing_value
@@ -2386,7 +2386,10 @@ metrics:
     - promo observation count
     - distribusi kode program status
     - distribusi program status y x t
-    instructions: This is an observation-row count, not active promos, unique products, redemptions, or sales. Program-status codes Y/X/T and mechanism labels are raw and unmapped. State the December-only and raw-code caveats.
+    - promo aktif
+    - jumlah promo aktif
+    - active promo
+    instructions: This is an observation-row count, not unique products, redemptions, or sales. Mechanism labels are raw and unmapped - never infer meaning from mekanisme. Every row in this data is a confirmed-active promo observation (Tempo confirmation, 28 Sep 2026); program_status codes Y/X/T do not distinguish active from inactive, so do not filter or break out an "active" subset by status - report the status code as-is if asked, but the whole dataset is active. State the December-only caveat.
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"PR-03","base_dataset":"sat_promo_material_december","allowed_dimensions":["reporting_month","material_code","mekanisme","program_status"],"governance_status":"approved_candidate_with_caveat","business_approval_status":"pending_business_confirmation","original_kpi_id":"PR-03","unit_format":"count"}'
@@ -2404,7 +2407,7 @@ metrics:
     - jumlah sku promo
     - promo sku count
     - distinct promo materials
-    instructions: Count distinct material codes only. This does not indicate active promos, effectiveness, uplift, revenue attribution, or ROI. State the December-only and raw-code caveats.
+    instructions: Count distinct material codes only. Every row in this data is a confirmed-active promo observation (Tempo confirmation, 28 Sep 2026), so this count does represent active-promo material coverage - but it still does not indicate effectiveness, uplift, revenue attribution, or ROI. State the December-only caveat.
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"PR-02","base_dataset":"sat_promo_material_december","allowed_dimensions":["reporting_month","mekanisme","program_status"],"governance_status":"approved_candidate_with_caveat","business_approval_status":"pending_business_confirmation","original_kpi_id":"PR-02","unit_format":"count"}'

@@ -127,7 +127,7 @@ Greeting or small talk (not a business question) → answer directly yourself: i
 - BILL_QTY/BILL_VAL are billing quantity/value; DO_QTY/DO_AMT are Delivery Order quantity/amount. Never conflate these two pairs.
 - B2B branch and Tempo sales office are separate dimensions and are not aliases. Never substitute one for the other.
 - DC Stock and Store Stock (Stock SAT-IDM) are separate analysis levels and must never be added into a total pipeline or converted into a ratio/imbalance KPI.
-- SAT Promo is a December 2024 field-audit domain. program_status values Y, X, and T and mekanisme values are raw source codes/text. They may be reported as returned, but never translated into active/inactive or effectiveness labels. Promo cost, uplift, ROI, and attributed revenue are not governed.
+- SAT Promo is a December 2024 field-audit domain. mekanisme values are raw source codes/text with no confirmed business mapping - never infer meaning from them. Tempo confirmed (28 Sep 2026) that every row in this data is an active promo observation; program_status (Y/X/T) does not distinguish active from inactive within that data, so report the code as returned but never use it to filter or break out an "inactive" subset. Promo cost, uplift, ROI, effectiveness, and attributed revenue are not governed even though the data is confirmed active.
 
 ## Workers
 
@@ -272,7 +272,7 @@ Step 4 → Only if status is anything else (no governed metric matched at all): 
 - Never retry a failing tool endlessly.
 - Never recompute, round, rename, or summarize values returned by a tool.
 - Mirror the user's language when writing clarification or safe error messages.
-- For SAT Promo, never use SQL fallback to reinterpret program_status, extend the period outside December 2024, or calculate uplift, ROI, or attributed revenue. Return the resolver's unsupported result unchanged.
+- For SAT Promo, never use SQL fallback to invent an active/inactive split by program_status beyond what Tempo confirmed (all rows active), extend the period outside December 2024, or calculate uplift, ROI, or attributed revenue. Return the resolver's unsupported result unchanged when it returns one.
 
 ## Output contract
 
@@ -519,9 +519,12 @@ If status=resolved and the input is valid:
   and Store Stock (Stock SAT-IDM) may be shown side by side in the same
   table but must never be summed into a single total-pipeline value or
   turned into a ratio/imbalance figure. For SAT Promo results, keep
-  program_status and mekanisme as raw columns exactly as returned —
-  never relabel program_status values as active/inactive or as a success/
-  failure judgement.
+  program_status and mekanisme as raw columns exactly as returned. Every
+  row is a confirmed-active promo observation (Tempo, 28 Sep 2026), so
+  the dataset as a whole may be described as active, but never use
+  program_status to relabel individual rows as active/inactive or as a
+  success/failure judgement - that per-status distinction was never
+  confirmed.
 - Explain only trends or comparisons directly supported by the rows.
 - Provide a cautious business implication.
 - Cite metric_id and source_view so the answer remains checkable.
@@ -735,19 +738,35 @@ Bagaimana distribusi kode program status Y/X/T?
 ```
 
 Expected trace: the same metric grouped by `program_status`. The final answer
-must state that Y/X/T are raw unmapped codes.
+must state that every row is a confirmed-active promo observation (Tempo,
+28 Sep 2026) and that program_status (Y/X/T) does not distinguish active from
+inactive within that data.
 
-**Scenario D2 — SAT Promo semantic controls, must fail closed:**
+**Scenario D3 — plain "promo aktif" question, now governed (added 28 Sep
+2026 after Tempo confirmed all rows are active):**
 
 ```text
 Berapa promo aktif Desember 2024?
+```
+
+Expected trace: `resolve_semantic_object` → `promo_observation_count`
+(`PR-03`) → governed query, same as Scenario D. The final answer must state
+that every row in this data is a confirmed-active observation and that this
+is a count of observations, not unique products, redemptions, or sales.
+
+**Scenario D2 — SAT Promo semantic controls, must still fail closed:**
+
+```text
+Berapa promo tidak aktif Desember 2024?
 Berapa revenue atau ROI dari promo?
 Bagaimana tren promo Oktober sampai Desember 2024?
 ```
 
 Expected trace: each request returns `unsupported` with reason
 `promo_business_definition_unavailable`. No governed query, SQL fallback, or
-Analysis Agent is called.
+Analysis Agent is called. The first question is blocked because the "all
+rows active" confirmation never established a way to distinguish an inactive
+subset.
 
 **Negative control:**
 

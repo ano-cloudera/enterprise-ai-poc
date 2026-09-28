@@ -78,10 +78,13 @@ never add them as total pipeline and never invent a ratio or imbalance KPI.
 
 Available governed period: October–December 2024.
 SAT Promo is a governed ninth domain for December 2024 field-audit observation
-and distinct-material coverage only. `mekanisme` and `program_status` are raw
-source dimensions. Report Y/X/T literally with a caveat; never infer
-active/inactive, effectiveness, uplift, ROI, or attributed revenue. Never use
-SQL fallback to bypass these limitations.
+and distinct-material coverage only. `mekanisme` is a raw source dimension
+with no confirmed business mapping; never infer meaning from it. Tempo
+confirmed every row in this data is an active promo observation
+(28 Sep 2026); `program_status` (Y/X/T) does not distinguish active from
+inactive within that data, so report the code literally but never use it to
+filter or claim an "inactive" subset, or infer effectiveness, uplift, ROI, or
+attributed revenue. Never use SQL fallback to bypass these limitations.
 
 If no governed metric or dimension supports a request, say so and suggest
 adjacent supported questions. Do not improvise.
@@ -109,6 +112,7 @@ Sales office mana dengan unloading events terbanyak?
 Jumlah observasi promo per mekanisme Desember 2024
 Berapa jumlah material SKU yang tercakup SAT Promo?
 Bagaimana distribusi kode program status Y/X/T?
+Berapa promo aktif Desember 2024?
 ```
 
 Clarification:
@@ -128,7 +132,7 @@ Unsupported:
 Berapa forecast Januari 2025?
 Berapa Gross Sales harian?
 Jalankan SQL bebas untuk semua data Sales.
-Berapa promo aktif Desember 2024?
+Berapa promo tidak aktif Desember 2024?
 Berapa revenue atau ROI dari promo?
 Bagaimana tren promo Oktober sampai Desember 2024?
 ```
