@@ -30,6 +30,16 @@
 --
 -- do_qty/po_qty are NOT multiplied by *100, matching the existing
 -- gold.corr_service_material_month.
+--
+-- DEPLOYED AND VERIFIED IN WORKBENCH (28 Sep 2026): DESCRIBE confirmed the
+-- schema matches this file exactly (calmonth int, material/sales_off
+-- string, service_do_qty/service_po_qty/service_fill_rate double,
+-- row_count bigint). 0 duplicate-grain rows. Reconciliation against the
+-- existing governed monthly_executive.svc_do_qty/svc_po_qty totals
+-- matched EXACTLY for all three months (202410: 98,047,594/129,721,601;
+-- 202411: 103,665,145/133,014,803; 202412: 102,306,077/128,654,882) - no
+-- rounding noise at all here, unlike the Sales/B2B expansions, since
+-- these are raw integer-like quantities rather than DECIMAL(38,2) money.
 
 CREATE VIEW gold.corr_service_sales_office_material_month AS
 SELECT
