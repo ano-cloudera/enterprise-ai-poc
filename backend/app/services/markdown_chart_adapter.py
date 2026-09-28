@@ -25,13 +25,13 @@ _TABLE_SEPARATOR_RE = re.compile(r"^\|?[\s:|-]+\|?$")
 _HEADING_RE = re.compile(r"^#{1,6}\s+(.*)$")
 _BULLET_RE = re.compile(r"^\s*[-*]\s+(.*)$")
 
-# Sections whose bullets/paragraphs map to ExecutiveAnswer.drivers - these
-# are the "why"/context sections the Analysis Agent's Backstory produces
-# (see "Preferred final-answer structure" / "Ringkasan").
-_DRIVER_HEADINGS = {"ringkasan", "implikasi bisnis", "summary", "key drivers"}
-# Sections that map to ExecutiveAnswer.caveats - governance/limitation
-# framing the Backstory calls "Catatan penggunaan data".
-_CAVEAT_HEADINGS = {"catatan penggunaan data", "catatan", "caveats", "limitations"}
+# Substring match (not exact) on a section's heading, since the Analysis
+# Agent's Backstory names these sections loosely in practice (observed:
+# "Ringkasan", "Implikasi Bisnis", but also "Analisis", "Status &
+# Referensi Data" for what's really a caveat section) - matching by
+# keyword survives that variation better than an exact-heading set did.
+_DRIVER_HEADING_KEYWORDS = ("ringkasan", "implikasi", "analisis", "analysis", "summary", "key driver", "insight")
+_CAVEAT_HEADING_KEYWORDS = ("catatan", "caveat", "limitation", "governance", "status")
 
 
 @dataclass
@@ -44,8 +44,16 @@ class ParsedMarkdownAnswer:
 def parse(markdown: str, question: str) -> ParsedMarkdownAnswer:
     sections = _split_sections(markdown)
     summary = _extract_summary(sections)
-    drivers = _collect_bullets(sections, _DRIVER_HEADINGS)
-    caveats = _collect_bullets(sections, _CAVEAT_HEADINGS)
+    drivers = _collect_by_heading_keywords(sections, _DRIVER_HEADING_KEYWORDS)
+    caveats = _collect_by_heading_keywords(sections, _CAVEAT_HEADING_KEYWORDS)
+    if not drivers and not caveats:
+        # No section matched any known keyword at all (fully unfamiliar
+        # heading style) - fall back to every paragraph after the first
+        # one (which _extract_summary already used) and after any table,
+        # since the Backstory's answers consistently follow
+        # title -> data/table -> analysis -> governance note even when the
+        # exact headings vary.
+        drivers = _fallback_paragraphs_after_summary(sections, summary)
     answer = ExecutiveAnswer(summary=summary, drivers=drivers, recommended_actions=[], caveats=caveats)
 
     table = _extract_first_table(markdown)
@@ -91,20 +99,63 @@ def _extract_summary(sections: list[tuple[str, list[str]]]) -> str:
     return ""
 
 
-def _collect_bullets(sections: list[tuple[str, list[str]]], headings: set[str]) -> list[str]:
+def _collect_by_heading_keywords(
+    sections: list[tuple[str, list[str]]],
+    keywords: tuple[str, ...],
+) -> list[str]:
+    """Excludes purely technical LINES (e.g. "Metric ID: SI-01"), not whole
+    sections, because a section like "Status & Referensi Data" can mix a
+    genuine governance caveat bullet with a technical reference bullet
+    under one heading - observed in real Analysis Agent output."""
     bullets: list[str] = []
     for heading, lines in sections:
-        if heading.strip().lower() not in headings:
+        lowered_heading = heading.strip().lower()
+        if not lowered_heading or not any(term in lowered_heading for term in keywords):
             continue
-        for line in lines:
-            match = _BULLET_RE.match(line)
-            if match:
-                bullets.append(_strip_markdown_emphasis(match.group(1).strip()))
-        if not bullets:
-            text = "\n".join(lines).strip()
-            if text:
-                bullets.append(_strip_markdown_emphasis(text))
+        section_bullets = [
+            _strip_markdown_emphasis(match.group(1).strip())
+            for line in lines
+            if (match := _BULLET_RE.match(line)) and not _is_technical_reference_line(match.group(1))
+        ]
+        if section_bullets:
+            bullets.extend(section_bullets)
+            continue
+        for paragraph in "\n".join(lines).strip().split("\n\n"):
+            paragraph = paragraph.strip()
+            if paragraph and not paragraph.startswith("|") and not _is_technical_reference_line(paragraph):
+                bullets.append(_strip_markdown_emphasis(paragraph.replace("\n", " ")))
     return bullets
+
+
+_TECHNICAL_FIELD_LABEL_RE = re.compile(r"^\**\s*(metric[\s_]?id|source[\s_]?view|referensi\s+data|reference)\s*[:\**]", re.IGNORECASE)
+
+
+def _is_technical_reference_line(text: str) -> bool:
+    """Only matches a leading field-label style line ("**Metric ID:**
+    SI-01") - deliberately not a substring check anywhere in the text,
+    since a genuine business caveat can naturally contain the word
+    "referensi" in prose (e.g. "...digunakan sebagai referensi awal...")
+    without being a technical identifier line."""
+    return bool(_TECHNICAL_FIELD_LABEL_RE.match(text.strip()))
+
+
+def _fallback_paragraphs_after_summary(sections: list[tuple[str, list[str]]], summary: str) -> list[str]:
+    paragraphs: list[str] = []
+    skipped_summary = False
+    for _heading, lines in sections:
+        text = "\n".join(lines).strip()
+        if not text:
+            continue
+        for paragraph in text.split("\n\n"):
+            paragraph = paragraph.strip()
+            if not paragraph or paragraph.startswith(("|", "-", "*", ">")):
+                continue
+            cleaned = _strip_markdown_emphasis(paragraph.replace("\n", " "))
+            if not skipped_summary and cleaned == summary:
+                skipped_summary = True
+                continue
+            paragraphs.append(cleaned)
+    return paragraphs
 
 
 def _strip_markdown_emphasis(text: str) -> str:

@@ -106,3 +106,40 @@ def test_single_column_table_produces_no_chart() -> None:
     assert parsed.data.columns == ["Domain"]
     assert len(parsed.data.rows) == 2
     assert parsed.chart_spec is None
+
+
+def test_implikasi_bisnis_section_becomes_a_driver() -> None:
+    parsed = markdown_chart_adapter.parse(GROSS_SALES_Q4_MARKDOWN, "Berapa total Gross Sales TEMPO selama Q4 2024?")
+    assert any("skala pendapatan bruto" in driver for driver in parsed.answer.drivers)
+
+
+def test_mixed_governance_and_reference_section_keeps_only_the_business_caveat() -> None:
+    # "Status & Referensi Data" mixes a genuine governance caveat bullet
+    # with technical Metric ID/Source View bullets under one heading, as
+    # seen in real Analysis Agent output - only the caveat bullets should
+    # survive, never the raw metric_id/source_view identifiers.
+    parsed = markdown_chart_adapter.parse(GROSS_SALES_Q4_MARKDOWN, "Berapa total Gross Sales TEMPO selama Q4 2024?")
+    assert any("menunggu konfirmasi bisnis final" in caveat for caveat in parsed.answer.caveats)
+    assert not any("SI-01" in caveat or "rpt_sap_monthly" in caveat for caveat in parsed.answer.caveats)
+
+
+def test_falls_back_to_later_paragraphs_when_no_heading_keyword_matches() -> None:
+    # None of these headings contain any _DRIVER_HEADING_KEYWORDS /
+    # _CAVEAT_HEADING_KEYWORDS substring, exercising the fully-unfamiliar-
+    # heading-style fallback path.
+    markdown = """### Hasil Utama
+
+Total Gross Sales TEMPO Q4 2024 adalah Rp 3.8T.
+
+#### Faktor Pendorong
+
+Angka ini naik dibandingkan kuartal sebelumnya, didorong oleh kenaikan Sell-In di bulan Desember.
+
+#### Perlu Diketahui
+
+Data ini masih bersifat sementara sampai proses rekonsiliasi akhir bulan selesai.
+"""
+    parsed = markdown_chart_adapter.parse(markdown, "Berapa Gross Sales Q4 2024?")
+    assert parsed.answer.summary == "Total Gross Sales TEMPO Q4 2024 adalah Rp 3.8T."
+    assert any("Sell-In di bulan Desember" in driver for driver in parsed.answer.drivers)
+    assert any("rekonsiliasi akhir bulan" in driver for driver in parsed.answer.drivers)
