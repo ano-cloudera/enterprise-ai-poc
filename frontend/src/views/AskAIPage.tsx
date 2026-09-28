@@ -3,6 +3,8 @@
 import { FormEvent, KeyboardEvent, MouseEvent, useEffect, useRef, useState } from 'react'
 import { ArrowUp, CheckCircle2, ChevronRight, Database, Info, Lightbulb, MessageSquareText, Plus, Trash2, UserRound } from 'lucide-react'
 import { useSearchParams } from 'next/navigation'
+import ReactMarkdown from 'react-markdown'
+import remarkGfm from 'remark-gfm'
 import { AnswerChart } from '../components/AnswerChart'
 import { DataTable } from '../components/DataTable'
 import { ScanMark } from '../components/ScanMark'
@@ -196,9 +198,6 @@ export function AskAIPage() {
 }
 
 function StructuredAnswer({ response, onSelectFollowUp }: { response: ChatResponse; onSelectFollowUp: (question: string) => void }) {
-  const drivers = response.answer.drivers.map(formatFloatingDriver).filter(Boolean).slice(0, 3)
-  const actions = response.answer.recommended_actions.slice(0, 3)
-  const caveats = response.answer.caveats.slice(0, 3)
   // Whether to show the table is this message's own concern - drawn from
   // its own ui_actions, never from the shared dashboard state.chat.table
   // flag. That flag (and its .columns) is a single global value shared by
@@ -214,6 +213,31 @@ function StructuredAnswer({ response, onSelectFollowUp }: { response: ChatRespon
     return <p aria-label="AI response" className="min-w-0 break-words text-sm leading-6 text-slate-700">{formatFloatingAnswerText(response.answer.summary)}</p>
   }
 
+  // The agent_studio chat backend's answers vary in shape per question
+  // (a data analysis, a capability list, a clarification) more than the
+  // fixed Executive Summary / Key Drivers / Recommended Actions card can
+  // represent without either flattening structure (numbered lists) or
+  // needing ever-more section-heading heuristics (see
+  // markdown_chart_adapter.py's history) just to sort content into that
+  // shape. Rendering the Markdown Agent Studio already produced sidesteps
+  // that entirely - the chart/table below is unaffected either way, since
+  // it's built from chart_spec/data, not from this markdown string.
+  if (response.answer.markdown) {
+    return (
+      <div aria-label="AI response" className="min-w-0">
+        <MarkdownAnswer markdown={response.answer.markdown} />
+        {(showChart || showTable) && <section className="mt-5"><div className="text-xs font-extrabold text-cloudera-navy">Supporting Evidence</div>{showChart && <AnswerChart chart={response.chart_spec} />}{showTable && <DataTable columns={response.data.columns} rows={response.data.rows} metric={response.metadata.resolved_context.metric} unitFormat={response.data.unit_format} />}</section>}
+        <div role="group" aria-label="Suggested follow-up questions" className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
+          {followUps.map(question => <button type="button" key={question} onClick={() => onSelectFollowUp(question)} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-left text-[11px] font-semibold leading-4 text-slate-600 transition hover:border-orange-200 hover:bg-orange-50 hover:text-cloudera-navy">{question}</button>)}
+        </div>
+      </div>
+    )
+  }
+
+  const drivers = response.answer.drivers.map(formatFloatingDriver).filter(Boolean).slice(0, 3)
+  const actions = response.answer.recommended_actions.slice(0, 3)
+  const caveats = response.answer.caveats.slice(0, 3)
+
   return (
     <div aria-label="AI response" className="min-w-0">
       <section>
@@ -227,6 +251,14 @@ function StructuredAnswer({ response, onSelectFollowUp }: { response: ChatRespon
       <div role="group" aria-label="Suggested follow-up questions" className="mt-4 flex flex-wrap gap-2 border-t border-slate-100 pt-3">
         {followUps.map(question => <button type="button" key={question} onClick={() => onSelectFollowUp(question)} className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1.5 text-left text-[11px] font-semibold leading-4 text-slate-600 transition hover:border-orange-200 hover:bg-orange-50 hover:text-cloudera-navy">{question}</button>)}
       </div>
+    </div>
+  )
+}
+
+function MarkdownAnswer({ markdown }: { markdown: string }) {
+  return (
+    <div className="min-w-0 break-words text-sm leading-6 text-slate-700 [&_blockquote]:my-3 [&_blockquote]:rounded-r-lg [&_blockquote]:border-l-[3px] [&_blockquote]:border-cloudera-orange [&_blockquote]:bg-orange-50/60 [&_blockquote]:px-4 [&_blockquote]:py-2 [&_blockquote]:font-bold [&_blockquote]:text-cloudera-navy [&_code]:rounded [&_code]:bg-slate-100 [&_code]:px-1.5 [&_code]:py-0.5 [&_code]:text-xs [&_code]:text-cloudera-navy [&_h3]:mb-2 [&_h3]:text-sm [&_h3]:font-extrabold [&_h3]:text-cloudera-navy [&_h4]:mb-2 [&_h4]:mt-4 [&_h4]:text-xs [&_h4]:font-extrabold [&_h4]:text-cloudera-navy [&_li]:mb-1 [&_ol]:my-2 [&_ol]:list-decimal [&_ol]:pl-5 [&_p]:mb-3 [&_strong]:text-cloudera-navy [&_table]:my-3 [&_table]:w-full [&_td]:border-b [&_td]:border-slate-100 [&_td]:px-3 [&_td]:py-2 [&_th]:border-b [&_th]:border-slate-200 [&_th]:px-3 [&_th]:py-2 [&_th]:text-left [&_th]:font-bold [&_th]:text-cloudera-violet [&_ul]:my-2 [&_ul]:list-disc [&_ul]:pl-5">
+      <ReactMarkdown remarkPlugins={[remarkGfm]}>{markdown}</ReactMarkdown>
     </div>
   )
 }

@@ -38,9 +38,13 @@ Angka ini memberikan gambaran tentang skala pendapatan bruto perusahaan pada akh
 """
 
 
-def test_extracts_summary_from_first_paragraph() -> None:
+def test_carries_the_markdown_verbatim_for_frontend_rendering() -> None:
+    # The frontend renders answer.markdown directly (react-markdown)
+    # instead of a reconstructed summary/drivers/caveats card - this must
+    # be byte-for-byte what Agent Studio produced, not a reformatted or
+    # partially-extracted version of it.
     parsed = markdown_chart_adapter.parse(GROSS_SALES_Q4_MARKDOWN, "Berapa total Gross Sales TEMPO selama Q4 2024?")
-    assert "governed" in parsed.answer.summary.lower() or "terkelola" in parsed.answer.summary.lower()
+    assert parsed.answer.markdown == GROSS_SALES_Q4_MARKDOWN
 
 
 def test_extracts_table_rows_with_normalized_numbers() -> None:
@@ -92,6 +96,7 @@ def test_no_table_returns_empty_data_and_no_chart() -> None:
     assert parsed.data.columns == []
     assert parsed.data.rows == []
     assert parsed.chart_spec is None
+    assert parsed.answer.markdown == "Halo! Saya SCAN, asisten TEMPO Anda."
 
 
 def test_single_column_table_produces_no_chart() -> None:
@@ -108,59 +113,18 @@ def test_single_column_table_produces_no_chart() -> None:
     assert parsed.chart_spec is None
 
 
-def test_implikasi_bisnis_section_becomes_a_driver() -> None:
-    parsed = markdown_chart_adapter.parse(GROSS_SALES_Q4_MARKDOWN, "Berapa total Gross Sales TEMPO selama Q4 2024?")
-    assert any("skala pendapatan bruto" in driver for driver in parsed.answer.drivers)
-
-
-def test_mixed_governance_and_reference_section_keeps_only_the_business_caveat() -> None:
-    # "Status & Referensi Data" mixes a genuine governance caveat bullet
-    # with technical Metric ID/Source View bullets under one heading, as
-    # seen in real Analysis Agent output - only the caveat bullets should
-    # survive, never the raw metric_id/source_view identifiers.
-    parsed = markdown_chart_adapter.parse(GROSS_SALES_Q4_MARKDOWN, "Berapa total Gross Sales TEMPO selama Q4 2024?")
-    assert any("menunggu konfirmasi bisnis final" in caveat for caveat in parsed.answer.caveats)
-    assert not any("SI-01" in caveat or "rpt_sap_monthly" in caveat for caveat in parsed.answer.caveats)
-
-
-def test_falls_back_to_later_paragraphs_when_no_heading_keyword_matches() -> None:
-    # None of these headings contain any _DRIVER_HEADING_KEYWORDS /
-    # _CAVEAT_HEADING_KEYWORDS substring, exercising the fully-unfamiliar-
-    # heading-style fallback path.
-    markdown = """### Hasil Utama
-
-Total Gross Sales TEMPO Q4 2024 adalah Rp 3.8T.
-
-#### Faktor Pendorong
-
-Angka ini naik dibandingkan kuartal sebelumnya, didorong oleh kenaikan Sell-In di bulan Desember.
-
-#### Perlu Diketahui
-
-Data ini masih bersifat sementara sampai proses rekonsiliasi akhir bulan selesai.
-"""
-    parsed = markdown_chart_adapter.parse(markdown, "Berapa Gross Sales Q4 2024?")
-    assert parsed.answer.summary == "Total Gross Sales TEMPO Q4 2024 adalah Rp 3.8T."
-    assert any("Sell-In di bulan Desember" in driver for driver in parsed.answer.drivers)
-    assert any("rekonsiliasi akhir bulan" in driver for driver in parsed.answer.drivers)
-
-
-def test_numbered_capability_list_stays_as_separate_drivers_not_one_run_on_paragraph() -> None:
-    # Captured shape from a real Master Agent greeting answer ("selain itu
-    # bisa bantu apa lagi ya?") - a numbered list under a heading that
-    # matches no known keyword, which used to collapse into a single
-    # fallback paragraph mashing all five domains together.
+def test_numbered_list_markdown_is_preserved_verbatim_not_flattened() -> None:
+    # Previously this exact shape (a numbered five-domain capability list)
+    # was flattened by the old summary/drivers extraction into one run-on
+    # paragraph. Now the raw Markdown - numbered list intact - is what the
+    # frontend renders, so there is nothing left to flatten.
     markdown = """### Kemampuan Saya sebagai Asisten TEMPO
-
-Halo! Saya adalah asisten TEMPO dari SCAN. Saya dapat membantu Anda dengan pertanyaan bisnis terkait data TEMPO untuk periode Oktober-Desember 2024 dalam lima domain berikut:
 
 1. Stock Tempo: Stok gudang internal Tempo.
 2. Sales / Sell-In: Penjualan dari Tempo ke pelanggan atau distributor.
 3. B2B / Sell-Out: Penjualan mitra ke channel atau outlet.
 """
     parsed = markdown_chart_adapter.parse(markdown, "selain itu bisa bantu apa lagi ya?")
-    assert parsed.answer.drivers == [
-        "Stock Tempo: Stok gudang internal Tempo.",
-        "Sales / Sell-In: Penjualan dari Tempo ke pelanggan atau distributor.",
-        "B2B / Sell-Out: Penjualan mitra ke channel atau outlet.",
-    ]
+    assert parsed.answer.markdown == markdown
+    assert "1. Stock Tempo" in parsed.answer.markdown
+    assert "2. Sales / Sell-In" in parsed.answer.markdown

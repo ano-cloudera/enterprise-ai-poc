@@ -94,6 +94,14 @@ class ExecutiveAnswer(StrictModel):
     drivers: list[str] = Field(default_factory=list)
     recommended_actions: list[str] = Field(default_factory=list)
     caveats: list[str] = Field(default_factory=list)
+    # Verbatim Markdown from the agent_studio chat backend's Analysis
+    # Agent output (see markdown_chart_adapter.py) - when present, the
+    # frontend renders this directly (react-markdown) instead of
+    # reconstructing a summary/drivers/caveats card, since the source
+    # Markdown's own heading/list structure varies per answer and no
+    # longer needs to be parsed into that fixed shape. None for the
+    # "graph" chat backend, which never produces free-form Markdown.
+    markdown: str | None = None
 
 
 UIActionType = Literal[

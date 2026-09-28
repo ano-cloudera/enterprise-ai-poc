@@ -58,6 +58,11 @@ export type ChatResponse = {
     drivers: string[]
     recommended_actions: string[]
     caveats: string[]
+    // Verbatim Markdown from the agent_studio chat backend (see
+    // markdown_chart_adapter.py) - when present, StructuredAnswer renders
+    // this directly (react-markdown) instead of reconstructing a card
+    // from summary/drivers/caveats. Absent/null for the "graph" backend.
+    markdown?: string | null
   }
   data: {
     columns: string[]

@@ -294,4 +294,43 @@ describe('Ask AI business UX', () => {
     expect(screen.queryByText('Kenapa sales turun?')).toBeNull()
     screen.getByText('No conversations yet.')
   })
+
+  it('renders answer.markdown verbatim (numbered list intact) instead of the fixed Key Drivers card', async () => {
+    // Regression: the agent_studio backend's Master Agent greeting answer
+    // used a numbered five-domain capability list, which the old
+    // summary/drivers extraction flattened into one run-on paragraph
+    // mashing all five domains together. Rendering the Markdown directly
+    // sidesteps that failure mode entirely - there's no structure left to
+    // flatten.
+    vi.mocked(api.chat).mockResolvedValue({
+      ...response,
+      answer: {
+        summary: 'unused when markdown is present',
+        drivers: [], recommended_actions: [], caveats: [],
+        markdown: '### Kemampuan Saya\n\n1. Stock Tempo: Stok gudang internal Tempo.\n2. Sales / Sell-In: Penjualan dari Tempo ke pelanggan.\n3. B2B / Sell-Out: Penjualan mitra ke channel atau outlet.',
+      },
+    } as never)
+    render(<AskAIPage />)
+    fireEvent.change(screen.getByPlaceholderText('Ask a follow-up question...'), { target: { value: 'selain itu bisa bantu apa lagi ya?' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send question' }))
+
+    const answer = await screen.findByLabelText('AI response')
+    screen.getByRole('heading', { name: 'Kemampuan Saya', level: 3 })
+    const items = within(answer).getAllByRole('listitem')
+    expect(items).toHaveLength(3)
+    expect(items[0].textContent).toContain('Stock Tempo: Stok gudang internal Tempo.')
+    expect(items[1].textContent).toContain('Sales / Sell-In: Penjualan dari Tempo ke pelanggan.')
+    expect(items[2].textContent).toContain('B2B / Sell-Out: Penjualan mitra ke channel atau outlet.')
+    expect(screen.queryByText('Key Drivers')).toBeNull()
+    expect(screen.queryByText('Executive Summary')).toBeNull()
+  })
+
+  it('still uses the fixed Executive Summary / Key Drivers card when answer.markdown is absent (graph backend)', async () => {
+    render(<AskAIPage />)
+    fireEvent.change(screen.getByPlaceholderText('Ask a follow-up question...'), { target: { value: 'Kenapa sales turun?' } })
+    fireEvent.click(screen.getByRole('button', { name: 'Send question' }))
+
+    await screen.findByText('Executive Summary')
+    screen.getByText('Key Drivers')
+  })
 })

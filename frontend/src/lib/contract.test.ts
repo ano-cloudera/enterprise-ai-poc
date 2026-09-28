@@ -51,4 +51,18 @@ describe('validateChatResponse', () => {
     const response = baseResponse({ data: { columns: [], rows: [], made_up_field: 'x' } })
     expect(() => validateChatResponse(response)).toThrow()
   })
+
+  it('accepts a response with answer.markdown set to a string (agent_studio backend)', () => {
+    const response = baseResponse({ answer: { summary: 'Gross Sales naik.', drivers: [], recommended_actions: [], caveats: [], markdown: '### Ringkasan\n\nGross Sales naik.' } })
+    expect(() => validateChatResponse(response)).not.toThrow()
+  })
+
+  it('accepts a response without answer.markdown (graph backend, backward compatible)', () => {
+    expect(() => validateChatResponse(baseResponse())).not.toThrow()
+  })
+
+  it('rejects a non-string, non-null answer.markdown', () => {
+    const response = baseResponse({ answer: { summary: 'x', drivers: [], recommended_actions: [], caveats: [], markdown: 42 } })
+    expect(() => validateChatResponse(response)).toThrow()
+  })
 })

@@ -37,8 +37,9 @@ export function validateChatResponse(value: unknown): ChatResponse {
   if (typeof value.question !== 'string' || !isRecord(value.answer) || !isRecord(value.data) || !isRecord(value.metadata)) throw new Error('Invalid chat response shape')
   if (!Array.isArray(value.ui_actions) || !value.ui_actions.every(isAction)) throw new Error('Invalid UI action payload')
   const answer = value.answer
-  if (!exactKeys(answer, ['summary', 'drivers', 'recommended_actions', 'caveats'])) throw new Error('Unexpected answer field')
+  if (!exactKeys(answer, ['summary', 'drivers', 'recommended_actions', 'caveats', 'markdown'])) throw new Error('Unexpected answer field')
   if (typeof answer.summary !== 'string' || !Array.isArray(answer.drivers) || !Array.isArray(answer.recommended_actions) || !Array.isArray(answer.caveats)) throw new Error('Invalid answer payload')
+  if ('markdown' in answer && answer.markdown !== null && answer.markdown !== undefined && typeof answer.markdown !== 'string') throw new Error('Invalid markdown payload')
   if (!Array.isArray(value.data.columns) || !Array.isArray(value.data.rows)) throw new Error('Invalid data payload')
   if (!exactKeys(value.data, ['columns', 'rows', 'unit_format'])) throw new Error('Unexpected data field')
   if ('unit_format' in value.data && value.data.unit_format !== null && typeof value.data.unit_format !== 'string') throw new Error('Invalid unit_format payload')
