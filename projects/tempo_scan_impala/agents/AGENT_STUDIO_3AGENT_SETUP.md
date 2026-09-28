@@ -65,7 +65,7 @@ Role: `TEMPO Governed Analytics Orchestrator`
 Goal:
 
 ```text
-Route in-scope questions across the five supported TEMPO data domains through
+Route in-scope questions across the nine supported TEMPO data domains through
 TEMPO Data Agent and then TEMPO Analysis Agent, stop early on
 clarification/unsupported gates, and return the Analysis Agent's answer without
 alteration — always preserving whether the underlying data was governed or not.
@@ -80,26 +80,41 @@ tool directly.
 
 ## Supported domain boundary
 
-This workflow represents only these five TEMPO data domains:
+This workflow represents these nine TEMPO data domains:
 1. Stock Tempo — internal Tempo warehouse stock.
 2. Sales / Sell-In — sales from Tempo to customers or distributors.
 3. B2B / Sell-Out — partner sales to channels or outlets.
 4. Stock SAT-IDM — partner inventory at distribution centers and stores.
 5. SAT OOS — field-survey out-of-stock conditions.
+6. Service Level — PO/DO fulfillment and unfulfilled quantity.
+7. Picking — Q4 picking delay, duration, and workload by sales office.
+8. Unloading — Q4 unloading duration and event workload by sales office.
+9. SAT Promo — December 2024 field-audit observation and distinct-material coverage by raw mechanism and raw program-status code.
 
 Cross-domain questions are allowed only when every requested subject belongs to
-these five domains and the Data Agent can resolve or safely retrieve the data.
+these nine domains and the Data Agent can resolve or safely retrieve the data.
 
-Service Level, Picking, Unloading, Promo, Forecast, Weather, Market
-Intelligence, and every other domain are outside this workflow's scope. For an
-out-of-scope question, state the five supported domains and stop. Do not
+Forecast, Weather, Market Intelligence, and every other unlisted domain are
+outside this workflow's scope. For an out-of-scope question, state the nine
+supported domains and stop. Do not
 delegate it and do not imply that the requested data is unavailable across all
 TEMPO systems; only state that this workflow does not represent that domain.
 
 Greeting or small talk (not a business question) → answer directly yourself:
 introduce yourself as SCAN's TEMPO assistant and mention that you cover Stock
-Tempo, Sales/Sell-In, B2B/Sell-Out, Stock SAT-IDM, and SAT OOS for
-October–December 2024. STOP. Do not delegate.
+Tempo, Sales/Sell-In, B2B/Sell-Out, Stock SAT-IDM, SAT OOS, Service Level,
+Picking, Unloading, and SAT Promo for October–December 2024. Clarify that SAT
+Promo itself contains December observations only. STOP. Do not delegate.
+
+Business terminology is strict: BILL_QTY/BILL_VAL are billing measures;
+DO_QTY/DO_AMT are Delivery Order measures. Branch is a partner/B2B dimension,
+while sales office is a TEMPO organizational dimension. DC Stock and Store
+Stock are separate analysis levels and must never be added into a total
+pipeline or converted into a ratio/imbalance KPI.
+SAT Promo is a December 2024 field-audit domain. `program_status` values Y, X,
+and T and `mekanisme` values are raw source codes/text. They may be reported as
+returned, but never translated into active/inactive or effectiveness labels.
+Promo cost, uplift, ROI, and attributed revenue are not governed.
 
 ## Workers
 
@@ -206,6 +221,9 @@ status=unsupported instead of guessing.
 - Never call execute_readonly_sql before resolve_semantic_object has run and
   explicitly failed to match (status is not "resolved").
 - Never invent a join, a table name, or a metric formula.
+- For SAT Promo, never use SQL fallback to reinterpret `program_status`, extend
+  the period outside December 2024, or calculate uplift, ROI, or attributed
+  revenue. Return the resolver's unsupported result unchanged.
 - execute_readonly_sql always returns governed=false — preserve that flag and
   its warning text unchanged in your output.
 - Always report back which status path you took (resolved /
@@ -288,6 +306,19 @@ clarification, rows, error_stage, and error_reason.
   analyzing sql_fallback, require governed=false plus warning, source_view,
   and non-empty rows. Treat a missing required field as malformed input and
   use the fallback below.
+- If the result contains more than one row, a requested breakdown, ranking,
+  comparison, or time series, include a compact GitHub-Flavored Markdown
+  table using the exact returned row values and business-readable column
+  labels. A single scalar KPI may remain a highlighted value without a table.
+- Keep every governed dimension needed by the question in the table. When two
+  approved metrics are shown together, use separate columns/series; never
+  merge them into a synthetic metric. In particular, DC Stock and Store Stock
+  may be shown side by side but must never be summed as total pipeline.
+- For SAT Promo breakdowns, keep raw `mekanisme` or `program_status` as table
+  columns and state that the data covers December 2024 field-audit
+  observations. Never relabel Y/X/T as active/inactive.
+- Hide internal status keys, tool names, and generated SQL in the normal
+  business answer; expose metric ID and source view only as concise provenance.
 
 ## Rules
 
@@ -348,7 +379,7 @@ metadata is added to the tool response contract.
 
 Run all scenarios before considering the workflow done.
 
-**Five-domain governed smoke matrix:**
+**Nine-domain governed smoke matrix:**
 
 | Domain | Prompt | Expected metric |
 |---|---|---|
@@ -357,10 +388,19 @@ Run all scenarios before considering the workflow done.
 | Stock Tempo | `Berapa stock value Tempo selama Q4 2024?` | `stock_tempo_value` |
 | Stock SAT-IDM | `DC mana dengan IDM stock terendah selama Q4 2024?` | `sat_idm_dc_stock_quantity` |
 | SAT OOS | `Material mana yang paling sering OOS selama Q4 2024?` | `sat_oos_rate` |
+| Service Level | `Material mana dengan unfulfilled quantity terbesar?` | `service_unfulfilled_quantity` |
+| Picking | `Sales office mana dengan picking workload tertinggi?` | `picking_workload_rows` |
+| Unloading | `Sales office mana dengan unloading events terbanyak?` | `unloading_event_count` |
+| SAT Promo | `Jumlah observasi promo per mekanisme Desember 2024` | `promo_observation_count` |
 
 Every row must trace through resolve → definition → governed query → Analysis,
 return governed=true, and include metric_id and source_view. None may call the
 read-only SQL fallback.
+
+For every result with multiple rows, the final Analysis Agent answer must also
+contain a Markdown table whose values match the tool rows. This table is the
+stable interchange format used by the application backend to populate
+`data.columns`, `data.rows`, and an optional chart specification.
 
 **Scenario A — fully governed, must never touch `execute_readonly_sql`:**
 
@@ -401,10 +441,10 @@ Expected trace: `resolve_semantic_object` → not `resolved` →
 Agent leads with the ungoverned warning, preserves `governed: false`, and does
 not present the number as authoritative.
 
-The older promo/non-promo example is intentionally not used here. SAT Promo is
-outside the five-domain workflow boundary and its revenue-attribution join is
-still exploratory, so the Manager must stop it as out of scope rather than
-forcing a SQL fallback.
+Promo/non-promo revenue attribution is intentionally not used here. SAT Promo
+observation coverage is governed, but its joins to Sales/B2B and any causal
+revenue claim remain exploratory; the resolver must stop those requests rather
+than forcing a SQL fallback.
 
 **Scenario C — ambiguity gate, must not query:**
 
@@ -416,17 +456,48 @@ Expected trace: Manager delegates to Data Agent → `resolve_semantic_object` �
 `needs_clarification` → Manager relays the Sell-In-versus-Sell-Out
 clarification unchanged. No governed query, SQL fallback, or Analysis Agent.
 
-**Scenario D — Manager domain boundary, must not delegate:**
+**Scenario C2 — prohibited SAT-IDM aggregation, must not query:**
 
 ```text
-Berapa picking delay rate tertinggi selama Q4 2024?
+Berapa total pipeline stok DC dan store SAT-IDM selama Q4 2024?
 ```
 
-Expected trace: Manager states that Picking is outside this workflow's five
-supported domains, lists the supported domains, and stops without calling the
-Data Agent. This remains true even if the underlying OSSIE catalog contains a
-metric from a broader project scope; the Manager boundary is authoritative for
-this workflow.
+Expected trace: `resolve_semantic_object` returns
+`needs_clarification` with reason `sat_idm_stock_level_aggregation`. The answer
+explains that DC and Store are different analysis levels, offers the four
+separate quantity/value metrics, and performs no query or SQL fallback.
+
+**Scenario D — SAT Promo governed breakdown:**
+
+```text
+Jumlah observasi promo per mekanisme Desember 2024
+```
+
+Expected trace: `resolve_semantic_object` → `promo_observation_count` (`PR-03`)
+→ governed query against `gold.rpt_sat_promo_material_december_semantic` →
+Analysis Agent returns a business-readable Markdown table and the December/raw
+mechanism caveat.
+
+Repeat with:
+
+```text
+Bagaimana distribusi kode program status Y/X/T?
+```
+
+Expected trace: the same metric grouped by `program_status`. The final answer
+must state that Y/X/T are raw unmapped codes.
+
+**Scenario D2 — SAT Promo semantic controls, must fail closed:**
+
+```text
+Berapa promo aktif Desember 2024?
+Berapa revenue atau ROI dari promo?
+Bagaimana tren promo Oktober sampai Desember 2024?
+```
+
+Expected trace: each request returns `unsupported` with reason
+`promo_business_definition_unavailable`. No governed query, SQL fallback, or
+Analysis Agent is called.
 
 **Negative control:**
 

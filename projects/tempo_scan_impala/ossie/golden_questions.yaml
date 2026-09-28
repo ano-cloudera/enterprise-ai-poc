@@ -432,9 +432,43 @@ questions:
     chart_primary: BAR
     domain_agent: data_promo
     question: Jumlah observasi promo per mekanisme Desember 2024?
-    expected_status: unsupported
-    reason: SAT Promo is not in governed OSSIE v1 datasets.
-    suggested_question: Material apa saja yang tercatat dalam program promo?
+    expected_status: supported_with_caveat
+    metric: promo_observation_count
+    dataset: sat_promo_material_december
+    dimensions: [mekanisme]
+    caveat: December 2024 field-audit observations only; mechanism labels are raw source text.
+
+  - id: catalog_p02_promo_program_status
+    catalog_question_id: P02
+    chart_primary: DONUT
+    domain_agent: data_promo
+    question: Bagaimana distribusi kode program status Y/X/T?
+    expected_status: supported_with_caveat
+    metric: promo_observation_count
+    dataset: sat_promo_material_december
+    dimensions: [program_status]
+    caveat: Y, X, and T are raw source codes whose business meanings are pending TEMPO confirmation.
+
+  - id: catalog_p03_promo_material_ranking
+    catalog_question_id: P03
+    chart_primary: PARETO
+    domain_agent: data_promo
+    question: Material mana paling sering muncul dalam observasi promo?
+    expected_status: supported_with_caveat
+    metric: promo_observation_count
+    dataset: sat_promo_material_december
+    dimensions: [material_code]
+    caveat: Ranking is based on field-audit observation rows, not revenue, redemption, or effectiveness.
+
+  - id: promo_material_count_december
+    chart_primary: KPI
+    domain_agent: data_promo
+    question: Berapa jumlah material SKU yang tercakup SAT Promo Desember 2024?
+    expected_status: supported_with_caveat
+    metric: promo_material_count
+    dataset: sat_promo_material_december
+    dimensions: [reporting_month]
+    caveat: Distinct material coverage from December 2024 field-audit observations only.
 
   - id: catalog_pq1_promo_vs_no_promo_sales
     catalog_question_id: PQ1
@@ -481,9 +515,10 @@ questions:
     chart_primary: HBAR
     domain_agent: b2b
     question: Top branch by sell-out value Q4?
-    expected_status: unsupported
-    reason: B2B branch dimension is not in governed customer reconciliation grain.
-    suggested_question: Bagaimana rasio Sell-Out terhadap Sell-In per shared customer?
+    expected_status: supported
+    metric: b2b_branch_sell_out_value
+    dataset: b2b_branch_estore
+    dimensions: [branch]
 
   - id: catalog_exec_do_ratio
     catalog_question_id: S14
@@ -538,3 +573,104 @@ questions:
     dataset: sales_office_q4
     dimensions: [sales_office]
 
+  # --- Showcase expansion confirmed 28 Sep 2026 ---
+  - id: showcase_sales_material_bill_qty
+    catalog_question_id: S16
+    chart_primary: HBAR
+    domain_agent: sales
+    question: Material mana dengan total BILL_QTY tertinggi selama Q4 2024?
+    expected_status: supported
+    metric: material_sell_in_quantity
+    dataset: material_360
+    dimensions: [material]
+
+  - id: showcase_sales_material_do_amount
+    catalog_question_id: S19
+    chart_primary: HBAR
+    domain_agent: sales
+    question: Material mana dengan total DO amount tertinggi selama Q4 2024?
+    expected_status: supported
+    metric: material_delivery_order_amount
+    dataset: material_360
+    dimensions: [material]
+
+  - id: showcase_b2b_branch_quantity
+    catalog_question_id: B16
+    chart_primary: HBAR
+    domain_agent: b2b
+    question: Branch B2B mana dengan bill quantity tertinggi?
+    expected_status: supported
+    metric: b2b_branch_sell_out_quantity
+    dataset: b2b_branch_estore
+    dimensions: [branch]
+
+  - id: showcase_b2b_sales_office_quantity
+    catalog_question_id: B17
+    chart_primary: HBAR
+    domain_agent: b2b
+    question: Sales office Tempo mana dengan BILL_QTY B2B tertinggi?
+    expected_status: supported
+    metric: b2b_branch_sell_out_quantity
+    dataset: b2b_branch_estore
+    dimensions: [sales_off]
+
+  - id: showcase_sat_idm_dc_value
+    catalog_question_id: I08
+    chart_primary: HBAR
+    domain_agent: stock_sat_idm
+    question: Berapa nilai stok DC SAT-IDM per DC selama Q4 2024?
+    expected_status: supported
+    metric: sat_idm_dc_stock_value
+    dataset: sat_idm_dc_month
+    dimensions: [dcname]
+
+  - id: showcase_sat_idm_store_value
+    catalog_question_id: I08
+    chart_primary: HBAR
+    domain_agent: stock_sat_idm
+    question: Berapa nilai stok store SAT-IDM per DC selama Q4 2024?
+    expected_status: supported
+    metric: sat_idm_store_stock_value
+    dataset: sat_idm_dc_month
+    dimensions: [dcname]
+
+  - id: sat_idm_total_pipeline_is_prohibited
+    catalog_question_id: I01
+    chart_primary: MULTI
+    domain_agent: stock_sat_idm
+    question: Berapa total pipeline stok DC dan store SAT-IDM selama Q4 2024?
+    expected_status: needs_clarification
+    ambiguity: sat_idm_stock_level_aggregation
+    reason: >-
+      DC Stock dan Store Stock adalah posisi stok pada level analisis berbeda;
+      tampilkan berdampingan sebagai metrik terpisah dan jangan dijumlahkan.
+
+  - id: showcase_service_unfulfilled
+    catalog_question_id: L05
+    chart_primary: HBAR
+    domain_agent: service_level
+    question: Material mana dengan unfulfilled quantity terbesar?
+    expected_status: supported
+    metric: service_unfulfilled_quantity
+    dataset: service_level_material
+    dimensions: [material]
+
+  - id: showcase_picking_workload
+    catalog_question_id: K03
+    chart_primary: HBAR
+    domain_agent: picking
+    question: Sales office mana dengan picking workload tertinggi?
+    expected_status: supported
+    metric: picking_workload_rows
+    dataset: sales_office_q4
+    dimensions: [sales_office]
+
+  - id: showcase_unloading_events
+    catalog_question_id: U02
+    chart_primary: HBAR
+    domain_agent: unloading
+    question: Sales office mana dengan unloading events terbanyak?
+    expected_status: supported
+    metric: unloading_event_count
+    dataset: sales_office_q4
+    dimensions: [sales_office]

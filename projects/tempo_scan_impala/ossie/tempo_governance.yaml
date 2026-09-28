@@ -46,10 +46,10 @@ ambiguities:
         discriminators: [gudang tempo, stok gudang, stock tempo, stok tempo, stock value tempo, warehouse, dc tempo, plant]
       - metric: sat_idm_dc_stock_quantity
         label: Partner Distribution Center Stock
-        discriminators: [stok dc partner, dc stock, dcstock, idm stock, stock idm, distribution center stock]
+        discriminators: [stok dc partner, nilai stok dc, dc stock, dcstock, nilai dcstock, idm stock, stock idm, distribution center stock]
       - metric: sat_idm_store_stock_quantity
         label: Partner Retail Store Stock
-        discriminators: [stok store, store stock, storestock, retail stock]
+        discriminators: [stok store, nilai stok store, store stock, storestock, nilai storestock, retail stock]
 
 unknown_metric_question: >-
   Saya belum menemukan KPI yang sesuai pada Semantic Contract Q4 2024.
@@ -78,6 +78,13 @@ policy:
   default_rows: 50
   pending_metric_behavior: answer_with_candidate_label
   unsupported_behavior: explain_scope_and_suggest
+  raw_code_dimensions:
+    program_status:
+      dataset: sat_promo_material_december
+      observed_codes: [Y, X, T]
+      interpretation: pending_tempo_confirmation
+      allowed_behavior: report_raw_distribution_with_caveat
+      prohibited_behavior: infer_active_inactive_success_or_failure
 
 answer_contract:
   required_evidence:

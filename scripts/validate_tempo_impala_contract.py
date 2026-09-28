@@ -41,7 +41,10 @@ JOURNEY_SOURCES = {
     "gold.corr_b2b_satidm_branch_month",
     "gold.corr_satidm_oos_material_month",
 }
-EXPECTED_SOURCES = BASELINE_SOURCES | JOURNEY_SOURCES
+SAT_PROMO_SOURCES = {
+    "gold.rpt_sat_promo_material_december_semantic",
+}
+EXPECTED_SOURCES = BASELINE_SOURCES | JOURNEY_SOURCES | SAT_PROMO_SOURCES
 
 
 def _load_yaml(path: Path) -> dict[str, Any]:
@@ -223,4 +226,3 @@ def main() -> int:
 
 if __name__ == "__main__":
     raise SystemExit(main())
-

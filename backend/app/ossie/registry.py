@@ -144,6 +144,111 @@ class TempoOssieRegistry:
 
     def resolve_ambiguity(self, question: str) -> dict[str, Any] | None:
         normalized = _normalize(question)
+
+        # SAT Promo currently covers December 2024 field-audit observations
+        # only. Raw status codes Y/X/T may be grouped, but their business
+        # meaning is unconfirmed and the source has no promo cost or causal
+        # revenue attribution. Stop those requests before generic Sales
+        # ambiguity can redirect a promo ROI/revenue question to Sell-In.
+        mentions_promo = "promo" in normalized
+        requests_unapproved_status_meaning = any(
+            term in normalized
+            for term in ("promoaktif", "aktifpromo", "promotidakaktif")
+        )
+        requests_promo_attribution = any(
+            term in normalized
+            for term in (
+                "roi",
+                "revenue",
+                "pendapatan",
+                "uplift",
+                "efektivitas",
+                "effectivepromo",
+            )
+        )
+        requests_unavailable_promo_period = any(
+            term in normalized
+            for term in ("oktober", "november", "q4", "kuartal4")
+        )
+        if mentions_promo and (
+            requests_unapproved_status_meaning
+            or requests_promo_attribution
+            or requests_unavailable_promo_period
+        ):
+            return {
+                "status": "unsupported",
+                "reason": "promo_business_definition_unavailable",
+                "question": (
+                    "SAT Promo hanya mendukung observasi audit Desember 2024. "
+                    "Kode status Y/X/T boleh ditampilkan sebagai kode mentah, "
+                    "tetapi belum boleh diartikan aktif/tidak aktif. Data biaya, "
+                    "uplift, ROI, dan atribusi revenue juga belum tersedia."
+                ),
+                "suggested_questions": [
+                    "Jumlah observasi promo per mekanisme Desember 2024",
+                    "Berapa jumlah material yang tercakup SAT Promo Desember 2024?",
+                    "Bagaimana distribusi kode program status Y/X/T?",
+                ],
+            }
+
+        # Tempo explicitly confirmed on 28 Sep 2026 that DC Stock and Store
+        # Stock are positions at different analysis levels and must not be
+        # added into a synthetic "total pipeline". Catch that request before
+        # the generic stock-scope ambiguity (or alias scoring) can silently
+        # select just one of the two published metrics.
+        mentions_dc_level = any(
+            term in normalized for term in ("dcstock", "stokdc", "stockdc")
+        )
+        mentions_store_level = any(
+            term in normalized
+            for term in ("storestock", "stokstore", "stockstore", "store")
+        )
+        requests_combination = any(
+            term in normalized
+            for term in (
+                "totalpipeline",
+                "jumlahkan",
+                "penjumlahan",
+                "gabungan",
+                "digabung",
+                "combined",
+                "combine",
+                "sumof",
+                "totalstok",
+                "totalstock",
+            )
+        )
+        if mentions_dc_level and mentions_store_level and requests_combination:
+            return {
+                "status": "needs_clarification",
+                "reason": "sat_idm_stock_level_aggregation",
+                "question": (
+                    "DC Stock dan Store Stock berada pada level analisis "
+                    "berbeda dan tidak boleh dijumlahkan sebagai total "
+                    "pipeline. Pilih quantity atau value pada level DC "
+                    "atau store; saya dapat menampilkannya berdampingan "
+                    "sebagai metrik terpisah."
+                ),
+                "options": [
+                    {
+                        "metric": "sat_idm_dc_stock_quantity",
+                        "label": "DC Stock Quantity",
+                    },
+                    {
+                        "metric": "sat_idm_store_stock_quantity",
+                        "label": "Store Stock Quantity",
+                    },
+                    {
+                        "metric": "sat_idm_dc_stock_value",
+                        "label": "DC Stock Value",
+                    },
+                    {
+                        "metric": "sat_idm_store_stock_value",
+                        "label": "Store Stock Value",
+                    },
+                ],
+            }
+
         for ambiguity in self.governance.get("ambiguities", []):
             # "Out of stock" is the published SAT OOS KPI, not a request to
             # choose between warehouse, partner-DC, and retail-store stock.
@@ -191,7 +296,13 @@ class TempoOssieRegistry:
         dimension_terms = {
             "material": ("material", "sku", "produk"),
             "customer": ("customer", "pelanggan"),
-            "sales_office": ("sales office", "cabang", "office"),
+            # TEMPO confirmed that partner/B2B branch and TEMPO sales office
+            # are genuinely different dimensions. Keep their routing hints
+            # separate so a branch-qualified B2B question cannot receive the
+            # generic company-month bonus and fall through to Gross Sales.
+            "branch": ("branch", "cabang partner", "branch b2b"),
+            "sales_off": ("sales off", "sales_off"),
+            "sales_office": ("sales office", "kantor penjualan", "office"),
             "fill_rate_band": ("fill rate band", "kategori fill", "low fill"),
             "calmonth": ("bulan", "bulanan", "month", "trend", "tren"),
         }
@@ -236,7 +347,13 @@ class TempoOssieRegistry:
                 # LLM/embedding call for what's meant to stay a deterministic,
                 # governed lookup.
                 is_substring_match = bool(normalized_alias) and normalized_alias in normalized
-                is_token_match = bool(alias_tokens) and alias_tokens <= question_tokens
+                # A token-only fuzzy match needs at least two meaningful
+                # tokens. Phrases such as "bill value" collapse to the lone
+                # token "bill" after bilingual value/nilai stopword removal;
+                # allowing that single token to match would route BILL_QTY to
+                # Gross Billing Value. A literal one-word alias (GBV, OOS,
+                # dcstock) still resolves through the stronger substring path.
+                is_token_match = len(alias_tokens) >= 2 and alias_tokens <= question_tokens
                 if not (is_substring_match or is_token_match):
                     continue
                 score = len(normalized_alias) if is_substring_match else len(alias_tokens)

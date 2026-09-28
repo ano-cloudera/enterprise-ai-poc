@@ -6,9 +6,18 @@ from pathlib import Path
 import subprocess
 import sys
 
+import pytest
+
 
 ROOT = Path(__file__).resolve().parents[2]
 TOOLS = ROOT / "projects" / "tempo_scan_impala" / "agent_studio_tools"
+THREE_AGENT_SETUP = (
+    ROOT
+    / "projects"
+    / "tempo_scan_impala"
+    / "agents"
+    / "AGENT_STUDIO_3AGENT_SETUP.md"
+)
 
 
 def _run(tool: str, params: dict, *, env: dict | None = None, user_params: dict | None = None) -> dict:
@@ -40,6 +49,97 @@ def test_resolve_semantic_object_tool() -> None:
     )
     assert result["status"] == "resolved"
     assert result["metric"] == "gross_billing_value"
+
+
+@pytest.mark.parametrize(
+    ("question", "metric", "metric_id"),
+    [
+        ("Total BILL_QTY per material Q4 2024?", "material_sell_in_quantity", "SI-02-MAT"),
+        ("Total DO amount per material Q4 2024?", "material_delivery_order_amount", "SI-04-MAT"),
+        ("Branch B2B mana dengan bill quantity tertinggi?", "b2b_branch_sell_out_quantity", "B2B-02-BR"),
+        ("Berapa nilai stok DC SAT-IDM per bulan?", "sat_idm_dc_stock_value", "SI-03-IDM"),
+        ("Berapa nilai stok store SAT-IDM per bulan?", "sat_idm_store_stock_value", "SI-04-IDM"),
+        ("Material mana dengan unfulfilled quantity terbesar?", "service_unfulfilled_quantity", "FL-02"),
+        ("Sales office mana dengan picking workload tertinggi?", "picking_workload_rows", "PK-04-Q4"),
+        ("Sales office mana dengan unloading events terbanyak?", "unloading_event_count", "UL-02-Q4"),
+    ],
+)
+def test_showcase_questions_resolve_through_agent_studio_tool(
+    question: str, metric: str, metric_id: str
+) -> None:
+    result = _run("resolve_semantic_object", {"question": question})
+    assert result["status"] == "resolved"
+    assert result["metric"] == metric
+    assert result["definition"]["metric_id"] == metric_id
+
+
+@pytest.mark.parametrize(
+    ("question", "metric", "metric_id", "dimension"),
+    [
+        (
+            "Jumlah observasi promo per mekanisme Desember 2024",
+            "promo_observation_count",
+            "PR-03",
+            "mekanisme",
+        ),
+        (
+            "Berapa jumlah material SKU yang tercakup SAT Promo?",
+            "promo_material_count",
+            "PR-02",
+            "reporting_month",
+        ),
+        (
+            "Material mana paling sering muncul dalam observasi promo?",
+            "promo_observation_count",
+            "PR-03",
+            "material_code",
+        ),
+        (
+            "Bagaimana distribusi kode program status Y X T?",
+            "promo_observation_count",
+            "PR-03",
+            "program_status",
+        ),
+    ],
+)
+def test_safe_sat_promo_questions_resolve_through_agent_studio_tool(
+    question: str, metric: str, metric_id: str, dimension: str
+) -> None:
+    result = _run("resolve_semantic_object", {"question": question})
+    assert result["status"] == "resolved"
+    assert result["metric"] == metric
+    assert result["definition"]["metric_id"] == metric_id
+    assert dimension in result["definition"]["allowed_dimensions"]
+    instructions = result["definition"]["ai_context"]["instructions"].lower()
+    assert "december" in instructions or "desember" in instructions
+
+
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Berapa promo aktif Desember 2024?",
+        "Berapa revenue atau ROI dari promo?",
+        "Bagaimana tren promo Oktober sampai Desember 2024?",
+    ],
+)
+def test_unsafe_or_out_of_period_sat_promo_questions_fail_closed(
+    question: str,
+) -> None:
+    result = _run("resolve_semantic_object", {"question": question})
+    assert result["status"] == "unsupported"
+    assert result["reason"] == "promo_business_definition_unavailable"
+
+
+def test_three_agent_setup_exposes_nine_domains_and_safe_promo_controls() -> None:
+    setup = THREE_AGENT_SETUP.read_text(encoding="utf-8")
+
+    assert "these nine TEMPO data domains" in setup
+    assert "9. SAT Promo" in setup
+    assert "Jumlah observasi promo per mekanisme Desember 2024" in setup
+    assert "Bagaimana distribusi kode program status Y/X/T?" in setup
+    assert "Berapa revenue atau ROI dari promo?" in setup
+    assert "SAT Promo is outside" not in setup
+    assert "outside the eight-domain workflow" not in setup
 
 
 def test_get_metric_definition_tool() -> None:
@@ -193,4 +293,3 @@ def test_execute_readonly_sql_accepts_a_valid_gold_select_and_labels_it_ungovern
     )
     assert result["status"] in {"success", "unavailable"}
     assert result["governed"] is False
-

@@ -1225,6 +1225,63 @@ datasets:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"domain":"journey_satidm_oos","grain":"calmonth+plu","layer":"semantic_gold","built":"2026-09-24"}'
+- name: sat_promo_material_december
+  source: gold.rpt_sat_promo_material_december_semantic
+  primary_key:
+  - reporting_month
+  - material_code
+  - mekanisme
+  - program_status
+  description: December 2024 SAT Promo field-audit observations aggregated by material, raw mechanism, and raw program-status code.
+  ai_context:
+    instructions: Use only for December 2024 field-audit coverage. Mekanisme and program_status are raw source codes/text. Never translate Y, X, or T to active/inactive, and never claim revenue attribution, uplift, effectiveness, or ROI.
+    synonyms:
+    - sat promo desember
+    - audit promo lapangan
+    - promo field audit
+  fields:
+  - name: reporting_month
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: reporting_month
+    datatype: Integer
+    dimension:
+      is_time: true
+    label: Reporting Month
+  - name: material_code
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: material_code
+    datatype: String
+    dimension: {}
+    label: Material Code
+  - name: mekanisme
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: mekanisme
+    datatype: String
+    dimension: {}
+    label: Raw Promotion Mechanism
+  - name: program_status
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: program_status
+    datatype: String
+    dimension: {}
+    label: Raw Program Status Code
+  - name: promo_observation_count
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: promo_observation_count
+    datatype: Integer
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"domain":"sat_promo","grain":"reporting_month+material_code+mekanisme+program_status","layer":"semantic_gold","time_scope":[202412],"status_semantics":"raw_unmapped"}'
 relationships: []
 metrics:
 - name: gross_billing_value
@@ -1339,11 +1396,47 @@ metrics:
   description: Sell-In billing quantity by material and month.
   ai_context:
     synonyms:
-    - material sell-in quantity
-    - volume material
+      - material sell-in quantity
+      - bill quantity per material
+      - bill qty per material
+      - volume material
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"SI-02-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-02","unit_format":"quantity"}'
+- name: material_delivery_order_quantity
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(material_360.sales_do_qty)
+  datatype: Decimal
+  description: Total Sales Delivery Order quantity by material and month.
+  ai_context:
+    synonyms:
+    - material delivery order quantity
+    - do quantity per material
+    - quantity do per material
+    - jumlah do per material
+    instructions: This is DO_QTY, not billed quantity. Use material_sell_in_quantity for BILL_QTY.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SI-03-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in"],"governance_status":"approved_candidate","business_approval_status":"confirmed_by_tempo_meeting_2026_09_28","original_kpi_id":"SI-03","unit_format":"quantity"}'
+- name: material_delivery_order_amount
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(material_360.sales_do_amt)
+  datatype: Decimal
+  description: Total Sales Delivery Order amount in IDR by material and month.
+  ai_context:
+    synonyms:
+    - material delivery order amount
+    - do amount per material
+    - amount do per material
+    - nilai do per material
+    instructions: This is DO_AMT and is not official revenue. Use material_sell_in_value for BILL_VAL and official Gross Billing Value.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SI-04-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in"],"governance_status":"approved_candidate","business_approval_status":"confirmed_by_tempo_meeting_2026_09_28","original_kpi_id":"SI-04","unit_format":"currency_idr"}'
 - name: material_warehouse_stock_quantity
   expression:
     dialects:
@@ -1477,6 +1570,24 @@ metrics:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"FL-05","base_dataset":"service_level_material","allowed_dimensions":["calmonth","material","fill_rate_band"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-05","unit_format":"quantity"}'
+- name: service_unfulfilled_quantity
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(service_level_material.service_po_qty) - SUM(service_level_material.service_do_qty)
+  datatype: Decimal
+  description: Total ordered quantity not fulfilled, calculated as total PO quantity minus total DO quantity.
+  ai_context:
+    synonyms:
+    - unfulfilled demand quantity
+    - unfulfilled quantity
+    - po do quantity gap
+    - quantity belum terpenuhi
+    - selisih po dan do
+    instructions: Recompute from aggregate PO_QTY minus aggregate DO_QTY; never average row-level gaps or fill-rate percentages.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"FL-02","base_dataset":"service_level_material","allowed_dimensions":["calmonth","material","fill_rate_band"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-02","unit_format":"quantity"}'
 - name: service_material_month_count
   expression:
     dialects:
@@ -1619,6 +1730,23 @@ metrics:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"PK-03-Q4","base_dataset":"sales_office_q4","allowed_dimensions":["reporting_period","sales_office"],"row_filter":"has_picking = TRUE","governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"PK-03","unit_format":"minutes"}'
+- name: picking_workload_rows
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(sales_office_q4.picking_rows)
+  datatype: Integer
+  description: Total Picking workload rows by sales office for Q4 2024.
+  ai_context:
+    synonyms:
+    - picking workload
+    - picking workload rows
+    - picking rows
+    - jumlah baris picking
+    instructions: Q4 aggregate workload count; not a productivity rate.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"PK-04-Q4","base_dataset":"sales_office_q4","allowed_dimensions":["reporting_period","sales_office"],"row_filter":"has_picking = TRUE","governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"PK-04","unit_format":"count"}'
 - name: average_unloading_minutes
   expression:
     dialects:
@@ -1634,6 +1762,24 @@ metrics:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"UL-01-Q4","base_dataset":"sales_office_q4","allowed_dimensions":["reporting_period","sales_office"],"row_filter":"has_unloading = TRUE","governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"UL-01","unit_format":"minutes"}'
+- name: unloading_event_count
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(sales_office_q4.unloading_rows)
+  datatype: Integer
+  description: Total Unloading event rows by sales office for Q4 2024.
+  ai_context:
+    synonyms:
+    - unloading events
+    - unloading event count
+    - unloading workload
+    - jumlah unloading
+    - dokumen unloading
+    instructions: Q4 aggregate event-row count; do not describe it as quantity unloaded.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"UL-02-Q4","base_dataset":"sales_office_q4","allowed_dimensions":["reporting_period","sales_office"],"row_filter":"has_unloading = TRUE","governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"UL-02","unit_format":"count"}'
 - name: picking_rows_per_sales_line
   expression:
     dialects:
@@ -1668,6 +1814,23 @@ metrics:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"B2B-01-BR","base_dataset":"b2b_branch_estore","allowed_dimensions":["calmonth","sales_off","branch","e_store"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"B02","unit_format":"currency_idr"}'
+- name: b2b_branch_sell_out_quantity
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(b2b_branch_estore.b2b_bill_qty)
+  datatype: Decimal
+  description: B2B Sell-Out billed quantity by partner branch/DC, TEMPO sales office, and e-store.
+  ai_context:
+    synonyms:
+    - branch b2b bill quantity
+    - b2b branch quantity
+    - branch sell-out quantity
+    - sales office b2b quantity
+    instructions: Branch and sales_off are distinct dimensions. Group by the dimension requested by the user; never treat either as a measure.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"B2B-02-BR","base_dataset":"b2b_branch_estore","allowed_dimensions":["calmonth","sales_off","branch","e_store"],"governance_status":"approved_candidate","business_approval_status":"confirmed_by_tempo_meeting_2026_09_28","original_kpi_id":"B02","unit_format":"quantity"}'
 - name: b2b_material_plu_value
   expression:
     dialects:
@@ -1685,6 +1848,23 @@ metrics:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"B2B-02-PLU","base_dataset":"b2b_material_plu","allowed_dimensions":["calmonth","material","kode_plu","ka_group"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"B05","unit_format":"currency_idr"}'
+- name: b2b_material_plu_quantity
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(b2b_material_plu.b2b_bill_qty)
+  datatype: Decimal
+  description: B2B Sell-Out billed quantity by material and PLU code, October-December 2024.
+  ai_context:
+    synonyms:
+    - plu b2b sell-out quantity
+    - b2b plu quantity
+    - material plu bill quantity
+    - sell-out quantity per plu
+    instructions: PLU and material remain independent dimensions until an official mapping is available.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"B2B-03-PLU","base_dataset":"b2b_material_plu","allowed_dimensions":["calmonth","material","kode_plu","ka_group"],"governance_status":"approved_candidate","business_approval_status":"confirmed_by_tempo_meeting_2026_09_28","original_kpi_id":"SO-02","unit_format":"quantity"}'
 - name: stock_tempo_total_qty
   expression:
     dialects:
@@ -1734,9 +1914,27 @@ metrics:
     - dcstock
     - stok dc partner
     - dc stock quantity
+    instructions: DC-level quantity only. Never add it to store stock quantity as a total pipeline metric.
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SI-01-IDM","base_dataset":"sat_idm_dc_month","allowed_dimensions":["thn","bln","dcname","plu","division"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"I01","unit_format":"quantity"}'
+    data: '{"metric_id":"SI-01-IDM","base_dataset":"sat_idm_dc_month","allowed_dimensions":["thn","bln","dcname","plu","division"],"governance_status":"approved_candidate","business_approval_status":"confirmed_by_tempo_2026_09_28","original_kpi_id":"I01","unit_format":"quantity"}'
+- name: sat_idm_dc_stock_value
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(sat_idm_dc_month.dc_stock_val)
+  datatype: Decimal
+  description: Value in IDR of TEMPO products held at partner distribution-center level.
+  ai_context:
+    synonyms:
+    - nilai stok dc sat-idm
+    - dcstock value
+    - dc stock value
+    - nilai dcstock
+    instructions: DC-level value only. Never add it to store stock value as a total pipeline metric.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SI-03-IDM","base_dataset":"sat_idm_dc_month","allowed_dimensions":["thn","bln","dcname","plu","division"],"governance_status":"approved_candidate","business_approval_status":"confirmed_by_tempo_2026_09_28","original_kpi_id":"I08-DC","unit_format":"currency_idr"}'
 - name: sat_idm_store_stock_quantity
   expression:
     dialects:
@@ -1749,9 +1947,27 @@ metrics:
     - storestock
     - stok store
     - store stock quantity
+    instructions: Store/customer-level quantity only. Never add it to DC stock quantity as a total pipeline metric.
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SI-02-IDM","base_dataset":"sat_idm_dc_month","allowed_dimensions":["thn","bln","dcname","plu","division"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"I02","unit_format":"quantity"}'
+    data: '{"metric_id":"SI-02-IDM","base_dataset":"sat_idm_dc_month","allowed_dimensions":["thn","bln","dcname","plu","division"],"governance_status":"approved_candidate","business_approval_status":"confirmed_by_tempo_2026_09_28","original_kpi_id":"I02","unit_format":"quantity"}'
+- name: sat_idm_store_stock_value
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(sat_idm_dc_month.store_stock_val)
+  datatype: Decimal
+  description: Value in IDR of TEMPO products held at retail store/customer level under partner DCs.
+  ai_context:
+    synonyms:
+    - nilai stok store sat-idm
+    - storestock value
+    - store stock value
+    - nilai storestock
+    instructions: Store/customer-level value only. Never add it to DC stock value as a total pipeline metric.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SI-04-IDM","base_dataset":"sat_idm_dc_month","allowed_dimensions":["thn","bln","dcname","plu","division"],"governance_status":"approved_candidate","business_approval_status":"confirmed_by_tempo_2026_09_28","original_kpi_id":"I08-STORE","unit_format":"currency_idr"}'
 - name: sat_oos_rate
   expression:
     dialects:
@@ -1771,6 +1987,44 @@ metrics:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"OOS-01","base_dataset":"sat_oos_material_month","allowed_dimensions":["calmonth_date","cust_id","cust_code","material_code","plu"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"O01","unit_format":"percent"}'
+- name: promo_observation_count
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(sat_promo_material_december.promo_observation_count)
+  datatype: Integer
+  description: Number of December 2024 SAT Promo field-audit observation rows represented by the selected material, mechanism, and raw status scope.
+  ai_context:
+    synonyms:
+    - jumlah observasi promo per mekanisme
+    - observasi sat promo
+    - observasi promo
+    - material paling sering muncul dalam observasi promo
+    - promo observation count
+    - distribusi kode program status
+    - distribusi program status y x t
+    instructions: This is an observation-row count, not active promos, unique products, redemptions, or sales. Program-status codes Y/X/T and mechanism labels are raw and unmapped. State the December-only and raw-code caveats.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"PR-03","base_dataset":"sat_promo_material_december","allowed_dimensions":["reporting_month","material_code","mekanisme","program_status"],"governance_status":"approved_candidate_with_caveat","business_approval_status":"pending_business_confirmation","original_kpi_id":"PR-03","unit_format":"count"}'
+- name: promo_material_count
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: COUNT(DISTINCT sat_promo_material_december.material_code)
+  datatype: Integer
+  description: Distinct material or SKU count covered by SAT Promo field-audit observations in December 2024.
+  ai_context:
+    synonyms:
+    - jumlah material sku yang tercakup sat promo
+    - jumlah material promo
+    - jumlah sku promo
+    - promo sku count
+    - distinct promo materials
+    instructions: Count distinct material codes only. This does not indicate active promos, effectiveness, uplift, revenue attribution, or ROI. State the December-only and raw-code caveats.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"PR-02","base_dataset":"sat_promo_material_december","allowed_dimensions":["reporting_month","mekanisme","program_status"],"governance_status":"approved_candidate_with_caveat","business_approval_status":"pending_business_confirmation","original_kpi_id":"PR-02","unit_format":"count"}'
 - name: stock_tempo_to_sell_in_ratio
   expression:
     dialects:

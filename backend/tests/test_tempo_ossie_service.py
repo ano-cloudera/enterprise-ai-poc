@@ -14,8 +14,8 @@ def test_ossie_service_is_enabled_by_default() -> None:
     service = _service()
     assert service.enabled is True
     assert service.status()["execution_mode"] == "ossie"
-    assert service.status()["datasets"] == 14
-    assert service.status()["metrics"] == 39
+    assert service.status()["datasets"] == 15
+    assert service.status()["metrics"] == 50
 
 
 def test_resolve_official_gross_sales_metric() -> None:
@@ -54,6 +54,65 @@ def test_resolve_indonesian_stock_tempo_value_wording() -> None:
     assert result["status"] == "resolved"
     assert result["metric"] == "stock_tempo_value"
     assert result["definition"]["unit_format"] == "currency_idr"
+
+
+@pytest.mark.parametrize(
+    ("question", "expected_metric", "expected_id"),
+    [
+        (
+            "Berapa total DO quantity per material Q4 2024?",
+            "material_delivery_order_quantity",
+            "SI-03-MAT",
+        ),
+        (
+            "Berapa total DO amount per material Q4 2024?",
+            "material_delivery_order_amount",
+            "SI-04-MAT",
+        ),
+        (
+            "Branch B2B mana dengan bill quantity tertinggi?",
+            "b2b_branch_sell_out_quantity",
+            "B2B-02-BR",
+        ),
+        (
+            "PLU B2B mana dengan sell-out quantity tertinggi?",
+            "b2b_material_plu_quantity",
+            "B2B-03-PLU",
+        ),
+        (
+            "Berapa nilai stok DC SAT-IDM per bulan?",
+            "sat_idm_dc_stock_value",
+            "SI-03-IDM",
+        ),
+        (
+            "Berapa nilai stok store SAT-IDM per bulan?",
+            "sat_idm_store_stock_value",
+            "SI-04-IDM",
+        ),
+        (
+            "Material mana dengan unfulfilled demand quantity terbesar?",
+            "service_unfulfilled_quantity",
+            "FL-02",
+        ),
+        (
+            "Sales office mana dengan picking workload tertinggi?",
+            "picking_workload_rows",
+            "PK-04-Q4",
+        ),
+        (
+            "Sales office mana dengan unloading events terbanyak?",
+            "unloading_event_count",
+            "UL-02-Q4",
+        ),
+    ],
+)
+def test_resolve_showcase_metric_extensions(
+    question: str, expected_metric: str, expected_id: str
+) -> None:
+    result = _service().resolve(question)
+    assert result["status"] == "resolved"
+    assert result["metric"] == expected_metric
+    assert result["definition"]["metric_id"] == expected_id
 
 
 @pytest.mark.parametrize(
@@ -110,6 +169,29 @@ def test_bare_dc_stock_still_requires_scope_clarification() -> None:
     assert result["reason"] == "stock_scope"
 
 
+@pytest.mark.parametrize(
+    "question",
+    [
+        "Berapa total pipeline stok DC dan store SAT-IDM selama Q4 2024?",
+        "Tolong jumlahkan dcstock dan storestock sebagai total stok SAT-IDM.",
+        "Berapa gabungan nilai DC Stock dan Store Stock?",
+    ],
+)
+def test_sat_idm_dc_and_store_are_never_combined_as_total_pipeline(
+    question: str,
+) -> None:
+    result = _service().resolve(question)
+    assert result["status"] == "needs_clarification"
+    assert result["reason"] == "sat_idm_stock_level_aggregation"
+    assert "tidak boleh dijumlahkan" in result["question"].lower()
+    assert {option["metric"] for option in result["options"]} == {
+        "sat_idm_dc_stock_quantity",
+        "sat_idm_store_stock_quantity",
+        "sat_idm_dc_stock_value",
+        "sat_idm_store_stock_value",
+    }
+
+
 def test_resolve_material_fill_rate_prefers_material_metric() -> None:
     result = _service().resolve("Material mana dengan Fill Rate terendah?")
     assert result["status"] == "resolved"
@@ -120,6 +202,40 @@ def test_resolve_sales_office_picking_metric() -> None:
     result = _service().resolve("Sales office mana dengan picking delay rate tertinggi?")
     assert result["status"] == "resolved"
     assert result["metric"] == "picking_delay_rate"
+
+
+@pytest.mark.parametrize(
+    ("question", "expected_metric", "expected_dimension"),
+    [
+        (
+            "Jumlah observasi promo per mekanisme Desember 2024",
+            "promo_observation_count",
+            "mekanisme",
+        ),
+        (
+            "Berapa jumlah material SKU yang tercakup SAT Promo?",
+            "promo_material_count",
+            "reporting_month",
+        ),
+        (
+            "Bagaimana distribusi kode program status Y X T?",
+            "promo_observation_count",
+            "program_status",
+        ),
+    ],
+)
+def test_resolve_safe_sat_promo_metrics(
+    question: str, expected_metric: str, expected_dimension: str
+) -> None:
+    result = _service().resolve(question)
+    assert result["status"] == "resolved"
+    assert result["metric"] == expected_metric
+    assert expected_dimension in result["definition"]["allowed_dimensions"]
+
+
+def test_active_promo_is_not_inferred_from_raw_program_status() -> None:
+    result = _service().resolve("Berapa jumlah promo aktif Desember 2024?")
+    assert result["status"] == "unsupported"
 
 
 def test_ambiguous_sales_question_requires_clarification() -> None:
@@ -212,6 +328,47 @@ def test_compile_low_fill_filter_is_allowlisted() -> None:
         )
     )
     assert "d.fill_rate_band IN ('low_fill')" in compiled["sql"]
+
+
+def test_compile_material_do_amount_keeps_do_separate_from_official_revenue() -> None:
+    compiled = _service().compile_query(
+        OssieQueryRequest(
+            metric="material_delivery_order_amount",
+            dimensions=["calmonth", "material"],
+        )
+    )
+    assert "FROM gold.rpt_sap_material_month_semantic d" in compiled["sql"]
+    assert "SUM(d.sales_do_amt) AS metric_value" in compiled["sql"]
+    assert "sales_bill_val" not in compiled["sql"]
+    assert "d.has_sell_in = TRUE" in compiled["sql"]
+
+
+@pytest.mark.parametrize("dimension", ["branch", "sales_off"])
+def test_compile_b2b_quantity_keeps_branch_and_sales_office_distinct(
+    dimension: str,
+) -> None:
+    compiled = _service().compile_query(
+        OssieQueryRequest(
+            metric="b2b_branch_sell_out_quantity",
+            dimensions=[dimension],
+        )
+    )
+    assert "FROM gold.corr_b2b_branch_estore_month d" in compiled["sql"]
+    assert f"d.{dimension} AS {dimension}" in compiled["sql"]
+    assert f"GROUP BY d.{dimension}" in compiled["sql"]
+
+
+def test_compile_service_unfulfilled_quantity_uses_aggregate_difference() -> None:
+    compiled = _service().compile_query(
+        OssieQueryRequest(
+            metric="service_unfulfilled_quantity",
+            dimensions=["calmonth", "material"],
+        )
+    )
+    assert (
+        "SUM(d.service_po_qty) - SUM(d.service_do_qty) AS metric_value"
+        in compiled["sql"]
+    )
 
 
 def test_compile_rejects_unpublished_dimension() -> None:
