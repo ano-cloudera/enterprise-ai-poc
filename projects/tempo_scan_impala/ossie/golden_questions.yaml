@@ -46,6 +46,23 @@ questions:
     dimensions: [material]
     required_filter: has_sell_in
 
+  - id: material_top5_produk_natural_phrasing
+    # Regression guard for a real user question that used to resolve to the
+    # company-level gross_billing_value (calmonth-only, no product
+    # breakdown) instead of this material-grain metric - see the 2026-09-28
+    # testing session notes. The phrasing is deliberately casual/natural
+    # ("jumlah sales... top 5 produk"), not the terse "Material mana dengan
+    # X terbesar" style the other entries use, since that's exactly the
+    # style gap that caused the original miss.
+    question: >-
+      Kalau kita ngomongin jumlah sales, gw mau tau dong total top 5 produk
+      apa aja yang penjualannya paling besar (Sell-In).
+    expected_status: supported
+    metric: material_sell_in_value
+    dataset: material_360
+    dimensions: [material]
+    required_filter: has_sell_in
+
   - id: material_sell_in_month
     question: Tampilkan nilai Sell-In material per bulan.
     expected_status: supported

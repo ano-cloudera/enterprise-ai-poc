@@ -294,7 +294,7 @@ class TempoOssieRegistry:
 
         normalized = _normalize(question)
         dimension_terms = {
-            "material": ("material", "sku", "produk"),
+            "material": ("material", "sku", "produk", "product", "products", "barang", "item"),
             "customer": ("customer", "pelanggan"),
             # TEMPO confirmed that partner/B2B branch and TEMPO sales office
             # are genuinely different dimensions. Keep their routing hints
@@ -383,11 +383,24 @@ class TempoOssieRegistry:
             }
         candidates.sort(reverse=True)
         _, metric_name, alias = candidates[0]
+        allowed_dimensions = set(self.metric_configs[metric_name].get("allowed_dimensions", []))
+        # Signal for resolve_with_llm_fallback(): the question hinted at a
+        # dimension (e.g. "produk"/"product" -> material) that the winning
+        # metric's allowed_dimensions does NOT support. This is how a
+        # deterministic match can still be the WRONG metric - e.g. "top 5
+        # produk" matching company-level gross_billing_value (calmonth-only)
+        # instead of the material-grain metric that actually supports a
+        # product breakdown - without the matcher ever reporting
+        # "unsupported". A non-empty mismatch does not change status or
+        # metric here; it only tells the caller this deterministic result is
+        # less certain and worth a second opinion.
+        dimension_mismatch = sorted(hinted_dimensions - {"calmonth"} - allowed_dimensions)
         return {
             "status": "resolved",
             "metric": metric_name,
             "matched_alias": alias,
             "definition": self.metric_definition(metric_name),
+            "dimension_mismatch": dimension_mismatch,
         }
 
     def metric_catalog_for_classification(self) -> list[dict[str, str]]:

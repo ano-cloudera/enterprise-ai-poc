@@ -1301,7 +1301,7 @@ metrics:
     - official revenue
     - bill value
     - pendapatan resmi
-    instructions: Use for official revenue. Gold is already IDR; never multiply by 100 again.
+    instructions: Use for official company-level revenue with no breakdown, or a monthly trend only. This metric only allows the calmonth dimension - it does NOT support a product/material breakdown. For "top N product/material by sales/revenue" questions, use material_sell_in_value instead. Gold is already IDR; never multiply by 100 again.
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"SI-01","base_dataset":"monthly_executive","allowed_dimensions":["calmonth"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-01","unit_format":"currency_idr"}'
@@ -1384,6 +1384,17 @@ metrics:
     - material sell-in value
     - revenue material
     - nilai sell-in sku
+    - top produk
+    - produk terlaris
+    - produk paling laku
+    - penjualan per produk
+    - penjualan produk
+    - best selling product
+    - top selling product
+    - top product
+    - sales per produk
+    - sales per product
+    instructions: Use for "top N product/material by sales/revenue" questions (e.g. "top 5 produk", "produk terlaris", "best selling product") - this is the material-grain counterpart to gross_billing_value, which is company-level and does not support a product/material breakdown.
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"SI-01-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-01","unit_format":"currency_idr"}'
@@ -1400,6 +1411,10 @@ metrics:
       - bill quantity per material
       - bill qty per material
       - volume material
+      - produk terlaris berdasarkan quantity
+      - top produk quantity
+      - jumlah terjual per produk
+    instructions: Use for "top N product/material by quantity sold" questions when the user asks about volume/qty rather than revenue/value.
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"SI-02-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-02","unit_format":"quantity"}'

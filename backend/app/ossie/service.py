@@ -97,8 +97,22 @@ class TempoOssieService:
         return self.registry.resolve_metric(question)
 
     async def resolve_with_llm_fallback(self, question: str, *, trace_id: str = "") -> dict[str, Any]:
-        """Tries the deterministic resolver first (resolve()); only calls the
-        LLM metric classifier if that returns anything other than "resolved".
+        """Tries the deterministic resolver first (resolve()). Calls the LLM
+        metric classifier as a second opinion in two cases: (1) the
+        deterministic resolver returned anything other than "resolved"
+        (no match at all), or (2) it resolved but flagged a
+        dimension_mismatch - the question hinted at a dimension (e.g.
+        "produk"/"product") that the winning metric's allowed_dimensions
+        does not support, meaning the keyword matcher may have picked the
+        wrong metric (e.g. company-level gross_billing_value instead of the
+        material-grain metric that actually supports a product breakdown)
+        without ever reporting "unsupported". Case (2) only OVERRIDES the
+        deterministic result if the classifier both succeeds and returns a
+        *different* metric name - a classifier miss, timeout, or agreement
+        with the deterministic match all fall through to the original
+        deterministic result unchanged, so this can only improve on the
+        deterministic answer, never make it worse.
+
         The classifier picks from a closed list of governed metric names (see
         TempoOssieRegistry.metric_catalog_for_classification) and can only
         ever return one of those names or None - it never generates SQL or
@@ -107,9 +121,13 @@ class TempoOssieService:
         already provides. If the LLM call itself fails (provider
         unavailable, timeout, etc.), the original deterministic result is
         returned unchanged rather than raising - an LLM outage must not turn
-        a graceful "unsupported" answer into a hard error."""
+        a graceful "unsupported" answer (or a merely-uncertain "resolved"
+        one) into a hard error."""
         deterministic = self.resolve(question)
-        if deterministic.get("status") != "unsupported":
+        is_confident_match = deterministic.get("status") != "unsupported" and not deterministic.get(
+            "dimension_mismatch"
+        )
+        if is_confident_match:
             return deterministic
 
         from app.llm.factory import get_llm_provider  # local import: avoid a hard LLM dependency for callers that never need the fallback
@@ -123,6 +141,11 @@ class TempoOssieService:
 
         metric_name = result.classification.metric_name
         if not metric_name:
+            return deterministic
+        if deterministic.get("status") == "resolved" and metric_name == deterministic.get("metric"):
+            # Classifier agrees with the deterministic match - keep the
+            # deterministic result as-is (it already carries matched_alias
+            # etc.) rather than overwriting it with an equivalent LLM one.
             return deterministic
         return {
             "status": "resolved",
