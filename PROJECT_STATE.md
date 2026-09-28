@@ -1,9 +1,81 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 28 Sep 2026 — Governed semantic layer expanded to nine domains and committed locally. SAT Promo Gold view is deployed and validated in Workbench. The updated OSSIE runtime has not yet been rebuilt/redeployed to Agent Studio, and the newest local commits have not yet been pushed to `origin/main`.
+**Updated**: 28 Sep 2026 (later same day) — Agent Studio testing session found and fixed a resolver bug, strengthened SQL fallback disclaimers, and expanded customer/sales_office breakdowns for Sales, B2B, and Service Level. All new Gold views are deployed and verified in Workbench. About to be pushed to `origin/main`.
 
-## Current checkpoint: nine-domain semantic layer (28 Sep 2026)
+## Current checkpoint: testing-driven resolver fixes + customer/sales_office breakdowns (28 Sep 2026, later same day)
+
+Follow-up session to the nine-domain expansion below, triggered by live Agent Studio testing with the user. 11 commits, all pushed:
+
+```
+497ff21 docs: sync Agent Studio setup docs with live production config
+6467465 fix: resolve "top N product" questions to the material-grain metric
+e0819ce fix: strengthen SQL fallback disclaimer to a plain-language confirmation ask
+95e4f44 feat: add customer and sales_office breakdowns to Sales/Sell-In
+25de172 docs: audit B2B/Stock SAT-IDM/SAT OOS/Service Level for the same breakdown gap
+85fd9b0 feat: add customer breakdown to B2B/Sell-Out
+5401c06 feat: SAT Promo status confirmed as all-active, unblock plain "promo aktif" questions
+e9b1dfc fix: split B2B customer gold views into separate single-statement files
+7a87ecb docs: record B2B gold view Workbench verification and ka_group data quality note
+8752e1a feat: add sales_office breakdown to Service Level
+12f0134 docs: record Service Level gold view Workbench verification
+```
+
+### What triggered this session
+
+The user ran a live testing conversation in Agent Studio with a colleague. Two findings:
+
+1. **"top 5 produk" resolved to the wrong metric.** A follow-up question ("...top 5 produk apa aja yang penjualannya paling besar") resolved to the company-level `gross_billing_value` (calmonth-only, no product breakdown) instead of `material_sell_in_value`. Root cause, two layers: (a) `dimension_terms["material"]` in the deterministic resolver only recognized Indonesian hints ("produk"), not English ("product"); (b) structurally, `resolve_with_llm_fallback()` only ever consulted the LLM classifier when the deterministic matcher returned `"unsupported"` — a confident-but-wrong `"resolved"` result never got a second opinion. Fixed both the immediate synonym gap and the structural gap: `resolve_metric()` now reports a `dimension_mismatch` list when the winning metric's `allowed_dimensions` doesn't cover a dimension the question hinted at, and `resolve_with_llm_fallback()` no longer short-circuits when that list is non-empty — it only overrides if the LLM classifier succeeds AND returns a genuinely different metric, so it can only improve the deterministic answer, never make it worse. This same structural fix caught two more instances of the identical bug pattern later in the session (see below) before they shipped.
+2. **The user asked whether the system is ready for broader Indonesian-language variation**, and separately whether AI-generated SQL beyond the 50 governed metrics is safe. Led to strengthening `execute_readonly_sql`'s disclaimer from a technical "governed: false, verify manually" string to an explicit plain-Indonesian confirmation ask ("Mohon konfirmasi kebenaran angka ini dengan tim terkait sebelum dipakai untuk keputusan bisnis"), required to lead the final answer verbatim — not just a technical flag most users would never parse.
+
+### Customer/sales_office/group breakdown expansion
+
+The user asked to strengthen Sales, B2B, Stock SAT-IDM, SAT OOS, and Service Level with customer/sales_office/group dimensions, since a lot of real business questions ("top customer", "which sales office") need them. Audited each domain against its field catalog before writing anything, rather than assuming:
+
+| Domain | Outcome |
+|---|---|
+| Sales/Sell-In | ✅ Expanded — `customer` and `sales_off` both existed in `silver.sales_oct_dec_2024` but were never exposed past `calmonth`+`material`. New: `gold.rpt_sap_customer_material_month_semantic`, `gold.rpt_sap_sales_office_material_month_semantic`. |
+| B2B/Sell-Out | ✅ Expanded — `silver.b2b_oct_dec_2024`'s source row already carries customer+material+sales_off+branch+e_store+ka_group together. New: `gold.corr_b2b_customer_branch_estore_month`, `gold.corr_b2b_customer_material_plu_month`. Data-quality finding, not a bug: `ka_group` is the literal constant `"101"` for all 4,881,348 rows this period — documented, not exposed as a meaningful dimension. |
+| Service Level | ✅ Expanded — `sales_off` existed in `silver.service_level_oct_dec_2024` but unused. New: `gold.corr_service_sales_office_material_month`. Two other candidate columns deliberately excluded: `c_0cust_grp3` is confirmed constant ("SL") for the whole period (would never produce more than one group); `c_0af_cgr6` varies but its business meaning is explicitly unconfirmed by Tempo per the field catalog — excluding an unexplained code is better than exposing it as a governed dimension. |
+| Stock SAT-IDM | ❌ Not possible — `TEMPO_STOCK_SAT_IDM_FIELD_CATALOG.md` states plainly "Tidak ada customer/store di SAT-IDM"; it's a DC/store stock snapshot, not a per-customer/sales_office transaction feed. No new data source, no expansion possible. |
+| SAT OOS | Partially already governed, rest not possible — `cust_id`/`cust_code` were already dimensions on `gold.rpt_sat_oos_material_month`, no gap there. `sales_office` is not possible: `TEMPO_SAT_OOS_FIELD_CATALOG.md` states explicitly "Tidak ada kolom: sales office, cabang, region..." — the SAT OOS source is a separate 6-column Excel file, not a SAP BW export, and never had that column. |
+
+`sales_office`/`sales_off` throughout this expansion is a working PoC assumption ("a branch in a given region"), per a direct instruction — `TEMPO_SALES_FIELD_CATALOG.md` still marks `0SALES_OFF` as "asumsi PoC, follow-up Tempo," not yet a Tempo-confirmed business definition. Every new metric using it carries that caveat forward in its `ai_context.instructions`, same treatment as the pre-existing `sales_office_sell_in_value`/SI-13-Q4.
+
+All three new/extended gold views were run in Workbench and verified — not just written:
+
+- **Cardinality/null checks**: clean (0 null/blank key columns) for all three.
+- **Duplicate-grain checks**: `0` rows for all three views.
+- **Reconciliation**: `SUM()` from each new view, rolled up to calmonth only, matched the pre-existing governed company-level total exactly for all three months in every case (float/DECIMAL(38,2) trailing-digit noise only for money values; exact match with zero noise for Service Level's raw quantities).
+
+One Workbench lesson from this session, useful if it recurs: running two `CREATE VIEW` statements (with a comment between them) as one highlighted block threw a `ParseException` — the editor appears to execute a highlighted range as a single statement rather than splitting on `;`. Fixed by splitting the B2B gold view file into two single-statement files (`25a_*.sql`, `25b_*.sql`); the Service Level view was written as a single statement from the start and needed no split.
+
+### SAT Promo: program_status confirmed all-active
+
+Tempo (Pak Hieronimus Gunawan, WhatsApp, 28 Sep 2026) replied "abaikan saja pak, di list tersebut, artinya aktif" to "Y = active kah?" — interpreted per direct instruction as: every row in the SAT Promo December data is an active promo observation, regardless of its `program_status` code (Y/X/T). This does not make `program_status` a meaningful active/inactive discriminator — it establishes the opposite, that the whole dataset is already active, so status can't be used to carve out an inactive subset. Previously the resolver blocked any "promo aktif"-shaped question outright; that block was too broad and is now narrowed to only block questions implying an active/**inactive** split (never confirmed), not a plain "promo aktif" question (now resolves to `promo_observation_count`). Removing the block alone wasn't sufficient — the metric also needed an actual "promo aktif" synonym added before the deterministic resolver could match it, caught by this session's own new test before shipping.
+
+### Updated contract numbers
+
+- **20 datasets** (was 15 in the previous checkpoint below; net +5: 2 Sales, 2 B2B, 1 Service Level).
+- **61 metrics** (was 50; net +11).
+- **81 golden questions** (was 75; net +6, plus 2 test-file-only regression questions not counted in the YAML total).
+- Contract validator: `valid=true`, no errors.
+- Focused OSSIE/Agent Studio/Impala suite: **106 passed** (`test_tempo_ossie_service.py` 75 + `test_tempo_impala_contract.py` 11 in one run, plus `test_tempo_agent_studio_tools.py` 31 separately).
+
+### Next actions, in order
+
+Unchanged from the previous checkpoint's plan, now current:
+
+1. Push the local `main` commits to `origin/main` (this PROJECT_STATE.md update is itself part of that push).
+2. Pull the updated `main` branch in the Cloudera Workbench checkout.
+3. Run `scripts/validate_tempo_impala_contract.py --json` in Workbench and confirm `20 datasets / 61 metrics / 81 golden questions`.
+4. Rebuild `workflow_data/enterprise-ai-poc`, redeploy `Tempo-Scan-Intelligence-Prod`, and verify the deployed artifact contains the updated OSSIE model, governance, golden questions, and tool files.
+5. Execute the nine-domain UI/API acceptance matrix in `docs/qa/2026-09-28-agent-studio-nine-domain-acceptance.md` — now includes a dedicated SQL-fallback-disclaimer section added this session, plus the customer/sales_office breakdown questions should be spot-checked live even though they're verified against Impala directly.
+6. Only after the Agent Studio baseline passes, begin the deferred Semantica implementation assessment/PoC (still explicitly deferred, not started).
+
+---
+
+## Previous checkpoint: nine-domain semantic layer (28 Sep 2026, earlier same day)
 
 ### Repository state
 
