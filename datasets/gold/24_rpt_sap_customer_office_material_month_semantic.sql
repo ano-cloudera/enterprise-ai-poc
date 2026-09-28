@@ -5,6 +5,16 @@
 -- (gold.corr_sales_customer_month, gold.corr_sales_sales_office) are
 -- coarser - customer-only or Q4-total-only, with no material dimension.
 --
+-- DEPLOYED AND VERIFIED IN WORKBENCH (28 Sep 2026): 3,632,241 source rows,
+-- 79,998 distinct customers, 52 distinct sales offices, 0 null/blank
+-- customer or sales_off, 0 duplicate-grain rows in either view.
+-- Reconciliation against the existing governed gross_billing_value monthly
+-- total matched to the cent for all three months (202410: 1,371,960,298,317;
+-- 202411: 1,195,251,225,676; 202412: 1,274,654,263,080 - the customer-rollup
+-- query's raw float total differed only in trailing decimal noise from the
+-- DECIMAL(38,2)-cast governed total, not a real mismatch). DESCRIBE
+-- confirmed both views' schemas match this file exactly.
+--
 -- sales_office is a working assumption ("a branch in a given region"), not
 -- yet a Tempo-confirmed business definition - see
 -- datasets/TEMPO_SALES_FIELD_CATALOG.md's note that 0SALES_OFF is

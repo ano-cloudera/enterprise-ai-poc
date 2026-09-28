@@ -1,3 +1,13 @@
+-- REFERENCE ONLY - DO NOT RUN THIS FILE AS ONE BLOCK IN WORKBENCH. Running
+-- both CREATE VIEW statements together caused a ParseException in this
+-- session's Workbench editor (it appears to have executed the highlighted
+-- range as a single statement and choked on the comment/second CREATE VIEW
+-- after the first statement's closing semicolon). Run each view from its
+-- own single-statement file instead:
+--   25a_rpt_b2b_customer_branch_estore_semantic.sql
+--   25b_rpt_b2b_customer_material_plu_semantic.sql
+-- This file is kept only as a combined reference for the reasoning below.
+--
 -- B2B customer breakdown, extending the existing branch/e_store and
 -- material/PLU gold views with the customer dimension. Requested
 -- 2026-09-28 as a follow-up to Sales/Sell-In's customer+sales_office
