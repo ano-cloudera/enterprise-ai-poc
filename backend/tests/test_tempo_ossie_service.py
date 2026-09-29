@@ -31,6 +31,18 @@ def test_resolve_gross_sell_wording_to_official_revenue_metric() -> None:
     assert result["metric"] == "gross_billing_value"
 
 
+def test_resolve_plain_sell_in_wording_without_gross_qualifier() -> None:
+    # Live Agent Studio trace (29 Sep 2026): the sales_stage ambiguity gate
+    # asks "Sell-In or Sell-Out?" and a business user answering it typically
+    # says just "sell-in"/"penjualan sell-in" - not "gross sell-in". Every
+    # gross_billing_value synonym at the time required the word "gross",
+    # so this exact follow-up phrasing fell through to
+    # no_published_metric_match instead of resolving.
+    result = _service().resolve("penjualan sell-in untuk Q4 2024")
+    assert result["status"] == "resolved"
+    assert result["metric"] == "gross_billing_value"
+
+
 def test_resolve_store_stock_by_dc_to_sat_idm_metric() -> None:
     result = _service().resolve(
         "DC mana yang memiliki stok store paling rendah selama Oktober sampai Desember 2024?"

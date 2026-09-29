@@ -1607,7 +1607,13 @@ metrics:
     - official revenue
     - bill value
     - pendapatan resmi
-    instructions: Use for official company-level revenue with no breakdown, or a monthly trend only. This metric only allows the calmonth dimension - it does NOT support a product/material breakdown. For "top N product/material by sales/revenue" questions, use material_sell_in_value instead. Gold is already IDR; never multiply by 100 again.
+    - sell-in
+    - sell in
+    - penjualan sell-in
+    - total sell-in
+    - total penjualan sell-in
+    - nilai sell-in
+    instructions: Use for official company-level revenue with no breakdown, or a monthly trend only. Covers plain "sell-in"/"penjualan sell-in" questions with no explicit "gross" wording - a business user clarifying a Sell-In vs Sell-Out ambiguity typically answers with just "sell-in", not "gross sell-in". This metric only allows the calmonth dimension - it does NOT support a product/material breakdown. For "top N product/material by sales/revenue" questions, use material_sell_in_value instead. Gold is already IDR; never multiply by 100 again.
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"SI-01","base_dataset":"monthly_executive","allowed_dimensions":["calmonth"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-01","unit_format":"currency_idr"}'
