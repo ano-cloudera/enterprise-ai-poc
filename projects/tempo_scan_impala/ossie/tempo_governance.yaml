@@ -44,6 +44,9 @@ ambiguities:
       - metric: material_warehouse_stock_quantity
         label: Tempo Warehouse Stock
         discriminators: [gudang tempo, stok gudang, stock tempo, stok tempo, stock value tempo, warehouse, dc tempo, plant]
+      - metric: months_of_stock_cover
+        label: Tempo Warehouse Stock Coverage (months of cover)
+        discriminators: [berapa bulan stok, bulan stok cukup, months of cover, stock cover, stok bertahan]
       - metric: sat_idm_dc_stock_quantity
         label: Partner Distribution Center Stock
         discriminators: [stok dc partner, nilai stok dc, dc stock, dcstock, nilai dcstock, idm stock, stock idm, distribution center stock]

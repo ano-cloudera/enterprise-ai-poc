@@ -15,7 +15,7 @@ def test_ossie_service_is_enabled_by_default() -> None:
     assert service.enabled is True
     assert service.status()["execution_mode"] == "ossie"
     assert service.status()["datasets"] == 20
-    assert service.status()["metrics"] == 61
+    assert service.status()["metrics"] == 62
 
 
 def test_resolve_official_gross_sales_metric() -> None:

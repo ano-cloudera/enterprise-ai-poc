@@ -1894,6 +1894,23 @@ metrics:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"SI-16-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in","has_stock"],"governance_status":"supporting","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-16","unit_format":"ratio"}'
+- name: months_of_stock_cover
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(material_360.warehouse_stock_qty) / NULLIF(SUM(material_360.sell_in_bill_qty), 0)
+  datatype: Decimal
+  description: Proxy for how many months of Sell-In demand current warehouse stock covers (inverse of sell_in_quantity_per_stock_unit).
+  ai_context:
+    synonyms:
+    - months of cover
+    - stock cover
+    - berapa bulan stok cukup
+    - stok bertahan berapa bulan
+    instructions: Proxy only, not an official inventory-planning KPI. Inverse framing of sell_in_quantity_per_stock_unit (SI-16-MAT) - same underlying data, opposite division direction, more intuitive for "how long will stock last" questions.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"SI-16-MAT-INV","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in","has_stock"],"governance_status":"supporting","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-16","unit_format":"ratio"}'
 - name: material_do_amount_to_billing_value_ratio
   expression:
     dialects:

@@ -36,7 +36,7 @@ def test_tempo_impala_contract_validator_passes() -> None:
     payload = json.loads(result.stdout)
     assert payload["valid"] is True
     assert payload["datasets"] == 20
-    assert payload["metrics"] == 61
+    assert payload["metrics"] == 62
     assert payload["golden_questions"] >= 50
 
 

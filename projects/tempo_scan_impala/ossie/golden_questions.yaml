@@ -138,6 +138,23 @@ questions:
     dimensions: [material]
     caveat: Proxy, not official inventory turnover.
 
+  - id: material_months_of_cover
+    # 29 Sep 2026: added after auditing a colleague's (Irvan) separate
+    # semantic model (reference/lite agent irvan/, see
+    # docs/irvan-semantic-model-audit.md) - inverse framing of the metric
+    # above, same underlying data, more intuitive for "how long will stock
+    # last" questions. Phrasing uses "berapa bulan stok cukup" verbatim -
+    # a plain "stok cukup untuk...bulan ke depan" phrasing (no explicit
+    # "berapa bulan" discriminator) fell through to the generic stock_scope
+    # ambiguity gate instead of this metric's own discriminator option;
+    # confirmed via a live CLI smoke test before finalizing this entry.
+    question: Material mana dengan berapa bulan stok cukup paling sedikit?
+    expected_status: supported_with_caveat
+    metric: months_of_stock_cover
+    dataset: material_360
+    dimensions: [material]
+    caveat: Proxy, not an official inventory-planning KPI.
+
   - id: service_monthly_fill_rate
     question: Bagaimana Fill Rate per bulan dan material?
     expected_status: supported
