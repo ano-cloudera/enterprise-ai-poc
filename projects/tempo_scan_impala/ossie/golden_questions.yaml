@@ -359,13 +359,20 @@ questions:
 
   # --- SAT OOS domain ---
   - id: catalog_o01_oos_rate
+    # Updated 29 Sep 2026: was marked unsupported ("OOS rate is exploratory;
+    # not a published governed metric in v1"), but sat_oos_rate (OOS-01) has
+    # been governed since the nine-domain expansion (bc517b7) - this question
+    # was never updated to match and is the only golden question exercising
+    # sat_oos_rate at all. Confirmed live via resolve_semantic_object's CLI
+    # tool: resolves to sat_oos_rate with dimension_mismatch: [].
     catalog_question_id: O01
     chart_primary: KPI
     domain_agent: sat_oos
     question: Berapa persen survey SAT OOS dengan stok akhir nol?
-    expected_status: unsupported
-    reason: OOS rate is exploratory; not a published governed metric in v1.
-    suggested_question: Material mana dengan Fill Rate terendah?
+    expected_status: supported
+    metric: sat_oos_rate
+    dataset: sat_oos_material_month
+    dimensions: []
 
   - id: catalog_o11_ptt_oos
     catalog_question_id: O11
