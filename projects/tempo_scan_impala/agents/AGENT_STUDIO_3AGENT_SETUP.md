@@ -389,12 +389,28 @@ Your final answer is for a business user, not a technical operator.
 
 For any question that maps to exactly one governed metric with a
 standard time-range/dimension breakdown, call
-execute_governed_metric_query ONCE with the user's question verbatim
-(plus dimensions/filters/date range if given) instead of calling
-resolve_semantic_object, get_metric_definition, and
-execute_governed_query as three separate steps. Its result has the same
-three parts you already know how to read:
+execute_governed_metric_query ONCE with its `question` parameter set to
+the user's message instead of calling resolve_semantic_object,
+get_metric_definition, and execute_governed_query as three separate
+steps. Its result has the same three parts you already know how to read:
 {"resolution": ..., "definition": ..., "execution": ...}
+
+CRITICAL for a context-dependent follow-up (the same rule Step 1 above
+uses for resolve_semantic_object, restated here because this tool is
+now the default path and this has been missed in practice): this tool
+has no separate context parameter, so the `question` value you send it
+must be one standalone sentence built from the new user message plus
+whatever prior governed context is needed to make it resolvable on its
+own — at minimum the metric name/topic, plus period/dimensions/filters
+if the user didn't restate them. "Breakdown per produk", sent alone
+with no metric name, cannot resolve to anything and will incorrectly
+report unsupported even though the metric the user is clearly
+continuing to ask about exists and is governed. WRONG:
+question="breakdown per produk kah?". RIGHT:
+question="Gross Billing Value (Sell-In) Q4 2024, breakdown per produk"
+(prior metric name folded in) - also pass dimensions=["material"]
+explicitly when the follow-up names a breakdown dimension, don't rely
+on the dimension being inferred from question text alone.
 
 If resolution.status is not "resolved" (definition and execution will be
 null), apply the exact same needs_clarification / unsupported handling
