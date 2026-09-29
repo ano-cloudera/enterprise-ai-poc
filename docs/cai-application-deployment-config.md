@@ -89,8 +89,8 @@ safe to commit to git.
 | `APP_ENV` | `production` | |
 | `DATA_BACKEND` | `impala` | |
 | `LLM_MODE` | `remote` | |
-| `QWEN_BASE_URL` | `<SET_MANUALLY>` | Target environment's Qwen Application URL, e.g. `https://qwen-38-awq.<workspace-domain>` |
-| `QWEN_MODEL` | `<SET_MANUALLY>` — same value as `MODEL_DIR` above | Full path, e.g. `/home/cdsw/models/Qwen3.8-27B-AWQ` |
+| `QWEN_BASE_URL` | `<SET_MANUALLY>` | Target environment's Qwen Application URL. Scheme depends on the environment: the original Cloudera-on-AWS deployment used `https://qwen-38-awq.<workspace-domain>` (public ingress with TLS); a 29 Sep 2026 Private Cloud environment instead used `http://qwen-38-awq.<cluster-internal-domain>/v1` (cluster-internal, no TLS) - confirm which applies to the target environment rather than assuming `https://` is always correct. |
+| `QWEN_MODEL` | `<SET_MANUALLY>` — same value as `MODEL_DIR` above | Full **absolute** path, e.g. `/home/cdsw/models/Qwen3.8-27B-AWQ` - must start with `/`. A 29 Sep 2026 deploy's Agent Studio "Model Identifier" field was found missing the leading slash (`home/cdsw/models/...`); double-check this value in both places (this env var and Agent Studio's own Model registration below) whenever re-entering it by hand. |
 | `QWEN_API_TOKEN` | `<SET_MANUALLY>` — screenshot showed `dummy` in the source env | Confirm whether the target environment's Qwen proxy actually enforces this or accepts any value |
 | `CORS_ORIGINS` | `<SET_MANUALLY>` | Target environment's `tempo-frontend` URL |
 | `GUARDRAILS_ENABLED` | `true` | |
