@@ -68,6 +68,12 @@ class Settings(BaseSettings):
     # Thrift behavior unchanged for any existing direct-coordinator setup.
     impala_use_http_transport: bool = False
     impala_http_path: str = ""
+    # Required when impala_auth_mechanism is GSSAPI (Kerberized clusters,
+    # e.g. the 29 Sep 2026 Private Cloud on-prem environment) - identifies
+    # the server-side Impala Kerberos principal's service name (the part
+    # before "/hostname@REALM"). impyla's connect() ignores this for
+    # non-GSSAPI auth mechanisms.
+    impala_kerberos_service_name: str = "impala"
 
     llm_mode: Literal["mock", "remote"] = "mock"
     qwen_base_url: str = ""

@@ -79,6 +79,7 @@ class ImpalaBackend:
             use_ssl=self.settings.impala_use_ssl,
             use_http_transport=self.settings.impala_use_http_transport,
             http_path=self.settings.impala_http_path,
+            kerberos_service_name=self.settings.impala_kerberos_service_name,
         )
         cursor = conn.cursor()
         try:

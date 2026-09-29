@@ -51,12 +51,16 @@ class UserParameters(BaseModel):
     impala_host: str = Field(default="", description="Impala coordinator hostname")
     impala_port: int = Field(default=443, description="Impala port")
     impala_database: str = Field(default="gold", description="Default Impala database/schema")
-    impala_auth_mechanism: str = Field(default="LDAP", description="Impala auth mechanism, e.g. LDAP or PLAIN")
-    impala_user: str = Field(default="", description="Impala username")
-    impala_password: SecretStr = Field(default=SecretStr(""), description="Impala password")
+    impala_auth_mechanism: str = Field(default="LDAP", description="Impala auth mechanism: LDAP, PLAIN, or GSSAPI (Kerberos)")
+    impala_user: str = Field(default="", description="Impala username (LDAP/PLAIN only - ignored for GSSAPI)")
+    impala_password: SecretStr = Field(default=SecretStr(""), description="Impala password (LDAP/PLAIN only - ignored for GSSAPI)")
     impala_use_ssl: bool = Field(default=True)
     impala_use_http_transport: bool = Field(default=True)
     impala_http_path: str = Field(default="cliservice")
+    impala_kerberos_service_name: str = Field(
+        default="impala",
+        description="Kerberos service principal name, required when impala_auth_mechanism=GSSAPI",
+    )
 
 
 def _apply_impala_env(config: UserParameters) -> None:
@@ -78,6 +82,7 @@ def _apply_impala_env(config: UserParameters) -> None:
     os.environ["IMPALA_USE_SSL"] = "true" if config.impala_use_ssl else "false"
     os.environ["IMPALA_USE_HTTP_TRANSPORT"] = "true" if config.impala_use_http_transport else "false"
     os.environ["IMPALA_HTTP_PATH"] = config.impala_http_path
+    os.environ["IMPALA_KERBEROS_SERVICE_NAME"] = config.impala_kerberos_service_name
 
 
 class ToolParameters(BaseModel):

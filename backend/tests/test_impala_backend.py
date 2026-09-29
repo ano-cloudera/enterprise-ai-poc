@@ -147,4 +147,20 @@ def test_impala_query_passes_http_transport_when_configured(monkeypatch) -> None
     backend.query("SELECT 1")
 
     assert captured["use_http_transport"] is True
+
+
+def test_impala_query_passes_kerberos_service_name(monkeypatch) -> None:
+    """A Kerberized cluster (auth_mechanism=GSSAPI, e.g. the 29 Sep 2026
+    Private Cloud on-prem environment) needs kerberos_service_name to reach
+    impyla's connect() - without it, GSSAPI negotiation targets the wrong
+    server principal and the connection fails during the SASL handshake."""
+    captured: dict = {}
+    _install_fake_impyla(monkeypatch, captured)
+
+    backend = ImpalaBackend()
+    backend.settings.impala_auth_mechanism = "GSSAPI"
+    backend.settings.impala_kerberos_service_name = "impala"
+    backend.query("SELECT 1")
+
+    assert captured["kerberos_service_name"] == "impala"
     assert captured["http_path"] == "cliservice"

@@ -2,8 +2,8 @@
   "sandbox": {
     "timeout": 180,
     "mounts": [{
-      "host_path": "/home/cdsw/enterprise-ai-poc",
-      "sandbox_path": "/home/cdsw/enterprise-ai-poc",
+      "host_path": "/workflow_data/enterprise-ai-poc",
+      "sandbox_path": "/workflow_data/enterprise-ai-poc",
       "read_only": true,
       "required": true
     }]
