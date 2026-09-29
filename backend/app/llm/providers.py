@@ -4,7 +4,7 @@ import json
 import logging
 import re
 import time
-from typing import Protocol
+from typing import Any, Protocol
 
 import httpx
 from pydantic import ValidationError
@@ -57,7 +57,7 @@ class LLMProviderError(RuntimeError):
 class LLMProvider(Protocol):
     async def generate_structured(self, payload: TrustedAnalysisPayload, *, language: str, trace_id: str) -> AnalysisResult: ...
     async def classify_intent(self, question: str, *, conversation_history: list[dict[str, str]], trace_id: str) -> IntentClassificationResult: ...
-    async def classify_metric(self, question: str, *, candidates: list[dict[str, str]], trace_id: str) -> MetricClassificationResult: ...
+    async def classify_metric(self, question: str, *, candidates: list[dict[str, Any]], trace_id: str) -> MetricClassificationResult: ...
     async def generate_conversational_reply(self, question: str, *, language: str, conversation_history: list[dict[str, str]], trace_id: str) -> ConversationalReplyResult: ...
     async def health_check(self) -> ModelHealth: ...
 
@@ -113,7 +113,7 @@ class MockLLMProvider:
             ),
         )
 
-    async def classify_metric(self, question: str, *, candidates: list[dict[str, str]], trace_id: str) -> MetricClassificationResult:
+    async def classify_metric(self, question: str, *, candidates: list[dict[str, Any]], trace_id: str) -> MetricClassificationResult:
         started = time.perf_counter()
         # No real model in mock mode - just report "no match" so the caller
         # falls back to whatever the deterministic resolver already decided,
@@ -383,9 +383,14 @@ discussed. When in doubt and there is no concrete data-related follow-up cue, pr
             raise LLMProviderError("invalid_response", latency_ms=round((time.perf_counter() - started) * 1000))
 
     @staticmethod
-    def _metric_classification_messages(question: str, candidates: list[dict[str, str]]) -> list[dict[str, str]]:
+    def _metric_classification_messages(question: str, candidates: list[dict[str, Any]]) -> list[dict[str, str]]:
+        def _format_dimensions(item: dict[str, Any]) -> str:
+            dims = item.get("allowed_dimensions") or []
+            return ", ".join(dims) if dims else "none (company-level total only)"
+
         catalog_lines = "\n".join(
-            f"- {item['name']}: {item['description']}" for item in candidates
+            f"- {item['name']}: {item['description']} [breakdown dimensions: {_format_dimensions(item)}]"
+            for item in candidates
         )
         system = f"""You match one business question to at most one governed metric from a
 closed catalog. You do not invent a metric name, you do not generate SQL, and you never pick a
@@ -395,14 +400,20 @@ metric outside this exact list:
 Return JSON only: {{"metric_name": "exact_name_from_list_or_null"}}
 Pick the single best-matching metric_name (copied exactly, case-sensitive) if one of the metrics
 above genuinely answers the question. If none of them do, return {{"metric_name": null}} - do not
-guess at the closest one just to return something. A deterministic keyword matcher already tried
-and failed to find a match, so judge by meaning: the question may be phrased very differently from
-the metric's description (different words, different language register), but it still counts as a
-match if a business analyst would agree the metric answers what's being asked."""
+guess at the closest one just to return something.
+
+Two metrics can have near-identical descriptions but different breakdown dimensions (e.g. a
+company-level total metric vs. the same figure broken down by material/customer/sales office).
+Pay close attention to the [breakdown dimensions] shown for each candidate and to what the question
+is actually asking to be broken down by - if the question asks for a breakdown that only one
+candidate's dimensions support, prefer that one even if another candidate's plain description looks
+like a closer text match. You are being asked this either because a deterministic keyword matcher
+found no match at all, or because it matched a metric whose breakdown dimensions do not cover what
+the question asked for - so judge by meaning and by dimension fit, not by surface wording alone."""
         user = f"Question: {question}"
         return [{"role": "system", "content": system}, {"role": "user", "content": user}]
 
-    async def classify_metric(self, question: str, *, candidates: list[dict[str, str]], trace_id: str) -> MetricClassificationResult:
+    async def classify_metric(self, question: str, *, candidates: list[dict[str, Any]], trace_id: str) -> MetricClassificationResult:
         if not self.settings.qwen_base_url:
             raise LLMProviderError("unavailable")
         headers = {"Content-Type": "application/json"}
@@ -709,7 +720,7 @@ class LiteLLMProvider(QwenOpenAICompatibleProvider):
         except (json.JSONDecodeError, KeyError, IndexError, TypeError, ValueError, ValidationError):
             raise LLMProviderError("invalid_response", latency_ms=round((time.perf_counter() - started) * 1000))
 
-    async def classify_metric(self, question: str, *, candidates: list[dict[str, str]], trace_id: str) -> MetricClassificationResult:
+    async def classify_metric(self, question: str, *, candidates: list[dict[str, Any]], trace_id: str) -> MetricClassificationResult:
         if not self.settings.litellm_base_url:
             raise LLMProviderError("unavailable")
         headers = {"Content-Type": "application/json"}

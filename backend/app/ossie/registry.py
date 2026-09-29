@@ -415,17 +415,33 @@ class TempoOssieRegistry:
             "dimension_mismatch": dimension_mismatch,
         }
 
-    def metric_catalog_for_classification(self) -> list[dict[str, str]]:
-        """Closed list of {name, description} for every governed metric, used
-        as the candidate set an LLM fallback classifier picks from when the
-        deterministic token matcher in resolve_metric() finds no match. Kept
-        separate from resolve_metric so the primary path stays a pure,
-        LLM-free lookup - this only feeds a downstream fallback, never
-        replaces the deterministic result when one exists."""
-        return [
-            {"name": name, "description": str(metric.get("description") or "")}
-            for name, metric in self.metrics.items()
-        ]
+    def metric_catalog_for_classification(self) -> list[dict[str, Any]]:
+        """Closed list of {name, description, allowed_dimensions} for every
+        governed metric, used as the candidate set an LLM fallback
+        classifier picks from - either when the deterministic token matcher
+        in resolve_metric() finds no match at all, or when it matches but
+        flags a dimension_mismatch (picked a metric whose allowed_dimensions
+        doesn't cover a dimension the question hinted at). allowed_dimensions
+        is included specifically for the second case: two metrics can have
+        near-identical descriptions (e.g. gross_billing_value "Official
+        TEMPO revenue" vs material_sell_in_value "Sell-In Gross Billing
+        Value by material and month") and be indistinguishable by text
+        alone - the classifier needs to see which one actually supports a
+        material/product breakdown to pick correctly. Kept separate from
+        resolve_metric so the primary path stays a pure, LLM-free lookup -
+        this only feeds a downstream fallback, never replaces the
+        deterministic result when one exists."""
+        result = []
+        for name, metric in self.metrics.items():
+            config = self.metric_configs.get(name, {})
+            result.append(
+                {
+                    "name": name,
+                    "description": str(metric.get("description") or ""),
+                    "allowed_dimensions": config.get("allowed_dimensions", []),
+                }
+            )
+        return result
 
     def metric_definition(self, metric_name: str) -> dict[str, Any]:
         if metric_name not in self.metrics:

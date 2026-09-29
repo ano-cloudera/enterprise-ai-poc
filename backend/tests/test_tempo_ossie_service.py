@@ -474,3 +474,46 @@ async def test_llm_fallback_resolves_a_metric_the_deterministic_matcher_missed(m
     assert result["status"] == "resolved"
     assert result["metric"] == "sat_oos_rate"
     assert result["resolved_by"] == "llm_fallback"
+
+
+@pytest.mark.asyncio
+async def test_llm_fallback_overrides_a_dimension_mismatched_deterministic_match(monkeypatch) -> None:
+    # Live Agent Studio trace (29 Sep 2026): "berapa total gross sales tempo
+    # selama q4 berdasarkan produk" deterministically matched
+    # gross_billing_value (calmonth-only) instead of material_sell_in_value
+    # (calmonth+material) - status was "resolved", not "unsupported", so
+    # this only reaches the LLM path via the dimension_mismatch signal, not
+    # the older "no match at all" trigger the test above covers. Also
+    # confirms the classifier receives allowed_dimensions per candidate
+    # (added specifically to fix this case - two near-identical metric
+    # descriptions are otherwise indistinguishable by text alone).
+    from app.llm import factory as llm_factory
+    from app.llm.models import MetricClassification, MetricClassificationResult, ModelTelemetry
+
+    service = _service()
+
+    class _FakeMetricClassifierProvider:
+        async def classify_metric(self, question, *, candidates, trace_id):
+            by_name = {item["name"]: item for item in candidates}
+            assert by_name["gross_billing_value"]["allowed_dimensions"] == ["calmonth"]
+            assert "material" in by_name["material_sell_in_value"]["allowed_dimensions"]
+            return MetricClassificationResult(
+                classification=MetricClassification(metric_name="material_sell_in_value"),
+                telemetry=ModelTelemetry(
+                    trace_id=trace_id, provider="fake", model="fake", latency_ms=1,
+                    retry_count=0, success=True, structured_validation_success=True,
+                ),
+            )
+
+    monkeypatch.setattr(llm_factory, "get_llm_provider", lambda: _FakeMetricClassifierProvider())
+    deterministic = service.resolve("berapa total gross sales tempo selama q4 berdasarkan produk")
+    assert deterministic["status"] == "resolved"
+    assert deterministic["metric"] == "gross_billing_value"
+    assert deterministic["dimension_mismatch"] == ["material"]
+
+    result = await service.resolve_with_llm_fallback(
+        "berapa total gross sales tempo selama q4 berdasarkan produk"
+    )
+    assert result["status"] == "resolved"
+    assert result["metric"] == "material_sell_in_value"
+    assert result["resolved_by"] == "llm_fallback"
