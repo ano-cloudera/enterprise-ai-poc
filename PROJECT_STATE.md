@@ -1,9 +1,82 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 28 Sep 2026 (later same day) — Agent Studio testing session found and fixed a resolver bug, strengthened SQL fallback disclaimers, and expanded customer/sales_office breakdowns for Sales, B2B, and Service Level. All new Gold views are deployed and verified in Workbench. About to be pushed to `origin/main`.
+**Updated**: 30 Sep 2026 — DWH/Impala migrated to a new Cloudera Private Cloud on-prem cluster (`IMID.LOCAL`); backend Impala client now supports Kerberos (GSSAPI); Agent Studio migration to the new environment is **blocked** on a sandbox-level infra issue (not a code issue — see "Known blocker" below); a 46-question UAT set exists but has never been executed end-to-end. **Next major initiative flagged by the user**: a v2 rewrite of backend + frontend is planned, to be built with ChatGPT rather than Claude — this file is written to carry full context across that handoff.
 
-## Current checkpoint: testing-driven resolver fixes + customer/sales_office breakdowns (28 Sep 2026, later same day)
+## Current checkpoint: Impala/DWH migration to Private Cloud on-prem + Kerberos support (30 Sep 2026)
+
+Follow-up to the "testing-driven resolver fixes" checkpoint below. 5 commits since then, all pushed to `origin/main`:
+
+```
+690ac74 docs: note Qwen URL scheme and model path leading-slash gotchas found during Private Cloud deploy
+d10f42c fix: add Kerberos (GSSAPI) support for Impala and re-point tool sandbox path
+340d590 feat: add Sales/Sell-In transaction-line gold view for dashboard tools
+3a9853c fix: Data Agent Backstory told execute_governed_metric_query to send follow-ups "verbatim"
+39f0f83 fix: gross_billing_value synonyms required the word "gross", broke plain "sell-in" follow-ups
+```
+
+(Plus 8 earlier commits between the previous checkpoint and this one — semantic layer audit against a colleague's separate model, a golden-question fix, and doc work. Full list: `git log --oneline 497ff21..690ac74`.)
+
+### DWH migration: AWS (S3/Iceberg) → Private Cloud on-prem
+
+The data warehouse moved from Cloudera-on-AWS (Iceberg tables on S3) to a Cloudera Private Cloud on-prem cluster, hostname `cbase02.imid.local`, realm `IMID.LOCAL`. Migration mechanics (distcp, path structure) are documented in `docs/dwh-migration-checklist.md`. As of this checkpoint the migration itself is **done** — `silver.*` tables exist and are queryable on the new cluster.
+
+**Full Gold layer recreate script**: `datasets/migration/recreate_all_gold_views.sql` (gitignored — `datasets/**` is excluded except allowlisted paths, this file was not force-added). 57 `CREATE VIEW IF NOT EXISTS` statements, assembled from `datasets/audit/*.sql` + `datasets/gold/*.sql` (no new view logic introduced, "_fixed" revisions used where they exist), split into 9 sections:
+
+1. Baseline `corr_*` views (9)
+2. Baseline `rpt_*` views (5, using "_fixed" revisions)
+3. `_semantic` wrappers (5) — what `tempo_core.ossie.yaml`'s datasets actually reference
+4. SAT Promo (1)
+5. Journey expansion (9) — Stock Tempo → Sales → B2B → SAT-IDM → SAT OOS
+6. 28 Sep customer/sales_office breakdown expansion (5)
+7. Dashboard-only view (1) — `rpt_sales_sell_in_line_semantic`, NOT in the governed OSSIE contract
+8. **21 views from a colleague's (Irvan's) separate `view from irvan/` migration folder — NOT wired into OSSIE, each tagged PERLU VALIDASI / QA-ONLY / REFERENCE in the file's comments.** Two real findings from this audit: (a) `corr_sat_oos_material_month` in that folder uses a **different OOS definition** than our governed `sat_oos_rate` (`stok_akhir <= 0` vs our `= 0`, coarser grain) — a real definition conflict, not just "unverified"; (b) `corr_sat_idm_plu_month` there is built from a source table whose own comment admits bronze/silver currently loads only the first xlsb sheet — possible incomplete IDM data. Do not adopt anything from section 8 into the OSSIE YAML without resolving these first.
+9. `rpt_semantic_metric_catalog` — documentation-only view (metric metadata as rows via UNION ALL), deliberately last per its own "DEPLOY LAST" comment.
+
+Run this file once (single Workbench block) against the new cluster's `gold` database, then re-run `scripts/validate_tempo_impala_contract.py --json` to confirm the governed 20/62/82 dataset/metric/golden-question contract still holds.
+
+**Audit of Irvan's semantic model is NOT finished.** Only section 8's SQL definitions were read and compared; the planned next steps (audit the ~10 new metrics unique to Irvan's 76-metric model vs the 66-metric one already audited in `docs/irvan-semantic-model-audit.md`, then write a combined decision doc) were not reached before the session moved to Agent Studio migration. Pick this back up before treating the DWH migration as fully closed on the semantic-layer side.
+
+### Kerberos (GSSAPI) support added to the Impala backend
+
+The new cluster requires **GSSAPI auth over TLS** — confirmed by direct `impyla` probing from a Workbench session (every non-GSSAPI/non-SSL combination failed with `TSocket read 0 bytes`; GSSAPI+SSL succeeded, then verified end-to-end through the actual `Settings`/`ImpalaBackend` code path, not just raw `impyla`). Working combination: `auth_mechanism=GSSAPI`, `use_ssl=True`, `port=21050`, binary transport (`use_http_transport=False`), `kerberos_service_name="impala"`.
+
+Code changes (commit `d10f42c`):
+
+- `backend/app/core/config.py`: new `impala_kerberos_service_name: str = "impala"` Settings field.
+- `backend/app/db/impala_backend.py`: passes `kerberos_service_name` through to `impyla.connect()`.
+- All 3 Impala-backed Agent Studio tools (`execute_governed_query`, `execute_readonly_sql`, `execute_governed_metric_query`) got the same new `UserParameters` field + env var plumbing.
+- All 7 tools' `config.json` sandbox mount changed from `/home/cdsw/enterprise-ai-poc` to `/workflow_data/enterprise-ai-poc` — the new environment's actual project volume mount path for Agent Studio (confirmed by the user; this is NOT the same path a plain interactive Workbench session sees, which is still `/home/cdsw/enterprise-ai-poc` — the two are different mount points for different container types in this environment).
+- New test in `backend/tests/test_impala_backend.py`: `test_impala_query_passes_kerberos_service_name`. All 6 tests in that file pass.
+
+**Verification helper**: `datasets/migration/test_impala_connection.py` (gitignored, not committed). Two modes: default runs a raw `impyla.connect()` probe across several transport/port/SSL/auth candidates; `--backend` flag instead exercises the real `Settings()`/`ImpalaBackend()` code path with env vars set exactly as `_apply_impala_env()` in the tool files does. Both modes confirmed working on 30 Sep 2026 from a Workbench session at `/home/cdsw/enterprise-ai-poc`. Keep this file around for the next environment migration — re-verifying through `--backend` (not just raw `impyla`) is what caught that a passing raw probe doesn't guarantee the app's env-var plumbing agrees.
+
+### Known blocker: Agent Studio sandbox fails on every tool, in the new environment
+
+Not a code issue — this is an infrastructure/container-runtime problem in the new Private Cloud environment. Reproduced identically on 2 different tools (`execute_governed_query`, `execute_readonly_sql`) via Agent Studio's own Tools Playground, which runs a tool in isolation before it ever reaches the tool's Python code:
+
+```
+bwrap: Can't bind mount /oldroot/etc/resolv.conf on /newroot/etc/resolv.conf:
+Unable to remount destination "/newroot/etc/resolv.conf" with correct flags: Permission denied
+```
+
+`bwrap` (bubblewrap) is Agent Studio's tool sandboxing mechanism; this error means it cannot create a Linux user namespace, which happens before any tool code runs — so this cannot be fixed from inside a tool, from the Agent Studio UI, or from this repo. Full write-up with likely causes (`kernel.unprivileged_userns_clone=0`, Kubernetes pod security context blocking `CAP_SYS_ADMIN`, or SELinux/AppArmor) and what to ask infra to check: `datasets/migration/agent-studio-sandbox-permission-issue.md` (gitignored, not committed — copy its content directly to whoever has node/cluster access). **The user has node/cluster access themselves** (no separate infra team) — this was handed to them directly rather than escalated externally. Status as of this checkpoint: unresolved, migration paused here.
+
+### UAT question set exists but has never been executed
+
+Three separate UAT/acceptance documents exist in the repo, and **none of them have ever had their results filled in**:
+
+1. `docs/qa/2026-09-28-agent-studio-nine-domain-acceptance.md` — 9 domain smoke-test scenarios + 4 SAT Promo safety checks + 1 SQL-fallback check. All rows still say "pending". Its "frozen local contract" baseline (15 datasets/50 metrics/75 questions) is now stale vs. the actual current contract (20/62/82) — update this if it's ever actually run.
+2. **`docs/uat-questions-2026-09-29.md` — the authoritative UAT file** (confirmed by the user 30 Sep 2026). 46 natural-language business questions across the 9 domains (32 expected to resolve as governed, 14 deliberately out-of-scope and expected to be refused/clarified). Result/Status columns are empty for every row.
+3. `datasets/TEMPO_UAT_SESSION.md` — older, 20 prescriptive/diagnostic cross-domain questions (e.g. "sell-in high + fill rate low — prioritize fulfillment?"). Log sheet is empty and not even fully listed (20 rows expected, only a template row present).
+
+**In progress at the end of this session**: the user started executing `docs/uat-questions-2026-09-29.md` live against the OLD (AWS) Agent Studio environment, since the new environment's Agent Studio is blocked on the sandbox issue above. Domain-by-domain, starting with Sales/Sell-In (#1-9). No results had been recorded yet when this checkpoint was written — pick this up by asking the user for the next domain's Agent Studio output and filling in the Hasil/Status columns per the file's own FAIL/PARTIAL grading guide (see that file's "Panduan cepat untuk auditor" section — flag Stock SAT-IDM question #4 in particular, a DC+Store summation that Tempo has explicitly confirmed must never happen).
+
+### Planned: v2 backend + frontend rewrite, using ChatGPT instead of Claude
+
+Stated by the user during this session, not yet started. No design decisions have been made yet (framework, whether OSSIE/governance logic carries over as-is, migration path for the 3-agent Agent Studio workflow). Because the next builder may be a different AI tool with no memory of this conversation, keep this file (and the linked docs it points to) as the single source of truth — don't let context that only exists in a chat transcript become the only record of a decision.
+
+## Previous checkpoint: testing-driven resolver fixes + customer/sales_office breakdowns (28 Sep 2026, later same day)
 
 Follow-up session to the nine-domain expansion below, triggered by live Agent Studio testing with the user. 11 commits, all pushed:
 
