@@ -160,6 +160,89 @@ async def test_clarification_and_unsupported_do_not_execute_query() -> None:
     assert unsupported.query_executor.queries == []
 
 
+class FakeLocalAgentClient:
+    def __init__(self, *, enabled: bool = True, payload: dict | None = None, error: Exception | None = None) -> None:
+        self.enabled = enabled
+        self.payload = payload
+        self.error = error
+        self.calls: list[str] = []
+
+    async def query(self, question: str, *, answer_language: str = "id"):
+        self.calls.append(question)
+        if self.error is not None:
+            raise self.error
+        return self.payload
+
+
+@pytest.mark.asyncio
+async def test_unsupported_plan_falls_through_unchanged_when_local_agent_disabled() -> None:
+    """No local_agent_client configured (the default for every deployment
+    that hasn't opted in) must behave exactly like before this feature was
+    added - UNSUPPORTED, no extra calls, no exceptions."""
+    provider = FakeProvider([{"strategy": "unsupported", "domains": [], "metrics": [], "dimensions": [], "filters": {}, "analysis_type": "unsupported", "sql": None, "clarification_question": None}])
+    dependencies = deps(FakeContext({"status": "unsupported"}), provider, [])
+    assert dependencies.local_agent_client is None
+
+    state = await build_workflow(dependencies).ainvoke(AskDataRequest(session_id="s", question="biaya iklan TV", provider="qwen", model="m").model_dump())
+
+    assert state["status"] == "UNSUPPORTED"
+    assert state["strategy"] == "unsupported"
+
+
+@pytest.mark.asyncio
+async def test_unsupported_plan_uses_local_agent_fallback_when_it_answers() -> None:
+    provider = FakeProvider([{"strategy": "unsupported", "domains": [], "metrics": [], "dimensions": [], "filters": {}, "analysis_type": "unsupported", "sql": None, "clarification_question": None}])
+    dependencies = deps(FakeContext({"status": "unsupported"}), provider, [])
+    dependencies.local_agent_client = FakeLocalAgentClient(payload={
+        "resolved_query_ids": ["SI-01@calquarter_material"],
+        "final_response_markdown": "## Answer\n\nTop 5 produk dengan sell-in tertinggi...\n\n## Routing\n\n(details omitted)",
+    })
+
+    state = await build_workflow(dependencies).ainvoke(
+        AskDataRequest(session_id="s", question="top 5 produk berdasarkan sell-in", provider="qwen", model="m").model_dump()
+    )
+
+    assert state["status"] == "SUCCESS"
+    assert state["strategy"] == "local_agent_exploratory"
+    assert "Top 5 produk" in state["answer"]["direct_answer"]
+    assert "Routing" not in state["answer"]["direct_answer"]
+    assert any("eksploratif" in caveat.casefold() for caveat in state["answer"]["caveats"])
+    assert "SI-01@calquarter_material" in state["answer"]["data_reference"]
+    assert dependencies.local_agent_client.calls == ["top 5 produk berdasarkan sell-in"]
+
+
+@pytest.mark.asyncio
+async def test_unsupported_plan_falls_through_unchanged_when_local_agent_errors() -> None:
+    """A broken/unreachable local agent must never turn a normal unsupported
+    answer into a request failure - it degrades to the exact same message
+    as if the fallback didn't exist."""
+    provider = FakeProvider([{"strategy": "unsupported", "domains": [], "metrics": [], "dimensions": [], "filters": {}, "analysis_type": "unsupported", "sql": None, "clarification_question": None}])
+    dependencies = deps(FakeContext({"status": "unsupported"}), provider, [])
+    dependencies.local_agent_client = FakeLocalAgentClient(error=RuntimeError("connection refused"))
+
+    state = await build_workflow(dependencies).ainvoke(
+        AskDataRequest(session_id="s", question="biaya iklan TV", provider="qwen", model="m").model_dump()
+    )
+
+    assert state["status"] == "UNSUPPORTED"
+    assert state["strategy"] == "unsupported"
+    assert dependencies.local_agent_client.calls == ["biaya iklan TV"]
+
+
+@pytest.mark.asyncio
+async def test_unsupported_plan_ignores_a_disabled_local_agent_client() -> None:
+    provider = FakeProvider([{"strategy": "unsupported", "domains": [], "metrics": [], "dimensions": [], "filters": {}, "analysis_type": "unsupported", "sql": None, "clarification_question": None}])
+    dependencies = deps(FakeContext({"status": "unsupported"}), provider, [])
+    dependencies.local_agent_client = FakeLocalAgentClient(enabled=False, payload={"final_response_markdown": "## Answer\n\nShould never be reached"})
+
+    state = await build_workflow(dependencies).ainvoke(
+        AskDataRequest(session_id="s", question="biaya iklan TV", provider="qwen", model="m").model_dump()
+    )
+
+    assert state["status"] == "UNSUPPORTED"
+    assert dependencies.local_agent_client.calls == []
+
+
 @pytest.mark.asyncio
 async def test_invalid_sql_gets_only_one_repair_attempt() -> None:
     provider = FakeProvider([

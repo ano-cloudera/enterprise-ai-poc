@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import inspect
 import json
+import logging
 import re
 import uuid
 from dataclasses import dataclass
@@ -17,6 +18,9 @@ from app.llm.base import LLMProvider, ProviderError
 from app.sql.validator import ValidatedSQL
 
 
+logger = logging.getLogger(__name__)
+
+
 PROMPT_DIR = Path(__file__).resolve().parents[2] / "prompts"
 
 
@@ -27,6 +31,10 @@ class WorkflowDependencies:
     query_executor: Any
     sql_validator: Callable[[str, Any], ValidatedSQL]
     validation_context: Any
+    # Optional: only used when our own planner reports strategy=unsupported.
+    # None (the default in every existing test/deployment) skips the
+    # fallback node entirely with no behavior change.
+    local_agent_client: Any = None
 
 
 def _elapsed(started: float) -> float:
@@ -87,6 +95,49 @@ def _is_conversational_request(question: str) -> bool:
         or "apa yang bisa" in normalized
     )
     return short_greeting or capability_request
+
+
+async def _try_local_agent_fallback(state: AskDataState, deps: WorkflowDependencies) -> dict[str, Any] | None:
+    """Last-resort fallback when our own planner found no governed metric.
+
+    Only reached when plan.strategy == "unsupported". Returns an
+    AnalysisOutput dict on success, or None on ANY failure (disabled,
+    network error, timeout, the local agent itself refusing) - callers
+    must treat None as "fall through to the existing unsupported
+    message", never as a request-level failure. This function must never
+    raise past its own try/except; a broken or unreachable fallback
+    service must not turn a normal "unsupported" answer into a 500.
+    """
+    client = deps.local_agent_client
+    if client is None or not getattr(client, "enabled", False):
+        return None
+    try:
+        payload = await client.query(state["question"], answer_language="id")
+    except Exception as exc:  # noqa: BLE001 - any failure here must degrade to None, not propagate
+        logger.info("local_agent_fallback_failed request_id=%s reason=%s", state.get("request_id"), type(exc).__name__)
+        return None
+
+    from app.services.local_agent_client import markdown_to_plain_answer
+
+    markdown = str(payload.get("final_response_markdown") or "")
+    text = markdown_to_plain_answer(markdown)
+    if not text:
+        return None
+    query_ids = payload.get("resolved_query_ids") or []
+    reference = f"TEMPO Local Agent (separate governed catalog) - query: {', '.join(query_ids)}" if query_ids else "TEMPO Local Agent (separate governed catalog)."
+    return AnalysisOutput(
+        direct_answer=text,
+        executive_summary=text,
+        insights=[],
+        business_implications=[],
+        caveats=[
+            "Jawaban ini berasal dari sistem governed terpisah (TEMPO Local Agent), "
+            "bukan dari katalog metric utama TEMPO Scan - dapat memiliki definisi "
+            "atau cakupan yang sedikit berbeda. Sifatnya eksploratif."
+        ],
+        data_reference=reference,
+        chart_spec=None,
+    ).model_dump()
 
 
 def build_workflow(deps: WorkflowDependencies):
@@ -193,7 +244,17 @@ def build_workflow(deps: WorkflowDependencies):
             text = plan.clarification_question or "Please clarify the requested metric."
             update.update(status="CLARIFICATION", answer=_safe_answer(text), chart_spec=None, query_result={"columns": [], "rows": [], "row_count": 0, "execution_ms": 0})
         elif plan.strategy == "unsupported":
-            update.update(status="UNSUPPORTED", answer=_safe_answer("Data yang diminta tidak tersedia pada scope TEMPO saat ini."), chart_spec=None, query_result={"columns": [], "rows": [], "row_count": 0, "execution_ms": 0})
+            fallback_answer = await _try_local_agent_fallback(state, deps)
+            if fallback_answer is not None:
+                update.update(
+                    status="SUCCESS",
+                    strategy="local_agent_exploratory",
+                    answer=fallback_answer,
+                    chart_spec=None,
+                    query_result={"columns": [], "rows": [], "row_count": 0, "execution_ms": 0},
+                )
+            else:
+                update.update(status="UNSUPPORTED", answer=_safe_answer("Data yang diminta tidak tersedia pada scope TEMPO saat ini."), chart_spec=None, query_result={"columns": [], "rows": [], "row_count": 0, "execution_ms": 0})
         return update
 
     async def validate_query(state: AskDataState) -> AskDataState:

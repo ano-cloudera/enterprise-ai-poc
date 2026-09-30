@@ -59,6 +59,15 @@ class Settings(BaseSettings):
     impala_query_timeout_seconds: int = Field(default=60, ge=1, le=600)
     conversation_db_path: Path = BACKEND_ROOT / "runtime" / "conversation_history.sqlite"
 
+    # Optional fallback: a separately governed sibling system (TEMPO Local
+    # Agent) queried only when our own OSSIE-driven planner can't match a
+    # published metric at all (strategy=unsupported). Disabled by default -
+    # empty base_url means the fallback node is skipped entirely, so
+    # existing behavior is unchanged unless an operator opts in.
+    local_agent_base_url: str = ""
+    local_agent_timeout_seconds: float = Field(default=55, gt=0, le=120)
+    local_agent_engine: str = "guided"
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [value.strip() for value in self.cors_origins.split(",") if value.strip()]

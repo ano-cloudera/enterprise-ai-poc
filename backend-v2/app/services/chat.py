@@ -14,6 +14,7 @@ from app.graph.workflow import WorkflowDependencies, build_workflow
 from app.llm.registry import ProviderRegistry
 from app.semantic.context import SemanticContextService
 from app.services.history import ConversationStore
+from app.services.local_agent_client import LocalAgentClient
 from app.sql.validator import validate_sql
 
 
@@ -90,6 +91,7 @@ class ChatService:
             query_executor=ImpalaQueryExecutor(settings),
             sql_validator=lambda sql, validation_context: validate_sql(sql, validation_context, max_rows=settings.sql_max_rows),
             validation_context=context,
+            local_agent_client=LocalAgentClient(settings),
         )
         self.workflow = build_workflow(self.dependencies)
         self.history = history or ConversationStore(settings.conversation_db_path)
