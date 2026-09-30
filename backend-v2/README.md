@@ -33,6 +33,7 @@ Set provider and Impala variables from `.env.example`. The launcher creates `bac
 ## Troubleshooting
 
 - Model disabled: inspect `/models`; set its model ID and required credential/base URL, then restart.
+- Pip reports an Impyla/Thrift resolution conflict: sync the latest `requirements-impala.txt`; Impyla 0.22.0 requires the pinned `thrift==0.16.0`.
 - `IMPALA_QUERY_FAILED`: verify Kerberos ticket/service principal, TLS, host/port, and whether HTTP transport/path is required in this environment.
 - SSE appears frozen: confirm the CAI proxy preserves `text/event-stream`; V2 sends `X-Accel-Buffering: no`, no-transform caching, and 15-second heartbeat comments.
 - Optional provider has no outbound network: leave it configured as unavailable or select Qwen; startup remains healthy.

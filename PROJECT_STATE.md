@@ -63,11 +63,12 @@ The backend should receive provider secrets, Ossie paths/settings, and the selec
 
 - Both V2 launchers now work when CAI executes the selected Python file as Jupyter/IPython interpreter cells, where `__file__` is undefined. Checkout discovery follows the proven V1 pattern: inspect `CDSW_PROJECT_DIR` and the current working directory first, and use the script path only when it exists.
 - Qwen deployment configuration now accepts the environment's established `QWEN_API_TOKEN` name. `QWEN_API_KEY` remains a backward-compatible alias.
+- The Backend CAI dependency bootstrap now pins `thrift==0.16.0`, the exact version required by `impyla==0.22.0`. The earlier V2 pin to Thrift 0.22.0 caused pip `ResolutionImpossible` before Uvicorn could start. A real `pip install --dry-run --ignore-installed` now resolves the complete Impala requirement set successfully.
 - Regression tests explicitly execute both launchers in a namespace without `__file__` and verify that the correct V2 directories are found.
 
 ### Verification evidence
 
-- Backend V2: **43 tests passed**.
+- Backend V2: **44 tests passed**.
 - Frontend V2: **8 tests passed** and the production Next.js build completed successfully.
 - V1 regression protection: backend **454 tests passed**; frontend **71 tests passed**.
 - CAI launcher/readiness dry-run coverage passed in the backend V2 suite.

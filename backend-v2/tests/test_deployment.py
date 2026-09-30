@@ -28,6 +28,13 @@ def load_entrypoint_without_file(script: Path) -> dict:
     return namespace
 
 
+def test_impala_requirements_use_impyla_compatible_thrift_version() -> None:
+    requirements = (ROOT / "backend-v2" / "requirements-impala.txt").read_text(encoding="utf-8").splitlines()
+
+    assert "impyla==0.22.0" in requirements
+    assert "thrift==0.16.0" in requirements
+
+
 def test_backend_cai_entrypoint_uses_dynamic_port_and_local_proxy_bind() -> None:
     payload = dry_run(ROOT / "backend-v2" / "app_cai_backend.py", {"CDSW_APP_PORT": "9876"})
 
