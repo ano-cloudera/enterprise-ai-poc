@@ -42,3 +42,34 @@ def test_standalone_question_is_not_rewritten_from_history() -> None:
     history = [{"question": "Berapa total penjualan?", "answer": {"direct_answer": "Sell-In atau Sell-Out?"}}]
 
     assert contextualize_question("Top 5 produk dengan gross sales terbesar", history) == "Top 5 produk dengan gross sales terbesar"
+
+
+def test_short_answer_to_stock_clarification_reuses_previous_question() -> None:
+    history = [
+        {
+            "question": "Mau tahu tentang data stok, bisa analisis apa saja?",
+            "answer": {"direct_answer": "Mau stok gudang Tempo, stok DC partner, atau stok retail?"},
+        }
+    ]
+
+    contextualized = contextualize_question("stok retail", history)
+
+    assert "Mau tahu tentang data stok" in contextualized
+    assert "Klarifikasi pengguna: stok retail" in contextualized
+
+
+def test_domain_choice_can_be_found_in_executive_summary() -> None:
+    history = [
+        {
+            "question": "Data stok bisa dipakai untuk analisis apa?",
+            "answer": {
+                "direct_answer": "Ada beberapa arah analisis stok yang tersedia.",
+                "executive_summary": "Pilih stok gudang Tempo, DC partner, atau retail store.",
+                "insights": ["Contoh: stok retail per division."],
+            },
+        }
+    ]
+
+    contextualized = contextualize_question("stok retail", history)
+
+    assert contextualized.endswith("Klarifikasi pengguna: stok retail")

@@ -55,6 +55,46 @@ def test_top_products_gross_sales_uses_governed_material_metric() -> None:
     assert "LIMIT 5" in sql
 
 
+def test_stock_guidance_uses_governed_metric_knowledge_and_examples() -> None:
+    context = SemanticContextService()
+
+    guidance = context.guidance_context("Saya mau tahu data stok bisa apa saja?")
+
+    metric_names = {metric["name"] for metric in guidance["metrics"]}
+    assert guidance["focus"] == "stock"
+    assert "stock_tempo_total_qty" in metric_names
+    assert "sat_idm_store_stock_quantity" in metric_names
+    assert any("stok" in example.casefold() or "stock" in example.casefold() for example in guidance["examples"])
+
+
+def test_retail_stock_choice_resolves_without_repeating_clarification() -> None:
+    resolution = SemanticContextService().resolve("stok retail")
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "sat_idm_store_stock_quantity"
+
+
+def test_what_else_question_marks_sales_as_excluded_instead_of_focus() -> None:
+    guidance = SemanticContextService().guidance_context("Bisa bantu apa lagi selain data sales?")
+
+    assert guidance["focus"] is None
+    assert guidance["excluded_focus"] == "sales"
+    assert guidance["metrics"] == []
+
+
+def test_broad_guidance_offers_cross_domain_governed_examples() -> None:
+    guidance = SemanticContextService().guidance_context("Halo, bisa bantu apa?")
+
+    options = {option["name"]: option for option in guidance["domain_options"]}
+    assert len(options) == 9
+    assert options["Stock SAT-IDM"]["metrics"] == [
+        "sat_idm_dc_stock_quantity",
+        "sat_idm_store_stock_quantity",
+    ]
+    assert options["Picking"]["examples"]
+    assert options["SAT Promo"]["examples"]
+
+
 def test_governed_compiler_uses_real_requested_dimensions() -> None:
     context = SemanticContextService()
     monthly = context.compile_governed("sat_idm_dc_stock_quantity", "Berapa quantity DC Stock per bulan?")

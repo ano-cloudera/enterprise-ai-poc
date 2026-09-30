@@ -24,7 +24,7 @@ Follow-up CAI conversational UAT hardening:
 
 Verification at this checkpoint:
 
-- Backend V2: **63 passed** (2 dependency warnings only).
+- Backend V2: **64 passed** (2 dependency warnings only).
 - Frontend V2: **9 passed**.
 - Frontend V2 production build: **PASS** on Next.js 15.5.25.
 - Local semantic probe confirmed `material_sell_in_value` and the required non-null coverage filter for the reported top-five question.

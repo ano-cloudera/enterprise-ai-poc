@@ -2456,6 +2456,9 @@ metrics:
     synonyms:
     - storestock
     - stok store
+    - stok retail
+    - stok toko retail
+    - retail stock
     - store stock quantity
     instructions: Store/customer-level quantity only. Never add it to DC stock quantity as a total pipeline metric.
   custom_extensions:

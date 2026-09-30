@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import asyncio
 import logging
+import re
 from time import perf_counter
 import uuid
 
@@ -22,14 +23,23 @@ logger = logging.getLogger(__name__)
 def contextualize_question(question: str, history: list[dict]) -> str:
     """Resolve a short clarification choice without replaying bulky query rows."""
     normalized = " ".join(question.casefold().replace("–", "-").split())
-    choices = ("sell-in", "sell in", "sell-out", "sell out")
-    if len(normalized.split()) > 8 or not any(choice in normalized for choice in choices) or not history:
+    if len(normalized.split()) > 8 or not history:
         return question
     previous = history[-1]
     previous_question = str(previous.get("question") or "").strip()
     previous_answer = previous.get("answer") or {}
-    clarification = str(previous_answer.get("direct_answer") or previous_answer.get("executive_summary") or "")
-    if previous_question and "sell-in" in clarification.casefold() and "sell-out" in clarification.casefold():
+    answer_parts = [
+        str(previous_answer.get("direct_answer") or ""),
+        str(previous_answer.get("executive_summary") or ""),
+        " ".join(str(item) for item in previous_answer.get("insights") or []),
+    ]
+    clarification = " ".join(part for part in answer_parts if part).strip()
+    choice_tokens = set(re.findall(r"[a-z0-9]+(?:-[a-z0-9]+)?", normalized))
+    clarification_tokens = set(re.findall(r"[a-z0-9]+(?:-[a-z0-9]+)?", clarification.casefold()))
+    ignored = {"ya", "iya", "betul", "untuk", "data", "yang", "mau", "saya", "the", "a"}
+    selected_tokens = {token for token in choice_tokens - ignored if len(token) > 2}
+    offers_choice = "?" in clarification or " atau " in f" {clarification.casefold()} "
+    if previous_question and offers_choice and selected_tokens & clarification_tokens:
         return f"{previous_question}\nKlarifikasi pengguna: {question.strip()}"
     return question
 

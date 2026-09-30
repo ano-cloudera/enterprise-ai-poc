@@ -52,7 +52,7 @@ ambiguities:
         discriminators: [stok dc partner, nilai stok dc, dc stock, dcstock, nilai dcstock, idm stock, stock idm, distribution center stock]
       - metric: sat_idm_store_stock_quantity
         label: Partner Retail Store Stock
-        discriminators: [stok store, nilai stok store, store stock, storestock, nilai storestock, retail stock]
+        discriminators: [stok store, stok retail, stok toko retail, nilai stok store, store stock, storestock, nilai storestock, retail stock]
 
 unknown_metric_question: >-
   Saya belum menemukan KPI yang sesuai pada Semantic Contract Q4 2024.

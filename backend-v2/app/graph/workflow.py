@@ -57,19 +57,31 @@ def _safe_answer(text: str, *, caveats: list[str] | None = None) -> dict[str, An
     ).model_dump()
 
 
-def _is_greeting(question: str) -> bool:
+def _is_conversational_request(question: str) -> bool:
     normalized = re.sub(r"[^a-z0-9\s]", " ", question.casefold())
     normalized = " ".join(normalized.split())
-    return normalized in {
-        "halo", "hai", "hello", "hi", "hey", "selamat pagi",
-        "selamat siang", "selamat sore", "selamat malam", "apa kabar",
+    words = normalized.split()
+    greeting = bool(words) and words[0] in {"halo", "hallo", "hai", "hello", "hi", "hey"}
+    short_greeting = (greeting and len(words) <= 3) or normalized in {
+        "selamat pagi", "selamat siang", "selamat sore", "selamat malam", "apa kabar",
     }
+    capability_request = bool(
+        re.search(r"\bbisa\s+(?:anda\s+|kamu\s+)?bantu\b.*\bapa\b", normalized)
+        or re.search(r"\bapa\s+(?:lagi|aja|saja)\b", normalized)
+        or "selain data" in normalized
+        or "bisa keluarin apa" in normalized
+        or "bisa ditanyakan" in normalized
+        or "contoh pertanyaan" in normalized
+        or "apa yang bisa" in normalized
+    )
+    return short_greeting or capability_request
 
 
 def build_workflow(deps: WorkflowDependencies):
     async def understand_request(state: AskDataState) -> AskDataState:
         started = perf_counter()
-        if _is_greeting(state.get("original_question") or state["question"]):
+        original_question = state.get("original_question") or state["question"]
+        if _is_conversational_request(original_question):
             try:
                 answer = await _provider(state, deps).generate_structured(
                     [
@@ -78,9 +90,10 @@ def build_workflow(deps: WorkflowDependencies):
                             "role": "user",
                             "content": json.dumps(
                                 {
-                                    "greeting": state.get("original_question") or state["question"],
+                                    "question": original_question,
                                     "first_turn": not bool(state.get("conversation_history")),
-                                    "capabilities": deps.semantic_context.greeting_context(),
+                                    "conversation_history": state.get("conversation_history", []),
+                                    "capabilities": deps.semantic_context.guidance_context(original_question),
                                 },
                                 ensure_ascii=False,
                             ),

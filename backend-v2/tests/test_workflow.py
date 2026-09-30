@@ -3,6 +3,7 @@ from __future__ import annotations
 from dataclasses import dataclass
 
 import pytest
+from pydantic import ValidationError
 
 from app.core.models import AnalysisOutput, AskDataRequest, QueryPlan
 from app.graph.workflow import WorkflowDependencies, build_workflow
@@ -41,6 +42,15 @@ class FakeContext:
 
     def greeting_context(self):
         return {"scope": "October-December 2024", "domains": ["Sales / Sell-In", "B2B / Sell-Out"]}
+
+    def guidance_context(self, question: str):
+        return {
+            "scope": "October-December 2024",
+            "domains": ["Sales / Sell-In", "Stock Tempo", "Stock SAT-IDM"],
+            "focus": "stock" if "stok" in question.casefold() else None,
+            "metrics": [{"name": "sat_idm_store_stock_quantity", "dimensions": ["division", "plu"]}],
+            "examples": ["Berapa stok retail per division?"],
+        }
 
     def compile_governed(self, metric: str, question: str):
         return self.sql
@@ -206,3 +216,40 @@ async def test_greeting_is_written_by_selected_llm_without_querying_impala() -> 
     assert state["answer"]["direct_answer"].startswith("Halo!")
     assert dependencies.query_executor.queries == []
     assert provider.calls == ["AnalysisOutput"]
+
+
+@pytest.mark.asyncio
+@pytest.mark.parametrize("question", [
+    "hallo apa yang bisa anda bantu hari ini?",
+    "selamat pagi",
+    "kamu bisa bantu apa lagi selain data sales?",
+    "mau tau tentang data stok dong bisa keluarin apa aja?",
+])
+async def test_capability_conversation_is_guided_by_selected_llm_without_sql(question: str) -> None:
+    provider = FakeProvider([analysis() | {
+        "direct_answer": "Bisa. Untuk stok, saya bisa bantu beberapa arah analisis.",
+        "executive_summary": "Pilih stok Tempo, DC partner, atau retail store.",
+        "insights": ["Contoh: berapa stok retail per division?"],
+        "business_implications": [],
+        "data_reference": "TEMPO governed capability catalog.",
+    }])
+    dependencies = deps(FakeContext({"status": "unsupported"}), provider, [])
+
+    state = await build_workflow(dependencies).ainvoke({
+        **AskDataRequest(session_id="s1", question=question, provider="qwen", model="qwen-model").model_dump(),
+        "original_question": question,
+        "conversation_history": [{"question": "sebelumnya", "answer": {"direct_answer": "jawaban"}}],
+    })
+
+    assert state["status"] == "SUCCESS"
+    assert state["strategy"] == "conversational"
+    assert dependencies.query_executor.queries == []
+    payload = provider.messages[1]["content"]
+    assert "conversation_history" in payload
+    if "stok" in question:
+        assert "sat_idm_store_stock_quantity" in payload
+
+
+def test_query_plan_cannot_select_conversational_strategy() -> None:
+    with pytest.raises(ValidationError):
+        QueryPlan.model_validate({"strategy": "conversational"})

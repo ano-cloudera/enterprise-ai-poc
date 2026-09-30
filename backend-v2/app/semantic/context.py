@@ -52,6 +52,29 @@ _CONCEPT_PATTERNS = {
     "service_level": ("service level", "fill rate"),
 }
 
+_GUIDANCE_TOPICS = {
+    "sales": ("sales",),
+    "stock": ("stock_tempo", "stock_sat_idm"),
+    "oos": ("sat_oos",),
+    "b2b": ("b2b",),
+}
+
+_GUIDANCE_DOMAIN_OPTIONS = (
+    {"name": "Sales / Sell-In", "metrics": ["gross_billing_value"], "examples": ["Berapa Gross Sales TEMPO selama Q4 2024?"]},
+    {"name": "B2B / Sell-Out", "metrics": ["b2b_branch_sell_out_value"], "examples": ["Branch mana dengan nilai Sell-Out terbesar?"]},
+    {"name": "Stock Tempo", "metrics": ["stock_tempo_total_qty"], "examples": ["Bagaimana tren stok gudang Tempo per bulan?"]},
+    {
+        "name": "Stock SAT-IDM",
+        "metrics": ["sat_idm_dc_stock_quantity", "sat_idm_store_stock_quantity"],
+        "examples": ["Berapa stok DC partner atau stok retail per division?"],
+    },
+    {"name": "SAT OOS", "metrics": ["sat_oos_rate"], "examples": ["Material mana dengan SAT OOS rate tertinggi?"]},
+    {"name": "Service Level", "metrics": ["service_fill_rate"], "examples": ["Material mana dengan Fill Rate terendah?"]},
+    {"name": "Picking", "metrics": ["average_picking_minutes"], "examples": ["Sales office mana dengan rata-rata picking terlama?"]},
+    {"name": "Unloading", "metrics": ["average_unloading_minutes"], "examples": ["Sales office mana dengan rata-rata unloading terlama?"]},
+    {"name": "SAT Promo", "metrics": ["promo_observation_count"], "examples": ["Berapa observasi promo aktif pada Desember 2024?"]},
+)
+
 _DIMENSION_METRIC_OVERRIDES = {
     ("gross_billing_value", "material"): "material_sell_in_value",
 }
@@ -260,9 +283,51 @@ class SemanticContextService:
                 "Picking", "Unloading", "SAT Promo",
             ],
             "examples": list(summary.get("examples") or [])[:4],
+            "domain_options": list(_GUIDANCE_DOMAIN_OPTIONS),
             "dataset_count": len(self.datasets),
             "metric_count": len(self.metrics),
         }
+
+    def guidance_context(self, question: str) -> dict[str, Any]:
+        normalized = question.casefold().replace("–", "-")
+        mentioned_topic = next(
+            (
+                name for name, terms in {
+                    "stock": ("stok", "stock", "inventory"),
+                    "sales": ("sales", "penjualan", "sell-in", "sell out", "sell-out"),
+                    "oos": ("oos", "out of stock"),
+                    "b2b": ("b2b",),
+                }.items()
+                if any(term in normalized for term in terms)
+            ),
+            None,
+        )
+        excluded_topic = mentioned_topic if "selain" in normalized else None
+        topic = None if excluded_topic else mentioned_topic
+        context = self.greeting_context()
+        if not topic:
+            return {**context, "focus": None, "excluded_focus": excluded_topic, "metrics": []}
+
+        selected_datasets: set[str] = set()
+        for domain in _GUIDANCE_TOPICS[topic]:
+            selected_datasets.update(_DOMAIN_DATASETS[domain])
+        metrics = [
+            {
+                "name": name,
+                "description": definition["description"],
+                "dimensions": definition["allowed_dimensions"],
+            }
+            for name in sorted(self.metrics)
+            if (definition := self.metric_definition(name))["base_dataset"] in selected_datasets
+        ]
+        metric_names = {item["name"] for item in metrics}
+        examples = [
+            str(item["question"])
+            for item in self.registry.golden_questions.get("questions", [])
+            if item.get("metric") in metric_names
+            and item.get("expected_status") in {"supported", "supported_with_caveat"}
+        ][:6]
+        return {**context, "focus": topic, "excluded_focus": None, "metrics": metrics, "examples": examples}
 
 
 @lru_cache(maxsize=1)

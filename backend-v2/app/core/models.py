@@ -22,6 +22,7 @@ class ModelList(StrictModel):
 
 
 Status = Literal["SUCCESS", "CLARIFICATION", "NO_DATA", "UNSUPPORTED", "ERROR"]
+QueryStrategy = Literal["governed", "sql_fallback", "clarification", "unsupported"]
 Strategy = Literal["governed", "sql_fallback", "clarification", "unsupported", "conversational"]
 ChartType = Literal["bar", "line", "area", "scatter", "pie", "table", "kpi"]
 
@@ -35,7 +36,7 @@ class ChartSpec(StrictModel):
 
 
 class QueryPlan(StrictModel):
-    strategy: Strategy
+    strategy: QueryStrategy
     domains: list[str] = []
     metrics: list[str] = []
     dimensions: list[str] = []
