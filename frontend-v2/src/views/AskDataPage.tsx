@@ -1,7 +1,7 @@
 'use client'
 
 import { FormEvent, KeyboardEvent, MouseEvent, useEffect, useRef, useState } from 'react'
-import { ArrowUp, BarChart3, Database, Dice5, Info, Lightbulb, MessageSquareText, PanelLeftClose, PanelLeftOpen, Plus, Square, Trash2, UserRound } from 'lucide-react'
+import { ArrowUp, BarChart3, Database, Info, Lightbulb, MessageSquareText, PanelLeftClose, PanelLeftOpen, Plus, Square, Trash2, UserRound } from 'lucide-react'
 import { AnswerChart } from '../components/AnswerChart'
 import { DataTable } from '../components/DataTable'
 import { KpiCard } from '../components/KpiCard'
@@ -10,7 +10,9 @@ import { api } from '../lib/api'
 import { createSessionId, deleteSession, loadSessions, saveSession, sessionTitle, type ChatSession, type StoredMessage } from '../lib/chatSessions'
 import { useModelSelection } from '../lib/modelSelection'
 import { useChatLayout } from '../layout/AppShell'
-import type { ChatResponse } from '../types/api'
+import type { ChatResponse, SuggestedQuestion } from '../types/api'
+
+const STARTER_QUESTION_COUNT = 3
 
 export function AskDataPage() {
   const { fullScreenChat, toggleFullScreenChat } = useChatLayout()
@@ -22,6 +24,7 @@ export function AskDataPage() {
   const [loading, setLoading] = useState(false)
   const [progress, setProgress] = useState<string | null>(null)
   const [error, setError] = useState('')
+  const [starterQuestions, setStarterQuestions] = useState<SuggestedQuestion[]>([])
   const end = useRef<HTMLDivElement>(null)
   const activeRequest = useRef<AbortController | null>(null)
 
@@ -29,6 +32,7 @@ export function AskDataPage() {
   useEffect(() => { if (messages.length) { saveSession({ id: sessionId, title: sessionTitle(messages), updatedAt: Date.now(), messages, selection: selection || undefined }); setSessions(loadSessions()) } }, [messages, selection, sessionId])
   useEffect(() => { end.current?.scrollIntoView?.({ behavior: 'smooth' }) }, [messages, progress])
   useEffect(() => () => activeRequest.current?.abort(), [])
+  useEffect(() => { api.randomQueries(STARTER_QUESTION_COUNT).then(response => setStarterQuestions(response.questions)).catch(() => setStarterQuestions([])) }, [])
 
   async function submit(question = input) {
     const value = question.trim()
@@ -58,11 +62,6 @@ export function AskDataPage() {
 
   function stopRequest() { activeRequest.current?.abort() }
 
-  async function randomQuestion() {
-    setError('')
-    try { const response = await api.randomQueries(1); if (response.questions[0]) setInput(response.questions[0].question) }
-    catch { setError('Unable to load a suggested question right now.') }
-  }
   function newChat() { setSessionId(createSessionId()); setMessages([]); setInput(''); setError('') }
   function openSession(session: ChatSession) { setSessionId(session.id); setMessages(session.messages); setInput(''); if (session.selection) select(session.selection) }
   function removeSession(event: MouseEvent, id: string) { event.stopPropagation(); deleteSession(id); setSessions(loadSessions()); if (id === sessionId) newChat() }
@@ -72,7 +71,7 @@ export function AskDataPage() {
     <aside aria-label="Conversation history sidebar" aria-hidden={fullScreenChat} inert={fullScreenChat} className={`card hidden overflow-hidden transition-[opacity,transform,padding,border-width] duration-300 ease-in-out xl:block ${fullScreenChat ? 'pointer-events-none -translate-x-3 border-0 p-0 opacity-0' : 'translate-x-0 overflow-y-auto p-4 opacity-100'}`}><button className="btn-primary w-full" onClick={newChat}><Plus size={16} />New Chat</button><div className="mt-6 text-sm font-extrabold text-cloudera-navy">Recent conversations</div>{sessions.length ? <div className="mt-3 space-y-2">{sessions.map(session => <div key={session.id} className="group relative rounded-xl border border-transparent hover:bg-slate-50"><button className="w-full p-3 pr-9 text-left text-xs" onClick={() => openSession(session)}><MessageSquareText size={14} className="mr-2 inline" />{session.title}</button><button aria-label="Delete conversation" className="absolute right-2 top-2 text-slate-400" onClick={event => removeSession(event, session.id)}><Trash2 size={13} /></button></div>)}</div> : <div className="mt-3 rounded-xl bg-slate-50 p-3 text-xs text-slate-500">No conversations yet.</div>}</aside>
     <section className="card flex min-h-0 min-w-0 flex-col overflow-hidden transition-[width] duration-300 ease-in-out"><div className="flex items-center justify-between border-b border-slate-200 px-5 py-4"><div className="flex items-center gap-2"><button type="button" aria-label={fullScreenChat ? 'Exit full screen chat' : 'Enter full screen chat'} aria-pressed={fullScreenChat} onClick={toggleFullScreenChat} className="hidden h-9 w-9 shrink-0 place-items-center rounded-xl border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50 hover:text-cloudera-navy lg:grid">{fullScreenChat ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}</button><ScanMark size={32} /><div><div className="text-sm font-extrabold text-cloudera-navy">SCAN V2</div><div className="text-[11px] text-emerald-600">● Governed-first Ask Data</div></div></div><div className="chip"><Database size={13} />Ossie · Impala</div></div>
       <div role="log" aria-label="Conversation" className={`min-h-0 flex-1 overflow-y-auto p-5 ${messages.length ? 'space-y-5' : 'flex'}`}>
-        {!messages.length && <div className="m-auto max-w-2xl text-center"><ScanMark size={56} className="mx-auto" rounded="2xl" /><h1 className="mt-5 text-2xl font-black text-cloudera-navy">Ask your TEMPO commercial data</h1><p className="mt-2 text-sm leading-6 text-slate-500">Get a grounded answer, governed data, and a relevant visualization without Agent Studio orchestration.</p><button aria-label="Random Question" className="btn-secondary mt-6" onClick={randomQuestion}><Dice5 size={16} />Random Question</button></div>}
+        {!messages.length && <div className="m-auto max-w-2xl text-center"><ScanMark size={56} className="mx-auto" rounded="2xl" /><h1 className="mt-5 text-2xl font-black text-cloudera-navy">Ask your TEMPO commercial data</h1><p className="mt-2 text-sm leading-6 text-slate-500">Get a grounded answer, governed data, and a relevant visualization without Agent Studio orchestration.</p>{starterQuestions.length > 0 && <div className="mt-6 grid gap-2 text-left sm:grid-cols-3">{starterQuestions.map(item => <button key={item.id} type="button" onClick={() => submit(item.question)} disabled={!selection || loading} className="rounded-xl border border-slate-200 bg-white p-3 text-left text-[13px] leading-5 text-slate-600 transition-colors hover:border-cloudera-orange/40 hover:bg-orange-50/40 disabled:opacity-50">{item.question}</button>)}</div>}</div>}
         {messages.map((message, index) => message.role === 'user' ? <div key={index} className="ml-auto flex max-w-[80%] justify-end gap-2"><div className="rounded-2xl rounded-tr-md bg-cloudera-navy px-4 py-3 text-base leading-6 text-white">{message.content}</div><UserRound size={28} className="rounded-full bg-slate-200 p-1.5" /></div> : <div key={index} className="flex gap-3"><ScanMark size={36} /><div className="min-w-0 max-w-[1000px] flex-1 rounded-2xl border border-slate-200 bg-white p-6">{message.response ? <StructuredAnswer response={message.response} /> : message.content}</div></div>)}
         {loading && <div className="flex items-center gap-3"><ScanMark size={36} className="animate-pulse" /><div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500"><span className="flex gap-1"><span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cloudera-orange [animation-delay:-0.3s]" /><span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cloudera-orange [animation-delay:-0.15s]" /><span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cloudera-orange" /></span><span className="font-medium text-slate-600">{progress || 'AI is analyzing...'}</span></div></div>}
         {error && <div className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}<div ref={end} />
