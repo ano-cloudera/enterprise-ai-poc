@@ -1,9 +1,23 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 30 Sep 2026 — TEMPO Scan Commercial Intelligence V2 has been implemented as two independent CAI Applications (`backend-v2` and `frontend-v2`) while preserving V1. The new backend provides a governed-first LangGraph workflow, pluggable Qwen/Gemini/OpenAI providers, Ossie semantic resolution, guarded SQL fallback, Impala execution, SSE streaming, and chat history. The new frontend provides the Ask Data and Settings experience. Gemini and OpenAI adapters have passed live authentication and structured-generation probes; live Impala validation remains environment-specific.
+**Updated**: 30 Sep 2026 (later same day) — found and fixed a V1 Agent Studio bug via live UAT testing on the OLD (AWS) environment with a ChatGPT-backed Data Agent: a `dimension_mismatch` signal the resolver already correctly produces was being silently ignored, so a "top 5 produk" style question answered with the wrong (company-level) metric instead of retrying for the material-grain one. Fixed in the Data Agent's Backstory, not in Python code — the resolver itself was already correct. This is a V1/Agent Studio fix; it does not touch the new `backend-v2`/`frontend-v2` described below.
 
-## Current checkpoint: TEMPO Scan Commercial Intelligence V2 implemented (30 Sep 2026)
+## Current checkpoint: V1 Agent Studio Backstory fix — dimension_mismatch was not acted on (30 Sep 2026, later same day)
+
+Commit `1604e9d`, pushed. Found while executing `docs/uat-questions-2026-09-29.md` (the authoritative 46-question UAT set) live against the OLD AWS Agent Studio environment, since the new Private Cloud environment's Agent Studio is still blocked on the sandbox permission issue in the checkpoint below.
+
+**What happened**: asking "berapa total gross sales Q4 berdasarkan top 5 produk" through the ChatGPT-backed `TEMPO Master Agent` → `TEMPO Data Agent` workflow returned a confident-looking company-level Gross Sales total (Rp 3,841,865,787,073) with no product breakdown — framed as "the governed metric doesn't support this breakdown," which is false; `material_sell_in_value` exists and is governed for exactly this.
+
+**Root cause, confirmed by testing the tool directly in Agent Studio's Tools Playground** (bypassing the LLM agent entirely): `execute_governed_metric_query`'s resolver correctly matched `gross_billing_value` AND correctly flagged `"dimension_mismatch": ["material"]` in its response — the fix from commit `6467465` (the original "top N product" bug) is intact and working. The bug is one layer up: nothing in the Data Agent's Backstory told it to act on a non-empty `dimension_mismatch` by re-resolving with the dimension folded in. The tool executes with whatever `dimensions` list the caller passes — it does not auto-correct. GPT-4.1/Qwen apparently inferred the right move on their own in earlier testing; ChatGPT did not, and instead misread the mismatch as "this metric can't do that."
+
+**Fix**: added two `CRITICAL` paragraphs to `projects/tempo_scan_impala/agents/AGENT_STUDIO_3AGENT_SETUP.md`'s Data Agent Backstory (one for the 3-separate-tools path, one for `execute_governed_metric_query`) instructing it to re-call the resolver with the mismatched dimension explicitly folded into the question and passed in `dimensions`, and to report `unsupported` rather than presenting the wrong-grain number if that still fails. Purely additive — only triggers when `dimension_mismatch` is non-empty, so cases that already worked (including on Qwen/GPT-4.1) are unaffected.
+
+**Not yet done**: the updated Backstory text needs to be manually pasted into the live `TEMPO Data Agent` in Agent Studio (both the old AWS workflow and, once unblocked, the new Private Cloud one) — editing the file in this repo does not change what's running live, per this project's established pattern (Agent Studio tools/Backstories are copy-pasted in via the UI, not synced from git). Re-test the same question after pasting to confirm ChatGPT now retries correctly.
+
+**UAT progress**: this was found on UAT question Sales/Sell-In #3 ("Produk apa aja yang paling laku sepanjang Q4?", though tested with a slightly different phrasing). `docs/uat-questions-2026-09-29.md`'s Hasil/Status columns have not yet been filled in with this or any other result — that's still pending. Continue the domain-by-domain UAT execution against the old AWS environment once the Backstory fix is pasted in and re-verified.
+
+## Previous checkpoint: TEMPO Scan Commercial Intelligence V2 implemented (30 Sep 2026)
 
 ### Scope delivered
 
