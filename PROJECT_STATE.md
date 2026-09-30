@@ -14,15 +14,38 @@ The V2 application now addresses the three linked failures seen in CAI:
 - Qwen/OpenAI-compatible and Gemini HTTP failures now log safe diagnostics containing provider, status, normalized error code, and endpoint path without API tokens or request payloads.
 - Frontend answers now emphasize the direct answer, use status-aware headings/colors, and separately render insights, business implications, caveats, data reference, visualization/table, and muted model metadata.
 
+Follow-up CAI conversational UAT hardening:
+
+- Fixed the greeting `Empty SQL` failure by separating the four valid `QueryPlan` strategies from the response-only `conversational` strategy. A model can no longer return a conversational query plan that accidentally continues into SQL validation.
+- Conversational routing now recognizes natural greeting sentences and capability exploration such as “apa yang bisa dibantu?”, “bisa apa lagi selain sales?”, and “data stok bisa keluarin apa saja?”. The detector only selects the route; the selected LLM still writes the answer.
+- The conversational system prompt now uses progressive guidance: broad questions offer domains, domain-level questions offer governed sub-options and examples, and specific context is turned into an executable question rather than another static menu.
+- Guidance payloads are built from the Ossie metric catalog. Stock exploration includes the available warehouse, partner-DC, and retail-store metrics plus governed dimensions/examples; “selain sales” is explicitly represented as an excluded topic.
+- Lightweight history resolution now understands short choices from any clarification fields, not only Sell-In/Sell-Out. `stok retail` is also a governed discriminator/synonym for `sat_idm_store_stock_quantity`, preventing a repeated stock-scope clarification.
+
 Verification at this checkpoint:
 
-- Backend V2: **53 passed** (2 dependency warnings only).
+- Backend V2: **63 passed** (2 dependency warnings only).
 - Frontend V2: **9 passed**.
 - Frontend V2 production build: **PASS** on Next.js 15.5.25.
 - Local semantic probe confirmed `material_sell_in_value` and the required non-null coverage filter for the reported top-five question.
 - Local runtime has no model credentials and no live Impala connection, so the final Qwen/Gemini/OpenAI and data-value smoke tests remain deployment-environment steps.
 
 Next CAI checks: pull this commit, restart the backend and frontend applications, retry the exact top-five question, retry the Sell-In clarification sequence in one session, and test a greeting once with each configured model.
+
+## Decision: stop iterating on the V1 Agent Studio Backstory for this bug class, use V2 instead (30 Sep 2026, later same day)
+
+The exact same failure ("gross sales untuk top 5 produk" wrongly answered at company-level instead of material-level) was fixed and independently re-broken 3 times in the V1 Agent Studio + ChatGPT workflow across the checkpoints below, despite each fix being verified correct at the resolver level via direct simulation every time:
+
+1. Resolver didn't flag the mismatch at all → fixed (`6467465`, earlier session).
+2. Resolver flagged it (`dimension_mismatch`), but the Backstory never told the agent to act on the signal → fixed (`1604e9d`).
+3. The Backstory's own suggested retry wording ("Gross Billing Value (Sell-In) ... breakdown per produk") still matched the wrong metric → fixed (`db1e3c2`).
+4. ChatGPT over-simplified the first call to something with zero matching candidates, then treated `unsupported` as "no governed metric exists" and jumped straight to an ungoverned SQL fallback → fixed (`3402b25`).
+5. Backstory was condensed (228 → 144 lines) to reduce reasoning-chain length as a suspected cause of point 4 → done (`6103414`).
+6. **Still failed after all of the above**: live trace (30 Sep 2026) showed ChatGPT's own stated retry intent ("I'll retry with plain wording") did not match the tool call it actually sent (still contained "gross sales sell-in") - the agent's reasoning and its actual tool-call arguments diverged. This is an execution-consistency failure in ChatGPT itself when chaining multiple tool calls with carried-over conversational context, not a gap in the resolver or the instructions - both were re-confirmed correct for this exact question via direct simulation immediately before this conclusion.
+
+**Decision**: stop spending further iterations on the V1 Agent Studio Backstory for this specific bug class. The V2 application (`backend-v2`/`frontend-v2`, see checkpoint above) already handles this exact question correctly, verified live via CAI UAT with a real screenshot (Rp 786,892,979,793 for the same "top 5 produk" question) - V2's fix lives in code (`planner_context()`'s Ossie-derived dataset/metric selection, not an LLM-authored natural-language retry), which does not depend on a chat model consistently executing multi-step retry reasoning correctly. Treat V1 Agent Studio as a frozen reference/demo channel going forward for this class of question; put further governed-analytics effort into V2.
+
+The Backstory fixes above are still correct and still committed - they were not reverted, since they do measurably reduce (not eliminate) the failure rate and remain the best available version if V1 Agent Studio is ever revisited. They are just not being iterated on further.
 
 ## Previous checkpoint: V1 Agent Studio Backstory fix — dimension_mismatch was not acted on (30 Sep 2026, later same day)
 
