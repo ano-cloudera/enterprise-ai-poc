@@ -3,10 +3,12 @@ import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/re
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { api } from '../lib/api'
+import { AppShell } from '../layout/AppShell'
 import { ModelSelectionProvider } from '../lib/modelSelection'
 import { AskDataPage } from './AskDataPage'
 
 vi.mock('../lib/api', () => ({ api: { models: vi.fn(), randomQueries: vi.fn(), chatStream: vi.fn() } }))
+vi.mock('next/navigation', () => ({ usePathname: () => '/' }))
 
 describe('V2 Ask Data page', () => {
   afterEach(cleanup)
@@ -54,5 +56,27 @@ describe('V2 Ask Data page', () => {
     screen.getByText('Business implications')
     screen.getByText('Prioritaskan ketersediaan stok Desember.')
     screen.getByText('gold.rpt_sap_monthly_executive_semantic')
+  })
+
+  it('toggles the navigation and conversation sidebars together for full-screen chat', async () => {
+    vi.mocked(api.models).mockResolvedValue({ models: [{ provider: 'qwen', id: 'qwen-model', label: 'Qwen Private', available: true, reason: null }] })
+    render(<AppShell><ModelSelectionProvider><AskDataPage /></ModelSelectionProvider></AppShell>)
+
+    const navigation = screen.getByLabelText('Primary sidebar')
+    const history = screen.getByLabelText('Conversation history sidebar')
+    expect(navigation.getAttribute('aria-hidden')).toBe('false')
+    expect(history.getAttribute('aria-hidden')).toBe('false')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Enter full screen chat' }))
+
+    expect(navigation.getAttribute('aria-hidden')).toBe('true')
+    expect(history.getAttribute('aria-hidden')).toBe('true')
+    expect(navigation.hasAttribute('inert')).toBe(true)
+    expect(history.hasAttribute('inert')).toBe(true)
+    fireEvent.click(screen.getByRole('button', { name: 'Exit full screen chat' }))
+    expect(navigation.getAttribute('aria-hidden')).toBe('false')
+    expect(history.getAttribute('aria-hidden')).toBe('false')
+    expect(navigation.hasAttribute('inert')).toBe(false)
+    expect(history.hasAttribute('inert')).toBe(false)
   })
 })

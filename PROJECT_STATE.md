@@ -1,7 +1,7 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 30 Sep 2026 (latest) — V2 follow-up clarification now preserves the requested product grain, result analysis is adaptively concise, and answer/chart typography is refined for CAI UAT.
+**Updated**: 30 Sep 2026 (latest) — V2 adds a full-screen chat mode that collapses both desktop sidebars together, alongside the follow-up and answer-presentation refinements validated for CAI UAT.
 
 ## Current checkpoint: V2 CAI UAT fixes — conversational context and compact model payloads (30 Sep 2026)
 
@@ -28,11 +28,12 @@ Latest follow-up and presentation refinement:
 - The result-analysis prompt is intentionally flexible: simple factual questions stay direct, while ranking or richer analysis leads with the useful conclusion and uses the other answer sections, table, or chart only when they improve readability. It does not enforce a rigid response length or structure.
 - AI answers, capability guidance, caveats, and result tables use larger typography and a wider response canvas.
 - Bar-chart rankings whose series value is unique on every row are rendered as one clean ranking series with composite category labels instead of a noisy one-customer-per-series legend. Charts also have taller plotting space, bounded bar width, and larger axis/legend labels.
+- The Ask Data header now provides one accessible full-screen toggle for both desktop sidebars. It slides the Cloudera navigation out, collapses the conversation-history grid track, and expands the chat canvas with synchronized 300 ms transitions; toggling again restores both sidebars. Mobile bottom navigation and the Settings-page navigation remain unchanged.
 
 Verification at this checkpoint:
 
 - Backend V2: **68 passed** (2 dependency warnings only).
-- Frontend V2: **11 passed**.
+- Frontend V2: **12 passed**.
 - Frontend V2 production build: **PASS** on Next.js 15.5.25.
 - Local semantic probe confirmed `material_sell_in_value` and the required non-null coverage filter for the reported top-five question.
 - Local runtime has no model credentials and no live Impala connection, so the final Qwen/Gemini/OpenAI and data-value smoke tests remain deployment-environment steps.
