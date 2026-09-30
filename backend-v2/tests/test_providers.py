@@ -8,10 +8,24 @@ from pydantic import BaseModel
 
 from app.core.config import Settings
 from app.llm.providers import GeminiProvider, OpenAIProvider, QwenProvider
+from app.llm.registry import ProviderRegistry
 
 
 class Result(BaseModel):
     answer: str
+
+
+def test_qwen_api_token_environment_alias_enables_provider(monkeypatch) -> None:
+    monkeypatch.delenv("QWEN_API_KEY", raising=False)
+    monkeypatch.setenv("QWEN_API_TOKEN", "dummy")
+    monkeypatch.setenv("QWEN_BASE_URL", "https://qwen.internal/v1")
+    monkeypatch.setenv("QWEN_MODEL", "/home/cdsw/models/Qwen3.8-27B-AWQ")
+
+    settings = Settings(_env_file=None)
+    qwen = ProviderRegistry(settings).list_models()[0]
+
+    assert settings.qwen_api_key.get_secret_value() == "dummy"
+    assert qwen.available is True
 
 
 @pytest.mark.asyncio

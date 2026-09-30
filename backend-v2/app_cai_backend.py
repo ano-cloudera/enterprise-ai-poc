@@ -25,8 +25,9 @@ def resolve_backend_dir() -> Path:
     candidates.extend([cwd, cwd / "backend-v2"])
     if cwd.is_dir():
         candidates.extend(path / "backend-v2" for path in cwd.iterdir() if path.is_dir())
-    script_dir = Path(__file__).resolve().parent
-    candidates.append(script_dir)
+    script_file = globals().get("__file__")
+    if script_file:
+        candidates.append(Path(script_file).resolve().parent)
     for candidate in candidates:
         if (candidate / "app" / "main.py").is_file() and (candidate / "requirements.txt").is_file():
             return candidate.resolve()

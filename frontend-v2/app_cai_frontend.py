@@ -26,7 +26,9 @@ def resolve_frontend_dir() -> Path:
     candidates.extend([cwd, cwd / "frontend-v2"])
     if cwd.is_dir():
         candidates.extend(path / "frontend-v2" for path in cwd.iterdir() if path.is_dir())
-    candidates.append(Path(__file__).resolve().parent)
+    script_file = globals().get("__file__")
+    if script_file:
+        candidates.append(Path(script_file).resolve().parent)
     for candidate in candidates:
         if (candidate / "package.json").is_file() and (candidate / "package-lock.json").is_file() and (candidate / "src").is_dir():
             return candidate.resolve()

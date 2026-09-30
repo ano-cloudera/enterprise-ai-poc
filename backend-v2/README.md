@@ -16,7 +16,7 @@ PYTHONPATH=backend-v2 .venv/bin/pytest -q backend-v2/tests
 
 ## Configuration
 
-Copy `.env.example` and set the selected provider plus Impala values. Model IDs are never hardcoded in the frontend. Qwen needs a base URL, API token, and model; Gemini/OpenAI need an API key and model. Unconfigured providers remain unavailable without preventing startup. For the current Private Cloud deployment use the proven Impala GSSAPI + TLS values, query timeout, and a valid Kerberos ticket/service account. Never commit credentials.
+Copy `.env.example` and set the selected provider plus Impala values. Model IDs are never hardcoded in the frontend. Qwen needs `QWEN_BASE_URL`, `QWEN_API_TOKEN`, and `QWEN_MODEL`; the legacy name `QWEN_API_KEY` remains an accepted alias. Gemini/OpenAI need an API key and model. Unconfigured providers remain unavailable without preventing startup. For the current Private Cloud deployment use the proven Impala GSSAPI + TLS values, query timeout, and a valid Kerberos ticket/service account. Never commit credentials.
 
 Prompts live in `prompts/` and are resolved relative to the backend package, so CAI's working directory does not affect them. The copied `projects/tempo_scan_impala/ossie` files are the deployed 20-dataset/62-metric semantic authority.
 

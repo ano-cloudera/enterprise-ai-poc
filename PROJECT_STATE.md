@@ -35,7 +35,7 @@ Secrets must be supplied as CAI environment variables and must never be committe
 
 - Gemini: `GEMINI_API_KEY`, `GEMINI_MODEL` (live probe passed with `gemini-3.8-flash`).
 - OpenAI: `OPENAI_API_KEY`, `OPENAI_MODEL` (live probe passed with `gpt-5.6-sol`). The adapter uses `max_completion_tokens` and does not send an unsupported fixed temperature to this model family.
-- Private Qwen: `QWEN_BASE_URL`, `QWEN_MODEL`, and `QWEN_API_KEY` when the endpoint requires a token. This provider was covered by automated adapter tests but was not live-tested in this checkpoint.
+- Private Qwen: `QWEN_BASE_URL`, `QWEN_MODEL`, and `QWEN_API_TOKEN` when the endpoint requires a token. `QWEN_API_KEY` remains accepted as a backward-compatible alias. This provider was covered by automated adapter tests but was not live-tested in this checkpoint.
 
 Both configured public-provider keys passed their respective `/models` authentication checks and an end-to-end structured-generation adapter probe. No credential values are recorded in this file or the repository.
 
@@ -59,9 +59,15 @@ Deploy as two CPU-only CAI Applications; the private Qwen/vLLM service, if used,
 
 The backend should receive provider secrets, Ossie paths/settings, and the selected Impala auth profile. The frontend should receive only the public backend URL. Both launchers bind to the CAI-provided application port; health/readiness endpoints should be verified before exposing the frontend to users.
 
+### CAI launcher compatibility hotfix
+
+- Both V2 launchers now work when CAI executes the selected Python file as Jupyter/IPython interpreter cells, where `__file__` is undefined. Checkout discovery follows the proven V1 pattern: inspect `CDSW_PROJECT_DIR` and the current working directory first, and use the script path only when it exists.
+- Qwen deployment configuration now accepts the environment's established `QWEN_API_TOKEN` name. `QWEN_API_KEY` remains a backward-compatible alias.
+- Regression tests explicitly execute both launchers in a namespace without `__file__` and verify that the correct V2 directories are found.
+
 ### Verification evidence
 
-- Backend V2: **40 tests passed**.
+- Backend V2: **43 tests passed**.
 - Frontend V2: **8 tests passed** and the production Next.js build completed successfully.
 - V1 regression protection: backend **454 tests passed**; frontend **71 tests passed**.
 - CAI launcher/readiness dry-run coverage passed in the backend V2 suite.

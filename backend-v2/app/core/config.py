@@ -3,7 +3,7 @@ from __future__ import annotations
 from functools import lru_cache
 from pathlib import Path
 
-from pydantic import Field, SecretStr
+from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,6 +15,7 @@ class Settings(BaseSettings):
         env_file=(BACKEND_ROOT / ".env", BACKEND_ROOT.parent / ".env"),
         env_file_encoding="utf-8",
         extra="ignore",
+        populate_by_name=True,
     )
 
     app_name: str = "TEMPO Scan Commercial Intelligence V2"
@@ -23,7 +24,10 @@ class Settings(BaseSettings):
     default_llm_provider: str = "qwen"
 
     qwen_base_url: str = ""
-    qwen_api_key: SecretStr = SecretStr("")
+    qwen_api_key: SecretStr = Field(
+        default=SecretStr(""),
+        validation_alias=AliasChoices("QWEN_API_KEY", "QWEN_API_TOKEN"),
+    )
     qwen_model: str = ""
     qwen_verify_ssl: bool = True
 

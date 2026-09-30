@@ -22,11 +22,24 @@ def dry_run(script: Path, env: dict[str, str]) -> dict:
     return json.loads(result.stdout.strip().splitlines()[-1])
 
 
+def load_entrypoint_without_file(script: Path) -> dict:
+    namespace = {"__name__": "cai_interpreter_cell"}
+    exec(compile(script.read_text(encoding="utf-8"), str(script), "exec"), namespace)
+    return namespace
+
+
 def test_backend_cai_entrypoint_uses_dynamic_port_and_local_proxy_bind() -> None:
     payload = dry_run(ROOT / "backend-v2" / "app_cai_backend.py", {"CDSW_APP_PORT": "9876"})
 
     assert payload["cwd"].endswith("backend-v2")
     assert payload["command"][-4:] == ["--host", "127.0.0.1", "--port", "9876"]
+
+
+def test_backend_cai_entrypoint_resolves_checkout_without_file(monkeypatch) -> None:
+    monkeypatch.chdir(ROOT)
+    namespace = load_entrypoint_without_file(ROOT / "backend-v2" / "app_cai_backend.py")
+
+    assert namespace["resolve_backend_dir"]() == ROOT / "backend-v2"
 
 
 def test_frontend_cai_entrypoint_uses_dynamic_port_and_backend_url() -> None:
@@ -38,6 +51,13 @@ def test_frontend_cai_entrypoint_uses_dynamic_port_and_backend_url() -> None:
     assert payload["cwd"].endswith("frontend-v2")
     assert payload["command"][-4:] == ["-H", "127.0.0.1", "-p", "4321"]
     assert payload["backend_url"] == "https://tempo-backend.example"
+
+
+def test_frontend_cai_entrypoint_resolves_checkout_without_file(monkeypatch) -> None:
+    monkeypatch.chdir(ROOT)
+    namespace = load_entrypoint_without_file(ROOT / "frontend-v2" / "app_cai_frontend.py")
+
+    assert namespace["resolve_frontend_dir"]() == ROOT / "frontend-v2"
 
 
 def test_frontend_cai_entrypoint_rejects_missing_backend_url() -> None:
