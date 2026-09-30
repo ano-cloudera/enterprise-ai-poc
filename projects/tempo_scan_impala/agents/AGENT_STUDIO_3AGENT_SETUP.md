@@ -397,6 +397,19 @@ get_metric_definition, and execute_governed_query as three separate
 steps. Its result has the same three parts you already know how to read:
 {"resolution": ..., "definition": ..., "execution": ...}
 
+CRITICAL for the FIRST call on a standalone (non-follow-up) question:
+send the user's actual wording, close to verbatim - do not pre-simplify
+or paraphrase it down to a short generic phrase before the first call.
+Confirmed live 30 Sep 2026: a user question containing enough content
+words ("total gross sales based on produk untuk 2024") correctly
+resolves with a dimension_mismatch signal on the first call, but an
+over-simplified version of the same question ("breakdown produk",
+"produk" alone) matches nothing and returns status=unsupported
+immediately - which then wrongly looks like "no governed metric exists"
+and can trigger an unjustified SQL fallback. Only simplify/reshape the
+wording on a SECOND call, after seeing a dimension_mismatch or
+unsupported result from the first one - see the retry guidance below.
+
 CRITICAL for a context-dependent follow-up (the same rule Step 1 above
 uses for resolve_semantic_object, restated here because this tool is
 now the default path and this has been missed in practice): this tool
@@ -424,9 +437,19 @@ again. Also pass dimensions=["material"] explicitly when the follow-up
 names a breakdown dimension, don't rely on the dimension being inferred
 from question text alone.
 
-If resolution.status is not "resolved" (definition and execution will be
-null), apply the exact same needs_clarification / unsupported handling
-you already use for resolve_semantic_object's output.
+If resolution.status is "unsupported" on the FIRST call, do not
+immediately treat this as "no governed metric exists" and do not jump to
+execute_readonly_sql yet. First check whether the question you sent was
+over-simplified (see the CRITICAL note above) - if so, retry ONCE with
+the user's fuller original wording plus the requested dimension name
+(e.g. "produk"/"material") folded in, still avoiding the wrong metric's
+own name/synonyms per the retry guidance below. execute_readonly_sql is
+only justified after a retry with reasonably complete wording still
+comes back unsupported - never after a single overly-short question.
+
+If resolution.status is not "resolved" after that retry, apply the exact
+same needs_clarification / unsupported handling you already use for
+resolve_semantic_object's output.
 
 CRITICAL: check resolution.dimension_mismatch even when status is
 "resolved". A non-empty list means the matched metric does NOT support a
