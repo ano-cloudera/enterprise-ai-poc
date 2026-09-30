@@ -1,7 +1,17 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 30 Sep 2026 (latest) — found and fixed the actual root cause of GSSAPI/Kerberos auth failures against the Private Cloud ("Ingram"/IMID.LOCAL) environment: a missing `kerberos` Python package, silently ignored by puresasl. Commit `8336980`.
+**Updated**: 30 Sep 2026 (latest) — V2 frontend's Ask Data loading indicator reworked to match the Claude Code UX pattern the user pointed to: a bouncing-dots "thinking" animation, and the send button swaps into a Stop button in place while a request is running, instead of a separate Stop control next to the progress text. Commits `08cf7c8`, `26783e1`, `fb83900`.
+
+## Current checkpoint: V2 Ask Data loading indicator UX pass (30 Sep 2026, latest)
+
+Purely frontend, no backend/governance changes. `frontend-v2/src/views/AskDataPage.tsx`'s loading state (shown while an SSE stream is in flight) went through 3 iterations based on live user feedback against screenshots:
+
+1. **`08cf7c8`**: replaced a single static pulsing dot with 3 staggered bouncing dots (a typical "AI is thinking" animation) plus a pulsing brand mark, and changed the pre-first-event default label from "Understanding request..." to "AI is analyzing..." — the backend's real progress labels (`Understanding request` → `Retrieving semantic context` → `Preparing governed query` → `Validating query` → `Querying TEMPO data` → `Analyzing result`, from `backend-v2/app/services/chat.py`'s `stream()`) still override this as they arrive via SSE, unchanged.
+2. **`26783e1`**: the Stop button (at the time, inside the progress pill next to the label) looked cramped against the text — added a vertical divider and more padding/a rose hover state.
+3. **`fb83900`**: the user pointed out Claude Code's own pattern - the send button itself (bottom-right of the message composer) swaps into a Stop button in the same position while a request runs, rather than a separate Stop control appearing elsewhere. Replicated that: the composer's submit button now renders as a Stop (square icon, calls the same `stopRequest()`/`AbortController` already in place) when `loading` is true, and the progress pill was simplified back to just the bouncing dots + label with no button of its own.
+
+Verified after each step: `npm test -- --run AskDataPage` (5/5 passing) and `npm run build` (Next.js 15.5.25 production build succeeds) in `frontend-v2/`.
 
 ## Current checkpoint: missing `kerberos` package silently broke GSSAPI in isolated venvs (30 Sep 2026, latest)
 
