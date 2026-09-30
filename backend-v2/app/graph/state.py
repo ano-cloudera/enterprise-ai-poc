@@ -7,6 +7,8 @@ class AskDataState(TypedDict, total=False):
     request_id: str
     session_id: str
     question: str
+    original_question: str
+    conversation_history: list[dict[str, Any]]
     provider: str
     model: str
     semantic_resolution: dict[str, Any]

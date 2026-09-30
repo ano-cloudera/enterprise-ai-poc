@@ -52,6 +52,10 @@ _CONCEPT_PATTERNS = {
     "service_level": ("service level", "fill rate"),
 }
 
+_DIMENSION_METRIC_OVERRIDES = {
+    ("gross_billing_value", "material"): "material_sell_in_value",
+}
+
 
 def _metric_covers_concept(metric: str, concept: str) -> bool:
     checks = {
@@ -117,6 +121,19 @@ class SemanticContextService:
             }
         resolution = self.registry.resolve_metric(question)
         if resolution.get("status") == "resolved":
+            mismatch = list(resolution.get("dimension_mismatch") or [])
+            if len(mismatch) == 1:
+                replacement = _DIMENSION_METRIC_OVERRIDES.get((str(resolution["metric"]), mismatch[0]))
+                if replacement:
+                    return {
+                        "status": "resolved",
+                        "metric": replacement,
+                        "matched_alias": resolution.get("matched_alias"),
+                        "resolved_by": "governed_dimension_override",
+                        "definition": self.metric_definition(replacement),
+                        "dimensions": mismatch,
+                        "dimension_mismatch": [],
+                    }
             normalized = question.casefold().replace("–", "-")
             concepts = {
                 concept
@@ -196,7 +213,12 @@ class SemanticContextService:
         return "\n".join(sql)
 
     def planner_context(self, domains: list[str] | None = None) -> dict[str, Any]:
-        selected = set().union(*(_DOMAIN_DATASETS.get(domain, set()) for domain in (domains or [])))
+        selected: set[str] = set()
+        for domain in domains or []:
+            if domain in self.datasets:
+                selected.add(domain)
+            else:
+                selected.update(_DOMAIN_DATASETS.get(domain, set()))
         if not selected:
             selected = set(self.datasets)
         datasets = []
@@ -226,6 +248,20 @@ class SemanticContextService:
             "metrics": metrics,
             "relationships": [],
             "join_policy": "No runtime joins; use only published cross-domain views.",
+        }
+
+    def greeting_context(self) -> dict[str, Any]:
+        summary = self.registry.capability_summary()
+        return {
+            "scope": summary.get("scope") or "TEMPO Q4 2024",
+            "domains": [
+                "Sales / Sell-In", "B2B / Sell-Out", "Stock Tempo",
+                "Stock SAT-IDM", "SAT OOS", "Service Level",
+                "Picking", "Unloading", "SAT Promo",
+            ],
+            "examples": list(summary.get("examples") or [])[:4],
+            "dataset_count": len(self.datasets),
+            "metric_count": len(self.metrics),
         }
 
 

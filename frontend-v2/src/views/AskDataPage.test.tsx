@@ -33,4 +33,25 @@ describe('V2 Ask Data page', () => {
     screen.getByText('Total Sales')
     await waitFor(() => expect(api.chatStream).toHaveBeenCalledWith('Berapa total Gross Billing Value?', expect.any(String), { provider: 'qwen', model: 'qwen-model' }))
   })
+
+  it('presents the direct answer, implications, and data reference with clear hierarchy', async () => {
+    vi.mocked(api.models).mockResolvedValue({ models: [{ provider: 'qwen', id: 'qwen-model', label: 'Qwen Private', available: true, reason: null }] })
+    vi.mocked(api.chatStream).mockImplementation((async function* () {
+      yield { type: 'done', response: {
+        request_id: 'r2', session_id: 's2', status: 'SUCCESS', provider: 'qwen', model: 'qwen-model', strategy: 'governed',
+        answer: { direct_answer: 'Gross Sales Q4 sebesar Rp10 miliar.', executive_summary: 'Nilai ini merupakan akumulasi Oktober–Desember.', insights: ['Desember tertinggi.'], business_implications: ['Prioritaskan ketersediaan stok Desember.'], caveats: ['Data hanya Q4 2024.'], data_reference: 'gold.rpt_sap_monthly_executive_semantic', chart_spec: null },
+        data: { columns: [], rows: [], row_count: 0, execution_ms: 1 }, chart_spec: null,
+        timings: { context_ms: 1, planning_ms: 1, validation_ms: 1, query_ms: 1, analysis_ms: 1, total_ms: 6 }, retry_count: 0,
+      } }
+    }) as never)
+    render(<ModelSelectionProvider><AskDataPage /></ModelSelectionProvider>)
+
+    fireEvent.change(screen.getByPlaceholderText('Ask a commercial question...'), { target: { value: 'Berapa gross sales Q4?' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Send question' }))
+
+    expect(await screen.findByText('Gross Sales Q4 sebesar Rp10 miliar.')).toBeTruthy()
+    screen.getByText('Business implications')
+    screen.getByText('Prioritaskan ketersediaan stok Desember.')
+    screen.getByText('gold.rpt_sap_monthly_executive_semantic')
+  })
 })

@@ -1,18 +1,19 @@
 from __future__ import annotations
 
-import json
 import inspect
+import json
+import re
+import uuid
 from dataclasses import dataclass
 from pathlib import Path
 from time import perf_counter
 from typing import Any, Callable
-import uuid
 
 from langgraph.graph import END, START, StateGraph
 
 from app.core.models import AnalysisOutput, QueryPlan
 from app.graph.state import AskDataState
-from app.llm.base import LLMProvider
+from app.llm.base import LLMProvider, ProviderError
 from app.sql.validator import ValidatedSQL
 
 
@@ -56,9 +57,59 @@ def _safe_answer(text: str, *, caveats: list[str] | None = None) -> dict[str, An
     ).model_dump()
 
 
+def _is_greeting(question: str) -> bool:
+    normalized = re.sub(r"[^a-z0-9\s]", " ", question.casefold())
+    normalized = " ".join(normalized.split())
+    return normalized in {
+        "halo", "hai", "hello", "hi", "hey", "selamat pagi",
+        "selamat siang", "selamat sore", "selamat malam", "apa kabar",
+    }
+
+
 def build_workflow(deps: WorkflowDependencies):
     async def understand_request(state: AskDataState) -> AskDataState:
         started = perf_counter()
+        if _is_greeting(state.get("original_question") or state["question"]):
+            try:
+                answer = await _provider(state, deps).generate_structured(
+                    [
+                        {"role": "system", "content": _prompt("global_system.md") + "\n" + _prompt("greeting.md")},
+                        {
+                            "role": "user",
+                            "content": json.dumps(
+                                {
+                                    "greeting": state.get("original_question") or state["question"],
+                                    "first_turn": not bool(state.get("conversation_history")),
+                                    "capabilities": deps.semantic_context.greeting_context(),
+                                },
+                                ensure_ascii=False,
+                            ),
+                        },
+                    ],
+                    AnalysisOutput,
+                    temperature=0.4,
+                    max_tokens=900,
+                )
+            except ProviderError:
+                answer = AnalysisOutput(
+                    direct_answer="Halo! Senang bisa bantu 👋",
+                    executive_summary="Saya siap membantu analisis data komersial TEMPO untuk periode Q4 2024.",
+                    insights=["Kamu bisa mulai dari Gross Sales, Sell-In, Sell-Out, stok, atau Service Level."],
+                    business_implications=[],
+                    caveats=["Cakupan data tersedia untuk Oktober–Desember 2024."],
+                    data_reference="TEMPO governed capability catalog.",
+                    chart_spec=None,
+                )
+            return {
+                **state,
+                "request_id": state.get("request_id") or str(uuid.uuid4()),
+                "status": "SUCCESS",
+                "strategy": "conversational",
+                "answer": answer.model_dump(),
+                "chart_spec": None,
+                "query_result": {"columns": [], "rows": [], "row_count": 0, "execution_ms": 0},
+                "timings": _with_timing(state, "context_ms", _elapsed(started)),
+            }
         resolution = deps.semantic_context.resolve(state["question"])
         update: AskDataState = {
             **state,

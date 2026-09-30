@@ -19,6 +19,21 @@ from app.sql.validator import validate_sql
 logger = logging.getLogger(__name__)
 
 
+def contextualize_question(question: str, history: list[dict]) -> str:
+    """Resolve a short clarification choice without replaying bulky query rows."""
+    normalized = " ".join(question.casefold().replace("–", "-").split())
+    choices = ("sell-in", "sell in", "sell-out", "sell out")
+    if len(normalized.split()) > 8 or not any(choice in normalized for choice in choices) or not history:
+        return question
+    previous = history[-1]
+    previous_question = str(previous.get("question") or "").strip()
+    previous_answer = previous.get("answer") or {}
+    clarification = str(previous_answer.get("direct_answer") or previous_answer.get("executive_summary") or "")
+    if previous_question and "sell-in" in clarification.casefold() and "sell-out" in clarification.casefold():
+        return f"{previous_question}\nKlarifikasi pengguna: {question.strip()}"
+    return question
+
+
 class ImpalaQueryExecutor:
     def __init__(self, settings: Settings) -> None:
         self.backend = ImpalaBackend(settings)
@@ -60,8 +75,15 @@ class ChatService:
     async def run(self, request: AskDataRequest) -> AskDataResponse:
         request_id = str(uuid.uuid4())
         started = perf_counter()
+        conversation_history = self.history.load(request.session_id, limit=4)
         initial = {
             **request.model_dump(),
+            "original_question": request.question,
+            "question": contextualize_question(request.question, conversation_history),
+            "conversation_history": [
+                {"question": item["question"], "answer": item["answer"]}
+                for item in conversation_history
+            ],
             "request_id": request_id,
             "retry_count": 0,
             "timings": {},

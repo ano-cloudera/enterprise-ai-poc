@@ -16,6 +16,7 @@ class FakeProvider:
 
     async def generate_structured(self, messages, response_model, **kwargs):
         self.calls.append(response_model.__name__)
+        self.messages = messages
         return response_model.model_validate(self.responses.pop(0))
 
 
@@ -37,6 +38,9 @@ class FakeContext:
 
     def planner_context(self, domains=None):
         return {"datasets": [{"view": "gold.allowed", "columns": ["material", "value"]}]}
+
+    def greeting_context(self):
+        return {"scope": "October-December 2024", "domains": ["Sales / Sell-In", "B2B / Sell-Out"]}
 
     def compile_governed(self, metric: str, question: str):
         return self.sql
@@ -179,3 +183,26 @@ async def test_empty_result_is_no_data_and_invalid_chart_is_removed() -> None:
     invalid_chart_provider = FakeProvider([analysis({"type": "bar", "title": "Wrong", "x": "missing", "y": "value"})])
     invalid_chart = await build_workflow(deps(governed, invalid_chart_provider, [{"value": 1}])).ainvoke(AskDataRequest(session_id="s", question="gross", provider="qwen", model="m").model_dump())
     assert invalid_chart["chart_spec"] is None
+
+
+@pytest.mark.asyncio
+async def test_greeting_is_written_by_selected_llm_without_querying_impala() -> None:
+    provider = FakeProvider([analysis() | {
+        "direct_answer": "Halo! Senang bisa bantu 👋",
+        "executive_summary": "Saya bisa bantu membaca data komersial TEMPO Q4 2024.",
+        "insights": ["Coba tanyakan Gross Sales atau Sell-Out."],
+        "business_implications": [],
+        "data_reference": "TEMPO governed capability catalog.",
+    }])
+    dependencies = deps(FakeContext({"status": "unsupported"}), provider, [])
+
+    state = await build_workflow(dependencies).ainvoke({
+        **AskDataRequest(session_id="s1", question="Halo", provider="qwen", model="qwen-model").model_dump(),
+        "conversation_history": [],
+    })
+
+    assert state["status"] == "SUCCESS"
+    assert state["strategy"] == "conversational"
+    assert state["answer"]["direct_answer"].startswith("Halo!")
+    assert dependencies.query_executor.queries == []
+    assert provider.calls == ["AnalysisOutput"]

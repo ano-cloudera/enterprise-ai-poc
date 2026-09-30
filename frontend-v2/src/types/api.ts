@@ -34,7 +34,7 @@ export type ChatResponse = {
   status: 'SUCCESS' | 'CLARIFICATION' | 'NO_DATA' | 'UNSUPPORTED' | 'ERROR'
   provider: ProviderName
   model: string
-  strategy: 'governed' | 'sql_fallback' | 'clarification' | 'unsupported'
+  strategy: 'governed' | 'sql_fallback' | 'clarification' | 'unsupported' | 'conversational'
   answer: AnalysisOutput
   data: { columns: string[]; rows: Record<string, unknown>[]; row_count: number; execution_ms: number }
   chart_spec: ChartSpec | null

@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import re
 from typing import Any
 
@@ -9,6 +10,19 @@ from pydantic import BaseModel, ValidationError
 
 from app.core.config import Settings
 from app.llm.base import ProviderError, StructuredT
+
+
+logger = logging.getLogger(__name__)
+
+
+def _http_error_code(response: httpx.Response) -> str:
+    try:
+        payload = response.json()
+        error = payload.get("error", {}) if isinstance(payload, dict) else {}
+        code = error.get("code") if isinstance(error, dict) else None
+        return re.sub(r"[^a-zA-Z0-9_.-]", "_", str(code or "unknown"))[:80]
+    except (TypeError, ValueError):
+        return "unknown"
 
 
 def _structured_json(text: str) -> Any:
@@ -87,6 +101,15 @@ class _OpenAICompatibleProvider:
                 content = response.json()["choices"][0]["message"]["content"]
             except httpx.TimeoutException as exc:
                 raise ProviderError("TIMEOUT") from exc
+            except httpx.HTTPStatusError as exc:
+                logger.warning(
+                    "llm_http_error provider=%s status=%s error_code=%s endpoint=%s",
+                    self.provider_name,
+                    exc.response.status_code,
+                    _http_error_code(exc.response),
+                    exc.request.url.path,
+                )
+                raise ProviderError("PROVIDER_ERROR") from exc
             except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as exc:
                 raise ProviderError("PROVIDER_ERROR") from exc
             try:
@@ -187,5 +210,13 @@ class GeminiProvider:
             raise
         except httpx.TimeoutException as exc:
             raise ProviderError("TIMEOUT") from exc
+        except httpx.HTTPStatusError as exc:
+            logger.warning(
+                "llm_http_error provider=gemini status=%s error_code=%s endpoint=%s",
+                exc.response.status_code,
+                _http_error_code(exc.response),
+                exc.request.url.path,
+            )
+            raise ProviderError("PROVIDER_ERROR") from exc
         except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as exc:
             raise ProviderError("PROVIDER_ERROR") from exc

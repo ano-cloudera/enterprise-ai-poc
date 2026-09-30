@@ -26,6 +26,35 @@ def test_context_compacts_only_approved_schema_without_credentials() -> None:
     assert "api_key" not in serialized
 
 
+def test_dataset_name_scopes_context_to_only_that_dataset() -> None:
+    context = SemanticContextService()
+
+    payload = context.planner_context(["monthly_executive"])
+
+    assert [dataset["name"] for dataset in payload["datasets"]] == ["monthly_executive"]
+    assert payload["metrics"]
+    assert {metric["dataset"] for metric in payload["metrics"]} == {"monthly_executive"}
+
+
+def test_top_products_gross_sales_uses_governed_material_metric() -> None:
+    context = SemanticContextService()
+
+    resolution = context.resolve("Bisa bantu cek berapa gross sales untuk top 5 produk?")
+    sql = context.compile_governed(
+        resolution["metric"],
+        "Bisa bantu cek berapa gross sales untuk top 5 produk?",
+        resolution.get("dimensions"),
+    )
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "material_sell_in_value"
+    assert resolution["dimensions"] == ["material"]
+    assert "d.has_sell_in = TRUE" in sql
+    assert "GROUP BY d.material" in sql
+    assert "ORDER BY metric_value DESC" in sql
+    assert "LIMIT 5" in sql
+
+
 def test_governed_compiler_uses_real_requested_dimensions() -> None:
     context = SemanticContextService()
     monthly = context.compile_governed("sat_idm_dc_stock_quantity", "Berapa quantity DC Stock per bulan?")

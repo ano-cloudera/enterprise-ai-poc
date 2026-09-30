@@ -1,7 +1,7 @@
 'use client'
 
 import { FormEvent, KeyboardEvent, MouseEvent, useEffect, useRef, useState } from 'react'
-import { ArrowUp, BarChart3, Database, Dice5, MessageSquareText, Plus, Trash2, UserRound } from 'lucide-react'
+import { ArrowUp, BarChart3, Database, Dice5, Info, Lightbulb, MessageSquareText, Plus, Sparkles, Trash2, UserRound } from 'lucide-react'
 import { AnswerChart } from '../components/AnswerChart'
 import { DataTable } from '../components/DataTable'
 import { KpiCard } from '../components/KpiCard'
@@ -66,5 +66,50 @@ export function AskDataPage() {
 function StructuredAnswer({ response }: { response: ChatResponse }) {
   const kpiField = response.chart_spec?.type === 'kpi' ? response.chart_spec.y || response.data.columns[0] : null
   const kpiValue = kpiField ? response.data.rows[0]?.[kpiField] : undefined
-  return <div aria-label="AI response"><div className="flex items-center justify-between gap-3"><div className="text-xs font-extrabold text-cloudera-navy">Executive Summary</div><span className="rounded-full bg-violet-50 px-2.5 py-1 text-[10px] font-bold text-cloudera-violet">{response.status}</span></div><p className="mt-2 text-sm leading-6 text-slate-700">{response.answer.executive_summary}</p>{response.answer.insights.length > 0 && <div className="mt-4"><div className="text-xs font-extrabold text-cloudera-navy">Insights</div><ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">{response.answer.insights.map(item => <li key={item}>{item}</li>)}</ul></div>}{response.chart_spec?.type === 'kpi' && <div className="mt-4 max-w-xs"><KpiCard label={response.chart_spec.title} value={kpiValue} format="" icon={BarChart3} /></div>}<AnswerChart chart={response.chart_spec} rows={response.data.rows} />{response.data.rows.length > 0 && <DataTable columns={response.data.columns} rows={response.data.rows} />}{response.answer.caveats.length > 0 && <div className="mt-4 rounded-xl bg-slate-50 p-3 text-xs text-slate-500">{response.answer.caveats.join(' ')}</div>}<div className="mt-4 text-[10px] text-slate-400">{response.provider} · {response.model} · {response.strategy} · {response.timings.total_ms.toFixed(0)} ms</div></div>
+  const titles: Record<ChatResponse['status'], string> = {
+    SUCCESS: response.strategy === 'conversational' ? 'Welcome' : 'Direct answer',
+    CLARIFICATION: 'A quick clarification',
+    NO_DATA: 'No matching data',
+    UNSUPPORTED: 'Outside the current scope',
+    ERROR: 'Something went wrong',
+  }
+  const statusStyles: Record<ChatResponse['status'], string> = {
+    SUCCESS: 'bg-emerald-50 text-emerald-700',
+    CLARIFICATION: 'bg-amber-50 text-amber-700',
+    NO_DATA: 'bg-slate-100 text-slate-600',
+    UNSUPPORTED: 'bg-slate-100 text-slate-600',
+    ERROR: 'bg-rose-50 text-rose-700',
+  }
+
+  return <div aria-label="AI response" className="space-y-5">
+    <div>
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wide text-cloudera-navy"><Sparkles size={14} />{titles[response.status]}</div>
+        <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${statusStyles[response.status]}`}>{response.status}</span>
+      </div>
+      <p className="mt-3 text-base font-semibold leading-7 text-slate-900">{response.answer.direct_answer}</p>
+      {response.answer.executive_summary !== response.answer.direct_answer && <p className="mt-2 text-sm leading-6 text-slate-600">{response.answer.executive_summary}</p>}
+    </div>
+
+    {response.answer.insights.length > 0 && <section className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
+      <div className="flex items-center gap-2 text-xs font-extrabold text-cloudera-navy"><Lightbulb size={14} />Insights</div>
+      <ul className="mt-2 space-y-2 text-sm leading-6 text-slate-700">{response.answer.insights.map(item => <li key={item} className="flex gap-2"><span className="text-cloudera-orange">•</span><span>{item}</span></li>)}</ul>
+    </section>}
+
+    {response.answer.business_implications.length > 0 && <section>
+      <div className="text-xs font-extrabold text-cloudera-navy">Business implications</div>
+      <div className="mt-2 grid gap-2 sm:grid-cols-2">{response.answer.business_implications.map(item => <div key={item} className="rounded-xl border border-violet-100 bg-violet-50/60 p-3 text-sm leading-5 text-slate-700">{item}</div>)}</div>
+    </section>}
+
+    {response.chart_spec?.type === 'kpi' && <div className="max-w-xs"><KpiCard label={response.chart_spec.title} value={kpiValue} format="" icon={BarChart3} /></div>}
+    <AnswerChart chart={response.chart_spec} rows={response.data.rows} />
+    {response.data.rows.length > 0 && <div className="overflow-hidden rounded-xl border border-slate-200"><DataTable columns={response.data.columns} rows={response.data.rows} /></div>}
+
+    {(response.answer.caveats.length > 0 || response.answer.data_reference) && <div className="rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-500">
+      {response.answer.caveats.length > 0 && <div className="flex gap-2"><Info size={14} className="mt-0.5 shrink-0" /><span>{response.answer.caveats.join(' ')}</span></div>}
+      {response.answer.data_reference && <div className="mt-1 break-all"><span className="font-semibold text-slate-600">Data reference:</span> {response.answer.data_reference}</div>}
+    </div>}
+
+    <div className="border-t border-slate-100 pt-3 text-[10px] text-slate-400">{response.provider} · {response.model} · {response.strategy} · {response.timings.total_ms.toFixed(0)} ms</div>
+  </div>
 }

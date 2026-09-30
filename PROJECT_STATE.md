@@ -1,9 +1,30 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 30 Sep 2026 (later same day) — found and fixed a V1 Agent Studio bug via live UAT testing on the OLD (AWS) environment with a ChatGPT-backed Data Agent: a `dimension_mismatch` signal the resolver already correctly produces was being silently ignored, so a "top 5 produk" style question answered with the wrong (company-level) metric instead of retrying for the material-grain one. Fixed in the Data Agent's Backstory, not in Python code — the resolver itself was already correct. This is a V1/Agent Studio fix; it does not touch the new `backend-v2`/`frontend-v2` described below.
+**Updated**: 30 Sep 2026 (latest) — V2 conversational follow-ups, governed product ranking, compact model context, provider diagnostics, and AI-response presentation were repaired after CAI UAT exposed null product values and a Qwen HTTP 400 during result analysis.
 
-## Current checkpoint: V1 Agent Studio Backstory fix — dimension_mismatch was not acted on (30 Sep 2026, later same day)
+## Current checkpoint: V2 CAI UAT fixes — conversational context and compact model payloads (30 Sep 2026)
+
+The V2 application now addresses the three linked failures seen in CAI:
+
+- Greetings use the selected LLM with a dedicated friendly system prompt and a compact Ossie-derived capability catalog. Only greeting detection is deterministic; wording remains model-generated, with a safe local fallback if the provider is unavailable. First-turn and later-turn greetings are distinguished using session history.
+- The existing SQLite conversation store is now read as well as written. A lightweight contextualizer combines a short Sell-In/Sell-Out clarification reply with the immediately preceding question, while excluding stored result rows from model prompts.
+- “Gross sales untuk top 5 produk” is resolved to the governed material-grain metric `material_sell_in_value`, not the company-level `gross_billing_value`. Generated SQL uses `gold.rpt_sap_material_month_semantic`, applies `has_sell_in = TRUE`, groups by material, orders by `metric_value DESC`, and limits to five.
+- `planner_context()` now recognizes both business-domain names and exact Ossie dataset names. Governed analysis therefore receives only the selected dataset and its metrics; the reproduced top-product payload fell from roughly 22,000 characters / 20 datasets / 62 metrics to roughly 3,000 characters / 1 dataset / 11 metrics.
+- Qwen/OpenAI-compatible and Gemini HTTP failures now log safe diagnostics containing provider, status, normalized error code, and endpoint path without API tokens or request payloads.
+- Frontend answers now emphasize the direct answer, use status-aware headings/colors, and separately render insights, business implications, caveats, data reference, visualization/table, and muted model metadata.
+
+Verification at this checkpoint:
+
+- Backend V2: **53 passed** (2 dependency warnings only).
+- Frontend V2: **9 passed**.
+- Frontend V2 production build: **PASS** on Next.js 15.5.25.
+- Local semantic probe confirmed `material_sell_in_value` and the required non-null coverage filter for the reported top-five question.
+- Local runtime has no model credentials and no live Impala connection, so the final Qwen/Gemini/OpenAI and data-value smoke tests remain deployment-environment steps.
+
+Next CAI checks: pull this commit, restart the backend and frontend applications, retry the exact top-five question, retry the Sell-In clarification sequence in one session, and test a greeting once with each configured model.
+
+## Previous checkpoint: V1 Agent Studio Backstory fix — dimension_mismatch was not acted on (30 Sep 2026, later same day)
 
 Commit `1604e9d`, pushed. Found while executing `docs/uat-questions-2026-09-29.md` (the authoritative 46-question UAT set) live against the OLD AWS Agent Studio environment, since the new Private Cloud environment's Agent Studio is still blocked on the sandbox permission issue in the checkpoint below.
 

@@ -8,6 +8,7 @@ from pydantic import BaseModel
 
 from app.core.config import Settings
 from app.core.models import QueryPlan
+from app.llm.base import ProviderError
 from app.llm.providers import GeminiProvider, OpenAIProvider, QwenProvider
 from app.llm.registry import ProviderRegistry
 
@@ -169,3 +170,26 @@ async def test_gemini_provider_returns_validated_structured_output() -> None:
     assert captured["generationConfig"]["temperature"] == 0.2
     assert captured["generationConfig"]["maxOutputTokens"] == 321
     assert captured["systemInstruction"]["parts"] == [{"text": "system"}]
+
+
+@pytest.mark.asyncio
+async def test_qwen_http_error_logs_safe_diagnostics_without_api_token(caplog) -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        return httpx.Response(400, json={"error": {"code": "context_length_exceeded", "message": "prompt too long"}})
+
+    settings = Settings(
+        _env_file=None,
+        qwen_base_url="https://qwen.internal/v1",
+        qwen_model="qwen-model",
+        qwen_api_key="super-secret-token",
+    )
+    provider = QwenProvider(settings, transport=httpx.MockTransport(handler))
+
+    with pytest.raises(ProviderError, match="Model provider request failed"):
+        await provider.generate_structured(
+            [{"role": "user", "content": "question"}], Result, temperature=0, max_tokens=123
+        )
+
+    assert "status=400" in caplog.text
+    assert "context_length_exceeded" in caplog.text
+    assert "super-secret-token" not in caplog.text
