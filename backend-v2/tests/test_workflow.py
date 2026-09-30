@@ -109,6 +109,29 @@ async def test_governed_path_uses_deterministic_plan_and_grounded_analysis() -> 
 
 
 @pytest.mark.asyncio
+async def test_data_reference_is_always_the_view_name_never_the_raw_sql() -> None:
+    """Even if the model writes the full SQL statement into data_reference
+    (as observed live), the final answer must only ever cite the view
+    name(s) actually executed - never expose the SELECT statement to a
+    business user."""
+    provider = FakeProvider([
+        analysis() | {"data_reference": "SELECT SUM(d.sales_bill_val) AS metric_value FROM gold.rpt_sap_monthly_executive_semantic d WHERE d.calmonth BETWEEN 202410 AND 202412"}
+    ])
+    context = FakeContext(
+        {"status": "resolved", "metric": "gross_billing_value", "definition": {"base_dataset": "monthly_executive"}},
+        sql="SELECT SUM(d.sales_bill_val) AS metric_value FROM gold.rpt_sap_monthly_executive_semantic d WHERE d.calmonth BETWEEN 202410 AND 202412",
+    )
+    dependencies = deps(context, provider, [{"metric_value": 3841865787074}])
+
+    state = await build_workflow(dependencies).ainvoke(
+        AskDataRequest(session_id="s1", question="gross sell in q4", provider="qwen", model="qwen-model").model_dump()
+    )
+
+    assert state["answer"]["data_reference"] == "gold.rpt_sap_monthly_executive_semantic"
+    assert "SELECT" not in state["answer"]["data_reference"]
+
+
+@pytest.mark.asyncio
 async def test_controlled_fallback_uses_exactly_planner_then_analyst() -> None:
     provider = FakeProvider([
         {"strategy": "sql_fallback", "domains": ["sales"], "metrics": [], "dimensions": ["material"], "filters": {}, "analysis_type": "ranking", "sql": "SELECT d.material, d.value FROM gold.allowed d LIMIT 10", "clarification_question": None},

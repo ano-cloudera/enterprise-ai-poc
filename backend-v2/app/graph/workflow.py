@@ -53,6 +53,24 @@ def _with_timing(state: AskDataState, key: str, value: float) -> dict[str, float
     return {**state.get("timings", {}), key: value}
 
 
+_TABLE_REF_RE = re.compile(r"\bFROM\s+([a-zA-Z_][\w]*\.[a-zA-Z_][\w]*)", re.IGNORECASE)
+
+
+def _data_reference_from_sql(sql: str) -> str | None:
+    """Extract just the gold.<view> name(s) referenced by the executed SQL,
+    never the SQL text itself - the analyst's data_reference must stay a
+    citation a business user can read, not an implementation detail a raw
+    SELECT statement exposes."""
+    matches = _TABLE_REF_RE.findall(sql or "")
+    if not matches:
+        return None
+    seen: list[str] = []
+    for name in matches:
+        if name not in seen:
+            seen.append(name)
+    return ", ".join(seen)
+
+
 def _safe_answer(text: str, *, caveats: list[str] | None = None) -> dict[str, Any]:
     return AnalysisOutput(
         direct_answer=text,
@@ -325,6 +343,13 @@ def build_workflow(deps: WorkflowDependencies):
         if chart and any(field and field not in columns for field in (chart.x, chart.y, chart.series)):
             chart = None
             analysis = analysis.model_copy(update={"chart_spec": None})
+        # Always override data_reference with just the view name(s) parsed
+        # from the executed SQL - never trust the model to keep the raw
+        # SQL text out of a field meant to be a plain-language citation,
+        # regardless of what result_analyst.md asks for.
+        schema_reference = _data_reference_from_sql(state.get("validated_sql") or state.get("sql") or "")
+        if schema_reference:
+            analysis = analysis.model_copy(update={"data_reference": schema_reference})
         return {
             **state,
             "status": "SUCCESS",
