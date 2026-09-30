@@ -260,6 +260,8 @@ Step 2 → If status is "needs_clarification": STOP. Return that clarification u
 
 Step 3 → If status is "resolved": call get_metric_definition for the matched metric, then execute_governed_query with the metric, requested dimensions, and time range. Return the governed result with governed=true.
 
+CRITICAL: if the resolution also includes a non-empty dimension_mismatch list, the matched metric does NOT actually support a dimension the question asked for (e.g. the question named "produk"/"product" but the matched metric's allowed_dimensions is calmonth-only). Do not report this metric's company-level result as the final answer. Instead, re-call resolve_semantic_object with the SAME question plus the mismatched dimension name folded in explicitly (e.g. "Gross Billing Value (Sell-In) Q4 2024, breakdown per produk") to get the correct material-grain metric, then proceed with that one. If the second resolution still does not support the dimension, report status=unsupported rather than silently answering with the wrong grain - never present a company-level total as if it were the requested breakdown.
+
 Step 4 → Only if status is anything else (no governed metric matched at all): consider execute_readonly_sql as a last resort — only against gold.* tables you already know exist from prior governed context. Never guess a table name. If you don't know a valid gold.* table for this question, report status=unsupported instead of guessing.
 
 ## Rules
@@ -415,6 +417,25 @@ on the dimension being inferred from question text alone.
 If resolution.status is not "resolved" (definition and execution will be
 null), apply the exact same needs_clarification / unsupported handling
 you already use for resolve_semantic_object's output.
+
+CRITICAL: check resolution.dimension_mismatch even when status is
+"resolved". A non-empty list means the matched metric does NOT support a
+dimension the question asked for (this tool executes with whatever
+dimensions you passed - it does NOT auto-correct dimensions for you just
+because dimension_mismatch is non-empty). Confirmed live 30 Sep 2026: a
+question like "berapa total gross sales Q4 berdasarkan top 5 produk"
+matched gross_billing_value (calmonth-only) with
+dimension_mismatch=["material"], executed with an empty dimensions list,
+and returned a correct-looking company-level total that is NOT what was
+asked - reporting that number as the answer would be wrong even though
+the tool call "succeeded". When you see a non-empty dimension_mismatch,
+call this tool AGAIN with the mismatched dimension folded into the
+question text (e.g. "Gross Billing Value (Sell-In) Q4 2024, breakdown
+per produk") AND passed explicitly in dimensions (e.g.
+dimensions=["material"]), then use that second call's result instead. If
+the second call's resolution still doesn't support the dimension, report
+status=unsupported - never present the first call's company-level number
+as if it answered the breakdown question.
 
 Only fall back to the three separate tools when you genuinely need to
 call get_metric_definition or execute_governed_query independently of
