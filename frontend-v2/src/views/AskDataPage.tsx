@@ -1,0 +1,70 @@
+'use client'
+
+import { FormEvent, KeyboardEvent, MouseEvent, useEffect, useRef, useState } from 'react'
+import { ArrowUp, BarChart3, Database, Dice5, MessageSquareText, Plus, Trash2, UserRound } from 'lucide-react'
+import { AnswerChart } from '../components/AnswerChart'
+import { DataTable } from '../components/DataTable'
+import { KpiCard } from '../components/KpiCard'
+import { ScanMark } from '../components/ScanMark'
+import { api } from '../lib/api'
+import { createSessionId, deleteSession, loadSessions, saveSession, sessionTitle, type ChatSession, type StoredMessage } from '../lib/chatSessions'
+import { useModelSelection } from '../lib/modelSelection'
+import type { ChatResponse } from '../types/api'
+
+export function AskDataPage() {
+  const { selection, select, loading: modelsLoading, error: modelError } = useModelSelection()
+  const [input, setInput] = useState('')
+  const [sessionId, setSessionId] = useState(createSessionId)
+  const [messages, setMessages] = useState<StoredMessage[]>([])
+  const [sessions, setSessions] = useState<ChatSession[]>([])
+  const [loading, setLoading] = useState(false)
+  const [progress, setProgress] = useState<string | null>(null)
+  const [error, setError] = useState('')
+  const end = useRef<HTMLDivElement>(null)
+
+  useEffect(() => setSessions(loadSessions()), [])
+  useEffect(() => { if (messages.length) { saveSession({ id: sessionId, title: sessionTitle(messages), updatedAt: Date.now(), messages, selection: selection || undefined }); setSessions(loadSessions()) } }, [messages, selection, sessionId])
+  useEffect(() => { end.current?.scrollIntoView?.({ behavior: 'smooth' }) }, [messages, progress])
+
+  async function submit(question = input) {
+    const value = question.trim()
+    if (!value || loading || !selection) return
+    setMessages(current => [...current, { role: 'user', content: value }]); setInput(''); setError(''); setLoading(true)
+    try {
+      for await (const event of api.chatStream(value, sessionId, selection)) {
+        if (event.type === 'progress') setProgress(event.label)
+        else setMessages(current => [...current, { role: 'assistant', content: event.response.answer.executive_summary, response: event.response }])
+      }
+    } catch { setError('Unable to complete the analysis right now. Please try again.') }
+    finally { setLoading(false); setProgress(null) }
+  }
+
+  async function randomQuestion() {
+    setError('')
+    try { const response = await api.randomQueries(1); if (response.questions[0]) setInput(response.questions[0].question) }
+    catch { setError('Unable to load a suggested question right now.') }
+  }
+  function newChat() { setSessionId(createSessionId()); setMessages([]); setInput(''); setError('') }
+  function openSession(session: ChatSession) { setSessionId(session.id); setMessages(session.messages); setInput(''); if (session.selection) select(session.selection) }
+  function removeSession(event: MouseEvent, id: string) { event.stopPropagation(); deleteSession(id); setSessions(loadSessions()); if (id === sessionId) newChat() }
+  function keyDown(event: KeyboardEvent<HTMLTextAreaElement>) { if (event.key === 'Enter' && !event.shiftKey && input.trim() && !loading) { event.preventDefault(); submit() } }
+
+  return <div className="flex h-[calc(100dvh-136px)] min-w-0 flex-col pb-14 lg:pb-0"><div className="grid min-h-0 flex-1 gap-4 xl:grid-cols-[214px_minmax(0,1fr)]">
+    <aside className="card hidden overflow-y-auto p-4 xl:block"><button className="btn-primary w-full" onClick={newChat}><Plus size={16} />New Chat</button><div className="mt-6 text-sm font-extrabold text-cloudera-navy">Recent conversations</div>{sessions.length ? <div className="mt-3 space-y-2">{sessions.map(session => <div key={session.id} className="group relative rounded-xl border border-transparent hover:bg-slate-50"><button className="w-full p-3 pr-9 text-left text-xs" onClick={() => openSession(session)}><MessageSquareText size={14} className="mr-2 inline" />{session.title}</button><button aria-label="Delete conversation" className="absolute right-2 top-2 text-slate-400" onClick={event => removeSession(event, session.id)}><Trash2 size={13} /></button></div>)}</div> : <div className="mt-3 rounded-xl bg-slate-50 p-3 text-xs text-slate-500">No conversations yet.</div>}</aside>
+    <section className="card flex min-h-0 flex-col overflow-hidden"><div className="flex items-center justify-between border-b border-slate-200 px-5 py-4"><div className="flex items-center gap-2"><ScanMark size={32} /><div><div className="text-sm font-extrabold text-cloudera-navy">SCAN V2</div><div className="text-[11px] text-emerald-600">● Governed-first Ask Data</div></div></div><div className="chip"><Database size={13} />Ossie · Impala</div></div>
+      <div role="log" aria-label="Conversation" className={`min-h-0 flex-1 overflow-y-auto p-5 ${messages.length ? 'space-y-5' : 'flex'}`}>
+        {!messages.length && <div className="m-auto max-w-2xl text-center"><ScanMark size={56} className="mx-auto" rounded="2xl" /><h1 className="mt-5 text-2xl font-black text-cloudera-navy">Ask your TEMPO commercial data</h1><p className="mt-2 text-sm leading-6 text-slate-500">Get a grounded answer, governed data, and a relevant visualization without Agent Studio orchestration.</p><button aria-label="Random Question" className="btn-secondary mt-6" onClick={randomQuestion}><Dice5 size={16} />Random Question</button></div>}
+        {messages.map((message, index) => message.role === 'user' ? <div key={index} className="ml-auto flex max-w-[80%] justify-end gap-2"><div className="rounded-2xl rounded-tr-md bg-cloudera-navy px-4 py-3 text-sm text-white">{message.content}</div><UserRound size={28} className="rounded-full bg-slate-200 p-1.5" /></div> : <div key={index} className="flex gap-3"><ScanMark size={36} /><div className="min-w-0 max-w-[800px] flex-1 rounded-2xl border border-slate-200 bg-white p-5">{message.response ? <StructuredAnswer response={message.response} /> : message.content}</div></div>)}
+        {loading && <div className="flex items-center gap-3"><ScanMark size={36} /><div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500"><span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-cloudera-orange" />{progress || 'Understanding request...'}</div></div>}
+        {error && <div className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}<div ref={end} />
+      </div>
+      <form onSubmit={(event: FormEvent) => { event.preventDefault(); submit() }} className="border-t border-slate-200 p-4"><div className="flex items-end gap-2 rounded-2xl border border-slate-200 p-2"><textarea rows={2} value={input} onChange={event => setInput(event.target.value)} onKeyDown={keyDown} placeholder="Ask a commercial question..." className="min-h-[48px] flex-1 resize-none bg-transparent px-2 py-2 text-sm outline-none" /><button type="submit" aria-label="Send question" disabled={!selection || !input.trim() || loading} className="grid h-10 w-10 place-items-center rounded-xl bg-cloudera-orange text-white disabled:opacity-40"><ArrowUp size={18} /></button></div>{(modelsLoading || modelError || !selection) && <div className="mt-2 text-xs text-amber-700">{modelsLoading ? 'Discovering configured models…' : modelError || 'No configured model is available. Open Settings or contact the operator.'}</div>}</form>
+    </section>
+  </div></div>
+}
+
+function StructuredAnswer({ response }: { response: ChatResponse }) {
+  const kpiField = response.chart_spec?.type === 'kpi' ? response.chart_spec.y || response.data.columns[0] : null
+  const kpiValue = kpiField ? response.data.rows[0]?.[kpiField] : undefined
+  return <div aria-label="AI response"><div className="flex items-center justify-between gap-3"><div className="text-xs font-extrabold text-cloudera-navy">Executive Summary</div><span className="rounded-full bg-violet-50 px-2.5 py-1 text-[10px] font-bold text-cloudera-violet">{response.status}</span></div><p className="mt-2 text-sm leading-6 text-slate-700">{response.answer.executive_summary}</p>{response.answer.insights.length > 0 && <div className="mt-4"><div className="text-xs font-extrabold text-cloudera-navy">Insights</div><ul className="mt-2 list-disc space-y-1 pl-5 text-sm text-slate-700">{response.answer.insights.map(item => <li key={item}>{item}</li>)}</ul></div>}{response.chart_spec?.type === 'kpi' && <div className="mt-4 max-w-xs"><KpiCard label={response.chart_spec.title} value={kpiValue} format="" icon={BarChart3} /></div>}<AnswerChart chart={response.chart_spec} rows={response.data.rows} />{response.data.rows.length > 0 && <DataTable columns={response.data.columns} rows={response.data.rows} />}{response.answer.caveats.length > 0 && <div className="mt-4 rounded-xl bg-slate-50 p-3 text-xs text-slate-500">{response.answer.caveats.join(' ')}</div>}<div className="mt-4 text-[10px] text-slate-400">{response.provider} · {response.model} · {response.strategy} · {response.timings.total_ms.toFixed(0)} ms</div></div>
+}

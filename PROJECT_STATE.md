@@ -1,9 +1,69 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 30 Sep 2026 — DWH/Impala migrated to a new Cloudera Private Cloud on-prem cluster (`IMID.LOCAL`); backend Impala client now supports Kerberos (GSSAPI); Agent Studio migration to the new environment is **blocked** on a sandbox-level infra issue (not a code issue — see "Known blocker" below); a 46-question UAT set exists but has never been executed end-to-end. **Next major initiative flagged by the user**: a v2 rewrite of backend + frontend is planned, to be built with ChatGPT rather than Claude — this file is written to carry full context across that handoff.
+**Updated**: 30 Sep 2026 — TEMPO Scan Commercial Intelligence V2 has been implemented as two independent CAI Applications (`backend-v2` and `frontend-v2`) while preserving V1. The new backend provides a governed-first LangGraph workflow, pluggable Qwen/Gemini/OpenAI providers, Ossie semantic resolution, guarded SQL fallback, Impala execution, SSE streaming, and chat history. The new frontend provides the Ask Data and Settings experience. Gemini and OpenAI adapters have passed live authentication and structured-generation probes; live Impala validation remains environment-specific.
 
-## Current checkpoint: Impala/DWH migration to Private Cloud on-prem + Kerberos support (30 Sep 2026)
+## Current checkpoint: TEMPO Scan Commercial Intelligence V2 implemented (30 Sep 2026)
+
+### Scope delivered
+
+- **Separate applications**: `backend-v2/` (FastAPI) and `frontend-v2/` (Next.js), each with its own CAI launcher, dependencies, environment example, tests, and deployment documentation. V1 remains intact.
+- **Controlled backend workflow**: understand request → retrieve Ossie context → governed or fallback query planning → SQL validation → Impala execution → answer/chart generation.
+- **Governed-first behavior**: Ossie metric and dimension metadata is preferred. Unsupported business questions may use a clearly marked SQL fallback, subject to read-only SQLGlot validation, table allowlisting, row limits, and function allowlisting.
+- **Pluggable LLM providers**: Qwen private/OpenAI-compatible, Google Gemini, and OpenAI. Provider selection is controlled by backend environment variables; API keys remain backend-only.
+- **Frontend experience**: streaming Ask Data chat, progress events, table/chart/KPI rendering, session history, model discovery/selection, settings, and curated random-question discovery.
+- **Question coverage**: 30 curated examples across the governed business domains, including paraphrase handling and explicit expected contracts.
+- **No Agent Studio dependency**: V2 is a conventional frontend/backend application pair and does not depend on the blocked Agent Studio tool sandbox described in the previous checkpoint.
+
+### Provider configuration and validation
+
+Secrets must be supplied as CAI environment variables and must never be committed. The deployment operator must set the model identifier as well as the credential/base URL:
+
+- Gemini: `GEMINI_API_KEY`, `GEMINI_MODEL` (live probe passed with `gemini-3.8-flash`).
+- OpenAI: `OPENAI_API_KEY`, `OPENAI_MODEL` (live probe passed with `gpt-5.6-sol`). The adapter uses `max_completion_tokens` and does not send an unsupported fixed temperature to this model family.
+- Private Qwen: `QWEN_BASE_URL`, `QWEN_MODEL`, and `QWEN_API_KEY` when the endpoint requires a token. This provider was covered by automated adapter tests but was not live-tested in this checkpoint.
+
+Both configured public-provider keys passed their respective `/models` authentication checks and an end-to-end structured-generation adapter probe. No credential values are recorded in this file or the repository.
+
+### Impala authentication profiles
+
+V2's Impala driver is environment-driven and passes through authentication, TLS, HTTP transport, HTTP path, user/password, and Kerberos service settings. It supports both deployment families currently in scope:
+
+- **Legacy environment / LDAP**: typically LDAP auth, port 443, TLS enabled, HTTP transport enabled, HTTP path `cliservice`, and CAI-injected username/password.
+- **New Private Cloud / Kerberos**: GSSAPI auth, port 21050, TLS enabled, binary transport, and Kerberos service name `impala`; username/password are not required by the readiness rule.
+
+The committed `.env.example` is intentionally secret-free and currently emphasizes the GSSAPI profile. Before deploying to the legacy environment, operators must override the full LDAP setting group. Separate named LDAP/GSSAPI template files and stricter profile validation were discussed but are **not part of this checkpoint**. Live connectivity must be tested from the actual CAI network/runtime because DNS, certificates, Kerberos tickets/keytabs, and LDAP credentials are environment-owned.
+
+### CAI deployment and initial sizing
+
+Deploy as two CPU-only CAI Applications; the private Qwen/vLLM service, if used, is a separate deployment and sizing concern.
+
+| Application | Recommended start | Minimum PoC | Scale-up starting point |
+|---|---:|---:|---:|
+| Backend V2 | 4 vCPU / 8 GiB RAM | 2 vCPU / 4 GiB | 8 vCPU / 16 GiB |
+| Frontend V2 | 2 vCPU / 4 GiB RAM | 1 vCPU / 2 GiB | 4 vCPU / 8 GiB |
+
+The backend should receive provider secrets, Ossie paths/settings, and the selected Impala auth profile. The frontend should receive only the public backend URL. Both launchers bind to the CAI-provided application port; health/readiness endpoints should be verified before exposing the frontend to users.
+
+### Verification evidence
+
+- Backend V2: **40 tests passed**.
+- Frontend V2: **8 tests passed** and the production Next.js build completed successfully.
+- V1 regression protection: backend **454 tests passed**; frontend **71 tests passed**.
+- CAI launcher/readiness dry-run coverage passed in the backend V2 suite.
+- Live Gemini and OpenAI adapter probes passed with the intended model IDs.
+- Production-source secret audit found no embedded API keys.
+- Live Impala queries were not run from this local workspace; both LDAP and GSSAPI profiles still require in-environment smoke tests.
+
+### Next actions
+
+1. Push the V2 checkpoint commit to the shared remote when ready.
+2. Create backend and frontend CAI Applications using the launchers and environment examples in their directories.
+3. Inject the selected LLM provider configuration and exactly one matching Impala auth profile.
+4. Verify backend `/health` and `/health/ready`, then run a direct Impala smoke query in the target environment.
+5. Point the frontend at the backend URL and execute governed, fallback, history, visualization, and negative-control UAT flows.
+
+## Previous checkpoint: Impala/DWH migration to Private Cloud on-prem + Kerberos support (30 Sep 2026)
 
 Follow-up to the "testing-driven resolver fixes" checkpoint below. 5 commits since then, all pushed to `origin/main`:
 
@@ -72,9 +132,9 @@ Three separate UAT/acceptance documents exist in the repo, and **none of them ha
 
 **In progress at the end of this session**: the user started executing `docs/uat-questions-2026-09-29.md` live against the OLD (AWS) Agent Studio environment, since the new environment's Agent Studio is blocked on the sandbox issue above. Domain-by-domain, starting with Sales/Sell-In (#1-9). No results had been recorded yet when this checkpoint was written — pick this up by asking the user for the next domain's Agent Studio output and filling in the Hasil/Status columns per the file's own FAIL/PARTIAL grading guide (see that file's "Panduan cepat untuk auditor" section — flag Stock SAT-IDM question #4 in particular, a DC+Store summation that Tempo has explicitly confirmed must never happen).
 
-### Planned: v2 backend + frontend rewrite, using ChatGPT instead of Claude
+### Historical plan: v2 backend + frontend rewrite, using ChatGPT instead of Claude
 
-Stated by the user during this session, not yet started. No design decisions have been made yet (framework, whether OSSIE/governance logic carries over as-is, migration path for the 3-agent Agent Studio workflow). Because the next builder may be a different AI tool with no memory of this conversation, keep this file (and the linked docs it points to) as the single source of truth — don't let context that only exists in a chat transcript become the only record of a decision.
+This was the handoff request at the end of the previous checkpoint. It is now implemented by the V2 checkpoint above; the paragraph is retained only to preserve the chronology of the project history.
 
 ## Previous checkpoint: testing-driven resolver fixes + customer/sales_office breakdowns (28 Sep 2026, later same day)
 

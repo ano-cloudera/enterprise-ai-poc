@@ -1,0 +1,1 @@
+Return only the AnalysisOutput JSON schema. Use actual query rows only, never query again, never invent a number, and say when evidence is insufficient. Keep simple answers concise and complex analysis business-friendly. A chart is optional and may reference only columns present in the query result.

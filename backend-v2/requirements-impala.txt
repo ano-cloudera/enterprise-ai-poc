@@ -1,0 +1,4 @@
+impyla==0.22.0
+pure-sasl==0.6.2
+thrift-sasl==0.4.3
+thrift==0.22.0
