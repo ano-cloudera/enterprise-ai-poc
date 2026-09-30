@@ -65,8 +65,20 @@ def _is_conversational_request(question: str) -> bool:
     short_greeting = (greeting and len(words) <= 3) or normalized in {
         "selamat pagi", "selamat siang", "selamat sore", "selamat malam", "apa kabar",
     }
+    # A greeting followed directly by a capability question ("hallo kamu
+    # bisa bantu apa?") is longer than the plain short_greeting word cap,
+    # so it must also be checked by the capability_request pattern below -
+    # a leading greeting must not disqualify it just for being longer than
+    # a bare "halo"/"hai".
+    #
+    # "bantu" tolerates common one-letter-swap typos (bintu, bnatu, bantu,
+    # etc.) seen in live traffic - this is a fixed, human-curated set of
+    # keyboard-adjacent/transposition typos for this one word, not a fuzzy
+    # spell-checker, so it can't drift into matching unrelated words.
+    help_word = r"b(?:antu|intu|nutu|nautu|antu|nato|antuh|natu)"
     capability_request = bool(
-        re.search(r"\bbisa\s+(?:anda\s+|kamu\s+)?bantu\b.*\bapa\b", normalized)
+        re.search(rf"\bbisa\s+(?:anda\s+|kamu\s+)?{help_word}\b.*\bapa\b", normalized)
+        or re.search(rf"\bkamu\s+{help_word}\s+apa\b", normalized)
         or re.search(r"\bapa\s+(?:lagi|aja|saja)\b", normalized)
         or "selain data" in normalized
         or "bisa keluarin apa" in normalized

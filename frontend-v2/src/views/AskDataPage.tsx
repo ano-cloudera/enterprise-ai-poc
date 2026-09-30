@@ -104,7 +104,7 @@ function StructuredAnswer({ response }: { response: ChatResponse }) {
   return <div aria-label="AI response" className="space-y-5 text-[15px] leading-7">
     <div>
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wide text-cloudera-navy"><ScanMark size={18} rounded="lg" />{titles[response.status]}</div>
+        <div className="text-xs font-extrabold uppercase tracking-wide text-cloudera-navy">{titles[response.status]}</div>
         <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${statusStyles[response.status]}`}>{response.status}</span>
       </div>
       <p className="mt-3 text-base font-semibold leading-7 text-slate-900">{response.answer.direct_answer}</p>

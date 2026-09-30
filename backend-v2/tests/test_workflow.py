@@ -224,6 +224,8 @@ async def test_greeting_is_written_by_selected_llm_without_querying_impala() -> 
     "selamat pagi",
     "kamu bisa bantu apa lagi selain data sales?",
     "mau tau tentang data stok dong bisa keluarin apa aja?",
+    "hallo kamu bintu apa ?",
+    "kamu bintu apa ?",
 ])
 async def test_capability_conversation_is_guided_by_selected_llm_without_sql(question: str) -> None:
     provider = FakeProvider([analysis() | {
