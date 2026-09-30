@@ -1,7 +1,7 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 30 Sep 2026 (latest) — V2 conversational follow-ups, governed product ranking, compact model context, provider diagnostics, and AI-response presentation were repaired after CAI UAT exposed null product values and a Qwen HTTP 400 during result analysis.
+**Updated**: 30 Sep 2026 (latest) — V2 follow-up clarification now preserves the requested product grain, result analysis is adaptively concise, and answer/chart typography is refined for CAI UAT.
 
 ## Current checkpoint: V2 CAI UAT fixes — conversational context and compact model payloads (30 Sep 2026)
 
@@ -22,10 +22,17 @@ Follow-up CAI conversational UAT hardening:
 - Guidance payloads are built from the Ossie metric catalog. Stock exploration includes the available warehouse, partner-DC, and retail-store metrics plus governed dimensions/examples; “selain sales” is explicitly represented as an excluded topic.
 - Lightweight history resolution now understands short choices from any clarification fields, not only Sell-In/Sell-Out. `stok retail` is also a governed discriminator/synonym for `sat_idm_store_stock_quantity`, preventing a repeated stock-scope clarification.
 
+Latest follow-up and presentation refinement:
+
+- Sell-In/Sell-Out clarification replies are canonicalized before being joined to the previous question. Both `sell in` and `penjualan Tempo ke customer` now preserve the original “top 5 produk” intent and resolve to `material_sell_in_value` grouped by material, instead of falling back to a company total or adding customer grain.
+- The result-analysis prompt is intentionally flexible: simple factual questions stay direct, while ranking or richer analysis leads with the useful conclusion and uses the other answer sections, table, or chart only when they improve readability. It does not enforce a rigid response length or structure.
+- AI answers, capability guidance, caveats, and result tables use larger typography and a wider response canvas.
+- Bar-chart rankings whose series value is unique on every row are rendered as one clean ranking series with composite category labels instead of a noisy one-customer-per-series legend. Charts also have taller plotting space, bounded bar width, and larger axis/legend labels.
+
 Verification at this checkpoint:
 
-- Backend V2: **64 passed** (2 dependency warnings only).
-- Frontend V2: **9 passed**.
+- Backend V2: **68 passed** (2 dependency warnings only).
+- Frontend V2: **11 passed**.
 - Frontend V2 production build: **PASS** on Next.js 15.5.25.
 - Local semantic probe confirmed `material_sell_in_value` and the required non-null coverage filter for the reported top-five question.
 - Local runtime has no model credentials and no live Impala connection, so the final Qwen/Gemini/OpenAI and data-value smoke tests remain deployment-environment steps.

@@ -54,7 +54,7 @@ export function AskDataPage() {
     <section className="card flex min-h-0 flex-col overflow-hidden"><div className="flex items-center justify-between border-b border-slate-200 px-5 py-4"><div className="flex items-center gap-2"><ScanMark size={32} /><div><div className="text-sm font-extrabold text-cloudera-navy">SCAN V2</div><div className="text-[11px] text-emerald-600">● Governed-first Ask Data</div></div></div><div className="chip"><Database size={13} />Ossie · Impala</div></div>
       <div role="log" aria-label="Conversation" className={`min-h-0 flex-1 overflow-y-auto p-5 ${messages.length ? 'space-y-5' : 'flex'}`}>
         {!messages.length && <div className="m-auto max-w-2xl text-center"><ScanMark size={56} className="mx-auto" rounded="2xl" /><h1 className="mt-5 text-2xl font-black text-cloudera-navy">Ask your TEMPO commercial data</h1><p className="mt-2 text-sm leading-6 text-slate-500">Get a grounded answer, governed data, and a relevant visualization without Agent Studio orchestration.</p><button aria-label="Random Question" className="btn-secondary mt-6" onClick={randomQuestion}><Dice5 size={16} />Random Question</button></div>}
-        {messages.map((message, index) => message.role === 'user' ? <div key={index} className="ml-auto flex max-w-[80%] justify-end gap-2"><div className="rounded-2xl rounded-tr-md bg-cloudera-navy px-4 py-3 text-sm text-white">{message.content}</div><UserRound size={28} className="rounded-full bg-slate-200 p-1.5" /></div> : <div key={index} className="flex gap-3"><ScanMark size={36} /><div className="min-w-0 max-w-[800px] flex-1 rounded-2xl border border-slate-200 bg-white p-5">{message.response ? <StructuredAnswer response={message.response} /> : message.content}</div></div>)}
+        {messages.map((message, index) => message.role === 'user' ? <div key={index} className="ml-auto flex max-w-[80%] justify-end gap-2"><div className="rounded-2xl rounded-tr-md bg-cloudera-navy px-4 py-3 text-base leading-6 text-white">{message.content}</div><UserRound size={28} className="rounded-full bg-slate-200 p-1.5" /></div> : <div key={index} className="flex gap-3"><ScanMark size={36} /><div className="min-w-0 max-w-[1000px] flex-1 rounded-2xl border border-slate-200 bg-white p-6">{message.response ? <StructuredAnswer response={message.response} /> : message.content}</div></div>)}
         {loading && <div className="flex items-center gap-3"><ScanMark size={36} /><div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500"><span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-cloudera-orange" />{progress || 'Understanding request...'}</div></div>}
         {error && <div className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}<div ref={end} />
       </div>
@@ -87,25 +87,25 @@ function StructuredAnswer({ response }: { response: ChatResponse }) {
         <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wide text-cloudera-navy"><Sparkles size={14} />{titles[response.status]}</div>
         <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${statusStyles[response.status]}`}>{response.status}</span>
       </div>
-      <p className="mt-3 text-base font-semibold leading-7 text-slate-900">{response.answer.direct_answer}</p>
-      {response.answer.executive_summary !== response.answer.direct_answer && <p className="mt-2 text-sm leading-6 text-slate-600">{response.answer.executive_summary}</p>}
+      <p className="mt-3 text-lg font-semibold leading-8 text-slate-900">{response.answer.direct_answer}</p>
+      {response.answer.executive_summary !== response.answer.direct_answer && <p className="mt-2 text-base leading-7 text-slate-600">{response.answer.executive_summary}</p>}
     </div>
 
     {response.answer.insights.length > 0 && <section className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
       <div className="flex items-center gap-2 text-xs font-extrabold text-cloudera-navy"><Lightbulb size={14} />Insights</div>
-      <ul className="mt-2 space-y-2 text-sm leading-6 text-slate-700">{response.answer.insights.map(item => <li key={item} className="flex gap-2"><span className="text-cloudera-orange">•</span><span>{item}</span></li>)}</ul>
+      <ul className="mt-2 space-y-2 text-[15px] leading-7 text-slate-700">{response.answer.insights.map(item => <li key={item} className="flex gap-2"><span className="text-cloudera-orange">•</span><span>{item}</span></li>)}</ul>
     </section>}
 
     {response.answer.business_implications.length > 0 && <section>
       <div className="text-xs font-extrabold text-cloudera-navy">Business implications</div>
-      <div className="mt-2 grid gap-2 sm:grid-cols-2">{response.answer.business_implications.map(item => <div key={item} className="rounded-xl border border-violet-100 bg-violet-50/60 p-3 text-sm leading-5 text-slate-700">{item}</div>)}</div>
+      <div className="mt-2 grid gap-2 sm:grid-cols-2">{response.answer.business_implications.map(item => <div key={item} className="rounded-xl border border-violet-100 bg-violet-50/60 p-3 text-[15px] leading-6 text-slate-700">{item}</div>)}</div>
     </section>}
 
     {response.chart_spec?.type === 'kpi' && <div className="max-w-xs"><KpiCard label={response.chart_spec.title} value={kpiValue} format="" icon={BarChart3} /></div>}
     <AnswerChart chart={response.chart_spec} rows={response.data.rows} />
     {response.data.rows.length > 0 && <div className="overflow-hidden rounded-xl border border-slate-200"><DataTable columns={response.data.columns} rows={response.data.rows} /></div>}
 
-    {(response.answer.caveats.length > 0 || response.answer.data_reference) && <div className="rounded-xl bg-slate-50 p-3 text-xs leading-5 text-slate-500">
+    {(response.answer.caveats.length > 0 || response.answer.data_reference) && <div className="rounded-xl bg-slate-50 p-3 text-sm leading-6 text-slate-500">
       {response.answer.caveats.length > 0 && <div className="flex gap-2"><Info size={14} className="mt-0.5 shrink-0" /><span>{response.answer.caveats.join(' ')}</span></div>}
       {response.answer.data_reference && <div className="mt-1 break-all"><span className="font-semibold text-slate-600">Data reference:</span> {response.answer.data_reference}</div>}
     </div>}

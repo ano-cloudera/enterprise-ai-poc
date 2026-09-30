@@ -20,6 +20,16 @@ from app.sql.validator import validate_sql
 logger = logging.getLogger(__name__)
 
 
+def _canonical_clarification_choice(question: str, clarification: str) -> str | None:
+    normalized = re.sub(r"[^a-z0-9]+", " ", question.casefold()).strip()
+    offered = clarification.casefold().replace("–", "-")
+    if "sell-in" in offered and normalized in {"sell in", "penjualan tempo ke customer", "penjualan tempo ke pelanggan"}:
+        return "sell-in"
+    if "sell-out" in offered and normalized in {"sell out", "penjualan partner ke konsumen", "penjualan partner ke customer"}:
+        return "sell-out"
+    return None
+
+
 def contextualize_question(question: str, history: list[dict]) -> str:
     """Resolve a short clarification choice without replaying bulky query rows."""
     normalized = " ".join(question.casefold().replace("–", "-").split())
@@ -34,13 +44,15 @@ def contextualize_question(question: str, history: list[dict]) -> str:
         " ".join(str(item) for item in previous_answer.get("insights") or []),
     ]
     clarification = " ".join(part for part in answer_parts if part).strip()
-    choice_tokens = set(re.findall(r"[a-z0-9]+(?:-[a-z0-9]+)?", normalized))
+    canonical_choice = _canonical_clarification_choice(question, clarification)
+    selected_choice = canonical_choice or question.strip()
+    choice_tokens = set(re.findall(r"[a-z0-9]+(?:-[a-z0-9]+)?", canonical_choice or normalized))
     clarification_tokens = set(re.findall(r"[a-z0-9]+(?:-[a-z0-9]+)?", clarification.casefold()))
     ignored = {"ya", "iya", "betul", "untuk", "data", "yang", "mau", "saya", "the", "a"}
     selected_tokens = {token for token in choice_tokens - ignored if len(token) > 2}
     offers_choice = "?" in clarification or " atau " in f" {clarification.casefold()} "
-    if previous_question and offers_choice and selected_tokens & clarification_tokens:
-        return f"{previous_question}\nKlarifikasi pengguna: {question.strip()}"
+    if previous_question and offers_choice and (canonical_choice or selected_tokens & clarification_tokens):
+        return f"{previous_question}\nKlarifikasi pengguna: {selected_choice}"
     return question
 
 

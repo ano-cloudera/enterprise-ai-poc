@@ -1,6 +1,7 @@
 import pytest
 
 from app.semantic.context import SemanticContextService
+from app.services.chat import contextualize_question
 
 
 def test_context_is_derived_from_the_actual_tempo_ossie_contract() -> None:
@@ -52,6 +53,23 @@ def test_top_products_gross_sales_uses_governed_material_metric() -> None:
     assert "d.has_sell_in = TRUE" in sql
     assert "GROUP BY d.material" in sql
     assert "ORDER BY metric_value DESC" in sql
+    assert "LIMIT 5" in sql
+
+
+@pytest.mark.parametrize("reply", ["sell in", "penjualan tempo ke customer"])
+def test_sell_in_clarification_keeps_top_product_grain(reply: str) -> None:
+    history = [{
+        "question": "Berapa total produk dengan penjualan terbanyak, kasih top 5 saja?",
+        "answer": {"direct_answer": "Pilih Sell-In (penjualan Tempo ke customer) atau Sell-Out?"},
+    }]
+
+    contextualized = contextualize_question(reply, history)
+    context = SemanticContextService()
+    resolution = context.resolve(contextualized)
+    sql = context.compile_governed(resolution["metric"], contextualized, resolution["dimensions"])
+
+    assert resolution["metric"] == "material_sell_in_value"
+    assert resolution["dimensions"] == ["material"]
     assert "LIMIT 5" in sql
 
 

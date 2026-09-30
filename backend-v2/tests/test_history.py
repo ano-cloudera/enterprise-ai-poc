@@ -38,6 +38,40 @@ def test_short_sell_in_follow_up_reuses_the_previous_question() -> None:
     assert "sell-in" in contextualized.casefold()
 
 
+def test_plain_sell_in_choice_preserves_the_original_top_product_request() -> None:
+    history = [
+        {
+            "question": "Berapa total produk dengan penjualan terbanyak, kasih top 5 saja?",
+            "answer": {
+                "direct_answer": "Apakah Anda ingin melihat Sell-In (penjualan Tempo ke customer) atau Sell-Out?",
+            },
+        }
+    ]
+
+    contextualized = contextualize_question("sell in", history)
+
+    assert contextualized == (
+        "Berapa total produk dengan penjualan terbanyak, kasih top 5 saja?\n"
+        "Klarifikasi pengguna: sell-in"
+    )
+
+
+def test_descriptive_sell_in_choice_does_not_add_customer_as_a_dimension() -> None:
+    history = [
+        {
+            "question": "Berapa total produk dengan penjualan terbanyak, kasih top 5 saja?",
+            "answer": {
+                "direct_answer": "Apakah Anda ingin melihat Sell-In (penjualan Tempo ke customer) atau Sell-Out?",
+            },
+        }
+    ]
+
+    contextualized = contextualize_question("penjualan tempo ke customer", history)
+
+    assert contextualized.endswith("Klarifikasi pengguna: sell-in")
+    assert "customer" not in contextualized.casefold()
+
+
 def test_standalone_question_is_not_rewritten_from_history() -> None:
     history = [{"question": "Berapa total penjualan?", "answer": {"direct_answer": "Sell-In atau Sell-Out?"}}]
 
