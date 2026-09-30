@@ -10,9 +10,10 @@ import pytest
 
 from app.core.config import Settings
 from app.core.models import AnalysisOutput, AskDataResponse, QueryData, Timings
+from app.db.base import DataBackendError
 from app.main import create_app
 from app.api import chat as chat_api
-from app.services.chat import ImpalaQueryExecutor
+from app.services.chat import ChatService, ImpalaQueryExecutor
 
 
 class FakeChatService:
@@ -97,3 +98,37 @@ async def test_impala_executor_does_not_block_the_event_loop() -> None:
 
     assert not task.done()
     assert (await task)["rows"] == [{"value": 1}]
+
+
+@pytest.mark.asyncio
+async def test_chat_reports_impala_auth_failure_without_exposing_driver_details() -> None:
+    class FailedWorkflow:
+        async def ainvoke(self, _initial):
+            raise DataBackendError("IMPALA_AUTH_FAILED")
+
+    class EmptyHistory:
+        def load(self, *_args, **_kwargs):
+            return []
+
+    service = object.__new__(ChatService)
+    service.workflow = FailedWorkflow()
+    service.history = EmptyHistory()
+    service.settings = Settings(_env_file=None)
+    request = SimpleNamespace(
+        session_id="session-1",
+        question="Berapa fill rate?",
+        provider="qwen",
+        model="qwen-model",
+        model_dump=lambda: {
+            "session_id": "session-1",
+            "question": "Berapa fill rate?",
+            "provider": "qwen",
+            "model": "qwen-model",
+        },
+    )
+
+    response = await service.run(request)
+
+    assert response.status == "ERROR"
+    assert response.answer.direct_answer == "Autentikasi ke Impala gagal."
+    assert response.answer.caveats == ["Periksa profil LDAP atau GSSAPI pada environment backend."]

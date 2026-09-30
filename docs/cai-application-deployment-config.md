@@ -117,6 +117,7 @@ safe to commit to git.
 
 - With `CHAT_BACKEND=agent_studio`, this Application does not read `backend/app/ossie/registry.py`/`tempo_core.ossie.yaml` itself for Ask AI — it proxies to the Agent Studio workflow, which has its own bundled copy of those files (see the Agent Studio redeploy steps in `PROJECT_STATE.md`). The `PROJECT_ID`/`SEMANTIC_EXECUTION_MODE`/`OSSIE_PROJECT_ID`/`IMPALA_*` variables here still matter for the Dashboard and any direct `/api/semantic/*` calls, which do run in-process.
 - `IMPALA_HOST` in particular must be re-pointed, not copied, when the DWH/data warehouse migrates — this is the whole reason this file exists per this request.
+- The table above documents the **legacy LDAP/HTTP** application profile. Do not copy those Impala values into Backend V2 on the current Private Cloud cluster. Backend V2 must use the verified Kerberos profile: `IMPALA_PORT=21050`, `IMPALA_AUTH_MECHANISM=GSSAPI`, `IMPALA_USE_SSL=true`, `IMPALA_USE_HTTP_TRANSPORT=false`, empty `IMPALA_HTTP_PATH`, and `IMPALA_KERBEROS_SERVICE_NAME=impala`. `IMPALA_USER`/`IMPALA_PASSWORD` are not used for GSSAPI; the CAI runtime must have a valid Kerberos identity. An HTTP `401 Unauthorized` means the running application is still using an invalid/mismatched auth profile or identity.
 
 ---
 

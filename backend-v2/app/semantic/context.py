@@ -142,6 +142,67 @@ class SemanticContextService:
                 "dimensions": list(contract.get("dimensions", [])),
                 "dimension_mismatch": [],
             }
+
+        lowered = question.casefold()
+        words = set(re.findall(r"[a-z0-9]+", lowered))
+
+        def resolved(metric: str, dimensions: list[str]) -> dict[str, Any]:
+            return {
+                "status": "resolved",
+                "metric": metric,
+                "matched_alias": "governed_intent_route",
+                "definition": self.metric_definition(metric),
+                "dimensions": dimensions,
+                "dimension_mismatch": [],
+            }
+
+        # Shelf-survey OOS language contains generic words such as "stok",
+        # "toko", and "kosong". Route this governed audit intent before the
+        # broader warehouse/DC/store stock-scope ambiguity can capture it.
+        mentions_oos = "oos" in words or "out of stock" in lowered or (
+            "kosong" in words and bool(words & {"stok", "rak", "survei", "disurvei"})
+        )
+        if mentions_oos and bool(words & {"sales", "penjualan"}) and bool(
+            words & {"pengaruh", "dampak", "penurunan", "turun", "menurunkan"}
+        ):
+            return {
+                "status": "unsupported",
+                "reason": "oos_sales_causality_unavailable",
+                "question": (
+                    "Data SAT OOS dapat menunjukkan tingkat stok kosong, tetapi "
+                    "belum mendukung klaim pengaruh atau besarnya penurunan sales."
+                ),
+            }
+        if mentions_oos and any(
+            phrase in lowered
+            for phrase in ("store stock", "stok store", "stok toko", "dc stock", "stok dc", "stok tempo")
+        ):
+            return {
+                "status": "fallback",
+                "reason": "multi_concept_metric_mismatch",
+                "requested_concepts": ["oos", "stock"],
+                "missing_concepts": ["published_cross_domain_metric"],
+            }
+        if mentions_oos:
+            dimensions: list[str] = []
+            if "material" in words:
+                dimensions = ["material_code"]
+            elif words & {"customer", "pelanggan"}:
+                dimensions = ["cust_id", "cust_code"]
+            return resolved("sat_oos_rate", dimensions)
+
+        # These high-frequency Service Level intents have exact published
+        # metrics. Resolve their requested grain deterministically instead of
+        # leaving synonymous fill-rate metrics to alias-score tie breaking.
+        if "fill" in words and "rate" in words:
+            if "material" in words:
+                return resolved("material_fill_rate", ["material"])
+            if "sales" in words and "office" in words:
+                return resolved("sales_office_service_fill_rate", ["sales_off"])
+            return resolved("company_fill_rate", [])
+        if {"po", "do"} <= words and bool(words & {"gap", "selisih"}):
+            return resolved("service_unfulfilled_quantity", [])
+
         resolution = self.registry.resolve_metric(question)
         if resolution.get("status") == "resolved":
             mismatch = list(resolution.get("dimension_mismatch") or [])
@@ -224,6 +285,7 @@ class SemanticContextService:
         asks_current_snapshot = any(
             term in lowered for term in ("sekarang", "saat ini", "bulan ini", "terkini", "latest", "current")
         )
+        asks_latest_available_month = asks_current_snapshot or "bulan lalu" in lowered or "last month" in lowered
         if "calmonth" in fields:
             predicates.append(
                 "d.calmonth = 202412"
@@ -232,6 +294,8 @@ class SemanticContextService:
             )
         if {"thn", "bln"} <= set(fields) and asks_current_snapshot:
             predicates.extend(("d.thn = 2024", "d.bln = 'DEC'"))
+        if "calmonth_date" in fields and asks_latest_available_month:
+            predicates.append("d.calmonth_date = CAST('2024-12-01' AS DATE)")
         sql = ["SELECT", "  " + ",\n  ".join(projections), f"FROM {dataset['source']} d"]
         if predicates:
             sql.append("WHERE " + "\n  AND ".join(predicates))
@@ -239,7 +303,10 @@ class SemanticContextService:
             sql.append("GROUP BY " + ", ".join(f"d.{name}" for name in dimensions))
         ascending = any(
             term in lowered
-            for term in ("terendah", "terkecil", "paling kecil", "paling rendah", "paling sedikit", "lowest", "bottom")
+            for term in (
+                "terendah", "terkecil", "paling kecil", "paling rendah",
+                "paling sedikit", "paling jelek", "terburuk", "lowest", "bottom",
+            )
         )
         sql.append(f"ORDER BY metric_value {'ASC' if ascending else 'DESC'}")
         top = re.search(r"(?:top|teratas)\s+(\d+)", lowered)

@@ -8,7 +8,7 @@ import uuid
 
 from app.core.config import Settings
 from app.core.models import AnalysisOutput, AskDataRequest, AskDataResponse, ChartSpec, QueryData, Timings
-from app.db.base import BackendExecutionContext
+from app.db.base import BackendExecutionContext, DataBackendError
 from app.db.impala_backend import ImpalaBackend
 from app.graph.workflow import WorkflowDependencies, build_workflow
 from app.llm.registry import ProviderRegistry
@@ -135,6 +135,46 @@ class ChatService:
                 request_id, request.session_id, request.provider, request.model, response.strategy, response.status, response.retry_count, response.timings.model_dump_json(),
             )
             return response
+        except DataBackendError as exc:
+            # The adapter already emitted safe telemetry. Do not attach the
+            # chained driver traceback here because HTTP responses can contain
+            # infrastructure details that do not belong in application logs.
+            logger.warning(
+                "ask_data_backend_failed request_id=%s session_id=%s provider=%s model=%s safe_error_code=%s",
+                request_id, request.session_id, request.provider, request.model, exc.code,
+            )
+            elapsed = round((perf_counter() - started) * 1000, 3)
+            auth_failed = exc.code == "IMPALA_AUTH_FAILED"
+            return AskDataResponse(
+                request_id=request_id,
+                session_id=request.session_id,
+                status="ERROR",
+                provider=request.provider,
+                model=request.model,
+                strategy="unsupported",
+                answer=AnalysisOutput(
+                    direct_answer=(
+                        "Autentikasi ke Impala gagal."
+                        if auth_failed
+                        else "Query data tidak dapat diselesaikan."
+                    ),
+                    executive_summary=(
+                        "Backend tidak dapat membuka sesi Impala. Hubungi operator aplikasi."
+                        if auth_failed
+                        else "Backend data mengembalikan kegagalan yang aman. Gunakan request ID untuk penelusuran operator."
+                    ),
+                    insights=[],
+                    business_implications=[],
+                    caveats=[
+                        "Periksa profil LDAP atau GSSAPI pada environment backend."
+                        if auth_failed
+                        else "Internal driver details are not exposed."
+                    ],
+                    data_reference="No result available.",
+                    chart_spec=None,
+                ),
+                data=QueryData(), chart_spec=None, timings=Timings(total_ms=elapsed),
+            )
         except Exception:
             logger.exception("ask_data_failed request_id=%s session_id=%s provider=%s model=%s", request_id, request.session_id, request.provider, request.model)
             elapsed = round((perf_counter() - started) * 1000, 3)

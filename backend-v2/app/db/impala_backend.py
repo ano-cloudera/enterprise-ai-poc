@@ -17,7 +17,7 @@ def is_impala_configured(settings: Settings) -> bool:
     if mechanism == "GSSAPI":
         return bool(settings.impala_kerberos_service_name)
     if mechanism in {"PLAIN", "LDAP"}:
-        return bool(settings.impala_user)
+        return bool(settings.impala_user and settings.impala_password)
     return True
 
 
@@ -58,6 +58,18 @@ def _is_transient_connection_error(exc: Exception) -> bool:
             "timed out",
             "timeout",
         )
+    )
+
+
+def _is_authentication_error(exc: Exception) -> bool:
+    message = str(exc).casefold()
+    code = getattr(exc, "code", None)
+    response = getattr(exc, "response", None)
+    if response is None:
+        response = getattr(exc, "http_response", None)
+    status = getattr(response, "status_code", None)
+    return code in (401, 403) or status in (401, 403) or any(
+        term in message for term in ("401", "403", "unauthorized", "forbidden", "authentication")
     )
 
 
@@ -110,10 +122,12 @@ class ImpalaBackend:
                 break
             except Exception as exc:
                 retrying = attempt == 0 and _is_transient_connection_error(exc)
+                safe_error_code = "IMPALA_AUTH_FAILED" if _is_authentication_error(exc) else "IMPALA_QUERY_FAILED"
                 logger.warning(
-                    "data_query backend=impala success=false driver_error_type=%s "
+                    "data_query backend=impala success=false driver_error_type=%s safe_error_code=%s "
                     "attempt=%d retrying=%s trace_id=%s",
                     type(exc).__name__,
+                    safe_error_code,
                     attempt + 1,
                     str(retrying).lower(),
                     context.trace_id,
@@ -125,9 +139,9 @@ class ImpalaBackend:
                     query_latency_ms=(perf_counter() - started) * 1000,
                     row_count=0,
                     success=False,
-                    safe_error_code="IMPALA_QUERY_FAILED",
+                    safe_error_code=safe_error_code,
                 )
-                raise DataBackendError("IMPALA_QUERY_FAILED", telemetry) from exc
+                raise DataBackendError(safe_error_code, telemetry) from exc
         names = list(records[0]) if records else []
         rows = [[normalize_value(record.get(name)) for name in names] for record in records]
         return BackendQueryResult(

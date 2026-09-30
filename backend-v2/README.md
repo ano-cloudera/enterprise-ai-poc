@@ -35,6 +35,7 @@ Set provider and Impala variables from `.env.example`. The launcher creates `bac
 - Model disabled: inspect `/models`; set its model ID and required credential/base URL, then restart.
 - Qwen returns a structurally different JSON object: the OpenAI-compatible adapter sends the exact Pydantic JSON Schema and performs one schema-correction retry before returning `INVALID_STRUCTURED_OUTPUT`.
 - Pip reports an Impyla/Thrift resolution conflict: sync the latest `requirements-impala.txt`; Impyla 0.22.0 requires the pinned `thrift==0.16.0`.
-- `IMPALA_QUERY_FAILED`: verify Kerberos ticket/service principal, TLS, host/port, and whether HTTP transport/path is required in this environment.
-- SSE appears frozen: confirm the CAI proxy preserves `text/event-stream`; V2 sends `X-Accel-Buffering: no`, no-transform caching, and 15-second heartbeat comments.
+- `IMPALA_AUTH_FAILED`: the coordinator returned 401/403 or another authentication failure. For the current Private Cloud environment use `GSSAPI`, port `21050`, TLS enabled, binary transport (`IMPALA_USE_HTTP_TRANSPORT=false`), and service name `impala`; verify a valid Kerberos ticket/keytab is available to the CAI process. Do not reuse the legacy LDAP/HTTP profile.
+- `IMPALA_QUERY_FAILED`: authentication succeeded far enough to avoid an auth classification, but the connection/query still failed. Verify TLS, host/port, query permissions, and the published Gold view.
+- SSE appears frozen: confirm the CAI proxy preserves `text/event-stream`; V2 sends `X-Accel-Buffering: no`, no-transform caching, and 15-second heartbeat comments. The frontend also aborts after 90 seconds and exposes a **Stop** button while a request is active.
 - Optional provider has no outbound network: leave it configured as unavailable or select Qwen; startup remains healthy.

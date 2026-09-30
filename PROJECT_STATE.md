@@ -1,14 +1,25 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 30 Sep 2026 (latest) — V2 hardens Stock SAT-IDM routing and snapshot/ranking semantics based on live CAI UAT.
+**Updated**: 30 Sep 2026 (latest) — V2 hardens SAT OOS and Service Level routing, Impala authentication diagnostics, and request cancellation based on live CAI UAT.
+
+## Current checkpoint: SAT OOS, Service Level, and request cancellation hardening (30 Sep 2026)
+
+- Natural SAT OOS questions now resolve before generic stock-scope handling. Overall survey OOS, material-level OOS, and customer/store-level OOS route to `sat_oos_rate` with the governed dimensions.
+- Requests asking how much OOS caused sales to decline are rejected as unsupported causal analysis instead of being redirected to a Sell-In/Sell-Out clarification and eventually returning an unrelated sales total.
+- Common Service Level questions now select the published company, material, sales-office, and PO-minus-DO metrics deterministically.
+- Impala HTTP 401/403 failures are classified as `IMPALA_AUTH_FAILED`, are not retried, and return a safe operator-facing message without exposing credentials or driver details. LDAP readiness now requires both username and password; GSSAPI continues to rely on the Kerberos service identity.
+- The frontend streams with an `AbortSignal`, shows a **Stop** control during active requests, clears loading state after cancellation, and automatically aborts requests after 90 seconds.
+- Deployment documentation now clearly separates the legacy LDAP/HTTP profile from the current Private Cloud GSSAPI/TLS/binary profile.
+
+Verification for this checkpoint: backend V2 **96 passed** (2 dependency warnings only), frontend V2 **15 passed**, and the Next.js 15.5.25 production build passed. Live Impala execution still requires correcting the CAI authentication profile and restarting the application before UAT is repeated.
 
 ## Current checkpoint: Stock SAT-IDM UAT hardening (30 Sep 2026)
 
 - Explicit partner-DC wording such as `stok di DC partner` and `DC mana` now resolves directly to `sat_idm_dc_stock_quantity`; the assistant no longer repeats the generic warehouse/DC/store clarification.
 - Retail wording including `stok toko`, `stok retail`, and store variants is recognized as the store-level SAT-IDM scope.
 - Requests to add DC Stock and Store Stock are intercepted before metric selection, including Indonesian `stok toko` phrasing. The response preserves the governed rule that both levels may be shown separately but cannot become one synthetic pipeline total.
-- “Sekarang”, “saat ini”, and “bulan ini” compile against the latest governed snapshot (December 2024): `calmonth = 202412`, or `thn = 2024 AND bln = 12` for SAT-IDM, rather than summing three monthly inventory snapshots.
+- “Sekarang”, “saat ini”, and “bulan ini” compile against the latest governed snapshot (December 2024): `calmonth = 202412`, or `thn = 2024 AND bln = 'DEC'` for SAT-IDM, rather than summing three monthly inventory snapshots.
 - Low-stock rankings recognize natural phrases such as `paling kecil`, `paling rendah`, and `paling sedikit` and order ascending.
 - Every stock ranking defaults to ten rows and explicit requests above ten are capped at ten. This replaces the 50-row stock outputs that made charts and tables unreadable during UAT.
 - The UAT document now records the observed Stock SAT-IDM failures, including the critical live response that incorrectly added DC and store stock.

@@ -1,7 +1,7 @@
 'use client'
 
 import { FormEvent, KeyboardEvent, MouseEvent, useEffect, useRef, useState } from 'react'
-import { ArrowUp, BarChart3, Database, Dice5, Info, Lightbulb, MessageSquareText, PanelLeftClose, PanelLeftOpen, Plus, Sparkles, Trash2, UserRound } from 'lucide-react'
+import { ArrowUp, BarChart3, Database, Dice5, Info, Lightbulb, MessageSquareText, PanelLeftClose, PanelLeftOpen, Plus, Sparkles, Square, Trash2, UserRound } from 'lucide-react'
 import { AnswerChart } from '../components/AnswerChart'
 import { DataTable } from '../components/DataTable'
 import { KpiCard } from '../components/KpiCard'
@@ -23,23 +23,40 @@ export function AskDataPage() {
   const [progress, setProgress] = useState<string | null>(null)
   const [error, setError] = useState('')
   const end = useRef<HTMLDivElement>(null)
+  const activeRequest = useRef<AbortController | null>(null)
 
   useEffect(() => setSessions(loadSessions()), [])
   useEffect(() => { if (messages.length) { saveSession({ id: sessionId, title: sessionTitle(messages), updatedAt: Date.now(), messages, selection: selection || undefined }); setSessions(loadSessions()) } }, [messages, selection, sessionId])
   useEffect(() => { end.current?.scrollIntoView?.({ behavior: 'smooth' }) }, [messages, progress])
+  useEffect(() => () => activeRequest.current?.abort(), [])
 
   async function submit(question = input) {
     const value = question.trim()
     if (!value || loading || !selection) return
     setMessages(current => [...current, { role: 'user', content: value }]); setInput(''); setError(''); setLoading(true)
+    const controller = new AbortController()
+    activeRequest.current = controller
+    let timedOut = false
+    const timeout = window.setTimeout(() => { timedOut = true; controller.abort() }, 90_000)
     try {
-      for await (const event of api.chatStream(value, sessionId, selection)) {
+      for await (const event of api.chatStream(value, sessionId, selection, controller.signal)) {
         if (event.type === 'progress') setProgress(event.label)
         else setMessages(current => [...current, { role: 'assistant', content: event.response.answer.executive_summary, response: event.response }])
       }
-    } catch { setError('Unable to complete the analysis right now. Please try again.') }
-    finally { setLoading(false); setProgress(null) }
+    } catch (caught) {
+      if (caught instanceof DOMException && caught.name === 'AbortError') {
+        setError(timedOut ? 'Request timed out. Please try again.' : 'Request stopped.')
+      } else {
+        setError('Unable to complete the analysis right now. Please try again.')
+      }
+    } finally {
+      window.clearTimeout(timeout)
+      if (activeRequest.current === controller) activeRequest.current = null
+      setLoading(false); setProgress(null)
+    }
   }
+
+  function stopRequest() { activeRequest.current?.abort() }
 
   async function randomQuestion() {
     setError('')
@@ -57,7 +74,7 @@ export function AskDataPage() {
       <div role="log" aria-label="Conversation" className={`min-h-0 flex-1 overflow-y-auto p-5 ${messages.length ? 'space-y-5' : 'flex'}`}>
         {!messages.length && <div className="m-auto max-w-2xl text-center"><ScanMark size={56} className="mx-auto" rounded="2xl" /><h1 className="mt-5 text-2xl font-black text-cloudera-navy">Ask your TEMPO commercial data</h1><p className="mt-2 text-sm leading-6 text-slate-500">Get a grounded answer, governed data, and a relevant visualization without Agent Studio orchestration.</p><button aria-label="Random Question" className="btn-secondary mt-6" onClick={randomQuestion}><Dice5 size={16} />Random Question</button></div>}
         {messages.map((message, index) => message.role === 'user' ? <div key={index} className="ml-auto flex max-w-[80%] justify-end gap-2"><div className="rounded-2xl rounded-tr-md bg-cloudera-navy px-4 py-3 text-base leading-6 text-white">{message.content}</div><UserRound size={28} className="rounded-full bg-slate-200 p-1.5" /></div> : <div key={index} className="flex gap-3"><ScanMark size={36} /><div className="min-w-0 max-w-[1000px] flex-1 rounded-2xl border border-slate-200 bg-white p-6">{message.response ? <StructuredAnswer response={message.response} /> : message.content}</div></div>)}
-        {loading && <div className="flex items-center gap-3"><ScanMark size={36} /><div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500"><span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-cloudera-orange" />{progress || 'Understanding request...'}</div></div>}
+        {loading && <div className="flex items-center gap-3"><ScanMark size={36} /><div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500"><span><span className="mr-2 inline-block h-2 w-2 animate-pulse rounded-full bg-cloudera-orange" />{progress || 'Understanding request...'}</span><button type="button" aria-label="Stop request" onClick={stopRequest} className="inline-flex items-center gap-1 rounded-lg border border-slate-200 px-2 py-1 font-semibold text-slate-600 hover:bg-slate-50"><Square size={11} fill="currentColor" />Stop</button></div></div>}
         {error && <div className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}<div ref={end} />
       </div>
       <form onSubmit={(event: FormEvent) => { event.preventDefault(); submit() }} className="border-t border-slate-200 p-4"><div className="flex items-end gap-2 rounded-2xl border border-slate-200 p-2"><textarea rows={2} value={input} onChange={event => setInput(event.target.value)} onKeyDown={keyDown} placeholder="Ask a commercial question..." className="min-h-[48px] flex-1 resize-none bg-transparent px-2 py-2 text-sm outline-none" /><button type="submit" aria-label="Send question" disabled={!selection || !input.trim() || loading} className="grid h-10 w-10 place-items-center rounded-xl bg-cloudera-orange text-white disabled:opacity-40"><ArrowUp size={18} /></button></div>{(modelsLoading || modelError || !selection) && <div className="mt-2 text-xs text-amber-700">{modelsLoading ? 'Discovering configured models…' : modelError || 'No configured model is available. Open Settings or contact the operator.'}</div>}</form>

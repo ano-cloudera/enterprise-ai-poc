@@ -1,5 +1,5 @@
 import React from 'react'
-import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { api } from '../lib/api'
@@ -11,7 +11,7 @@ vi.mock('../lib/api', () => ({ api: { models: vi.fn(), randomQueries: vi.fn(), c
 vi.mock('next/navigation', () => ({ usePathname: () => '/' }))
 
 describe('V2 Ask Data page', () => {
-  afterEach(cleanup)
+  afterEach(() => { vi.useRealTimers(); cleanup() })
 
   it('loads a real random question into the composer and streams progress', async () => {
     vi.mocked(api.models).mockResolvedValue({ models: [{ provider: 'qwen', id: 'qwen-model', label: 'Qwen Private', available: true, reason: null }] })
@@ -33,7 +33,12 @@ describe('V2 Ask Data page', () => {
 
     await screen.findByText('Total Rp10')
     screen.getByText('Total Sales')
-    await waitFor(() => expect(api.chatStream).toHaveBeenCalledWith('Berapa total Gross Billing Value?', expect.any(String), { provider: 'qwen', model: 'qwen-model' }))
+    await waitFor(() => expect(api.chatStream).toHaveBeenCalledWith(
+      'Berapa total Gross Billing Value?',
+      expect.any(String),
+      { provider: 'qwen', model: 'qwen-model' },
+      expect.any(AbortSignal),
+    ))
   })
 
   it('presents the direct answer, implications, and data reference with clear hierarchy', async () => {
@@ -78,5 +83,39 @@ describe('V2 Ask Data page', () => {
     expect(history.getAttribute('aria-hidden')).toBe('false')
     expect(navigation.hasAttribute('inert')).toBe(false)
     expect(history.hasAttribute('inert')).toBe(false)
+  })
+
+  it('lets the user stop a request that is still loading', async () => {
+    vi.mocked(api.models).mockResolvedValue({ models: [{ provider: 'qwen', id: 'qwen-model', label: 'Qwen Private', available: true, reason: null }] })
+    vi.mocked(api.chatStream).mockImplementation((async function* (_question, _session, _selection, signal?: AbortSignal) {
+      yield { type: 'progress', stage: 'querying_data', label: 'Querying TEMPO data' }
+      await new Promise<void>((_resolve, reject) => signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true }))
+    }) as never)
+    render(<ModelSelectionProvider><AskDataPage /></ModelSelectionProvider>)
+
+    fireEvent.change(screen.getByPlaceholderText('Ask a commercial question...'), { target: { value: 'Berapa fill rate?' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Send question' }))
+    fireEvent.click(await screen.findByRole('button', { name: 'Stop request' }))
+
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Stop request' })).toBeNull())
+    expect(screen.getByText('Request stopped.')).toBeTruthy()
+  })
+
+  it('times out a request and clears its loading state after 90 seconds', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true })
+    vi.mocked(api.models).mockResolvedValue({ models: [{ provider: 'qwen', id: 'qwen-model', label: 'Qwen Private', available: true, reason: null }] })
+    vi.mocked(api.chatStream).mockImplementation((async function* (_question, _session, _selection, signal?: AbortSignal) {
+      yield { type: 'progress', stage: 'querying_data', label: 'Querying TEMPO data' }
+      await new Promise<void>((_resolve, reject) => signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true }))
+    }) as never)
+    render(<ModelSelectionProvider><AskDataPage /></ModelSelectionProvider>)
+
+    fireEvent.change(screen.getByPlaceholderText('Ask a commercial question...'), { target: { value: 'Berapa fill rate?' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Send question' }))
+    await screen.findByRole('button', { name: 'Stop request' })
+    await act(async () => { await vi.advanceTimersByTimeAsync(90_000) })
+
+    expect(screen.queryByRole('button', { name: 'Stop request' })).toBeNull()
+    expect(screen.getByText('Request timed out. Please try again.')).toBeTruthy()
   })
 })

@@ -208,3 +208,51 @@ def test_multi_concept_paraphrase_cannot_use_a_partial_metric(question: str) -> 
         assert any(token in resolution["metric"] for token in ("_to_", "_vs_"))
     else:
         assert resolution["status"] in {"fallback", "needs_clarification"}
+
+
+@pytest.mark.parametrize(("question", "dimensions"), [
+    ("Berapa persen toko yang kosong stoknya pas disurvei bulan lalu?", []),
+    ("Material apa yang paling sering kosong di rak?", ["material_code"]),
+    ("Customer/toko mana yang paling sering ngalamin stok kosong?", ["cust_id", "cust_code"]),
+])
+def test_natural_sat_oos_questions_route_to_oos_metric(question: str, dimensions: list[str]) -> None:
+    resolution = SemanticContextService().resolve(question)
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "sat_oos_rate"
+    assert resolution["dimensions"] == dimensions
+
+
+def test_natural_sat_oos_last_month_uses_latest_governed_month() -> None:
+    context = SemanticContextService()
+    question = "Berapa persen toko yang kosong stoknya pas disurvei bulan lalu?"
+    resolution = context.resolve(question)
+
+    sql = context.compile_governed(resolution["metric"], question, resolution["dimensions"])
+
+    assert "d.calmonth_date = CAST('2024-12-01' AS DATE)" in sql
+
+
+def test_oos_sales_causality_is_rejected_instead_of_redirected_to_sales() -> None:
+    resolution = SemanticContextService().resolve(
+        "OOS ini pengaruh ke penurunan sales berapa besar sih?"
+    )
+
+    assert resolution["status"] == "unsupported"
+    assert resolution["reason"] == "oos_sales_causality_unavailable"
+
+
+@pytest.mark.parametrize(("question", "metric", "dimensions"), [
+    ("Fill rate kita sekarang berapa secara keseluruhan?", "company_fill_rate", []),
+    ("Material apa yang fill rate-nya paling jelek?", "material_fill_rate", ["material"]),
+    ("Sales office mana yang fill rate-nya paling rendah?", "sales_office_service_fill_rate", ["sales_off"]),
+    ("Ada gap gak antara PO yang masuk sama DO yang kekirim?", "service_unfulfilled_quantity", []),
+])
+def test_service_level_uat_questions_use_published_metrics(
+    question: str, metric: str, dimensions: list[str]
+) -> None:
+    resolution = SemanticContextService().resolve(question)
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == metric
+    assert resolution.get("dimensions", []) == dimensions

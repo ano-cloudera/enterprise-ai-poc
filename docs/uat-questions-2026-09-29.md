@@ -61,19 +61,19 @@ Isi ulang kolom **Hasil** dan **Status** (PASS/FAIL/PARTIAL) saat UAT.
 
 | # | Pertanyaan | Ekspektasi | Hasil | Status |
 |---|---|---|---|---|
-| 1 | Berapa persen toko yang kosong stoknya pas disurvei bulan lalu? | `sat_oos_rate` | | |
-| 2 | Material apa yang paling sering kosong di rak? | `sat_oos_rate` per material_code | | |
-| 3 | Customer/toko mana yang paling sering ngalamin stok kosong? | `sat_oos_rate` per cust_id/cust_code | | |
-| 4 | **[DI LUAR KONTEKS]** OOS ini pengaruh ke penurunan sales berapa besar sih? | `unsupported` — data 3 bulan observasional tidak cukup untuk klaim kausalitas ke sales | | |
+| 1 | Berapa persen toko yang kosong stoknya pas disurvei bulan lalu? | `sat_oos_rate` | Hasil terkadang salah atau dianggap di luar jangkauan; belum konsisten resolve ke metric SAT OOS. | |
+| 2 | Material apa yang paling sering kosong di rak? | `sat_oos_rate` per material_code | Hasil terkadang salah atau dianggap di luar jangkauan; belum konsisten resolve ke metric SAT OOS per material. | |
+| 3 | Customer/toko mana yang paling sering ngalamin stok kosong? | `sat_oos_rate` per cust_id/cust_code | `CLARIFICATION` yang salah konteks: sistem meminta memilih stok gudang Tempo, stok DC partner, atau stok store retail, bukan resolve ke SAT OOS per customer/toko. | |
+| 4 | **[DI LUAR KONTEKS]** OOS ini pengaruh ke penurunan sales berapa besar sih? | `unsupported` — data 3 bulan observasional tidak cukup untuk klaim kausalitas ke sales | Sistem meminta klarifikasi Sell-In vs Sell-Out. Follow-up yang typo (`ke se;;-in`) memicu klarifikasi generik; setelah dikoreksi menjadi `maksud saya sell-in`, sistem justru memberi total Gross Billing Value Q4, bukan menolak klaim pengaruh/kausalitas OOS terhadap sales. | |
 
 ## 6. Service Level
 
 | # | Pertanyaan | Ekspektasi | Hasil | Status |
 |---|---|---|---|---|
-| 1 | Fill rate kita sekarang berapa secara keseluruhan? | `company_fill_rate` | | |
-| 2 | Material apa yang fill rate-nya paling jelek? | `material_fill_rate` per material, order asc | | |
-| 3 | Sales office mana yang fill rate-nya paling rendah? | `sales_office_service_fill_rate` per sales_off | | |
-| 4 | Ada gap gak antara PO yang masuk sama DO yang kekirim? | `service_unfulfilled_quantity` (PO-DO gap) | | |
+| 1 | Fill rate kita sekarang berapa secara keseluruhan? | `company_fill_rate` | `ERROR`: query gagal saat membuka sesi Impala dengan `HTTP 401 Unauthorized` (`impala.error.HttpError`, `IMPALA_QUERY_FAILED`). | |
+| 2 | Material apa yang fill rate-nya paling jelek? | `material_fill_rate` per material, order asc | `ERROR`: permintaan tidak dapat diselesaikan; log backend menunjukkan kegagalan autentikasi sesi Impala `HTTP 401 Unauthorized`. | |
+| 3 | Sales office mana yang fill rate-nya paling rendah? | `sales_office_service_fill_rate` per sales_off | `ERROR`: permintaan tidak dapat diselesaikan; log backend menunjukkan kegagalan autentikasi sesi Impala `HTTP 401 Unauthorized`. | |
+| 4 | Ada gap gak antara PO yang masuk sama DO yang kekirim? | `service_unfulfilled_quantity` (PO-DO gap) | `ERROR` (`governed`): “Query tidak dapat divalidasi dengan aman”; caveat `Empty SQL`. | |
 | 5 | **[DI LUAR KONTEKS]** Kenapa fill rate kita jelek di cabang tertentu, apa penyebabnya? | `unsupported` — sistem bisa tunjukkan angka rendahnya, tapi tidak boleh mengklaim penyebab tanpa data root-cause | | |
 
 ## 7. Picking
@@ -120,3 +120,9 @@ Tandai **FAIL** kalau:
 - Pertanyaan Stock SAT-IDM #4 (jumlah DC+Store) dijawab dengan 1 angka gabungan — ini pelanggaran governance paling kritis untuk dicek, karena sudah dikonfirmasi langsung oleh Tempo (Pak Hieronimus Gunawan)
 
 Tandai **PARTIAL** kalau jawaban benar tapi caveat/disclaimer yang wajib (proxy, pending business confirmation, ungoverned, dll) tidak muncul di jawaban akhir.
+
+## Temuan operasional saat UAT
+
+- Pada sebagian request SAT OOS, indikator loading dapat terus berputar tanpa mekanisme timeout/stop yang terlihat di frontend. Perlu timeout request dan state cleanup agar loading selalu berhenti saat provider, workflow, atau backend data gagal/terlalu lama.
+- Service Level #1–#3 gagal pada boundary koneksi Impala, bukan pada analisis LLM: `OpenSession` mengembalikan `HTTP 401 Unauthorized`. Log menunjukkan `attempt=1` dan `retrying=false`; konfigurasi autentikasi/transport Impala di CAI perlu diperiksa sebelum menilai kebenaran metric Service Level.
+- Trace contoh Service Level: `request_id/trace_id=cf9599e7-9645-4c09-878b-fdc830ce14c2`, `driver_error_type=HttpError`, `IMPALA_QUERY_FAILED`. Tidak ada credential yang dicatat di dokumen ini.

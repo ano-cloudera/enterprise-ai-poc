@@ -15,6 +15,7 @@ export const api = {
     question: string,
     sessionId: string,
     selection: ModelSelection,
+    signal?: AbortSignal,
   ): AsyncGenerator<
     { type: 'progress'; stage: string; label: string }
     | { type: 'done'; response: ChatResponse }
@@ -23,6 +24,7 @@ export const api = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ question, session_id: sessionId, provider: selection.provider, model: selection.model }),
+      signal,
     })
     if (!response.ok || !response.body) throw new Error(`${response.status} ${response.statusText}`)
     const reader = response.body.getReader()

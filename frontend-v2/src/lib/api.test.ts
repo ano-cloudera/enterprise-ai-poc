@@ -37,6 +37,18 @@ describe('V2 API client', () => {
     expect(events.at(-1)).toEqual({ type: 'done', response: { status: 'SUCCESS' } })
   })
 
+  it('passes an abort signal to the streaming request', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(sseResponse([
+      `data: ${JSON.stringify({ type: 'done', response: { status: 'SUCCESS' } })}\n\n`,
+    ]))
+    vi.stubGlobal('fetch', fetchMock)
+    const controller = new AbortController()
+
+    for await (const _ of api.chatStream('q', 's', { provider: 'qwen', model: 'qwen' }, controller.signal)) { /* consume */ }
+
+    expect(fetchMock.mock.calls[0][1].signal).toBe(controller.signal)
+  })
+
   it('drains a final done frame delivered with done=true', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(sseResponse([
       `data: ${JSON.stringify({ type: 'progress', stage: 'querying_data', label: 'Querying data' })}\n\ndata: ${JSON.stringify({ type: 'done', response: { status: 'SUCCESS' } })}\n\n`,
