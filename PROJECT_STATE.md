@@ -1,7 +1,23 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 30 Sep 2026 (latest) — V2 hardens SAT OOS and Service Level routing, Impala authentication diagnostics, and request cancellation based on live CAI UAT.
+**Updated**: 30 Sep 2026 (latest) — found and fixed the actual root cause of GSSAPI/Kerberos auth failures against the Private Cloud ("Ingram"/IMID.LOCAL) environment: a missing `kerberos` Python package, silently ignored by puresasl. Commit `8336980`.
+
+## Current checkpoint: missing `kerberos` package silently broke GSSAPI in isolated venvs (30 Sep 2026, latest)
+
+Live deploy of `backend-v2` to the Private Cloud environment failed with `TTransportException` after one retry. The actual cause was one line above the error, easy to miss:
+
+```text
+SASLWarning: kerberos module not installed, GSSAPI will be ignored
+```
+
+`puresasl.client` (used by `thrift_sasl`) needs the separate `kerberos` PyPI package (a C extension wrapping the system `libkrb5`) to actually perform GSSAPI operations - `pure-sasl` alone is pure Python and cannot do this itself, despite the confusingly similar name. Without `kerberos` installed, puresasl silently falls back to a non-GSSAPI path instead of erroring loudly, and the server then rejects the connection.
+
+**Why the earlier manual Workbench GSSAPI test (see the "Impala/DWH migration" checkpoint further below) didn't catch this**: that test ran in an interactive Workbench session that apparently had `kerberos` available at the system/global level, outside any project virtualenv. `backend-v2`'s isolated `.venv-cai` and each of the three Impala-backed Agent Studio V1 tools' own sandboxed dependency sets do not inherit anything from that global environment - each needs the package listed in its own requirements file.
+
+**Fix** (commit `8336980`): added `kerberos==1.3.1` to `backend-v2/requirements-impala.txt` and to all three Impala-backed V1 Agent Studio tools' `requirements.txt` (`execute_governed_query`, `execute_readonly_sql`, `execute_governed_metric_query`) - harmless to also have it present for LDAP/PLAIN-only deployments like the old AWS environment.
+
+**Not yet verified**: this package needs system Kerberos dev headers (`krb5-devel` / `libkrb5-dev`) present at pip-install/build time. If the CAI runtime image lacks them, installing `kerberos` will fail to build - that would be a separate environment/infra issue to flag, distinct from this code fix. Redeploy `backend-v2` (and re-import the V1 tools if revisited) and confirm the package actually builds and installs before assuming this is fully resolved.
 
 ## Current checkpoint: SAT OOS, Service Level, and request cancellation hardening (30 Sep 2026)
 
