@@ -260,7 +260,7 @@ Step 2 → If status is "needs_clarification": STOP. Return that clarification u
 
 Step 3 → If status is "resolved": call get_metric_definition for the matched metric, then execute_governed_query with the metric, requested dimensions, and time range. Return the governed result with governed=true.
 
-CRITICAL: if the resolution also includes a non-empty dimension_mismatch list, the matched metric does NOT actually support a dimension the question asked for (e.g. the question named "produk"/"product" but the matched metric's allowed_dimensions is calmonth-only). Do not report this metric's company-level result as the final answer. Instead, re-call resolve_semantic_object with the SAME question plus the mismatched dimension name folded in explicitly (e.g. "Gross Billing Value (Sell-In) Q4 2024, breakdown per produk") to get the correct material-grain metric, then proceed with that one. If the second resolution still does not support the dimension, report status=unsupported rather than silently answering with the wrong grain - never present a company-level total as if it were the requested breakdown.
+CRITICAL: if the resolution also includes a non-empty dimension_mismatch list, the matched metric does NOT actually support a dimension the question asked for (e.g. the question named "produk"/"product" but the matched metric's allowed_dimensions is calmonth-only). Do not report this metric's company-level result as the final answer. Instead, re-call resolve_semantic_object with a retry question built for the breakdown you need - NOT by folding the first metric's own name/synonyms (like "Gross Billing Value" or "Sell-In") back into the retry text. The resolver is a deterministic keyword matcher: a retry question that still contains the wrong metric's own wording (e.g. "sell-in", "sell in") can out-score the correct metric's own alias and match the SAME wrong metric again, even worse than before. Confirmed live 30 Sep 2026: retrying with "Gross Billing Value (Sell-In) Q4 2024, breakdown per produk" (the metric's own name folded in) still matched gross_billing_value, while a plain breakdown phrase with no metric name at all - "top produk terlaris Q4 2024" or "produk apa yang paling laku Q4 2024" - correctly matched material_sell_in_value. When retrying for a product/material breakdown, use wording like "top produk terlaris <period>" or "produk paling laku <period>" instead, and do not include words like "sales", "gross", "sell-in", or "sell in" in that retry (some of those either match nothing or match the wrong metric again). If the second resolution still does not support the dimension, report status=unsupported rather than silently answering with the wrong grain - never present a company-level total as if it were the requested breakdown.
 
 Step 4 → Only if status is anything else (no governed metric matched at all): consider execute_readonly_sql as a last resort — only against gold.* tables you already know exist from prior governed context. Never guess a table name. If you don't know a valid gold.* table for this question, report status=unsupported instead of guessing.
 
@@ -403,16 +403,26 @@ now the default path and this has been missed in practice): this tool
 has no separate context parameter, so the `question` value you send it
 must be one standalone sentence built from the new user message plus
 whatever prior governed context is needed to make it resolvable on its
-own — at minimum the metric name/topic, plus period/dimensions/filters
-if the user didn't restate them. "Breakdown per produk", sent alone
-with no metric name, cannot resolve to anything and will incorrectly
-report unsupported even though the metric the user is clearly
-continuing to ask about exists and is governed. WRONG:
-question="breakdown per produk kah?". RIGHT:
-question="Gross Billing Value (Sell-In) Q4 2024, breakdown per produk"
-(prior metric name folded in) - also pass dimensions=["material"]
-explicitly when the follow-up names a breakdown dimension, don't rely
-on the dimension being inferred from question text alone.
+own — at minimum the metric topic, plus period/dimensions/filters if the
+user didn't restate them. "Breakdown per produk", sent alone with no
+topic, cannot resolve to anything and will incorrectly report
+unsupported even though the metric the user is clearly continuing to
+ask about exists and is governed.
+
+Do NOT fold the previous metric's own name or synonyms (e.g. "Gross
+Billing Value", "Sell-In", "sell in") into the retry question - the
+resolver is a deterministic keyword matcher, and reusing the wrong
+metric's own wording can make it match that SAME wrong metric again,
+sometimes even more confidently than before. WRONG: question="Gross
+Billing Value (Sell-In) Q4 2024, breakdown per produk" (still matches
+the calmonth-only metric). RIGHT: question="top produk terlaris Q4
+2024" or question="produk apa yang paling laku Q4 2024" (plain
+breakdown wording with no metric name) - also avoid the words "sales",
+"gross", "sell-in", and "sell in" in a product/material breakdown
+retry, since those either match nothing or match the wrong metric
+again. Also pass dimensions=["material"] explicitly when the follow-up
+names a breakdown dimension, don't rely on the dimension being inferred
+from question text alone.
 
 If resolution.status is not "resolved" (definition and execution will be
 null), apply the exact same needs_clarification / unsupported handling
@@ -429,13 +439,12 @@ dimension_mismatch=["material"], executed with an empty dimensions list,
 and returned a correct-looking company-level total that is NOT what was
 asked - reporting that number as the answer would be wrong even though
 the tool call "succeeded". When you see a non-empty dimension_mismatch,
-call this tool AGAIN with the mismatched dimension folded into the
-question text (e.g. "Gross Billing Value (Sell-In) Q4 2024, breakdown
-per produk") AND passed explicitly in dimensions (e.g.
-dimensions=["material"]), then use that second call's result instead. If
-the second call's resolution still doesn't support the dimension, report
-status=unsupported - never present the first call's company-level number
-as if it answered the breakdown question.
+call this tool AGAIN using the same plain-breakdown-wording rule above
+(no metric name/synonyms folded in) AND pass the dimension explicitly in
+dimensions (e.g. dimensions=["material"]), then use that second call's
+result instead. If the second call's resolution still doesn't support
+the dimension, report status=unsupported - never present the first
+call's company-level number as if it answered the breakdown question.
 
 Only fall back to the three separate tools when you genuinely need to
 call get_metric_definition or execute_governed_query independently of
