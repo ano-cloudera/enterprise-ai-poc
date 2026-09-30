@@ -22,11 +22,12 @@ Deploy as a separate CAI Application with the same Python runtime pattern as V1.
 frontend-v2/app_cai_frontend.py
 ```
 
-Set `NEXT_PUBLIC_BACKEND_URL` to the deployed Backend V2 HTTPS Application URL. The launcher reuses system Node when present or downloads the same pinned portable Node 20.18.1 pattern as V1, runs `npm ci` when the lock changes, builds Next.js, uses `CDSW_APP_PORT`, and binds `127.0.0.1` behind the CAI proxy.
+Set `NEXT_PUBLIC_BACKEND_URL` to the deployed Backend V2 HTTPS Application URL. The launcher reuses system Node when present or downloads pinned portable Node 20.19.0, the minimum supported by the installed Vite toolchain. It runs `npm ci` when the lock changes, builds Next.js, starts the server as a monitored child process so CAI's interpreter kernel stays alive, uses `CDSW_APP_PORT`, and binds `127.0.0.1` behind the CAI proxy.
 
 ## Troubleshooting
 
 - No model is enabled: open Backend V2 `/models` and configure at least one provider.
+- Engine exits immediately after a successful build: sync the latest launcher; CAI interpreter-cell execution requires the monitored child-process lifecycle rather than replacing the kernel with `os.execve`.
 - API 404 through the frontend: verify `NEXT_PUBLIC_BACKEND_URL` points to the backend origin without a trailing `/api`; V2 backend endpoints are rooted at `/models`, `/chat`, and so on.
 - Build should require no Google Fonts network access; V2 uses the system font stack.
 - If SSE final data is missing, retain the current `src/lib/api.ts` buffer-drain behavior; the final chunk may arrive with `done=true`.

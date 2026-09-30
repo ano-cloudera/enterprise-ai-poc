@@ -11,6 +11,7 @@ import os
 from pathlib import Path
 import subprocess
 import sys
+import time
 
 
 def resolve_backend_dir() -> Path:
@@ -63,7 +64,24 @@ def main() -> None:
         return
     os.environ["PYTHONPATH"] = str(backend_dir) + os.pathsep + os.environ.get("PYTHONPATH", "")
     print(f"[backend-v2] starting on 127.0.0.1:{port}", flush=True)
-    os.execve(str(python), command, os.environ.copy())
+    process = subprocess.Popen(command, cwd=backend_dir, env=os.environ.copy())
+    print(f"[backend-v2] PID: {process.pid}", flush=True)
+    try:
+        while True:
+            return_code = process.poll()
+            if return_code is not None:
+                raise RuntimeError(f"Backend V2 exited with code {return_code}")
+            time.sleep(5)
+    except KeyboardInterrupt:
+        print("[backend-v2] application interrupted", flush=True)
+    finally:
+        if process.poll() is None:
+            process.terminate()
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                process.kill()
+        print("[backend-v2] application stopped", flush=True)
 
 
 if __name__ == "__main__":

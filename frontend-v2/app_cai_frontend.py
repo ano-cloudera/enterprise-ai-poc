@@ -8,10 +8,11 @@ import platform
 import shutil
 import subprocess
 import tarfile
+import time
 import urllib.request
 
 
-NODE_VERSION = "20.18.1"
+NODE_VERSION = "20.19.0"
 
 
 def resolve_frontend_dir() -> Path:
@@ -86,7 +87,24 @@ def main() -> None:
     subprocess.check_call([str(node), str(next_cli), "build"], cwd=frontend_dir, env=env)
     command = [str(node), str(next_cli), "start", "-H", "127.0.0.1", "-p", str(port)]
     print(f"[frontend-v2] starting on 127.0.0.1:{port}; backend={backend_url}", flush=True)
-    os.execve(str(node), command, env)
+    process = subprocess.Popen(command, cwd=frontend_dir, env=env)
+    print(f"[frontend-v2] PID: {process.pid}", flush=True)
+    try:
+        while True:
+            return_code = process.poll()
+            if return_code is not None:
+                raise RuntimeError(f"Frontend V2 exited with code {return_code}")
+            time.sleep(5)
+    except KeyboardInterrupt:
+        print("[frontend-v2] application interrupted", flush=True)
+    finally:
+        if process.poll() is None:
+            process.terminate()
+            try:
+                process.wait(timeout=10)
+            except subprocess.TimeoutExpired:
+                process.kill()
+        print("[frontend-v2] application stopped", flush=True)
 
 
 if __name__ == "__main__":

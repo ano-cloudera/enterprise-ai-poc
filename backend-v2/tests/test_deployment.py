@@ -35,6 +35,22 @@ def test_impala_requirements_use_impyla_compatible_thrift_version() -> None:
     assert "thrift==0.16.0" in requirements
 
 
+def test_cai_entrypoints_keep_interpreter_alive_while_monitoring_child_processes() -> None:
+    for relative_path in ("backend-v2/app_cai_backend.py", "frontend-v2/app_cai_frontend.py"):
+        source = (ROOT / relative_path).read_text(encoding="utf-8")
+
+        assert "os.execve" not in source
+        assert "subprocess.Popen" in source
+        assert ".poll()" in source
+
+
+def test_frontend_portable_node_satisfies_vite_engine_requirement() -> None:
+    namespace = load_entrypoint_without_file(ROOT / "frontend-v2" / "app_cai_frontend.py")
+    version = tuple(int(part) for part in namespace["NODE_VERSION"].split("."))
+
+    assert version >= (20, 19, 0)
+
+
 def test_backend_cai_entrypoint_uses_dynamic_port_and_local_proxy_bind() -> None:
     payload = dry_run(ROOT / "backend-v2" / "app_cai_backend.py", {"CDSW_APP_PORT": "9876"})
 
