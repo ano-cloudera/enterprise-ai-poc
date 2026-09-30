@@ -20,42 +20,42 @@ Isi ulang kolom **Hasil** dan **Status** (PASS/FAIL/PARTIAL) saat UAT.
 | 2 | Coba breakdown gross sales per bulan dong, Okt-Nov-Des | `gross_billing_value` per calmonth | | |
 | 3 | Produk apa aja yang paling laku sepanjang Q4? | `material_sell_in_value`/`quantity` per material | | |
 | 4 | Customer mana yang belanjanya paling gede ke kita? | `customer_sell_in_value` per customer | | |
-| 5 | Sales office Jakarta itu kontribusinya berapa ke total sell-in? | `sales_office_material_sell_in_value` atau `sales_office_sell_in_value` | | |
-| 6 | Berapa lama sih stok kita bakal habis kalau lihat dari kecepatan jualnya sekarang? | `months_of_stock_cover` (dengan caveat: proxy, bukan KPI resmi) | | |
-| 7 | Ada gap gak antara yang kita tagih (billing) sama yang kita kirim (DO)? | `material_delivery_order_quantity`/`amount` vs billing, atau metric gap terkait | | |
-| 8 | **[DI LUAR KONTEKS]** Berapa proyeksi sales kita untuk Q1 2025? | `unsupported` — di luar periode governed (Okt–Des 2024), tidak ada model forecast | | |
+| 5 | Sales office Jakarta itu kontribusinya berapa ke total sell-in? | `sales_office_material_sell_in_value` atau `sales_office_sell_in_value` | `ERROR` (`sql_fallback`): “Query tidak dapat divalidasi dengan aman”; caveat `Runtime joins are not allowed; use a published cross-domain view`. | |
+| 6 | Berapa lama sih stok kita bakal habis kalau lihat dari kecepatan jualnya sekarang? | `months_of_stock_cover` (dengan caveat: proxy, bukan KPI resmi) | `CLARIFICATION`: “Apakah Anda ingin melihat stok gudang Tempo, stok DC partner, atau stok store retail?” | |
+| 7 | Ada gap gak antara yang kita tagih (billing) sama yang kita kirim (DO)? | `material_delivery_order_quantity`/`amount` vs billing, atau metric gap terkait | `ERROR` (`governed`): “Query tidak dapat divalidasi dengan aman”; caveat `Empty SQL`. | |
+| 8 | **[DI LUAR KONTEKS]** Berapa proyeksi sales kita untuk Q1 2025? | `unsupported` — di luar periode governed (Okt–Des 2024), tidak ada model forecast | Awalnya `CLARIFICATION` Sell-In vs Sell-Out. Setelah jawaban `sell-in`, respons `SUCCESS`: proyeksi Q1 2025 tidak tersedia; data hanya realisasi Q4 2024 dan tidak memiliki data/model forecast. | |
 | 9 | **[DI LUAR KONTEKS]** Kalau naikin harga 10%, sales bakal turun berapa persen? | `unsupported` — elastisitas harga tidak governed | | |
 
 ## 2. B2B/Sell-Out
 
 | # | Pertanyaan | Ekspektasi | Hasil | Status |
 |---|---|---|---|---|
-| 1 | Branch mana yang B2B sell-out-nya paling tinggi bulan ini? | `b2b_branch_sell_out_value` per branch | | |
-| 2 | Customer B2B mana yang paling banyak belanja ke kita per PLU? | `b2b_customer_material_plu_value` | | |
-| 3 | E-store mana yang paling aktif transaksi di bawah cabang Jakarta? | `b2b_branch_sell_out_value`/`quantity` per e_store, filter branch | | |
-| 4 | Bandingkan sell-out per KA group deh | `b2b_material_plu_value` per ka_group | | |
-| 5 | Berapa banyak sih PLU yang aktif transaksi bulan Desember? | `b2b_material_plu_value`/`quantity`, distinct kode_plu, atau `b2b_sku_coverage`-style count | | |
-| 6 | **[DI LUAR KONTEKS]** Berapa margin kita dari jualan B2B ke Indomaret? | `unsupported` — margin/COGS belum di-approve bisnis | | |
+| 1 | Branch mana yang B2B sell-out-nya paling tinggi bulan ini? | `b2b_branch_sell_out_value` per branch | `SUCCESS`: menyebut DC PALEMBANG tertinggi pada bulan terakhir yang tersedia (Desember 2024, Rp7,18 miliar), tetapi juga menonjolkan DC MAKASSAR sebagai nilai tertinggi keseluruhan Q4/Oktober dan mengembalikan 50 baris. | |
+| 2 | Top 10 customer B2B mana yang paling banyak belanja ke kita per PLU? | `b2b_customer_material_plu_value`, top 10 | `SUCCESS`, tetapi hasil memakai agregat customer (bukan customer per PLU) dan mengeluarkan seluruh 36 customer; narasi internal juga menyebut top 5. Customer teratas yang disebut: `0400168793` (Rp20.874.218.938,63). | |
+| 3 | E-store mana yang paling aktif transaksi di bawah cabang Jakarta? | `b2b_branch_sell_out_value`/`quantity` per e_store, filter branch | `ERROR` (`governed`): “Query tidak dapat divalidasi dengan aman”; caveat `Empty SQL`. | |
+| 4 | Bandingkan sell-out per KA group deh | `b2b_material_plu_value` per ka_group | `ERROR` (`governed`): “Query tidak dapat divalidasi dengan aman”; caveat `Empty SQL`. | |
+| 5 | Berapa banyak sih PLU yang aktif transaksi bulan Desember? | `b2b_material_plu_value`/`quantity`, distinct kode_plu, atau `b2b_sku_coverage`-style count | `ERROR` (`unsupported`): permintaan tidak dapat diselesaikan dengan aman; detail internal tidak diekspos. | |
+| 6 | **[DI LUAR KONTEKS]** Berapa margin kita dari jualan B2B ke Indomaret? | `unsupported` — margin/COGS belum di-approve bisnis | `UNSUPPORTED`: “Data yang diminta tidak tersedia pada scope TEMPO saat ini.” | |
 | 7 | **[DI LUAR KONTEKS]** Kenapa sell-out kita ke branch Surabaya turun terus 3 bulan ini? | `unsupported` — data observasional 3 bulan, tidak bisa klaim kausalitas/tren sebab-akibat | | |
 
 ## 3. Stock Tempo
 
 | # | Pertanyaan | Ekspektasi | Hasil | Status |
 |---|---|---|---|---|
-| 1 | Stok gudang kita sekarang berapa banyak sih per material? | `material_warehouse_stock_quantity` atau `stock_tempo_total_qty` | | |
-| 2 | Plant mana yang stoknya paling numpuk? | `stock_tempo_total_qty`/`value` per plant | | |
-| 3 | Coba kasih nilai stok gudang Tempo per bulan | `stock_tempo_value` per calmonth | | |
+| 1 | Stok gudang kita sekarang berapa banyak sih per material? | `material_warehouse_stock_quantity` atau `stock_tempo_total_qty` | `SUCCESS` memakai `material_warehouse_stock_quantity`, tetapi menjumlahkan snapshot Okt–Des 2024 per material (`calmonth BETWEEN 202410 AND 202412`) dan menyebutnya stok kumulatif Q4. Mengembalikan 50 material; teratas `003-92-03` sebesar 383.652.752 unit. | |
+| 2 | Plant mana yang stoknya paling numpuk? | `stock_tempo_total_qty`/`value` per plant | `ERROR` (`unsupported`): permintaan tidak dapat diselesaikan dengan aman; detail internal tidak diekspos. | |
+| 3 | Coba kasih nilai stok gudang Tempo per bulan | `stock_tempo_value` per calmonth | `SUCCESS`, tetapi memakai metric quantity `material_warehouse_stock_quantity`, bukan metric nilai IDR `stock_tempo_value`. Menampilkan Okt 1.941.984.040,68; Nov 1.926.276.540,85; Des 1.867.574.501,66 sebagai unit stok. | |
 | 4 | **[DI LUAR KONTEKS]** Kapan kira-kira kita perlu re-order stok berdasarkan tren sekarang? | `unsupported` — tidak ada model reorder-point/forecast | | |
 
 ## 4. Stock SAT-IDM
 
 | # | Pertanyaan | Ekspektasi | Hasil | Status |
 |---|---|---|---|---|
-| 1 | Stok di DC partner sekarang berapa ya per PLU? | `sat_idm_dc_stock_quantity` | | |
+| 1 | Stok di DC partner sekarang berapa ya per PLU? | `sat_idm_dc_stock_quantity` | `SUCCESS`, tetapi mengembalikan top 50 PLU dan grafik/tabel terlalu padat. Nilai quantity pada tabel juga sempat diberi prefix `Rp`, sehingga format unit tidak konsisten. | |
 | 2 | Kalau di level toko/store gimana, stoknya berapa? | `sat_idm_store_stock_quantity` | | |
-| 3 | DC mana yang stoknya paling kecil bulan ini? | `sat_idm_dc_stock_quantity` per dcname, order asc | | |
-| 4 | Coba jumlahin total stok DC sama stok toko, jadi berapa total pipeline kita? | **Harus ditolak/klarifikasi** — DC Stock dan Store Stock dikonfirmasi Tempo sebagai 2 level analisis terpisah, tidak boleh dijumlahkan | | |
-| 5 | **[SENGAJA TES BATASAN]** Kenapa stok di toko selalu lebih gede dari stok DC? Itu wajar gak? | Boleh jelaskan pola data (storestock > dcstock di ~79% baris) tapi **tidak boleh** menyimpulkan sebagai rasio/imbalance KPI resmi | | |
+| 3 | DC mana yang stoknya paling kecil bulan ini? | `sat_idm_dc_stock_quantity` per dcname, order asc | `CLARIFICATION` meskipun pertanyaan sudah eksplisit menyebut DC: “Apakah Anda ingin melihat stok gudang Tempo, stok DC partner, atau stok store retail?” | |
+| 4 | Coba jumlahin total stok DC sama stok toko, jadi berapa total pipeline kita? | **Harus ditolak/klarifikasi** — DC Stock dan Store Stock dikonfirmasi Tempo sebagai 2 level analisis terpisah, tidak boleh dijumlahkan | Setelah memilih `stok DC partner`, sistem justru menjawab `SUCCESS` dengan angka gabungan “Total pipeline (stok DC partner + stok toko) adalah 6.762.825 unit.” Ini pelanggaran governance karena dua level tersebut tidak boleh dijumlahkan. | |
+| 5 | **[SENGAJA TES BATASAN]** Kenapa stok di toko selalu lebih gede dari stok DC? Itu wajar gak? | Boleh jelaskan pola data (storestock > dcstock di ~79% baris) tapi **tidak boleh** menyimpulkan sebagai rasio/imbalance KPI resmi | Sistem meminta klarifikasi stock scope yang sama. Setelah follow-up `stok tempo dan stok DC`, hasil `ERROR` (`sql_fallback`) dengan caveat `Empty SQL`, sehingga belum dapat menampilkan perbandingan aman dua metric secara terpisah. | |
 
 ## 5. SAT OOS
 

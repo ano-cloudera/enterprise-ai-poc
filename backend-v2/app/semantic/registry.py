@@ -144,6 +144,7 @@ class TempoOssieRegistry:
 
     def resolve_ambiguity(self, question: str) -> dict[str, Any] | None:
         normalized = _normalize(question)
+        words = set(re.findall(r"[a-z0-9]+", question.casefold()))
 
         # SAT Promo currently covers December 2024 field-audit observations
         # only. The source has no promo cost or causal revenue attribution.
@@ -209,12 +210,20 @@ class TempoOssieRegistry:
         # the generic stock-scope ambiguity (or alias scoring) can silently
         # select just one of the two published metrics.
         mentions_dc_level = any(
-            term in normalized for term in ("dcstock", "stokdc", "stockdc")
-        )
+            term in normalized
+            for term in (
+                "dcstock", "stokdc", "stockdc", "dcpartner",
+                "distributioncenter", "dcmana",
+            )
+        ) or "dc" in words
         mentions_store_level = any(
             term in normalized
-            for term in ("storestock", "stokstore", "stockstore", "store")
-        )
+            for term in (
+                "storestock", "stokstore", "stockstore", "store",
+                "stoktoko", "stokditoko", "stocktoko", "stockditoko",
+                "tokoretail", "stokretail",
+            )
+        ) or bool(words & {"store", "toko", "retail"})
         requests_combination = any(
             term in normalized
             for term in (
@@ -228,8 +237,9 @@ class TempoOssieRegistry:
                 "sumof",
                 "totalstok",
                 "totalstock",
+                "gabungkan",
             )
-        )
+        ) or bool(words & {"jumlah", "total"})
         if mentions_dc_level and mentions_store_level and requests_combination:
             return {
                 "status": "needs_clarification",
@@ -260,6 +270,15 @@ class TempoOssieRegistry:
                     },
                 ],
             }
+
+        # An explicit partner-DC or retail-store phrase already answers the
+        # stock-scope question. Let resolve_metric route it directly instead
+        # of asking the same clarification again.
+        mentions_stock_language = any(
+            term in normalized for term in ("stock", "stok", "inventory", "persediaan")
+        )
+        if mentions_stock_language and mentions_dc_level != mentions_store_level:
+            return None
 
         for ambiguity in self.governance.get("ambiguities", []):
             # "Out of stock" is the published SAT OOS KPI, not a request to
@@ -305,6 +324,49 @@ class TempoOssieRegistry:
             return ambiguity
 
         normalized = _normalize(question)
+        mentions_stock = any(term in normalized for term in ("stock", "stok", "inventory", "persediaan"))
+        words = set(re.findall(r"[a-z0-9]+", question.casefold()))
+        mentions_partner_dc = any(
+            term in normalized
+            for term in (
+                "dcstock", "stokdc", "stockdc", "dcpartner",
+                "distributioncenter", "dcmana",
+            )
+        ) or "dc" in words
+        mentions_retail_store = any(
+            term in normalized
+            for term in (
+                "storestock", "stokstore", "stockstore", "stoktoko",
+                "stokditoko", "stocktoko", "stockditoko", "tokoretail",
+                "stokretail", "retailstock",
+            )
+        ) or bool(words & {"store", "toko", "retail"})
+        explicit_short_choice = normalized in {"dc", "dcpartner", "store", "toko", "retail", "stokdcpartner", "stokstore", "stoktoko"}
+        explicit_dc_ranking = "dcmana" in normalized
+        explicit_low_stock_ranking = "mana" in words and bool(
+            words & {"rendah", "terendah", "kecil", "terkecil", "sedikit"}
+        )
+        if (
+            mentions_stock
+            or explicit_short_choice
+            or explicit_dc_ranking
+            or explicit_low_stock_ranking
+        ) and (
+            mentions_partner_dc != mentions_retail_store
+        ):
+            wants_value = any(term in normalized for term in ("nilai", "value", "rupiah", "idr"))
+            if mentions_partner_dc:
+                metric_name = "sat_idm_dc_stock_value" if wants_value else "sat_idm_dc_stock_quantity"
+            else:
+                metric_name = "sat_idm_store_stock_value" if wants_value else "sat_idm_store_stock_quantity"
+            return {
+                "status": "resolved",
+                "metric": metric_name,
+                "matched_alias": "explicit_stock_level",
+                "definition": self.metric_definition(metric_name),
+                "dimension_mismatch": [],
+            }
+
         dimension_terms = {
             "material": ("material", "sku", "produk", "product", "products", "barang", "item"),
             "customer": ("customer", "pelanggan"),

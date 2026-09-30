@@ -1,7 +1,19 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 30 Sep 2026 (latest) — V2 adds a full-screen chat mode that collapses both desktop sidebars together, alongside the follow-up and answer-presentation refinements validated for CAI UAT.
+**Updated**: 30 Sep 2026 (latest) — V2 hardens Stock SAT-IDM routing and snapshot/ranking semantics based on live CAI UAT.
+
+## Current checkpoint: Stock SAT-IDM UAT hardening (30 Sep 2026)
+
+- Explicit partner-DC wording such as `stok di DC partner` and `DC mana` now resolves directly to `sat_idm_dc_stock_quantity`; the assistant no longer repeats the generic warehouse/DC/store clarification.
+- Retail wording including `stok toko`, `stok retail`, and store variants is recognized as the store-level SAT-IDM scope.
+- Requests to add DC Stock and Store Stock are intercepted before metric selection, including Indonesian `stok toko` phrasing. The response preserves the governed rule that both levels may be shown separately but cannot become one synthetic pipeline total.
+- “Sekarang”, “saat ini”, and “bulan ini” compile against the latest governed snapshot (December 2024): `calmonth = 202412`, or `thn = 2024 AND bln = 12` for SAT-IDM, rather than summing three monthly inventory snapshots.
+- Low-stock rankings recognize natural phrases such as `paling kecil`, `paling rendah`, and `paling sedikit` and order ascending.
+- Every stock ranking defaults to ten rows and explicit requests above ten are capped at ten. This replaces the 50-row stock outputs that made charts and tables unreadable during UAT.
+- The UAT document now records the observed Stock SAT-IDM failures, including the critical live response that incorrectly added DC and store stock.
+
+Verification for this checkpoint: backend V2 **82 passed** (2 dependency warnings only). Live Impala values still require re-running the affected UAT questions after the CAI application is restarted.
 
 ## Current checkpoint: V2 CAI UAT fixes — conversational context and compact model payloads (30 Sep 2026)
 

@@ -92,6 +92,74 @@ def test_retail_stock_choice_resolves_without_repeating_clarification() -> None:
     assert resolution["metric"] == "sat_idm_store_stock_quantity"
 
 
+@pytest.mark.parametrize("question", [
+    "Stok di DC partner sekarang berapa ya per PLU?",
+    "DC mana yang stoknya paling kecil bulan ini?",
+    "DC partner",
+    "DC partner mana paling rendah bulan ini?",
+])
+def test_explicit_partner_dc_stock_scope_does_not_repeat_clarification(question: str) -> None:
+    resolution = SemanticContextService().resolve(question)
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "sat_idm_dc_stock_quantity"
+
+
+def test_current_partner_dc_stock_ranking_uses_latest_snapshot_and_top_ten() -> None:
+    context = SemanticContextService()
+    question = "DC mana yang stoknya paling kecil bulan ini?"
+    resolution = context.resolve(question)
+    sql = context.compile_governed(resolution["metric"], question, resolution.get("dimensions"))
+
+    assert "d.dcname AS dcname" in sql
+    assert "d.thn = 2024" in sql
+    assert "d.bln = 'DEC'" in sql
+    assert "ORDER BY metric_value ASC" in sql
+    assert "LIMIT 10" in sql
+
+
+def test_stock_rankings_are_capped_at_top_ten() -> None:
+    context = SemanticContextService()
+
+    default_sql = context.compile_governed(
+        "sat_idm_dc_stock_quantity",
+        "PLU mana yang stok DC partner paling tinggi?",
+    )
+    oversized_sql = context.compile_governed(
+        "sat_idm_store_stock_quantity",
+        "Tampilkan top 50 PLU dengan stok toko tertinggi",
+    )
+
+    assert "LIMIT 10" in default_sql
+    assert "LIMIT 10" in oversized_sql
+
+
+@pytest.mark.parametrize("question", [
+    "Coba jumlahin total stok DC sama stok toko, jadi berapa total pipeline kita?",
+    "Jumlahkan stock DC dengan stok di toko",
+    "jumlah stok DC dan toko",
+    "total persediaan DC partner dan toko",
+    "gabungkan persediaan distribution center dan store",
+])
+def test_dc_and_toko_stock_cannot_be_added_as_total_pipeline(question: str) -> None:
+    resolution = SemanticContextService().resolve(question)
+
+    assert resolution["status"] == "needs_clarification"
+    assert resolution["reason"] == "sat_idm_stock_level_aggregation"
+
+
+@pytest.mark.parametrize("question", [
+    "store mana yang stoknya paling rendah bulan ini?",
+    "toko",
+    "toko mana paling rendah bulan ini?",
+])
+def test_explicit_store_scope_resolves_without_repeating_clarification(question: str) -> None:
+    resolution = SemanticContextService().resolve(question)
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "sat_idm_store_stock_quantity"
+
+
 def test_what_else_question_marks_sales_as_excluded_instead_of_focus() -> None:
     guidance = SemanticContextService().guidance_context("Bisa bantu apa lagi selain data sales?")
 

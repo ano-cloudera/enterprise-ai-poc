@@ -221,17 +221,35 @@ class SemanticContextService:
         if definition.get("row_filter"):
             predicates.append(f"({definition['row_filter']})")
         fields = self.registry.dataset_fields[dataset_name]
+        asks_current_snapshot = any(
+            term in lowered for term in ("sekarang", "saat ini", "bulan ini", "terkini", "latest", "current")
+        )
         if "calmonth" in fields:
-            predicates.append("d.calmonth BETWEEN 202410 AND 202412")
+            predicates.append(
+                "d.calmonth = 202412"
+                if asks_current_snapshot
+                else "d.calmonth BETWEEN 202410 AND 202412"
+            )
+        if {"thn", "bln"} <= set(fields) and asks_current_snapshot:
+            predicates.extend(("d.thn = 2024", "d.bln = 'DEC'"))
         sql = ["SELECT", "  " + ",\n  ".join(projections), f"FROM {dataset['source']} d"]
         if predicates:
             sql.append("WHERE " + "\n  AND ".join(predicates))
         if dimensions:
             sql.append("GROUP BY " + ", ".join(f"d.{name}" for name in dimensions))
-        ascending = any(term in lowered for term in ("terendah", "terkecil", "lowest", "bottom"))
+        ascending = any(
+            term in lowered
+            for term in ("terendah", "terkecil", "paling kecil", "paling rendah", "paling sedikit", "lowest", "bottom")
+        )
         sql.append(f"ORDER BY metric_value {'ASC' if ascending else 'DESC'}")
         top = re.search(r"(?:top|teratas)\s+(\d+)", lowered)
-        limit = min(int(top.group(1)), 200) if top else 50
+        is_stock_metric = any(
+            marker in metric
+            for marker in ("stock", "warehouse_stock", "sat_idm")
+        )
+        maximum = 10 if is_stock_metric else 200
+        default = 10 if is_stock_metric else 50
+        limit = min(int(top.group(1)), maximum) if top else default
         sql.append(f"LIMIT {limit}")
         return "\n".join(sql)
 
