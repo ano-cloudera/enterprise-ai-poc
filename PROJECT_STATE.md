@@ -1,9 +1,38 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 30 Sep 2026 (latest) — V2 frontend's Ask Data loading indicator reworked to match the Claude Code UX pattern the user pointed to: a bouncing-dots "thinking" animation, and the send button swaps into a Stop button in place while a request is running, instead of a separate Stop control next to the progress text. Commits `08cf7c8`, `26783e1`, `fb83900`.
+**Updated**: 30 Sep 2026 (latest) — V2 gained an opt-in fallback to the separately deployed TEMPO Local Agent for questions our own OSSIE planner can't match, a fix for SQL text leaking into the user-facing "Data reference" field, a fix for a common typo breaking greeting detection, and several branding/layout cleanups (header/sidebar text, chat panel header). Commits `abf8965`..`a0001d8`.
 
-## Current checkpoint: V2 Ask Data loading indicator UX pass (30 Sep 2026, latest)
+## Current checkpoint: TEMPO Local Agent fallback, data_reference SQL leak fix, greeting typo fix, branding cleanup (30 Sep 2026, latest)
+
+### TEMPO Local Agent as an opt-in last-resort fallback (`497024e`)
+
+Adopted `reference/tempo-agent-api` (a separately deployed, already-live sibling system at `http://tempo-local-agent.ml-d5612ef4-e6f.apps.ocpb.imid.local/`) as an optional fallback for questions our own OSSIE planner reports as `strategy=unsupported`. Before implementing, read that system's actual code (`router.py`, `tools.py`, `impala_runner.py`) rather than trusting its env vars alone - initial concern from `NEO4J_QUERY_API`/`QDRANT_URL` env vars (looked like an ungoverned vector-search system) turned out to be wrong: Neo4j/Qdrant are only used for routing/semantic search there, and actual data execution always runs a registered `query_id`'s catalog SQL against Impala - "Never accepts ad-hoc SQL" and "SQL composed from governed TEMPO tables (not LLM-generated)" appear verbatim in that repo's own code/docstrings. Live-tested 3 real queries against the running instance before writing any code: Q4 gross sell-in and top-5-by-material answers matched our own OSSIE numbers almost exactly (single-rupiah rounding differences), confirming it reads the same `gold.*` data. Latency was 24-46s per query, and it has its own separate KPI catalog (not guaranteed to agree with ours in every case), so per explicit direction this is presented as a labeled "exploratory" answer rather than a hard refusal - the broader instruction for this session was "answer as much as possible, don't block hard; be honest about confidence via the exploratory label instead."
+
+Zero-risk design: `WorkflowDependencies.local_agent_client` defaults to `None` (inert everywhere unless `LOCAL_AGENT_BASE_URL` is explicitly set); the fallback is only tried inside the existing `strategy == "unsupported"` branch; every failure mode (disabled, timeout, HTTP error, the agent's own refusal) is swallowed and degrades to the exact same `UNSUPPORTED` message that existed before this feature - never a request-level error. New `Strategy` literal `local_agent_exploratory` distinguishes this path in logs/frontend. 12 new tests (8 for `LocalAgentClient`, 4 for the workflow fallback branch), 110/110 backend-v2 tests passing at the time.
+
+**Not yet turned on anywhere** - `LOCAL_AGENT_BASE_URL` is not set by default; an operator must opt in explicitly.
+
+### `data_reference` sometimes leaked the raw SQL statement (`82f4899`)
+
+Live UAT screenshot showed a governed answer's "Data reference" section rendering the full `SELECT ... FROM gold.rpt_sap_monthly_executive_semantic d WHERE ...` statement instead of just the view name - `result_analyst.md` doesn't explicitly forbid this, and the model sometimes echoes `query_plan.sql` (received as context) straight into `data_reference`. Rather than relying on prompt compliance (the same lesson repeated across this session's other model-behavior bugs), `data_reference` is now always overridden in code after the model responds: a new `_data_reference_from_sql()` regex-parses the executed SQL's `FROM` clause(s) and replaces `data_reference` with just the `schema.view` name(s) - e.g. `gold.rpt_sap_monthly_executive_semantic` - never the SQL text. Falls back to the model's original value only if no table reference is found (covers the local-agent fallback path above, which already sets its own safe reference).
+
+### Greeting/capability detection broke on a common typo (`abf8965`)
+
+"hallo kamu bintu apa ?" (typo: bintu instead of bantu) was misrouted through the governed/SQL-fallback path and returned `UNSUPPORTED`, instead of being recognized as a conversational capability question like its correctly-spelled sibling already was. Root cause in `_is_conversational_request()` (`backend-v2/app/graph/workflow.py`): the greeting-plus-question form is longer than the plain `short_greeting` word cap, so it only had one path to match (`capability_request`'s regex), and that regex required the literal word "bantu" with no typo tolerance. Fixed by adding a small curated set of one-letter-swap typos for "bantu" (bintu, bnatu, nautu, nato, antuh, natu) plus a shorter word-order pattern - a fixed lookup table for one specific word, not a fuzzy matcher, verified not to create false positives on real business questions.
+
+### Branding/layout cleanup (`0e50b1a`, `a0001d8`)
+
+Several small UI polish items from live screenshots: removed the "BETTER DATA. BETTER AI." tagline and centered the Cloudera brand mark; removed the "Tempo Scan · Ask Data V2" header subtitle and centered "Tempo Scan Intelligence"; dropped "V2" from the sidebar footer ("Tempo Scan V2" → "Tempo Scan"); simplified the chat panel's own header from an icon + "SCAN V2" + "● Governed-first Ask Data" status line down to plain "Scan Intelligence" text.
+
+### Earlier same-day work: chart Y-axis truncation, typography, starter questions (`b636142`..`6351396`, `ae494be`)
+
+- Chart Y-axis values like `300000000000` were clipped by a fixed-width axis; added a compact K/M/B tick formatter, narrowed the axis, kept tooltips at full precision.
+- Reduced the bolded direct-answer text size and normalized body text sizing across the response card; replaced the generic Sparkles icon with the existing `ScanMark` monogram (later removed again from the chat panel header per the branding cleanup above); split `data_reference` into a plain note + monospace SQL code block (superseded by the code-level override in `82f4899` above, which now prevents SQL from reaching that field at all).
+- Replaced the single "Random Question" button with 3 starter-question cards shown directly on the empty state, fetched once on page load; clicking one submits immediately.
+- `query_planner.md`/`result_analyst.md` now instruct the model to set `LIMIT` to match a stated ranking count ("top 5" → `LIMIT 5`) or default to 10, and to never surface more rows than asked for even if the query returned extras - fixes a live case where "top 5 produk" silently showed 30+ rows because the generated SQL had no `LIMIT`.
+
+## Previous checkpoint: V2 Ask Data loading indicator UX pass (30 Sep 2026, latest)
 
 Purely frontend, no backend/governance changes. `frontend-v2/src/views/AskDataPage.tsx`'s loading state (shown while an SSE stream is in flight) went through 3 iterations based on live user feedback against screenshots:
 
