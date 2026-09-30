@@ -57,7 +57,7 @@ describe('V2 Ask Data page', () => {
     fireEvent.click(await screen.findByRole('button', { name: 'Send question' }))
 
     const directAnswer = await screen.findByText('Gross Sales Q4 sebesar Rp10 miliar.')
-    expect(directAnswer.className).toContain('text-lg')
+    expect(directAnswer.className).toContain('font-semibold')
     screen.getByText('Business implications')
     screen.getByText('Prioritaskan ketersediaan stok Desember.')
     screen.getByText('gold.rpt_sap_monthly_executive_semantic')

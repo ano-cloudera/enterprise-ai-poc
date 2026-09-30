@@ -1,7 +1,7 @@
 'use client'
 
 import { FormEvent, KeyboardEvent, MouseEvent, useEffect, useRef, useState } from 'react'
-import { ArrowUp, BarChart3, Database, Dice5, Info, Lightbulb, MessageSquareText, PanelLeftClose, PanelLeftOpen, Plus, Sparkles, Square, Trash2, UserRound } from 'lucide-react'
+import { ArrowUp, BarChart3, Database, Dice5, Info, Lightbulb, MessageSquareText, PanelLeftClose, PanelLeftOpen, Plus, Square, Trash2, UserRound } from 'lucide-react'
 import { AnswerChart } from '../components/AnswerChart'
 import { DataTable } from '../components/DataTable'
 import { KpiCard } from '../components/KpiCard'
@@ -100,35 +100,51 @@ function StructuredAnswer({ response }: { response: ChatResponse }) {
     ERROR: 'bg-rose-50 text-rose-700',
   }
 
-  return <div aria-label="AI response" className="space-y-5">
+  const dataReferenceParts = response.answer.data_reference ? splitDataReference(response.answer.data_reference) : null
+
+  return <div aria-label="AI response" className="space-y-5 text-[15px] leading-7">
     <div>
       <div className="flex items-center justify-between gap-3">
-        <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wide text-cloudera-navy"><Sparkles size={14} />{titles[response.status]}</div>
+        <div className="flex items-center gap-2 text-xs font-extrabold uppercase tracking-wide text-cloudera-navy"><ScanMark size={18} rounded="lg" />{titles[response.status]}</div>
         <span className={`rounded-full px-2.5 py-1 text-[10px] font-bold ${statusStyles[response.status]}`}>{response.status}</span>
       </div>
-      <p className="mt-3 text-lg font-semibold leading-8 text-slate-900">{response.answer.direct_answer}</p>
-      {response.answer.executive_summary !== response.answer.direct_answer && <p className="mt-2 text-base leading-7 text-slate-600">{response.answer.executive_summary}</p>}
+      <p className="mt-3 text-base font-semibold leading-7 text-slate-900">{response.answer.direct_answer}</p>
+      {response.answer.executive_summary !== response.answer.direct_answer && <p className="mt-2 text-slate-600">{response.answer.executive_summary}</p>}
     </div>
 
     {response.answer.insights.length > 0 && <section className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
       <div className="flex items-center gap-2 text-xs font-extrabold text-cloudera-navy"><Lightbulb size={14} />Insights</div>
-      <ul className="mt-2 space-y-2 text-[15px] leading-7 text-slate-700">{response.answer.insights.map(item => <li key={item} className="flex gap-2"><span className="text-cloudera-orange">•</span><span>{item}</span></li>)}</ul>
+      <ul className="mt-2 space-y-2 text-slate-700">{response.answer.insights.map(item => <li key={item} className="flex gap-2"><span className="text-cloudera-orange">•</span><span>{item}</span></li>)}</ul>
     </section>}
 
     {response.answer.business_implications.length > 0 && <section>
       <div className="text-xs font-extrabold text-cloudera-navy">Business implications</div>
-      <div className="mt-2 grid gap-2 sm:grid-cols-2">{response.answer.business_implications.map(item => <div key={item} className="rounded-xl border border-violet-100 bg-violet-50/60 p-3 text-[15px] leading-6 text-slate-700">{item}</div>)}</div>
+      <div className="mt-2 grid gap-2 sm:grid-cols-2">{response.answer.business_implications.map(item => <div key={item} className="rounded-xl border border-violet-100 bg-violet-50/60 p-3 text-slate-700">{item}</div>)}</div>
     </section>}
 
     {response.chart_spec?.type === 'kpi' && <div className="max-w-xs"><KpiCard label={response.chart_spec.title} value={kpiValue} format="" icon={BarChart3} /></div>}
     <AnswerChart chart={response.chart_spec} rows={response.data.rows} />
     {response.data.rows.length > 0 && <div className="overflow-hidden rounded-xl border border-slate-200"><DataTable columns={response.data.columns} rows={response.data.rows} /></div>}
 
-    {(response.answer.caveats.length > 0 || response.answer.data_reference) && <div className="rounded-xl bg-slate-50 p-3 text-sm leading-6 text-slate-500">
-      {response.answer.caveats.length > 0 && <div className="flex gap-2"><Info size={14} className="mt-0.5 shrink-0" /><span>{response.answer.caveats.join(' ')}</span></div>}
-      {response.answer.data_reference && <div className="mt-1 break-all"><span className="font-semibold text-slate-600">Data reference:</span> {response.answer.data_reference}</div>}
+    {(response.answer.caveats.length > 0 || dataReferenceParts) && <div className="space-y-3 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
+      {response.answer.caveats.length > 0 && <div className="flex gap-2 leading-6"><Info size={14} className="mt-0.5 shrink-0" /><span>{response.answer.caveats.join(' ')}</span></div>}
+      {dataReferenceParts && <div className="space-y-1.5">
+        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Data reference</div>
+        {dataReferenceParts.note && <p className="leading-6 text-slate-500">{dataReferenceParts.note}</p>}
+        {dataReferenceParts.sql && <pre className="overflow-x-auto rounded-lg bg-slate-900 px-3 py-2.5 text-[12px] leading-5 text-slate-100"><code>{dataReferenceParts.sql}</code></pre>}
+      </div>}
     </div>}
 
-    <div className="border-t border-slate-100 pt-3 text-[10px] text-slate-400">{response.provider} · {response.model} · {response.strategy} · {response.timings.total_ms.toFixed(0)} ms</div>
+    <div className="border-t border-slate-100 pt-3 text-[11px] text-slate-400">{response.provider} · {response.model} · {response.strategy} · {response.timings.total_ms.toFixed(0)} ms</div>
   </div>
+}
+
+// data_reference arrives as one string, sometimes prose followed by
+// "Query: <sql>" - split them so the SQL can render in a monospace code
+// block instead of wrapping inline with the explanatory sentence.
+function splitDataReference(value: string): { note: string | null; sql: string | null } {
+  const match = value.match(/^(.*?)(?:query:\s*)(select[\s\S]+)$/i)
+  if (!match) return { note: value, sql: null }
+  const [, note, sql] = match
+  return { note: note.trim() || null, sql: sql.trim() }
 }
