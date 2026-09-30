@@ -7,6 +7,7 @@ import pytest
 from pydantic import BaseModel
 
 from app.core.config import Settings
+from app.core.models import QueryPlan
 from app.llm.providers import GeminiProvider, OpenAIProvider, QwenProvider
 from app.llm.registry import ProviderRegistry
 
@@ -26,6 +27,68 @@ def test_qwen_api_token_environment_alias_enables_provider(monkeypatch) -> None:
 
     assert settings.qwen_api_key.get_secret_value() == "dummy"
     assert qwen.available is True
+
+
+@pytest.mark.asyncio
+async def test_qwen_retries_schema_mismatch_with_exact_response_schema() -> None:
+    requests: list[dict] = []
+    responses = [
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": json.dumps(
+                            {
+                                "plan_type": "clarification",
+                                "clarification": "Pertanyaan apa yang ingin dianalisis?",
+                                "reasoning": "Greeting",
+                            }
+                        )
+                    }
+                }
+            ]
+        },
+        {
+            "choices": [
+                {
+                    "message": {
+                        "content": json.dumps(
+                            {
+                                "strategy": "clarification",
+                                "clarification_question": "Pertanyaan apa yang ingin dianalisis?",
+                            }
+                        )
+                    }
+                }
+            ]
+        },
+    ]
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        requests.append(json.loads(request.content))
+        return httpx.Response(200, json=responses[len(requests) - 1])
+
+    settings = Settings(
+        _env_file=None,
+        qwen_base_url="https://qwen.internal/v1",
+        qwen_model="qwen-model",
+        qwen_api_key="dummy",
+    )
+    provider = QwenProvider(settings, transport=httpx.MockTransport(handler))
+
+    result = await provider.generate_structured(
+        [{"role": "system", "content": "Plan the query."}, {"role": "user", "content": "halo"}],
+        QueryPlan,
+        temperature=0,
+        max_tokens=500,
+    )
+
+    assert result.strategy == "clarification"
+    assert result.clarification_question == "Pertanyaan apa yang ingin dianalisis?"
+    assert len(requests) == 2
+    assert '"strategy"' in requests[0]["messages"][0]["content"]
+    assert requests[1]["messages"][-2]["role"] == "assistant"
+    assert requests[1]["messages"][-1]["role"] == "user"
 
 
 @pytest.mark.asyncio

@@ -35,7 +35,7 @@ Secrets must be supplied as CAI environment variables and must never be committe
 
 - Gemini: `GEMINI_API_KEY`, `GEMINI_MODEL` (live probe passed with `gemini-3.8-flash`).
 - OpenAI: `OPENAI_API_KEY`, `OPENAI_MODEL` (live probe passed with `gpt-5.6-sol`). The adapter uses `max_completion_tokens` and does not send an unsupported fixed temperature to this model family.
-- Private Qwen: `QWEN_BASE_URL`, `QWEN_MODEL`, and `QWEN_API_TOKEN` when the endpoint requires a token. `QWEN_API_KEY` remains accepted as a backward-compatible alias. This provider was covered by automated adapter tests but was not live-tested in this checkpoint.
+- Private Qwen: `QWEN_BASE_URL`, `QWEN_MODEL`, and `QWEN_API_TOKEN` when the endpoint requires a token. `QWEN_API_KEY` remains accepted as a backward-compatible alias. A live `QueryPlan` structured-generation probe passed against the deployed Qwen CAI endpoint after the schema-correction hotfix.
 
 Both configured public-provider keys passed their respective `/models` authentication checks and an end-to-end structured-generation adapter probe. No credential values are recorded in this file or the repository.
 
@@ -65,16 +65,17 @@ The backend should receive provider secrets, Ossie paths/settings, and the selec
 - Both launchers now follow V1's CAI lifecycle pattern: start Uvicorn/Next.js with `subprocess.Popen`, keep the interpreter kernel alive while monitoring the child process, and terminate it cleanly on shutdown. The earlier `os.execve` handoff caused the CAI engine to exit after a successful frontend build.
 - Frontend portable Node was raised from 20.18.1 to 20.19.0 to satisfy the installed Vite toolchain's declared Node engine requirement. The Linux x64 archive URL was verified available from `nodejs.org`.
 - Qwen deployment configuration now accepts the environment's established `QWEN_API_TOKEN` name. `QWEN_API_KEY` remains a backward-compatible alias.
+- Qwen structured generation now receives the exact Pydantic JSON Schema in the leading system message. If Qwen returns valid JSON with the wrong field contract (observed live as `plan_type`/`clarification`/`reasoning` instead of `strategy`/`clarification_question`), the adapter performs one correction retry containing the invalid response and the exact schema instead of failing the whole Ask Data request immediately.
 - The Backend CAI dependency bootstrap now pins `thrift==0.16.0`, the exact version required by `impyla==0.22.0`. The earlier V2 pin to Thrift 0.22.0 caused pip `ResolutionImpossible` before Uvicorn could start. A real `pip install --dry-run --ignore-installed` now resolves the complete Impala requirement set successfully.
 - Regression tests explicitly execute both launchers in a namespace without `__file__` and verify that the correct V2 directories are found.
 
 ### Verification evidence
 
-- Backend V2: **46 tests passed**.
+- Backend V2: **47 tests passed**.
 - Frontend V2: **8 tests passed** and the production Next.js build completed successfully.
 - V1 regression protection: backend **454 tests passed**; frontend **71 tests passed**.
 - CAI launcher/readiness dry-run coverage passed in the backend V2 suite.
-- Live Gemini and OpenAI adapter probes passed with the intended model IDs.
+- Live Gemini and OpenAI adapter probes passed with the intended model IDs; a live Qwen `QueryPlan` probe also passed against the deployed private endpoint.
 - Production-source secret audit found no embedded API keys.
 - Live Impala queries were not run from this local workspace; both LDAP and GSSAPI profiles still require in-environment smoke tests.
 

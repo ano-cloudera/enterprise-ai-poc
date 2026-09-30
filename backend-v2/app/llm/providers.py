@@ -5,7 +5,7 @@ import re
 from typing import Any
 
 import httpx
-from pydantic import BaseModel
+from pydantic import BaseModel, ValidationError
 
 from app.core.config import Settings
 from app.llm.base import ProviderError, StructuredT
@@ -52,35 +52,57 @@ class _OpenAICompatibleProvider:
         temperature: float,
         max_tokens: int,
     ) -> StructuredT:
-        body = {
-            "model": self.model,
-            "messages": messages,
-            "response_format": {"type": "json_object"},
-        }
-        if self.modern_openai_parameters:
-            body["max_completion_tokens"] = max_tokens
+        schema = json.dumps(response_model.model_json_schema(), ensure_ascii=False, separators=(",", ":"))
+        schema_instruction = (
+            "Return exactly one JSON object that validates against this JSON Schema. "
+            f"Do not rename fields or add fields outside the schema: {schema}"
+        )
+        request_messages = [dict(message) for message in messages]
+        if request_messages and request_messages[0].get("role") == "system":
+            request_messages[0]["content"] += "\n\n" + schema_instruction
         else:
-            body["temperature"] = temperature
-            body["max_tokens"] = max_tokens
+            request_messages.insert(0, {"role": "system", "content": schema_instruction})
         headers = {"Content-Type": "application/json"}
         if self.api_key:
             headers["Authorization"] = f"Bearer {self.api_key}"
-        try:
-            async with httpx.AsyncClient(
-                timeout=self.settings.llm_request_timeout_seconds,
-                verify=self.verify_ssl,
-                transport=self.transport,
-            ) as client:
-                response = await client.post(f"{self.base_url}/chat/completions", headers=headers, json=body)
-                response.raise_for_status()
-            content = response.json()["choices"][0]["message"]["content"]
-            return response_model.model_validate(_structured_json(content))
-        except ProviderError:
-            raise
-        except httpx.TimeoutException as exc:
-            raise ProviderError("TIMEOUT") from exc
-        except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as exc:
-            raise ProviderError("PROVIDER_ERROR") from exc
+        for attempt in range(2):
+            body = {
+                "model": self.model,
+                "messages": request_messages,
+                "response_format": {"type": "json_object"},
+            }
+            if self.modern_openai_parameters:
+                body["max_completion_tokens"] = max_tokens
+            else:
+                body["temperature"] = temperature
+                body["max_tokens"] = max_tokens
+            try:
+                async with httpx.AsyncClient(
+                    timeout=self.settings.llm_request_timeout_seconds,
+                    verify=self.verify_ssl,
+                    transport=self.transport,
+                ) as client:
+                    response = await client.post(f"{self.base_url}/chat/completions", headers=headers, json=body)
+                    response.raise_for_status()
+                content = response.json()["choices"][0]["message"]["content"]
+            except httpx.TimeoutException as exc:
+                raise ProviderError("TIMEOUT") from exc
+            except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as exc:
+                raise ProviderError("PROVIDER_ERROR") from exc
+            try:
+                return response_model.model_validate(_structured_json(content))
+            except (ProviderError, ValidationError) as exc:
+                if attempt == 1:
+                    raise ProviderError("INVALID_STRUCTURED_OUTPUT") from exc
+                request_messages = [
+                    *request_messages,
+                    {"role": "assistant", "content": content},
+                    {
+                        "role": "user",
+                        "content": "The previous JSON did not validate. Return only a corrected JSON object matching the exact schema above.",
+                    },
+                ]
+        raise ProviderError("INVALID_STRUCTURED_OUTPUT")
 
 
 class QwenProvider(_OpenAICompatibleProvider):
