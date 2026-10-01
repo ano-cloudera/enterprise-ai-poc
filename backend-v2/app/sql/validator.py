@@ -22,7 +22,7 @@ _FORBIDDEN = re.compile(
 )
 
 _ALLOWED_FUNCTIONS = {
-    "abs", "and", "avg", "cast", "ceil", "ceiling", "coalesce", "concat", "count",
+    "abs", "and", "avg", "case", "cast", "ceil", "ceiling", "coalesce", "concat", "count",
     "date_add", "date_format", "date_sub", "datediff", "floor", "greatest", "if",
     "least", "lower", "ltrim", "max", "min", "month", "nullif", "or", "round", "rtrim",
     "substr", "substring", "sum", "trim", "upper", "year",

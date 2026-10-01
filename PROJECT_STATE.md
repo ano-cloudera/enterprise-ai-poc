@@ -1,9 +1,200 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 30 Sep 2026 (latest) — V2 gained an opt-in fallback to the separately deployed TEMPO Local Agent for questions our own OSSIE planner can't match, a fix for SQL text leaking into the user-facing "Data reference" field, a fix for a common typo breaking greeting detection, and several branding/layout cleanups (header/sidebar text, chat panel header). Commits `abf8965`..`a0001d8`.
+**Updated**: 1 Oct 2026 (latest) — Full audit and fix pass against the 9-question dry-run PDF plus live UAT against both GPT-4o and Qwen through the complete `ChatService` pipeline (deterministic resolver → governed/LLM-planned SQL → live Impala execution → LLM analysis). 6 of 9 dry-run issues fully fixed and verified end-to-end; SAT vs IDM partner-network confusion resolved with Tempo's direct confirmation (B2B = SAT = Alfamart only); new ROI-promo proxy metrics added; two cross-model bugs found and fixed (planner losing resolver context on `dimension_mismatch`/multi-concept questions; SQL validator rejecting `CASE WHEN` as a disallowed function). See checkpoint below for full detail.
 
-## Current checkpoint: TEMPO Local Agent fallback, data_reference SQL leak fix, greeting typo fix, branding cleanup (30 Sep 2026, latest)
+## Current checkpoint: dry-run audit, SAT/IDM governance fix, ROI promo proxy, live UAT (1 Oct 2026, latest)
+
+### Context: live Impala access was established this session
+
+Got live Kerberos/GSSAPI access to the Ingram Private Cloud Impala cluster from outside the
+CAI environment for the first time - root cause of earlier failed attempts was DNS: the
+correct KDC is `cdr-ip.imid.local` (found via `_kerberos._udp.imid.local` SRV record), not
+any of the `cbaseNN.imid.local` hosts Impala itself runs on. Once `kinit` succeeded, binary
+Impala on port 21050 (the `.env` default) worked fine - the earlier "must use port 28000"
+theory from mid-session was a red herring caused by a stale Kerberos ticket, not a real port
+requirement. This unblocked direct SQL verification of every finding below instead of relying
+on inference from code alone.
+
+### 9-question dry-run audit — 6 fully fixed, 2 by-design partial, verification pending for 1
+
+Audited `[TEMPO SCAN] Dry Run - Resume AI` PDF's 9 findings one at a time, each verified
+against live Impala data, not just code inspection:
+
+1. **"stok gudang tempo bro" stuck on Local Agent fallback** — resolver traced end-to-end and
+   confirmed correct (resolves to `material_warehouse_stock_quantity`, valid SQL, data exists
+   - 5.7B units). The error message in the dry-run screenshot didn't match our own metric
+   catalog at all, confirming it came from the separate TEMPO Local Agent, not our planner.
+   Most likely cause: the `kerberos` PyPI package (added in `8336980`, 30 Sep) failing to
+   build in the live CAI runtime image (needs system krb5 dev headers) - **still needs the
+   user to check CAI application logs**, not fixable from this session alone.
+2. **"10 cabang dengan service level terbaik/terjelek" returned all-NULL** — fixed. Root
+   cause: "cabang" wasn't recognized as a `sales_off` synonym, so the planner picked a
+   company/material-level metric instead of `sales_office_service_fill_rate`. Verified live:
+   actual fill rates range 41-72%, not NULL. Added "cabang" alias + fixed `sales_stage`
+   ambiguity ordering so stock/cover questions aren't hijacked by the generic Sell-In/Sell-Out
+   prompt.
+3. **"stok produk A di cabang A, cover berapa hari"** — disambiguation fixed (no longer asks
+   an irrelevant Sell-In/Sell-Out question), `dimension_mismatch` now correctly flags that
+   "cabang" can't be honored by `months_of_stock_cover` (company/material-grain only). Found
+   and documented a real data-quality issue during this audit: the metric's 3-month-only
+   window (Q4 2024) makes it produce implausible values (e.g. 17,028 "months of cover") for
+   low-Sell-In SKUs - confirmed NOT category-specific (both the thin-volume "ERV" material
+   group and mainstream high-revenue groups like BCL/TSP show the same pattern), so the
+   metric's `ai_context.instructions` now carries an explicit caveat. **Still non-deterministic
+   across LLM providers/runs** for the exact phrase "stok produk A di cabang A" - see UAT
+   section below; this is a genuine governed-data gap (no branch-level stock metric exists),
+   not purely a prompt issue.
+4. **"top produk B2B" answered Sell-In after clarification was answered** — fixed. "b2b" was
+   missing as a `sales_stage` discriminator, and `material_sell_in_value`'s alias "top produk"
+   substring-beat every B2B alias regardless of context. Added "b2b" discriminator plus explicit
+   B2B-qualified aliases.
+5. **"Top 10 DC Alfamart" returned one aggregate row instead of a per-DC breakdown** — fixed
+   and verified against live Impala (DC Palembang highest at Rp 20.87B, etc). Root cause: "DC"
+   wasn't recognized as a `branch` dimension hint in `compile_governed()`, so no `GROUP BY`
+   was ever added even though the metric's `allowed_dimensions` supports it.
+6. **"stok toko alfamart vs DC" comparison** — clarification reworked to distinguish
+   "bandingkan" (valid: show both side by side via two follow-up questions) from "jumlahkan"
+   (prohibited by Tempo - DC and store stock are different analysis levels). Deliberately did
+   **not** build a single-response two-column answer (would require a `compile_governed()`
+   architecture change affecting every other metric) and deliberately did **not** route to the
+   TEMPO Local Agent fallback for this case - live-tested that agent directly and found it has
+   the same SAT/IDM-mixing bug we just fixed on our side (`dimension_filters: part_flag=SAT`
+   requested but ignored at execution) plus an unrelated empty-table-rendering bug.
+7. **ROI promo** — was a hard `unsupported` refusal; now a `needs_clarification` offering 3
+   real proxy metrics (Revenue/Volume/Margin Uplift). See dedicated section below for the full
+   investigation and governance additions.
+8. **"service level/fill rate cabang tempo, urutkan SL terjelek"** — fixed (same root cause as
+   #2), verified resolves directly to `sales_office_service_fill_rate`.
+9. **"Analisa unloading dan picking ... perbandingan Industri standard"** — fixed. "picking"/
+   "unloading" as bare single words didn't match any alias at all (even individually), so the
+   combined question fell through to `unsupported`. Added single-word aliases plus a new
+   `_CONCEPT_PATTERNS` entry so a question naming both concepts is now explicitly flagged as
+   `multi_concept_metric_mismatch` (both concepts surfaced to the planner) instead of silently
+   answering only one. Confirmed via raw-to-gold audit that picking (23/52 sales offices) and
+   especially unloading (14/52) coverage gaps are real upstream data limits, not an ETL/join
+   bug (raw `silver.picking_okt_des_24`/`unloading_okt_des_24` distinct `sales_office` counts
+   match the gold view exactly, 0% loss). Added an explicit no-industry-benchmark-exists
+   instruction so the model never invents a comparison figure.
+
+### SAT vs IDM: resolved with Tempo's direct confirmation, not just data inference
+
+**Tempo confirmed directly (Pak Hieronimus Gunawan, 1 Oct 2026, WhatsApp): "utk data sales b2b
+2024, hanya SAT (alfamart)"** - B2B/Sell-Out data is Alfamart only. This closes out the
+multi-session SAT-vs-IDM investigation definitively: SAT (36 DC, matches B2B 100% by DC name
+and by PLU) is the Alfamart partner network; IDM (122 DC/depo/warehouse locations, 0% overlap
+with B2B on both DC name and PLU) is a separate, unrelated partner network that happens to
+ship in the same source Excel file as a second sheet. Irvan's team independently reached the
+same conclusion and added a `part_flag` ('SAT'/'IDM') column to the relevant silver/gold
+tables (`silver.stock_sat_idm_monthly_okt_des_24`, `gold.corr_sat_idm_plu_month`,
+`gold.rpt_sat_idm_plu_month`); `gold.rpt_b2b_sat_idm_plu_month` was updated (by this session,
+after flagging the gap to the user) to join explicitly on `part_flag='SAT'` instead of a
+pre-aggregated `_total` view that summed SAT+IDM together - verified the fix changes nothing
+numerically (420 rows, identical sums before/after) since no PLU happened to collide, but it
+removes the structural risk of silent future mixing.
+
+4 new/renamed gold views deployed live to Impala and reflected in both `tempo_core.ossie.yaml`
+and `datasets/migration/recreate_all_gold_views.sql` (gitignored, not committed - see below):
+`gold.rpt_sat_dc_month` / `gold.rpt_idm_dc_month` (split from the old combined
+`rpt_sat_idm_dc_month`, SAT-only and IDM-only respectively), `gold.corr_b2b_sat_branch_month`
+(B2B↔SAT join, explicit `part_flag='SAT'` filter), `gold.corr_sat_dc_oos_material_month`
+(renamed from a name that collided with Irvan's own differently-defined, not-yet-reconciled
+audit view of nearly the same name). OSSIE metrics renamed `sat_idm_dc_stock_*` →
+`sat_dc_stock_*`/`sat_store_stock_*` throughout, with "Alfamart" now stated explicitly instead
+of generic "partner" language, everywhere this was previously ambiguous.
+
+### ROI promo: no direct metric exists, but a disclosed cross-channel proxy now does
+
+SAT Promo (`silver.sat_promo_des_24`) has no structured cost column (`mekanisme` is free text
+like "POTONGAN 2.600") and covers December 2024 only, with no same-channel prior-month
+baseline. Investigated whether `sales_oct_dec_2024`'s `zcost` column could help - it is
+labeled "COGS Value" in Tempo's own `silver.custom_key_figure_sales` reference table (not
+"out of scope" as an earlier, now-outdated note in `TEMPO_KAMUS_DATA_AI.md` assumed), and its
+aggregate COGS/revenue ratio sanity-checks at ~85%, a plausible FMCG distributor margin - but
+it lives in General Trade sales data, a different channel from the Alfamart SAT Promo program.
+Confirmed structurally valid as a cross-channel ("halo effect") proxy: SAT Promo's 77 SAP
+material codes are 100% resolvable against `sales_oct_dec_2024`. Built 2 new gold views
+(`gold.corr_sat_promo_material_uplift`, `gold.rpt_sat_promo_material_uplift` - Dec vs Nov
+revenue/qty/margin per material) and 3 new OSSIE metrics (`promo_material_revenue_uplift`,
+`promo_material_volume_uplift`, `promo_material_margin_uplift`), all carrying explicit
+"this is a proxy, not the Alfamart promo's own measured impact" instructions. The `unsupported`
+refusal in `registry.py` was changed to a `needs_clarification` offering these 3 variants
+instead, with a loop-prevention fix (the clarification answer still contains the words
+"promo"/"ROI" from the original question since `contextualize_question()` prepends it, which
+previously re-triggered the same clarification forever).
+
+### Two cross-model bugs found via live UAT against GPT-4o and Qwen
+
+Ran the dry-run's 9 questions through the full `ChatService` pipeline (not just the resolver
+in isolation) against both `gpt-4o` (OpenAI) and `Qwen3.8-27B-AWQ` (self-hosted, live Impala
+backing both). Full transcripts saved verbatim (model output copy-pasted, not summarized) to
+`docs/uat/2026-10-01-gpt4o/` (one file per question) and `docs/uat/2026-10-01-qwen-uat.md`
+(single compiled file, per user request). Found 2 real bugs neither model-specific, both now
+fixed and verified (111/111 backend-v2 tests passing throughout):
+
+1. **The LLM query planner was never told what the deterministic resolver already found.**
+   When `resolve()` returns `dimension_mismatch` (a matched metric that can't fully cover a
+   requested breakdown) or `fallback`/`multi_concept_metric_mismatch` (two+ concepts, e.g.
+   "picking dan unloading"), `plan_query()` discarded that signal and handed the LLM planner
+   only the raw question plus the full 21-dataset/65-metric catalog - both GPT-4o and Qwen
+   sometimes answered `unsupported` for requests a governed metric genuinely covers, simply
+   because the specific candidate was never surfaced. Fixed by passing a `resolver_hint`
+   object (candidate metric, unmet dimensions, or requested concepts) to the planner prompt;
+   `query_planner.md` updated to explain how to use it. Verified fix: question #2 and #9 went
+   from inconsistent/unsupported to consistently `SUCCESS` across repeated runs.
+2. **SQL validator rejected `CASE WHEN...END` as "Function not allowed: case".** `sqlglot`
+   represents `CASE` as an `exp.Func` subtype (`exp.Case`), and `_ALLOWED_FUNCTIONS` in
+   `app/sql/validator.py` never included it - a completely standard, safe SQL conditional
+   expression was being blocked. Found via Qwen's UAT attempt at question #3 (`gpt-4o` never
+   happened to try a `CASE` expression, so this was invisible to the earlier GPT-4o-only UAT
+   round). Added `"case"` to the whitelist; verified it fixed question #3 from a hard
+   validation error to a correctly-empty `NO_DATA` response (query ran, zero matching rows -
+   the honest answer for a literal placeholder "produk A"/"cabang A").
+
+Also found and fixed: metric `ai_context.instructions` text that is too long/verbose appears
+to crowd out a model's attention on required output fields (observed: a very long
+`months_of_stock_cover` caveat paragraph correlated with the planner omitting the required
+`sql` field entirely, "Empty SQL") - shortened while keeping the same substantive caveats.
+
+### Final UAT status (both providers, after all fixes)
+
+| # | GPT-4o | Qwen |
+|---|---|---|
+| 1 | SUCCESS | SUCCESS |
+| 2 | SUCCESS | SUCCESS |
+| 3 | unstable (unsupported/validation error across runs - see audit #3 above) | NO_DATA (safe, correct) |
+| 4 | SUCCESS | SUCCESS |
+| 5 | CLARIFICATION (correct) | CLARIFICATION (correct) |
+| 6 | CLARIFICATION (correct) | CLARIFICATION (correct) |
+| 7 | CLARIFICATION (correct) | CLARIFICATION (correct) |
+| 8 | SUCCESS | SUCCESS |
+| 9 | SUCCESS | SUCCESS |
+
+### Not yet done
+
+- User still needs to check CAI application logs for finding #1 (likely `kerberos` package
+  build failure in the live runtime image) - not verifiable from outside CAI.
+- A third UAT round was requested against `.env`'s `MODEL_OPENAI=gpt-5.6-sol` value to compare
+  against the `gpt-4o` run - confirmed the model name itself is valid and reachable via the
+  configured API key (verified with a direct API call, using `max_completion_tokens` since
+  this model, like `gpt-4o`, rejects the older `max_tokens` parameter), but discovered
+  `MODEL_OPENAI` in `.env` does not match any Settings field name (`openai_model` reads
+  `OPENAI_MODEL`, not `MODEL_OPENAI`) - **the configured model is not actually wired to
+  anything and has never been used**; this needs the user's decision on how to proceed (fix
+  the env var name app-side, or pass the model explicitly) before that comparison run happens.
+- `datasets/migration/recreate_all_gold_views.sql` is `.gitignore`d (`datasets/**`) - the
+  session's edits to it (new/renamed SAT/IDM/promo views) are reflected on disk but were never
+  committable; the source of truth for what's actually live is the Impala `CREATE VIEW`
+  statements run directly this session, not that file. Flag this if the file is ever relied on
+  to recreate the gold layer from scratch again.
+
+## Previous checkpoint: out-of-scope question handling in query_planner.md (30 Sep 2026)
+
+### "unsupported" wasn't reliably chosen for questions outside TEMPO's domain entirely
+
+Live UAT: "Berapa biaya iklan TV Q4 2024" (TV advertising spend - not a TEMPO concept at all, TEMPO only covers sales/stock/OOS/service-level/picking/unloading/promo) got stuck on "Analyzing result" indefinitely instead of returning the `unsupported` message. Root cause: `query_planner.md` told the model to choose `unsupported` "when the requested data is absent" but never explained what TEMPO's scope actually is, so with no negative examples the model tended to force `sql_fallback` by grasping at a superficially-related column (e.g. treating "iklan" as adjacent to "promo" or a price field) rather than recognizing the concept has no real match - producing a plausible-looking but wrong SQL query that then stalls/fails slowly in validation or against Impala instead of failing fast at the planning step. Fixed (uncommitted) by adding an explicit paragraph to `query_planner.md` naming out-of-scope example concepts (advertising/marketing spend, media buying, competitor data, weather, macro figures) and instructing the model to choose `unsupported` immediately when a concept has no genuine match in the supplied `semantic_context.datasets`/`metrics`, rather than substituting a loosely-related column. No test exists that pins prompt file contents, so no test changes were needed; this should be re-verified live against the same "biaya iklan" question once redeployed.
+
+## Previous checkpoint: TEMPO Local Agent fallback, data_reference SQL leak fix, greeting typo fix, branding cleanup (30 Sep 2026)
 
 ### TEMPO Local Agent as an opt-in last-resort fallback (`497024e`)
 

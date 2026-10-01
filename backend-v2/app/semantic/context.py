@@ -34,11 +34,11 @@ _DOMAIN_DATASETS = {
         "b2b_customer_material_plu", "customer_reconciliation",
     },
     "stock_tempo": {"stock_tempo_month", "material_360"},
-    "stock_sat_idm": {"sat_idm_dc_month"},
+    "stock_sat_idm": {"sat_dc_month"},
     "sat_oos": {"sat_oos_material_month"},
     "cross_domain": {
         "material_360", "customer_reconciliation", "stock_tempo_sales_material_month",
-        "sales_b2b_material_month", "b2b_satidm_branch_month", "satidm_oos_material_month",
+        "sales_b2b_material_month", "b2b_sat_branch_month", "sat_dc_oos_material_month",
     },
 }
 
@@ -50,6 +50,8 @@ _CONCEPT_PATTERNS = {
     "store_stock": ("store stock", "storestock", "stok store"),
     "oos": ("oos", "out of stock"),
     "service_level": ("service level", "fill rate"),
+    "picking": ("picking",),
+    "unloading": ("unloading",),
 }
 
 _GUIDANCE_TOPICS = {
@@ -64,9 +66,9 @@ _GUIDANCE_DOMAIN_OPTIONS = (
     {"name": "B2B / Sell-Out", "metrics": ["b2b_branch_sell_out_value"], "examples": ["Branch mana dengan nilai Sell-Out terbesar?"]},
     {"name": "Stock Tempo", "metrics": ["stock_tempo_total_qty"], "examples": ["Bagaimana tren stok gudang Tempo per bulan?"]},
     {
-        "name": "Stock SAT-IDM",
-        "metrics": ["sat_idm_dc_stock_quantity", "sat_idm_store_stock_quantity"],
-        "examples": ["Berapa stok DC partner atau stok retail per division?"],
+        "name": "Stock SAT (Alfamart)",
+        "metrics": ["sat_dc_stock_quantity", "sat_store_stock_quantity"],
+        "examples": ["Berapa stok DC Alfamart atau stok retail per division?"],
     },
     {"name": "SAT OOS", "metrics": ["sat_oos_rate"], "examples": ["Material mana dengan SAT OOS rate tertinggi?"]},
     {"name": "Service Level", "metrics": ["service_fill_rate"], "examples": ["Material mana dengan Fill Rate terendah?"]},
@@ -89,6 +91,8 @@ def _metric_covers_concept(metric: str, concept: str) -> bool:
         "store_stock": "store_stock" in metric,
         "oos": "oos" in metric,
         "service_level": "fill_rate" in metric or metric.startswith("service_"),
+        "picking": "picking" in metric,
+        "unloading": "unloading" in metric,
     }
     return checks[concept]
 
@@ -191,6 +195,30 @@ class SemanticContextService:
                 dimensions = ["cust_id", "cust_code"]
             return resolved("sat_oos_rate", dimensions)
 
+        # "stok ... cover/bertahan ... (berapa) hari/bulan" is a stock-cover
+        # question, even though it often also contains "penjualan" (e.g.
+        # "hitung bisa meng-cover penjualan berapa hari dari stok tersebut")
+        # - that "penjualan" is describing what the stock covers, not asking
+        # for a separate Sell-In/Sell-Out figure. Route this before the
+        # generic sales_stage ambiguity (registry.resolve_ambiguity, called
+        # from resolve_metric below) can intercept it on the word
+        # "penjualan" and ask an irrelevant Sell-In-vs-Sell-Out question.
+        mentions_stock_cover = bool(words & {"stok", "stock"}) and (
+            "cover" in lowered or bool(words & {"bertahan", "tahan"})
+        )
+        if mentions_stock_cover:
+            result = resolved("months_of_stock_cover", ["material"] if "material" in words or words & {"produk", "sku"} else [])
+            # months_of_stock_cover is company/material-grain only (no
+            # branch/sales_off dimension exists for it) - if the question
+            # also asks for a branch/cabang breakdown ("di cabang A"), that
+            # part of the request cannot be honored. Surface it as a
+            # dimension_mismatch (same signal used elsewhere) instead of
+            # silently dropping it, so the analyst prompt can disclose the
+            # gap rather than answer as if "cabang A" was never asked.
+            if bool(words & {"cabang", "branch", "dc"}):
+                result["dimension_mismatch"] = ["branch"]
+            return result
+
         # These high-frequency Service Level intents have exact published
         # metrics. Resolve their requested grain deterministically instead of
         # leaving synonymous fill-rate metrics to alias-score tie breaking.
@@ -253,7 +281,7 @@ class SemanticContextService:
             "customer": ("customer", "pelanggan"),
             "sales_office": ("sales office", "kantor penjualan"),
             "sales_off": ("sales off",),
-            "branch": ("branch", "cabang"),
+            "branch": ("branch", "cabang", "dc"),
             "e_store": ("e-store", "estore"),
             "plu": ("plu",),
             "plant": ("plant",),
@@ -264,6 +292,13 @@ class SemanticContextService:
             raise ValueError("Requested dimension is not governed for this metric")
         if requested_dimensions is None and "dcname" in allowed and re.search(r"(?:per|by)\s+dc\b|\bdc\s+mana\b|\bnama dc\b", lowered):
             dimensions.append("dcname")
+        if requested_dimensions is None and dataset_name == "sat_promo_material_uplift" and "material" not in dimensions:
+            # This dataset's only governed dimension is material, and it is
+            # purpose-built for a "which material performed best" ranking
+            # (the promo ROI/uplift proxy) - a company-wide SUM has no
+            # meaningful business use here, so always break down by material
+            # rather than requiring the question to say "per material".
+            dimensions.append("material")
         if requested_dimensions is None and any(term in lowered for term in ("bulan", "bulanan", "month", "trend", "tren")):
             if {"thn", "bln"} <= allowed:
                 dimensions = ["thn", "bln", *dimensions]
@@ -312,7 +347,7 @@ class SemanticContextService:
         top = re.search(r"(?:top|teratas)\s+(\d+)", lowered)
         is_stock_metric = any(
             marker in metric
-            for marker in ("stock", "warehouse_stock", "sat_idm")
+            for marker in ("stock", "warehouse_stock", "sat_dc", "sat_store")
         )
         maximum = 10 if is_stock_metric else 200
         default = 10 if is_stock_metric else 50
@@ -364,7 +399,7 @@ class SemanticContextService:
             "scope": summary.get("scope") or "TEMPO Q4 2024",
             "domains": [
                 "Sales / Sell-In", "B2B / Sell-Out", "Stock Tempo",
-                "Stock SAT-IDM", "SAT OOS", "Service Level",
+                "Stock SAT (Alfamart)", "SAT OOS", "Service Level",
                 "Picking", "Unloading", "SAT Promo",
             ],
             "examples": list(summary.get("examples") or [])[:4],

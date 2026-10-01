@@ -46,9 +46,9 @@ class FakeContext:
     def guidance_context(self, question: str):
         return {
             "scope": "October-December 2024",
-            "domains": ["Sales / Sell-In", "Stock Tempo", "Stock SAT-IDM"],
+            "domains": ["Sales / Sell-In", "Stock Tempo", "Stock SAT (Alfamart)"],
             "focus": "stock" if "stok" in question.casefold() else None,
-            "metrics": [{"name": "sat_idm_store_stock_quantity", "dimensions": ["division", "plu"]}],
+            "metrics": [{"name": "sat_store_stock_quantity", "dimensions": ["division", "plu"]}],
             "examples": ["Berapa stok retail per division?"],
         }
 
@@ -355,7 +355,7 @@ async def test_capability_conversation_is_guided_by_selected_llm_without_sql(que
     payload = provider.messages[1]["content"]
     assert "conversation_history" in payload
     if "stok" in question:
-        assert "sat_idm_store_stock_quantity" in payload
+        assert "sat_store_stock_quantity" in payload
 
 
 def test_query_plan_cannot_select_conversational_strategy() -> None:

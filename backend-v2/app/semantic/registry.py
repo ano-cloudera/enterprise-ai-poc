@@ -182,11 +182,7 @@ class TempoOssieRegistry:
             term in normalized
             for term in ("oktober", "november", "q4", "kuartal4")
         )
-        if mentions_promo and (
-            requests_mixed_status_meaning
-            or requests_promo_attribution
-            or requests_unavailable_promo_period
-        ):
+        if mentions_promo and requests_mixed_status_meaning:
             return {
                 "status": "unsupported",
                 "reason": "promo_business_definition_unavailable",
@@ -194,13 +190,77 @@ class TempoOssieRegistry:
                     "SAT Promo hanya mendukung observasi audit Desember 2024. "
                     "Seluruh data ini adalah observasi promo aktif (dikonfirmasi "
                     "Tempo); kode status Y/X/T tidak membedakan aktif/tidak aktif, "
-                    "jadi tidak bisa memilah subset yang tidak aktif. Data biaya, "
-                    "uplift, ROI, dan atribusi revenue juga belum tersedia."
+                    "jadi tidak bisa memilah subset yang tidak aktif."
                 ),
                 "suggested_questions": [
                     "Jumlah observasi promo per mekanisme Desember 2024",
                     "Berapa jumlah material yang tercakup SAT Promo Desember 2024?",
                     "Bagaimana distribusi kode program status Y/X/T?",
+                ],
+            }
+        # No direct ROI metric exists: SAT Promo (the Alfamart/B2B promo
+        # program) has no promo-cost column beyond a free-text "mekanisme"
+        # field, and SAT Promo only covers December 2024 with no prior-month
+        # baseline in the same channel. The only measurable proxy is General
+        # Trade Sell-In uplift (Nov vs Dec) for the same material codes - SAT
+        # Promo's material_code is a SAP material code that is 100%
+        # resolvable against sales_oct_dec_2024 (confirmed 1 Oct 2026, 77/77
+        # materials matched), so this is a valid (if indirect/"halo effect")
+        # proxy, not a guess. Offer the 3 variants we can actually compute
+        # instead of refusing outright - this is a material change from the
+        # earlier "ROI/uplift data not available" refusal.
+        # A clarification answer that still carries the original question's
+        # wording (contextualize_question() prepends it) would otherwise
+        # re-trigger this same clarification forever, since "promo"/"ROI"
+        # are still present. Check the ROI-proxy option discriminators
+        # first, before the generic promo/ROI trigger below.
+        roi_proxy_discriminators = {
+            "promo_material_revenue_uplift": ("revenue uplift",),
+            "promo_material_volume_uplift": ("volume uplift", "volume/qty uplift", "qty uplift"),
+            "promo_material_margin_uplift": ("margin uplift",),
+        }
+        roi_proxy_selected = [
+            metric
+            for metric, terms in roi_proxy_discriminators.items()
+            if any(_normalize(term) in normalized for term in terms)
+        ]
+        if mentions_promo and len(roi_proxy_selected) == 1:
+            metric = roi_proxy_selected[0]
+            return {
+                "status": "resolved",
+                "metric": metric,
+                "matched_alias": "promo_roi_proxy_choice",
+                "definition": self.metric_definition(metric),
+                "dimension_mismatch": [],
+            }
+        if mentions_promo and (requests_promo_attribution or requests_unavailable_promo_period):
+            return {
+                "status": "needs_clarification",
+                "reason": "promo_roi_proxy_choice",
+                "question": (
+                    "TEMPO tidak memiliki data biaya promo atau ROI langsung untuk "
+                    "SAT Promo (Alfamart) - data yang tersedia hanya deskripsi "
+                    "mekanisme promo (teks bebas), bukan nilai biaya terstruktur, dan "
+                    "SAT Promo hanya mencakup Desember 2024 tanpa baseline bulan "
+                    "sebelumnya di channel yang sama. Satu-satunya proxy yang bisa "
+                    "dihitung adalah dampak penjualan General Trade (bukan Alfamart "
+                    "langsung) untuk material yang sama, dibandingkan November "
+                    "(baseline) vs Desember (bulan promo). Metrik mana yang Anda "
+                    "mau?"
+                ),
+                "options": [
+                    {
+                        "metric": "promo_material_revenue_uplift",
+                        "label": "Revenue Uplift (Rp, General Trade, proxy)",
+                    },
+                    {
+                        "metric": "promo_material_volume_uplift",
+                        "label": "Volume/Qty Uplift (General Trade, proxy)",
+                    },
+                    {
+                        "metric": "promo_material_margin_uplift",
+                        "label": "Margin Uplift (Rp, General Trade, pakai COGS, proxy)",
+                    },
                 ],
             }
 
@@ -253,20 +313,53 @@ class TempoOssieRegistry:
                 ),
                 "options": [
                     {
-                        "metric": "sat_idm_dc_stock_quantity",
+                        "metric": "sat_dc_stock_quantity",
                         "label": "DC Stock Quantity",
                     },
                     {
-                        "metric": "sat_idm_store_stock_quantity",
+                        "metric": "sat_store_stock_quantity",
                         "label": "Store Stock Quantity",
                     },
                     {
-                        "metric": "sat_idm_dc_stock_value",
+                        "metric": "sat_dc_stock_value",
                         "label": "DC Stock Value",
                     },
                     {
-                        "metric": "sat_idm_store_stock_value",
+                        "metric": "sat_store_stock_value",
                         "label": "Store Stock Value",
+                    },
+                ],
+            }
+        # "Bandingkan"/"vs" is a different, valid request from "jumlahkan" -
+        # the user wants to SEE both levels side by side, not sum them into
+        # one number (which Tempo explicitly prohibited, see above). No
+        # single compile_governed() call can return two stock-level columns
+        # at once, so route this to two explicit metric choices instead of
+        # the generic 4-way stock_scope ambiguity below, which doesn't make
+        # clear that both can be asked back-to-back for a side-by-side view.
+        mentions_comparison = any(
+            term in normalized for term in ("bandingkan", "dibandingkan", "perbandingan", "vs", "versus")
+        )
+        if mentions_dc_level and mentions_store_level and mentions_comparison and not requests_combination:
+            wants_value = any(term in normalized for term in ("nilai", "value", "rupiah", "idr"))
+            return {
+                "status": "needs_clarification",
+                "reason": "sat_idm_stock_level_comparison",
+                "question": (
+                    "DC Stock dan Store Stock berada pada level analisis "
+                    "berbeda dan ditampilkan sebagai metrik terpisah, bukan "
+                    "satu angka gabungan. Saya bisa tunjukkan keduanya - "
+                    "tanyakan dulu salah satu di bawah, lalu lanjutkan "
+                    "dengan yang satunya untuk melihat perbandingannya."
+                ),
+                "options": [
+                    {
+                        "metric": "sat_dc_stock_value" if wants_value else "sat_dc_stock_quantity",
+                        "label": "DC Stock " + ("Value" if wants_value else "Quantity"),
+                    },
+                    {
+                        "metric": "sat_store_stock_value" if wants_value else "sat_store_stock_quantity",
+                        "label": "Store Stock " + ("Value" if wants_value else "Quantity"),
                     },
                 ],
             }
@@ -356,9 +449,9 @@ class TempoOssieRegistry:
         ):
             wants_value = any(term in normalized for term in ("nilai", "value", "rupiah", "idr"))
             if mentions_partner_dc:
-                metric_name = "sat_idm_dc_stock_value" if wants_value else "sat_idm_dc_stock_quantity"
+                metric_name = "sat_dc_stock_value" if wants_value else "sat_dc_stock_quantity"
             else:
-                metric_name = "sat_idm_store_stock_value" if wants_value else "sat_idm_store_stock_quantity"
+                metric_name = "sat_store_stock_value" if wants_value else "sat_store_stock_quantity"
             return {
                 "status": "resolved",
                 "metric": metric_name,
@@ -374,9 +467,15 @@ class TempoOssieRegistry:
             # are genuinely different dimensions. Keep their routing hints
             # separate so a branch-qualified B2B question cannot receive the
             # generic company-month bonus and fall through to Gross Sales.
-            "branch": ("branch", "cabang partner", "branch b2b"),
-            "sales_off": ("sales off", "sales_off"),
-            "sales_office": ("sales office", "kantor penjualan", "office"),
+            # "cabang" is listed under both - it is the common Indonesian word
+            # for either a B2B partner branch or a Tempo sales office, and
+            # which one a question means is decided by the sales_stage
+            # ambiguity (Sell-In vs B2B/Sell-Out) resolving first, not by
+            # this dimension hint alone; resolve_metric's per-metric alias
+            # scoring then picks the matching domain's metric.
+            "branch": ("branch", "cabang partner", "branch b2b", "cabang"),
+            "sales_off": ("sales off", "sales_off", "cabang"),
+            "sales_office": ("sales office", "kantor penjualan", "office", "cabang"),
             "fill_rate_band": ("fill rate band", "kategori fill", "low fill"),
             "calmonth": ("bulan", "bulanan", "month", "trend", "tren"),
         }

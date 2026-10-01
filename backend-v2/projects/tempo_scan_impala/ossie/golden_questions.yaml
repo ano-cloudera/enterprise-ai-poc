@@ -706,20 +706,20 @@ questions:
     catalog_question_id: I08
     chart_primary: HBAR
     domain_agent: stock_sat_idm
-    question: Berapa nilai stok DC SAT-IDM per DC selama Q4 2024?
+    question: Berapa nilai stok DC Alfamart (SAT) per DC selama Q4 2024?
     expected_status: supported
-    metric: sat_idm_dc_stock_value
-    dataset: sat_idm_dc_month
+    metric: sat_dc_stock_value
+    dataset: sat_dc_month
     dimensions: [dcname]
 
   - id: showcase_sat_idm_store_value
     catalog_question_id: I08
     chart_primary: HBAR
     domain_agent: stock_sat_idm
-    question: Berapa nilai stok store SAT-IDM per DC selama Q4 2024?
+    question: Berapa nilai stok store Alfamart (SAT) per DC selama Q4 2024?
     expected_status: supported
-    metric: sat_idm_store_stock_value
-    dataset: sat_idm_dc_month
+    metric: sat_store_stock_value
+    dataset: sat_dc_month
     dimensions: [dcname]
 
   - id: sat_idm_total_pipeline_is_prohibited

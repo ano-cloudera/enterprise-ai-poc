@@ -1129,22 +1129,28 @@ datasets:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"domain":"stock_tempo","grain":"calmonth+material+plant","layer":"semantic_gold","built":"2026-09-24"}'
-- name: sat_idm_dc_month
-  source: gold.rpt_sat_idm_dc_month
+- name: sat_dc_month
+  source: gold.rpt_sat_dc_month
   primary_key:
   - thn
   - bln
   - dcname
   - plu
   - division
-  description: Stock SAT-IDM (partner DC and retail store stock) monthly aggregate, October-December 2024.
+  description: Stock SAT (Alfamart partner DC and retail store stock) monthly aggregate, October-December 2024. Confirmed
+    by Tempo (Pak Hieronimus Gunawan, 1 Oct 2026) that B2B/Sell-Out data is Alfamart only; SAT's 36 DC names match B2B's
+    36 branches at 100%, and this is the same Alfamart partner network, not a generic "partner" placeholder. The source
+    file's separate "IDM" sheet (122 DC/depo/warehouse locations, 0% DC-name and PLU overlap with B2B/SAT) is an unrelated
+    partner network and is intentionally excluded from this dataset - see gold.rpt_idm_dc_month if IDM data is needed.
   ai_context:
     instructions: bln is a 3-letter month code (OCT/NOV/DEC), not a number. division meaning is still hypothesis pending Tempo
       confirmation.
     synonyms:
+    - stock sat
     - stock sat idm
     - stok dc partner
-    - stok store idm
+    - stok dc alfamart
+    - stok store alfamart
   fields:
   - name: thn
     expression:
@@ -1218,7 +1224,7 @@ datasets:
     datatype: Integer
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"domain":"stock_sat_idm","grain":"thn+bln+dcname+plu+division","layer":"semantic_gold","built":"2026-09-24"}'
+    data: '{"domain":"stock_sat","grain":"thn+bln+dcname+plu+division","layer":"semantic_gold","built":"2026-09-24"}'
 - name: sat_oos_material_month
   source: gold.rpt_sat_oos_material_month
   primary_key:
@@ -1404,19 +1410,23 @@ datasets:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"domain":"journey_sales_b2b","grain":"calmonth+material","layer":"semantic_gold","built":"2026-09-24"}'
-- name: b2b_satidm_branch_month
-  source: gold.corr_b2b_satidm_branch_month
+- name: b2b_sat_branch_month
+  source: gold.corr_b2b_sat_branch_month
   primary_key:
   - calmonth
   - branch
-  description: Journey view C - B2B Sell-Out joined to Stock SAT-IDM (DC/store stock) by branch=dcname and month, October-December
-    2024. Highest-priority journey view - join key confirmed 100% match rate (108/108 rows) at build time (24 Sep 2026).
+  description: Journey view C - B2B Sell-Out joined to Stock SAT (Alfamart partner DC/store stock) by branch=dcname and
+    month, October-December 2024. Highest-priority journey view - join key confirmed 100% match rate (36/36 DC names)
+    at build time, and both sides confirmed as the same Alfamart partner network (Tempo, 1 Oct 2026). Only joins the SAT
+    partition of the source stock data (part_flag='SAT') - the IDM partition is a different, unrelated partner network
+    and is never joined here.
   ai_context:
-    instructions: Join key is branch (B2B) = dcname (SAT-IDM) after stripping the "DC " prefix from branch and normalizing
+    instructions: Join key is branch (B2B) = dcname (SAT) after stripping the "DC " prefix from branch and normalizing
       case/whitespace on both sides - confirmed 100% match, not an assumption.
     synonyms:
     - replenishment dc
     - sell-out vs stok dc
+    - stok alfamart vs penjualan alfamart
   fields:
   - name: calmonth
     expression:
@@ -1473,16 +1483,17 @@ datasets:
     datatype: Decimal
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"domain":"journey_b2b_satidm","grain":"calmonth+branch","layer":"semantic_gold","built":"2026-09-24"}'
-- name: satidm_oos_material_month
-  source: gold.corr_satidm_oos_material_month
+    data: '{"domain":"journey_b2b_sat","grain":"calmonth+branch","layer":"semantic_gold","built":"2026-09-24"}'
+- name: sat_dc_oos_material_month
+  source: gold.corr_sat_dc_oos_material_month
   primary_key:
   - calmonth
   - plu
-  description: Journey view D - Stock SAT-IDM (DC/store stock) joined to SAT OOS (shelf survey) by PLU and month, October-December
-    2024. Join match rate 79.6% (9125/11458 rows) at build time (24 Sep 2026).
+  description: Journey view D - Stock SAT (Alfamart partner DC/store stock) joined to SAT OOS (shelf survey) by PLU and
+    month, October-December 2024. Join match rate 79.6% (9125/11458 rows) at build time (24 Sep 2026). Both sides are
+    the same Alfamart partner network (Tempo, 1 Oct 2026) - the IDM partition of the source stock data is excluded here.
   ai_context:
-    instructions: Join key is plu + calmonth on both sides. Not all SAT-IDM PLU-months have a matching OOS survey in the
+    instructions: Join key is plu + calmonth on both sides. Not all SAT PLU-months have a matching OOS survey in the
       same month (match rate 79.6%, not 100%) - state this caveat when using unmatched rows.
     synonyms:
     - stok dc vs oos
@@ -1530,7 +1541,7 @@ datasets:
     datatype: Integer
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"domain":"journey_satidm_oos","grain":"calmonth+plu","layer":"semantic_gold","built":"2026-09-24"}'
+    data: '{"domain":"journey_sat_oos","grain":"calmonth+plu","layer":"semantic_gold","built":"2026-09-24"}'
 - name: sat_promo_material_december
   source: gold.rpt_sat_promo_material_december_semantic
   primary_key:
@@ -1540,7 +1551,7 @@ datasets:
   - program_status
   description: December 2024 SAT Promo field-audit observations aggregated by material, raw mechanism, and raw program-status code.
   ai_context:
-    instructions: Use only for December 2024 field-audit coverage. Mekanisme is a raw source code/text with no confirmed business mapping - never infer meaning from it. program_status is confirmed by Tempo (Pak Hieronimus Gunawan, WhatsApp, 28 Sep 2026, replying to "Y = active kah?" with "abaikan saja pak, di list tersebut, artinya aktif") - every row/status code in this list represents an active promo observation, so program_status does not distinguish active from inactive and must not be used to filter, count, or report an "active promo" subset differently from the total. Still never claim revenue attribution, uplift, effectiveness, or ROI from this data - the active-status confirmation does not extend to those.
+    instructions: Use only for December 2024 field-audit coverage. Mekanisme is a raw source code/text with no confirmed business mapping - never infer meaning from it. program_status is confirmed by Tempo (Pak Hieronimus Gunawan, WhatsApp, 28 Sep 2026, replying to "Y = active kah?" with "abaikan saja pak, di list tersebut, artinya aktif") - every row/status code in this list represents an active promo observation, so program_status does not distinguish active from inactive and must not be used to filter, count, or report an "active promo" subset differently from the total. This dataset itself has no cost/revenue/uplift field - never claim revenue attribution, uplift, effectiveness, or ROI directly from it. A cross-channel proxy for ROI/uplift exists via sat_promo_material_uplift (General Trade Sell-In for the same SAP material codes, Nov vs Dec) - route ROI/uplift/effectiveness questions there instead of answering from this dataset.
     synonyms:
     - sat promo desember
     - audit promo lapangan
@@ -1588,6 +1599,95 @@ datasets:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"domain":"sat_promo","grain":"reporting_month+material_code+mekanisme+program_status","layer":"semantic_gold","time_scope":[202412],"status_semantics":"all_rows_confirmed_active_by_tempo_2026_09_28"}'
+- name: sat_promo_material_uplift
+  source: gold.rpt_sat_promo_material_uplift
+  primary_key:
+  - material
+  description: Cross-channel ROI/uplift proxy for SAT Promo (Alfamart) materials - General Trade Sell-In revenue/quantity/margin,
+    November 2024 (baseline) vs December 2024 (promo month), for the 77 SAP material codes that appear in SAT Promo.
+  ai_context:
+    instructions: This is a PROXY, not a direct measurement of the Alfamart promo's own ROI - SAT Promo (the Alfamart/B2B
+      promo program) has no structured cost column (only a free-text "mekanisme" field) and only covers December 2024
+      with no same-channel baseline, so no direct ROI/cost metric is possible from SAT Promo itself. This dataset instead
+      measures whether General Trade (a DIFFERENT channel from where the promo ran) also saw a sales change for the same
+      material codes between Nov and Dec - a cross-channel "halo effect" proxy, confirmed structurally valid (SAT Promo's
+      material_code is 100% (77/77) resolvable against this dataset's material, both using the same SAP material code
+      space) but not a causal attribution. Always label results as a proxy/indirect signal, never as "the promo's ROI"
+      outright. margin_val uses zcost, confirmed by Tempo's own custom_key_figure_sales reference table to mean "COGS
+      Value" - aggregate COGS/revenue ratio sanity-checked at ~85%, a plausible FMCG distributor margin, but zcost itself
+      is still pending full Tempo confirmation for this exact time period. Never claim this proxy measures Alfamart's
+      own channel economics - zcost and the underlying sales here are General Trade, not Alfamart/B2B.
+    synonyms:
+    - promo roi
+    - roi promo
+    - promo investment
+    - promo uplift
+  fields:
+  - name: material
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: material
+    datatype: String
+    dimension: {}
+    label: Material Code
+  - name: dec_bill_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: dec_bill_val
+    datatype: Decimal
+  - name: nov_bill_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: nov_bill_val
+    datatype: Decimal
+  - name: revenue_uplift
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: revenue_uplift
+    datatype: Decimal
+  - name: dec_bill_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: dec_bill_qty
+    datatype: Decimal
+  - name: nov_bill_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: nov_bill_qty
+    datatype: Decimal
+  - name: volume_uplift
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: volume_uplift
+    datatype: Decimal
+  - name: dec_margin_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: dec_margin_val
+    datatype: Decimal
+  - name: nov_margin_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: nov_margin_val
+    datatype: Decimal
+  - name: margin_uplift
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: margin_uplift
+    datatype: Decimal
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"domain":"sat_promo_roi_proxy","grain":"material","layer":"semantic_gold","built":"2026-10-01","status_semantics":"cross_channel_proxy_not_causal_attribution"}'
 relationships: []
 metrics:
 - name: gross_billing_value
@@ -1773,6 +1873,13 @@ metrics:
     - sell-in per sales office
     - sales office dengan sell-in terbesar
     - penjualan per sales office
+    - cabang dengan penjualan terbesar
+    - cabang dengan sell-in terbesar
+    - top cabang penjualan tempo
+    - cabang sell-in tertinggi
+    - cabang dengan sell-in tertinggi
+    - cabang penjualan tertinggi
+    - top cabang dengan penjualan
     instructions: sales_office is a working PoC assumption (a branch in a given region), not yet Tempo-confirmed - see the sales_office_material_360 dataset's instructions. This is a finer grain than sales_office_sell_in_value (SI-13-Q4), which is Q4-total-only with no material dimension.
   custom_extensions:
   - vendor_name: TEMPO
@@ -1867,6 +1974,10 @@ metrics:
     synonyms:
     - material sell-out value
     - nilai sell-out sku
+    - top produk b2b
+    - top produk di b2b
+    - produk b2b dengan penjualan tertinggi
+    - produk terlaris b2b
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"SO-01-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material","retail_plu"],"required_filters":["has_sell_out"],"governance_status":"scoped_metric","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-01","unit_format":"currency_idr"}'
@@ -1913,7 +2024,16 @@ metrics:
     - stock cover
     - berapa bulan stok cukup
     - stok bertahan berapa bulan
-    instructions: Proxy only, not an official inventory-planning KPI. Inverse framing of sell_in_quantity_per_stock_unit (SI-16-MAT) - same underlying data, opposite division direction, more intuitive for "how long will stock last" questions.
+    instructions: >-
+      Proxy only, not an official inventory-planning KPI (inverse of
+      sell_in_quantity_per_stock_unit, SI-16-MAT). Computed over only 3
+      months (Q4 2024), so low-sell-in SKUs can show implausibly high
+      values (confirmed: 219/2,272 materials over 36 months, in both
+      near-zero-movement and regular high-revenue product groups alike -
+      a 3-month sample is simply too short, not bad data). Never state a
+      value above ~24-36 months as a literal duration claim - note it
+      reflects only Q4 2024 velocity, and flag low Q4 sell-in volume as
+      the likely cause of an extreme ratio.
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"SI-16-MAT-INV","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in","has_stock"],"governance_status":"supporting","business_approval_status":"pending_business_confirmation","original_kpi_id":"SI-16","unit_format":"ratio"}'
@@ -2021,6 +2141,13 @@ metrics:
     - sales office dengan fill rate terendah
     - sales office mana dengan fill rate terendah
     - sales office mana dengan fill rate tertinggi
+    - service level cabang tempo
+    - fill rate cabang tempo
+    - cabang dengan service level terbaik
+    - cabang dengan service level terjelek
+    - service level di cabang tempo
+    - fill rate di cabang tempo
+    - service level per cabang
     instructions: Recompute aggregate Fill Rate from total DO and PO; never average row ratios. sales_off is a working PoC assumption, not yet Tempo-confirmed. Prefer this metric over the plain service_fill_rate whenever the question asks for a sales-office breakdown/comparison (e.g. "sales office mana...") rather than a company- or material-level answer.
   custom_extensions:
   - vendor_name: TEMPO
@@ -2178,6 +2305,18 @@ metrics:
     synonyms:
     - average picking time
     - rata-rata waktu picking
+    - picking
+    - data picking
+    - analisa picking
+    instructions: >-
+      Coverage is partial - only 23 of 52 sales offices have any picking
+      data (confirmed 1 Oct 2026); sales offices without a value should be
+      reported as having no recorded picking data, never silently omitted
+      or shown as zero. No external industry-standard benchmark for
+      picking/unloading duration exists anywhere in TEMPO's governed data -
+      never invent or estimate an industry-average figure to compare
+      against; if the user asks for an industry comparison, state plainly
+      that no such benchmark is available in this system.
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"PK-03-Q4","base_dataset":"sales_office_q4","allowed_dimensions":["reporting_period","sales_office"],"row_filter":"has_picking = TRUE","governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"PK-03","unit_format":"minutes"}'
@@ -2210,6 +2349,19 @@ metrics:
     synonyms:
     - average unloading time
     - rata-rata waktu unloading
+    - unloading
+    - data unloading
+    - analisa unloading
+    instructions: >-
+      Coverage is thin - only 14 of 52 sales offices have any unloading
+      data (confirmed 1 Oct 2026, far sparser than picking's 23/52); sales
+      offices without a value should be reported as having no recorded
+      unloading data, never silently omitted or shown as zero. No external
+      industry-standard benchmark for picking/unloading duration exists
+      anywhere in TEMPO's governed data - never invent or estimate an
+      industry-average figure to compare against; if the user asks for an
+      industry comparison, state plainly that no such benchmark is
+      available in this system.
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"UL-01-Q4","base_dataset":"sales_office_q4","allowed_dimensions":["reporting_period","sales_office"],"row_filter":"has_unloading = TRUE","governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"UL-01","unit_format":"minutes"}'
@@ -2262,6 +2414,10 @@ metrics:
     - sell-out branch
     - sell-out dc
     - revenue b2b cabang
+    - cabang b2b dengan penjualan tertinggi
+    - top cabang b2b penjualan
+    - penjualan partner ke konsumen akhir per cabang
+    - penjualan partner ke konsumen akhir per branch
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"B2B-01-BR","base_dataset":"b2b_branch_estore","allowed_dimensions":["calmonth","sales_off","branch","e_store"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"B02","unit_format":"currency_idr"}'
@@ -2410,77 +2566,84 @@ metrics:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"ST-03-SETA","base_dataset":"stock_tempo_month","allowed_dimensions":["calmonth","material","plant"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"T05","unit_format":"currency_idr"}'
-- name: sat_idm_dc_stock_quantity
+- name: sat_dc_stock_quantity
   expression:
     dialects:
     - dialect: ANSI_SQL
-      expression: SUM(sat_idm_dc_month.dc_stock_qty)
+      expression: SUM(sat_dc_month.dc_stock_qty)
   datatype: Decimal
-  description: Partner DC stock quantity by DC name, PLU, and division, October-December 2024.
+  description: Alfamart partner DC stock quantity by DC name, PLU, and division, October-December 2024.
   ai_context:
     synonyms:
     - idm stock
     - stock idm
     - dcstock
     - stok dc partner
+    - stok dc alfamart
     - dc stock quantity
-    instructions: DC-level quantity only. Never add it to store stock quantity as a total pipeline metric.
+    instructions: DC-level quantity only. Never add it to store stock quantity as a total pipeline metric. Confirmed Alfamart-only
+      (Tempo, 1 Oct 2026) - same partner network as B2B.
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SI-01-IDM","base_dataset":"sat_idm_dc_month","allowed_dimensions":["thn","bln","dcname","plu","division"],"governance_status":"approved_candidate","business_approval_status":"confirmed_by_tempo_2026_09_28","original_kpi_id":"I01","unit_format":"quantity"}'
-- name: sat_idm_dc_stock_value
+    data: '{"metric_id":"SI-01-SAT","base_dataset":"sat_dc_month","allowed_dimensions":["thn","bln","dcname","plu","division"],"governance_status":"approved_candidate","business_approval_status":"confirmed_by_tempo_2026_09_28","original_kpi_id":"I01","unit_format":"quantity"}'
+- name: sat_dc_stock_value
   expression:
     dialects:
     - dialect: ANSI_SQL
-      expression: SUM(sat_idm_dc_month.dc_stock_val)
+      expression: SUM(sat_dc_month.dc_stock_val)
   datatype: Decimal
-  description: Value in IDR of TEMPO products held at partner distribution-center level.
+  description: Value in IDR of TEMPO products held at Alfamart partner distribution-center level.
   ai_context:
     synonyms:
     - nilai stok dc sat-idm
     - dcstock value
     - dc stock value
     - nilai dcstock
-    instructions: DC-level value only. Never add it to store stock value as a total pipeline metric.
+    instructions: DC-level value only. Never add it to store stock value as a total pipeline metric. Confirmed Alfamart-only
+      (Tempo, 1 Oct 2026) - same partner network as B2B.
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SI-03-IDM","base_dataset":"sat_idm_dc_month","allowed_dimensions":["thn","bln","dcname","plu","division"],"governance_status":"approved_candidate","business_approval_status":"confirmed_by_tempo_2026_09_28","original_kpi_id":"I08-DC","unit_format":"currency_idr"}'
-- name: sat_idm_store_stock_quantity
+    data: '{"metric_id":"SI-03-SAT","base_dataset":"sat_dc_month","allowed_dimensions":["thn","bln","dcname","plu","division"],"governance_status":"approved_candidate","business_approval_status":"confirmed_by_tempo_2026_09_28","original_kpi_id":"I08-DC","unit_format":"currency_idr"}'
+- name: sat_store_stock_quantity
   expression:
     dialects:
     - dialect: ANSI_SQL
-      expression: SUM(sat_idm_dc_month.store_stock_qty)
+      expression: SUM(sat_dc_month.store_stock_qty)
   datatype: Decimal
-  description: Retail store stock quantity (under a partner DC) by DC name, PLU, and division, October-December 2024.
+  description: Retail store stock quantity (under an Alfamart partner DC) by DC name, PLU, and division, October-December
+    2024.
   ai_context:
     synonyms:
     - storestock
     - stok store
     - stok retail
     - stok toko retail
+    - stok toko alfamart
     - retail stock
     - store stock quantity
-    instructions: Store/customer-level quantity only. Never add it to DC stock quantity as a total pipeline metric.
+    instructions: Store/customer-level quantity only. Never add it to DC stock quantity as a total pipeline metric. Confirmed
+      Alfamart-only (Tempo, 1 Oct 2026) - same partner network as B2B.
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SI-02-IDM","base_dataset":"sat_idm_dc_month","allowed_dimensions":["thn","bln","dcname","plu","division"],"governance_status":"approved_candidate","business_approval_status":"confirmed_by_tempo_2026_09_28","original_kpi_id":"I02","unit_format":"quantity"}'
-- name: sat_idm_store_stock_value
+    data: '{"metric_id":"SI-02-SAT","base_dataset":"sat_dc_month","allowed_dimensions":["thn","bln","dcname","plu","division"],"governance_status":"approved_candidate","business_approval_status":"confirmed_by_tempo_2026_09_28","original_kpi_id":"I02","unit_format":"quantity"}'
+- name: sat_store_stock_value
   expression:
     dialects:
     - dialect: ANSI_SQL
-      expression: SUM(sat_idm_dc_month.store_stock_val)
+      expression: SUM(sat_dc_month.store_stock_val)
   datatype: Decimal
-  description: Value in IDR of TEMPO products held at retail store/customer level under partner DCs.
+  description: Value in IDR of TEMPO products held at retail store/customer level under Alfamart partner DCs.
   ai_context:
     synonyms:
     - nilai stok store sat-idm
     - storestock value
     - store stock value
     - nilai storestock
-    instructions: Store/customer-level value only. Never add it to DC stock value as a total pipeline metric.
+    instructions: Store/customer-level value only. Never add it to DC stock value as a total pipeline metric. Confirmed
+      Alfamart-only (Tempo, 1 Oct 2026) - same partner network as B2B.
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"SI-04-IDM","base_dataset":"sat_idm_dc_month","allowed_dimensions":["thn","bln","dcname","plu","division"],"governance_status":"approved_candidate","business_approval_status":"confirmed_by_tempo_2026_09_28","original_kpi_id":"I08-STORE","unit_format":"currency_idr"}'
+    data: '{"metric_id":"SI-04-SAT","base_dataset":"sat_dc_month","allowed_dimensions":["thn","bln","dcname","plu","division"],"governance_status":"approved_candidate","business_approval_status":"confirmed_by_tempo_2026_09_28","original_kpi_id":"I08-STORE","unit_format":"currency_idr"}'
 - name: sat_oos_rate
   expression:
     dialects:
@@ -2541,6 +2704,67 @@ metrics:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"PR-02","base_dataset":"sat_promo_material_december","allowed_dimensions":["reporting_month","mekanisme","program_status"],"governance_status":"approved_candidate_with_caveat","business_approval_status":"pending_business_confirmation","original_kpi_id":"PR-02","unit_format":"count"}'
+- name: promo_material_revenue_uplift
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(sat_promo_material_uplift.revenue_uplift)
+  datatype: Decimal
+  description: Revenue uplift proxy for SAT Promo materials - General Trade Sell-In revenue, December 2024 (promo month)
+    minus November 2024 (baseline), for the same SAP material codes.
+  ai_context:
+    synonyms:
+    - revenue uplift promo
+    - promo revenue uplift
+    - roi promo revenue
+    instructions: This is a cross-channel proxy, not the Alfamart promo's own measured revenue impact - see sat_promo_material_uplift's
+      dataset instructions. Always state this is an indirect/proxy signal (General Trade sales change, not Alfamart sales
+      change) when presenting this number, and never label it "ROI" without that qualifier.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"PR-03-PROXY","base_dataset":"sat_promo_material_uplift","allowed_dimensions":["material"],"governance_status":"approved_candidate_with_caveat","business_approval_status":"pending_business_confirmation","original_kpi_id":"PR-03","unit_format":"currency_idr"}'
+- name: promo_material_volume_uplift
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(sat_promo_material_uplift.volume_uplift)
+  datatype: Decimal
+  description: Volume/quantity uplift proxy for SAT Promo materials - General Trade Sell-In billed quantity, December 2024
+    (promo month) minus November 2024 (baseline), for the same SAP material codes.
+  ai_context:
+    synonyms:
+    - volume uplift promo
+    - promo volume uplift
+    - promo quantity uplift
+    - roi promo volume
+    instructions: This is a cross-channel proxy, not the Alfamart promo's own measured volume impact - see sat_promo_material_uplift's
+      dataset instructions. Always state this is an indirect/proxy signal when presenting this number.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"PR-04-PROXY","base_dataset":"sat_promo_material_uplift","allowed_dimensions":["material"],"governance_status":"approved_candidate_with_caveat","business_approval_status":"pending_business_confirmation","original_kpi_id":"PR-04","unit_format":"quantity"}'
+- name: promo_material_margin_uplift
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(sat_promo_material_uplift.margin_uplift)
+  datatype: Decimal
+  description: Margin uplift proxy (revenue minus COGS/zcost) for SAT Promo materials - General Trade Sell-In, December
+    2024 (promo month) minus November 2024 (baseline), for the same SAP material codes. The closest available approximation
+    to a true ROI numerator, since it nets out cost of goods rather than using raw revenue.
+  ai_context:
+    synonyms:
+    - margin uplift promo
+    - promo margin uplift
+    - roi promo margin
+    - promo roi terbaik
+    instructions: This is a cross-channel proxy, not the Alfamart promo's own measured margin impact - see sat_promo_material_uplift's
+      dataset instructions. zcost (COGS) is confirmed by Tempo's own custom_key_figure_sales reference table, but this
+      metric still cannot be called a true "ROI" without a promo cost denominator (SAT Promo has no structured cost
+      field) - present it as a margin uplift signal, not a completed ROI ratio, unless the user explicitly accepts this
+      framing.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"PR-05-PROXY","base_dataset":"sat_promo_material_uplift","allowed_dimensions":["material"],"governance_status":"approved_candidate_with_caveat","business_approval_status":"pending_business_confirmation","original_kpi_id":"PR-05","unit_format":"currency_idr"}'
 - name: stock_tempo_to_sell_in_ratio
   expression:
     dialects:
@@ -2578,33 +2802,33 @@ metrics:
   expression:
     dialects:
     - dialect: ANSI_SQL
-      expression: SUM(b2b_satidm_branch_month.branch_sell_out_value) / NULLIF(SUM(b2b_satidm_branch_month.dc_stock_qty), 0)
+      expression: SUM(b2b_sat_branch_month.branch_sell_out_value) / NULLIF(SUM(b2b_sat_branch_month.dc_stock_qty), 0)
   datatype: Decimal
-  description: Journey metric - B2B Sell-Out value divided by partner DC stock quantity by branch and month. Diagnoses whether
-    DC replenishment keeps up with sell-out.
+  description: Journey metric - B2B Sell-Out value divided by Alfamart partner DC stock quantity by branch and month. Diagnoses
+    whether DC replenishment keeps up with sell-out.
   ai_context:
     synonyms:
     - replenishment sehat
     - sell-out vs stok dc
-    instructions: Pre-built Gold view join (b2b_branch_estore + sat_idm_dc_month), join key branch=dcname confirmed 100%
-      match rate. No runtime join needed.
+    instructions: Pre-built Gold view join (b2b_branch_estore + sat_dc_month, part_flag='SAT' only), join key branch=dcname
+      confirmed 100% match rate. No runtime join needed. Both sides confirmed Alfamart-only (Tempo, 1 Oct 2026).
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"JNY-03","base_dataset":"b2b_satidm_branch_month","allowed_dimensions":["calmonth","branch"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"I06","unit_format":"ratio"}'
-- name: satidm_store_stock_vs_oos_rate
+    data: '{"metric_id":"JNY-03","base_dataset":"b2b_sat_branch_month","allowed_dimensions":["calmonth","branch"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"I06","unit_format":"ratio"}'
+- name: sat_store_stock_vs_oos_rate
   expression:
     dialects:
     - dialect: ANSI_SQL
-      expression: SUM(satidm_oos_material_month.store_stock_qty)
+      expression: SUM(sat_dc_oos_material_month.store_stock_qty)
   datatype: Decimal
-  description: Journey metric - retail store stock quantity alongside OOS rate by PLU and month, for detecting the "stock
-    exists but shelf is empty" distribution anomaly.
+  description: Journey metric - Alfamart retail store stock quantity alongside OOS rate by PLU and month, for detecting
+    the "stock exists but shelf is empty" distribution anomaly.
   ai_context:
     synonyms:
     - stok ada tapi oos
     - distribusi macet dc ke store
-    instructions: Pre-built Gold view join (sat_idm_dc_month + sat_oos_material_month), join key plu+calmonth, match rate
-      79.6% (not 100%) - not every PLU-month has a matching OOS survey.
+    instructions: Pre-built Gold view join (sat_dc_month, part_flag='SAT' only, + sat_oos_material_month), join key plu+calmonth,
+      match rate 79.6% (not 100%) - not every PLU-month has a matching OOS survey.
   custom_extensions:
   - vendor_name: TEMPO
-    data: '{"metric_id":"JNY-04","base_dataset":"satidm_oos_material_month","allowed_dimensions":["calmonth","plu","dcname"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"O10","unit_format":"quantity"}'
+    data: '{"metric_id":"JNY-04","base_dataset":"sat_dc_oos_material_month","allowed_dimensions":["calmonth","plu","dcname"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"O10","unit_format":"quantity"}'

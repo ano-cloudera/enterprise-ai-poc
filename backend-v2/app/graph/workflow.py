@@ -241,10 +241,34 @@ def build_workflow(deps: WorkflowDependencies):
             )
         else:
             semantic_context = deps.semantic_context.planner_context()
+            # The deterministic resolver may have already found a strong
+            # candidate even when it couldn't commit to it outright -
+            # dimension_mismatch (a resolved metric that can't cover a
+            # requested breakdown) and fallback/multi_concept_metric_mismatch
+            # (two+ concepts requested, e.g. "picking dan unloading", where
+            # one metric can't answer both) both carry real signal. Without
+            # this hint the planner sees only the raw question plus the full
+            # dataset/metric catalog and has to guess from scratch - observed
+            # live (1 Oct 2026, GPT-4o) to sometimes answer "unsupported" for
+            # requests a governed metric genuinely covers, because the
+            # specific candidate/concepts were never surfaced to it.
+            resolver_hint: dict[str, Any] = {}
+            if resolution.get("status") == "resolved":
+                resolver_hint = {
+                    "deterministic_candidate_metric": resolution.get("metric"),
+                    "unmet_dimensions": resolution.get("dimension_mismatch"),
+                    "note": "A governed metric was matched but could not fully cover a requested breakdown dimension - prefer this metric if it still answers most of the question, and state in caveats which part (the unmet dimension) could not be honored. Only choose unsupported if this metric is genuinely unusable.",
+                }
+            elif resolution.get("status") == "fallback" and resolution.get("reason") == "multi_concept_metric_mismatch":
+                resolver_hint = {
+                    "requested_concepts": resolution.get("requested_concepts"),
+                    "candidate_metric_for_one_concept": resolution.get("candidate_metric"),
+                    "note": "The question asks about multiple distinct concepts that no single governed metric covers together. Check semantic_context.metrics for a separate governed metric per concept and use sql_fallback to combine them if each concept has its own approved metric/view, or governed per metric in sequence - do not choose unsupported just because one metric can't cover every concept at once.",
+                }
             plan = await _provider(state, deps).generate_structured(
                 [
                     {"role": "system", "content": _prompt("global_system.md") + "\n" + _prompt("query_planner.md")},
-                    {"role": "user", "content": json.dumps({"question": state["question"], "semantic_context": semantic_context}, ensure_ascii=False)},
+                    {"role": "user", "content": json.dumps({"question": state["question"], "semantic_context": semantic_context, "resolver_hint": resolver_hint or None}, ensure_ascii=False)},
                 ],
                 QueryPlan,
                 temperature=0,

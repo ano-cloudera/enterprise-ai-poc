@@ -7,8 +7,8 @@ from app.services.chat import contextualize_question
 def test_context_is_derived_from_the_actual_tempo_ossie_contract() -> None:
     context = SemanticContextService()
 
-    assert len(context.datasets) == 20
-    assert len(context.metrics) == 62
+    assert len(context.datasets) == 21
+    assert len(context.metrics) == 65
     material = context.table_policy("gold.rpt_sap_material_month_semantic")
     assert "material" in material.columns
     assert "sell_in_bill_val" in material.columns
@@ -81,7 +81,7 @@ def test_stock_guidance_uses_governed_metric_knowledge_and_examples() -> None:
     metric_names = {metric["name"] for metric in guidance["metrics"]}
     assert guidance["focus"] == "stock"
     assert "stock_tempo_total_qty" in metric_names
-    assert "sat_idm_store_stock_quantity" in metric_names
+    assert "sat_store_stock_quantity" in metric_names
     assert any("stok" in example.casefold() or "stock" in example.casefold() for example in guidance["examples"])
 
 
@@ -89,7 +89,7 @@ def test_retail_stock_choice_resolves_without_repeating_clarification() -> None:
     resolution = SemanticContextService().resolve("stok retail")
 
     assert resolution["status"] == "resolved"
-    assert resolution["metric"] == "sat_idm_store_stock_quantity"
+    assert resolution["metric"] == "sat_store_stock_quantity"
 
 
 @pytest.mark.parametrize("question", [
@@ -102,7 +102,7 @@ def test_explicit_partner_dc_stock_scope_does_not_repeat_clarification(question:
     resolution = SemanticContextService().resolve(question)
 
     assert resolution["status"] == "resolved"
-    assert resolution["metric"] == "sat_idm_dc_stock_quantity"
+    assert resolution["metric"] == "sat_dc_stock_quantity"
 
 
 def test_current_partner_dc_stock_ranking_uses_latest_snapshot_and_top_ten() -> None:
@@ -122,11 +122,11 @@ def test_stock_rankings_are_capped_at_top_ten() -> None:
     context = SemanticContextService()
 
     default_sql = context.compile_governed(
-        "sat_idm_dc_stock_quantity",
+        "sat_dc_stock_quantity",
         "PLU mana yang stok DC partner paling tinggi?",
     )
     oversized_sql = context.compile_governed(
-        "sat_idm_store_stock_quantity",
+        "sat_store_stock_quantity",
         "Tampilkan top 50 PLU dengan stok toko tertinggi",
     )
 
@@ -157,7 +157,7 @@ def test_explicit_store_scope_resolves_without_repeating_clarification(question:
     resolution = SemanticContextService().resolve(question)
 
     assert resolution["status"] == "resolved"
-    assert resolution["metric"] == "sat_idm_store_stock_quantity"
+    assert resolution["metric"] == "sat_store_stock_quantity"
 
 
 def test_what_else_question_marks_sales_as_excluded_instead_of_focus() -> None:
@@ -173,9 +173,9 @@ def test_broad_guidance_offers_cross_domain_governed_examples() -> None:
 
     options = {option["name"]: option for option in guidance["domain_options"]}
     assert len(options) == 9
-    assert options["Stock SAT-IDM"]["metrics"] == [
-        "sat_idm_dc_stock_quantity",
-        "sat_idm_store_stock_quantity",
+    assert options["Stock SAT (Alfamart)"]["metrics"] == [
+        "sat_dc_stock_quantity",
+        "sat_store_stock_quantity",
     ]
     assert options["Picking"]["examples"]
     assert options["SAT Promo"]["examples"]
@@ -183,8 +183,8 @@ def test_broad_guidance_offers_cross_domain_governed_examples() -> None:
 
 def test_governed_compiler_uses_real_requested_dimensions() -> None:
     context = SemanticContextService()
-    monthly = context.compile_governed("sat_idm_dc_stock_quantity", "Berapa quantity DC Stock per bulan?")
-    division = context.compile_governed("sat_idm_store_stock_quantity", "Division mana dengan Store Stock tertinggi?")
+    monthly = context.compile_governed("sat_dc_stock_quantity", "Berapa quantity DC Stock per bulan?")
+    division = context.compile_governed("sat_store_stock_quantity", "Division mana dengan Store Stock tertinggi?")
     material = context.compile_governed("sat_oos_rate", "Material code mana dengan SAT OOS rate tertinggi?")
 
     assert "d.bln AS bln" in monthly

@@ -17,10 +17,10 @@ ambiguities:
     options:
       - metric: gross_billing_value
         label: Sell-In Gross Billing Value
-        discriminators: [sell-in, sell in, tempo ke customer, gross sales, gross billing]
+        discriminators: [sell-in, sell in, tempo ke customer, gross sales, gross billing, di tempo, general trade]
       - metric: material_sell_out_value
         label: Sell-Out Billing Value
-        discriminators: [sell-out, sell out, partner ke konsumen, retail sales]
+        discriminators: [sell-out, sell out, partner ke konsumen, retail sales, b2b]
 
   - name: ratio_direction
     trigger_terms: [rasio sell-in sell-out, sell-in vs sell-out, sell-out vs sell-in]
@@ -47,12 +47,12 @@ ambiguities:
       - metric: months_of_stock_cover
         label: Tempo Warehouse Stock Coverage (months of cover)
         discriminators: [berapa bulan stok, bulan stok cukup, months of cover, stock cover, stok bertahan]
-      - metric: sat_idm_dc_stock_quantity
-        label: Partner Distribution Center Stock
-        discriminators: [stok dc partner, nilai stok dc, dc stock, dcstock, nilai dcstock, idm stock, stock idm, distribution center stock]
-      - metric: sat_idm_store_stock_quantity
-        label: Partner Retail Store Stock
-        discriminators: [stok store, stok retail, stok toko retail, nilai stok store, store stock, storestock, nilai storestock, retail stock]
+      - metric: sat_dc_stock_quantity
+        label: Alfamart Partner Distribution Center Stock
+        discriminators: [stok dc partner, stok dc alfamart, nilai stok dc, dc stock, dcstock, idm stock, stock idm, distribution center stock]
+      - metric: sat_store_stock_quantity
+        label: Alfamart Partner Retail Store Stock
+        discriminators: [stok store, stok retail, stok toko retail, stok toko alfamart, nilai stok store, store stock, storestock, nilai storestock, retail stock]
 
 unknown_metric_question: >-
   Saya belum menemukan KPI yang sesuai pada Semantic Contract Q4 2024.
