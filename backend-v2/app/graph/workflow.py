@@ -115,10 +115,24 @@ def _is_conversational_request(question: str) -> bool:
     return short_greeting or capability_request
 
 
-async def _try_local_agent_fallback(state: AskDataState, deps: WorkflowDependencies) -> dict[str, Any] | None:
-    """Last-resort fallback when our own planner found no governed metric.
+def _local_agent_second_enabled(deps: WorkflowDependencies) -> bool:
+    client = deps.local_agent_client
+    return client is not None and getattr(client, "enabled", False)
 
-    Only reached when plan.strategy == "unsupported". Returns an
+
+def _should_try_local_agent_second(state: AskDataState, deps: WorkflowDependencies) -> bool:
+    """Primary path first; when LOCAL_AGENT_BASE_URL is set, consult Irvan's
+    catalog before showing clarification/unsupported to the user."""
+    if state.get("use_local_agent"):
+        return True
+    return _local_agent_second_enabled(deps)
+
+
+async def _try_local_agent_fallback(state: AskDataState, deps: WorkflowDependencies) -> dict[str, Any] | None:
+    """Second-option consult to TEMPO Local Agent after our primary path
+    could not produce a direct answer (unsupported, or selected clarifications).
+
+    Returns an
     AnalysisOutput dict on success, or None on ANY failure (disabled,
     network error, timeout, the local agent itself refusing) - callers
     must treat None as "fall through to the existing unsupported
@@ -213,6 +227,17 @@ def build_workflow(deps: WorkflowDependencies):
             "timings": _with_timing(state, "context_ms", _elapsed(started)),
         }
         if resolution.get("status") == "needs_clarification":
+            if _should_try_local_agent_second(update, deps):
+                local_answer = await _try_local_agent_fallback(update, deps)
+                if local_answer is not None:
+                    update.update(
+                        status="SUCCESS",
+                        strategy="local_agent_exploratory",
+                        answer=local_answer,
+                        chart_spec=None,
+                        query_result={"columns": [], "rows": [], "row_count": 0, "execution_ms": 0},
+                    )
+                    return update
             update.update(
                 status="CLARIFICATION",
                 strategy="clarification",
@@ -225,9 +250,7 @@ def build_workflow(deps: WorkflowDependencies):
     async def plan_query(state: AskDataState) -> AskDataState:
         started = perf_counter()
         resolution = state["semantic_resolution"]
-        if resolution.get("force_local_agent"):
-            plan = QueryPlan(strategy="unsupported", analysis_type="local_agent_fallback")
-        elif resolution.get("status") == "resolved" and not resolution.get("dimension_mismatch"):
+        if resolution.get("status") == "resolved" and not resolution.get("dimension_mismatch"):
             metric = str(resolution["metric"])
             dimensions = resolution.get("dimensions")
             governed_sql = (
@@ -287,8 +310,22 @@ def build_workflow(deps: WorkflowDependencies):
         if plan.strategy == "clarification":
             text = plan.clarification_question or "Please clarify the requested metric."
             update.update(status="CLARIFICATION", answer=_safe_answer(text), chart_spec=None, query_result={"columns": [], "rows": [], "row_count": 0, "execution_ms": 0})
+            if _should_try_local_agent_second(state, deps):
+                fallback_answer = await _try_local_agent_fallback(state, deps)
+                if fallback_answer is not None:
+                    update.update(
+                        status="SUCCESS",
+                        strategy="local_agent_exploratory",
+                        answer=fallback_answer,
+                        chart_spec=None,
+                        query_result={"columns": [], "rows": [], "row_count": 0, "execution_ms": 0},
+                    )
         elif plan.strategy == "unsupported":
-            fallback_answer = await _try_local_agent_fallback(state, deps)
+            fallback_answer = (
+                await _try_local_agent_fallback(state, deps)
+                if _should_try_local_agent_second(state, deps)
+                else None
+            )
             if fallback_answer is not None:
                 update.update(
                     status="SUCCESS",

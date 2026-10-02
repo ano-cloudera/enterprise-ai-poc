@@ -11,6 +11,7 @@ class AskDataState(TypedDict, total=False):
     conversation_history: list[dict[str, Any]]
     provider: str
     model: str
+    use_local_agent: bool
     semantic_resolution: dict[str, Any]
     semantic_context: dict[str, Any]
     strategy: str

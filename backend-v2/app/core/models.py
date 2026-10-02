@@ -63,6 +63,9 @@ class AskDataRequest(StrictModel):
     question: str
     provider: Literal["qwen", "gemini", "openai"]
     model: str
+    # When true, also consult TEMPO Local Agent as second option after primary path
+    # stalls on clarification/unsupported (requires LOCAL_AGENT_BASE_URL).
+    use_local_agent: bool = False
 
 
 class QueryData(StrictModel):

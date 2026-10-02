@@ -235,17 +235,27 @@ async def test_unsupported_plan_uses_local_agent_fallback_when_it_answers() -> N
 
 
 @pytest.mark.asyncio
-async def test_forced_local_agent_resolution_bypasses_planner_and_uses_fallback() -> None:
-    question = "Hitung service level/ fill rate di cabang tempo dan urutkan SL terjelek"
-    provider = FakeProvider([])
+async def test_picking_unloading_planner_clarification_tries_local_agent_second() -> None:
+    question = (
+        "Analisa data unloading dan picking dan berikan Analisa dan perbandingan dengan Industri standard"
+    )
+    provider = FakeProvider([{
+        "strategy": "clarification",
+        "domains": [],
+        "metrics": [],
+        "dimensions": [],
+        "filters": {},
+        "analysis_type": "clarification",
+        "sql": None,
+        "clarification_question": "Standar industri apa yang ingin digunakan?",
+    }])
     dependencies = deps(FakeContext({
         "status": "fallback",
-        "reason": "compound_branch_service_level_ranking",
-        "force_local_agent": True,
+        "reason": "multi_concept_metric_mismatch",
     }), provider, [])
     dependencies.local_agent_client = FakeLocalAgentClient(payload={
-        "resolved_query_ids": ["FL-01@sales_office"],
-        "final_response_markdown": "## Answer\n\nUrutan fill rate cabang TEMPO dari yang terburuk...",
+        "resolved_query_ids": ["PK-03@company_period_delta"],
+        "final_response_markdown": "## Answer\n\nAnalisis picking vs benchmark internal...",
     })
 
     state = await build_workflow(dependencies).ainvoke(
@@ -254,8 +264,30 @@ async def test_forced_local_agent_resolution_bypasses_planner_and_uses_fallback(
 
     assert state["status"] == "SUCCESS"
     assert state["strategy"] == "local_agent_exploratory"
-    assert provider.calls == []
+    assert provider.calls == ["QueryPlan"]
     assert dependencies.local_agent_client.calls == [question]
+
+
+@pytest.mark.asyncio
+async def test_resolver_clarification_uses_local_agent_second_when_configured() -> None:
+    provider = FakeProvider([])
+    dependencies = deps(FakeContext({
+        "status": "needs_clarification",
+        "question": "Sell-In atau Sell-Out?",
+        "options": [],
+    }), provider, [])
+    dependencies.local_agent_client = FakeLocalAgentClient(payload={
+        "resolved_query_ids": ["SI-01"],
+        "final_response_markdown": "## Answer\n\nTop produk sell-in dari Local Agent.",
+    })
+
+    state = await build_workflow(dependencies).ainvoke(
+        AskDataRequest(session_id="s", question="Top 10 produk penjualan di Tempo", provider="qwen", model="m").model_dump()
+    )
+
+    assert state["status"] == "SUCCESS"
+    assert state["strategy"] == "local_agent_exploratory"
+    assert dependencies.local_agent_client.calls == ["Top 10 produk penjualan di Tempo"]
 
 
 @pytest.mark.asyncio
