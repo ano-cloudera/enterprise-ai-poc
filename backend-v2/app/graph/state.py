@@ -14,6 +14,7 @@ class AskDataState(TypedDict, total=False):
     use_local_agent: bool
     semantic_resolution: dict[str, Any]
     governed_partial_caveats: list[str]
+    governed_entity_lookup: bool
     semantic_context: dict[str, Any]
     strategy: str
     query_plan: dict[str, Any]

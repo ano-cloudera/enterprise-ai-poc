@@ -23,6 +23,113 @@ class TablePolicy:
     description: str
 
 
+_SAP_MATERIAL_RE = re.compile(r"\b(\d{3}-\d{2}-\d{2})\b")
+_FE_MATERIAL_RE = re.compile(r"\b(FE[0-9A-Z]+)\b", re.IGNORECASE)
+_BRANCH_SKIP = frozenset({"partner", "alfamart", "tempo", "b2b", "dc", "branch", "cabang", "outlet", "store"})
+_PLU_ENTITY_RE = re.compile(r"\bplu\s+['\"]?(\d+)\b", re.IGNORECASE)
+_POLITE_SEKARANG_PREFIX_RE = re.compile(
+    r"^(?:\s*)sekarang\s+(?:bisa|boleh|tolong|mohon|please|can|could)\b",
+    re.IGNORECASE,
+)
+_RANKING_TERMS = (
+    "tertinggi", "terbesar", "paling tinggi", "paling besar", "paling banyak",
+    "terendah", "terkecil", "paling kecil", "paling rendah", "paling sedikit",
+    "terburuk", "terjelek", "paling jelek", "ranking", "peringkat", "urutkan",
+)
+
+
+def _sql_string_literal(value: str) -> str:
+    return "'" + value.replace("'", "''") + "'"
+
+
+def _asks_data_snapshot(question: str) -> bool:
+    lowered = question.casefold()
+    if any(term in lowered for term in ("saat ini", "bulan ini", "terkini", "latest", "current")):
+        return True
+    if "sekarang" not in lowered:
+        return False
+    if _POLITE_SEKARANG_PREFIX_RE.search(lowered):
+        return False
+    if re.search(r"\bsekarang\s+(?:bisa|bantu|tampilkan|keluarkan|tolong)\b", lowered):
+        return False
+    if re.search(r"\b(?:stok|stock|penjualan|sales|fill\s+rate|data|nilai)\s+sekarang\b", lowered):
+        return True
+    if re.search(r"\bsekarang\s+berapa\b", lowered):
+        return True
+    return False
+
+
+def _question_requests_ranking(question: str) -> tuple[bool, re.Match[str] | None]:
+    lowered = question.casefold()
+    top = re.search(r"(?:top|teratas)\s+(\d+)", lowered)
+    requests_ranking = bool(top) or any(term in lowered for term in _RANKING_TERMS)
+    return requests_ranking, top
+
+
+def _extract_entity_predicates(question: str, fields: set[str]) -> list[str]:
+    predicates: list[str] = []
+    lowered = question.casefold()
+
+    for match in _SAP_MATERIAL_RE.finditer(question):
+        code = match.group(1)
+        if "material" in fields:
+            predicates.append(f"d.material = {_sql_string_literal(code)}")
+            break
+        if "material_code" in fields:
+            predicates.append(f"d.material_code = {_sql_string_literal(code)}")
+            break
+
+    if not any("material" in item or "material_code" in item for item in predicates):
+        fe_match = _FE_MATERIAL_RE.search(question)
+        if fe_match and "material" in fields:
+            predicates.append(f"d.material = {_sql_string_literal(fe_match.group(1).upper())}")
+
+    branch_code: str | None = None
+    for pattern in (
+        r"\b(?:di\s+)?cabang\s+['\"]?([0-9A-Za-z_-]+)",
+        r"\bbranch\s+['\"]?([0-9A-Za-z_-]+)",
+        r"\boutlet\s+['\"]?([0-9A-Za-z_-]+)",
+        r"\be[\s-]?store\s+['\"]?([0-9A-Za-z_-]+)",
+    ):
+        match = re.search(pattern, lowered, re.IGNORECASE)
+        if match:
+            candidate = match.group(1)
+            if candidate.casefold() not in _BRANCH_SKIP:
+                branch_code = candidate
+                break
+    if branch_code:
+        if "branch" in fields:
+            predicates.append(f"d.branch = {_sql_string_literal(branch_code)}")
+        elif "e_store" in fields:
+            predicates.append(f"d.e_store = {_sql_string_literal(branch_code)}")
+
+    plu_match = _PLU_ENTITY_RE.search(lowered)
+    if plu_match:
+        code = plu_match.group(1)
+        if "plu" in fields:
+            predicates.append(f"d.plu = {_sql_string_literal(code)}")
+        elif "kode_plu" in fields:
+            predicates.append(f"d.kode_plu = {_sql_string_literal(code)}")
+
+    return predicates
+
+
+def _filtered_columns(predicates: list[str]) -> list[str]:
+    columns: list[str] = []
+    for predicate in predicates:
+        column = predicate.split("=", 1)[0].strip().removeprefix("d.").strip()
+        if column and column not in columns:
+            columns.append(column)
+    return columns
+
+
+def is_governed_entity_lookup(question: str, fields: set[str]) -> bool:
+    if not _extract_entity_predicates(question, fields):
+        return False
+    requests_ranking, top = _question_requests_ranking(question)
+    return not requests_ranking and top is None
+
+
 _DOMAIN_DATASETS = {
     "sales": {
         "monthly_executive", "material_360", "customer_material_360",
@@ -341,6 +448,13 @@ class SemanticContextService:
                         trend_time_dimension_inserted = True
                         break
         dimensions = list(dict.fromkeys(dimensions))
+        fields = self.registry.dataset_fields[dataset_name]
+        field_set = set(fields)
+        entity_predicates = _extract_entity_predicates(question, field_set)
+        for column in _filtered_columns(entity_predicates):
+            if column in allowed and column not in dimensions:
+                dimensions.append(column)
+        entity_lookup = is_governed_entity_lookup(question, field_set)
         expression = definition["expression"].replace(f"{dataset_name}.", "d.")
         projections = [f"d.{name} AS {name}" for name in dimensions]
         projections.append(f"{expression} AS metric_value")
@@ -349,10 +463,8 @@ class SemanticContextService:
             predicates.append(f"d.{field} = TRUE")
         if definition.get("row_filter"):
             predicates.append(f"({definition['row_filter']})")
-        fields = self.registry.dataset_fields[dataset_name]
-        asks_current_snapshot = any(
-            term in lowered for term in ("sekarang", "saat ini", "bulan ini", "terkini", "latest", "current")
-        )
+        predicates.extend(entity_predicates)
+        asks_current_snapshot = _asks_data_snapshot(question)
         asks_latest_available_month = asks_current_snapshot or "bulan lalu" in lowered or "last month" in lowered
         if "calmonth" in fields:
             predicates.append(
@@ -387,22 +499,17 @@ class SemanticContextService:
                 "paling sedikit", "paling jelek", "terjelek", "terburuk", "lowest", "bottom",
             )
         )
-        top = re.search(r"(?:top|teratas)\s+(\d+)", lowered)
-        requests_ranking = bool(top) or any(
-            term in lowered
-            for term in (
-                "tertinggi", "terbesar", "paling tinggi", "paling besar", "paling banyak",
-                "terendah", "terkecil", "paling kecil", "paling rendah", "paling sedikit",
-                "terburuk", "terjelek", "paling jelek", "ranking", "peringkat", "urutkan",
-            )
-        )
-        if trend_time_dimension_inserted and not requests_ranking:
+        requests_ranking, top = _question_requests_ranking(question)
+        if trend_time_dimension_inserted and not requests_ranking and not entity_lookup:
             # A pure trend/"per bulan" question (no top-N or superlative
             # ranking intent) should read chronologically, not value-ranked
             # - otherwise "naik atau turun" is unanswerable from the result
             # order.
             order_column = "d.thn, d.bln" if {"thn", "bln"} <= allowed else f"d.{dimensions[0]}"
             sql.append(f"ORDER BY {order_column} ASC")
+        elif entity_lookup:
+            if dimensions:
+                sql.append("ORDER BY " + ", ".join(f"d.{name} ASC" for name in dimensions))
         else:
             sql.append(f"ORDER BY metric_value {'ASC' if ascending else 'DESC'}")
         is_stock_metric = any(
@@ -415,7 +522,12 @@ class SemanticContextService:
         else:
             maximum = 200
         default = 10 if dimensions else 50
-        limit = min(int(top.group(1)), maximum) if top else default
+        if entity_lookup:
+            limit = 1
+        elif top:
+            limit = min(int(top.group(1)), maximum)
+        else:
+            limit = default
         sql.append(f"LIMIT {limit}")
         return "\n".join(sql)
 

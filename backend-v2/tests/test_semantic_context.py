@@ -278,6 +278,64 @@ def test_service_level_uat_questions_use_published_metrics(
     "toko dengan omset terbesar di alfamart",
     "e-store mana yang paling banyak penjualannya",
 ])
+def test_stock_cover_question_filters_material_and_uses_full_q4() -> None:
+    context = SemanticContextService()
+    question = (
+        "sekarang bisa bantu tampilkan gak produk/ material 500-21-02 di cabang 0201 "
+        "dan hitung bisa meng-cover penjualan berapa hari dari stok tersebut"
+    )
+    resolution = context.resolve(question)
+    sql = context.compile_governed(resolution["metric"], question, resolution.get("dimensions"))
+
+    assert "d.material = '500-21-02'" in sql
+    assert "d.calmonth BETWEEN 202410 AND 202412" in sql
+    assert "ORDER BY metric_value DESC" not in sql
+    assert "LIMIT 1" in sql
+
+
+def test_polite_sekarang_prefix_does_not_force_december_only_snapshot() -> None:
+    context = SemanticContextService()
+    question = "sekarang bisa bantu tampilkan material 500-21-02 sell-in"
+    sql = context.compile_governed("material_sell_in_value", question, ["material"])
+
+    assert "d.calmonth BETWEEN 202410 AND 202412" in sql
+    assert "d.calmonth = 202412" not in sql
+
+
+def test_stok_sekarang_still_uses_latest_month_snapshot() -> None:
+    context = SemanticContextService()
+    question = "Stok di DC partner sekarang berapa ya per PLU?"
+    resolution = context.resolve(question)
+    sql = context.compile_governed(resolution["metric"], question, resolution.get("dimensions"))
+
+    assert "d.thn = 2024" in sql
+    assert "d.bln = 'DEC'" in sql
+
+
+def test_b2b_branch_code_in_question_adds_branch_filter() -> None:
+    context = SemanticContextService()
+    question = "nilai sell-out partner di cabang 0201"
+    sql = context.compile_governed("b2b_branch_sell_out_value", question, None)
+
+    assert "d.branch = '0201'" in sql
+    assert "LIMIT 1" in sql
+    assert "ORDER BY metric_value DESC" not in sql
+
+
+def test_b2b_dc_ranking_question_still_uses_value_ranking() -> None:
+    context = SemanticContextService()
+    question = (
+        "Top 10 DC Alfamart dengan penjualan tertinggi\n"
+        "Klarifikasi pengguna: sell-out"
+    )
+    resolution = context.resolve(question)
+    sql = context.compile_governed(resolution["metric"], question, resolution.get("dimensions"))
+
+    assert "GROUP BY d.branch" in sql
+    assert "ORDER BY metric_value DESC" in sql
+    assert "LIMIT 10" in sql
+
+
 def test_stock_cover_at_branch_sets_dimension_mismatch_not_sql_fallback() -> None:
     question = (
         "produk material 500-21-02 di cabang 0201 hitung bisa meng-cover "

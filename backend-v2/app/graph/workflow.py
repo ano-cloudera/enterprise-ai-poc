@@ -14,6 +14,7 @@ from langgraph.graph import END, START, StateGraph
 
 from app.core.models import AnalysisOutput, QueryPlan
 from app.graph.state import AskDataState
+from app.semantic.context import is_governed_entity_lookup
 from app.llm.base import LLMProvider, ProviderError
 from app.sql.validator import ValidatedSQL
 
@@ -280,10 +281,15 @@ def build_workflow(deps: WorkflowDependencies):
         started = perf_counter()
         resolution = state["semantic_resolution"]
         partial_caveats: list[str] = []
+        entity_lookup = False
         if resolution.get("status") == "resolved":
             partial_caveats = _governed_partial_caveats(resolution)
             metric = str(resolution["metric"])
             dimensions = resolution.get("dimensions")
+            definition = resolution.get("definition") or deps.semantic_context.metric_definition(metric)
+            dataset_name = str(definition.get("base_dataset") or "")
+            fields = set(deps.semantic_context.registry.dataset_fields.get(dataset_name, ()))
+            entity_lookup = is_governed_entity_lookup(state["question"], fields)
             governed_sql = (
                 deps.semantic_context.compile_governed(metric, state["question"], dimensions)
                 if dimensions is not None
@@ -291,7 +297,7 @@ def build_workflow(deps: WorkflowDependencies):
             )
             plan = QueryPlan(
                 strategy="governed",
-                domains=[str(resolution.get("definition", {}).get("base_dataset") or "")],
+                domains=[dataset_name],
                 metrics=[metric],
                 sql=governed_sql,
             )
@@ -322,6 +328,7 @@ def build_workflow(deps: WorkflowDependencies):
             "query_plan": plan.model_dump(),
             "sql": plan.sql or "",
             "governed_partial_caveats": partial_caveats,
+            "governed_entity_lookup": entity_lookup,
             "semantic_context": deps.semantic_context.planner_context(plan.domains),
             "timings": _with_timing(state, "planning_ms", _elapsed(started)),
         }
@@ -400,12 +407,31 @@ def build_workflow(deps: WorkflowDependencies):
             "query_result": result,
             "timings": _with_timing(state, "query_ms", _elapsed(started)),
         }
-        if not result.get("rows"):
+        rows = result.get("rows") or []
+        if not rows:
             update.update(
                 status="NO_DATA",
                 answer=_safe_answer("Tidak ada data yang cocok untuk pertanyaan dan filter tersebut."),
                 chart_spec=None,
             )
+            return update
+        if state.get("governed_entity_lookup"):
+            metric_values = [
+                row.get("metric_value")
+                for row in rows
+                if isinstance(row, dict) and "metric_value" in row
+            ]
+            if not metric_values or all(value is None for value in metric_values):
+                update.update(
+                    status="NO_DATA",
+                    answer=_safe_answer(
+                        "Tidak ada nilai metrik yang bisa dihitung untuk kombinasi material/cabang "
+                        "dan periode yang diminta (misalnya sell-in nol atau stok tidak tercatat "
+                        "pada periode Q4 2024).",
+                        caveats=list(state.get("governed_partial_caveats") or []),
+                    ),
+                    chart_spec=None,
+                )
         return update
 
     async def analyze_result(state: AskDataState) -> AskDataState:

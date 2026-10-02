@@ -169,6 +169,45 @@ async def test_dimension_mismatch_uses_governed_sql_and_appends_partial_caveats(
 
 
 @pytest.mark.asyncio
+async def test_entity_lookup_with_null_metric_value_returns_no_data() -> None:
+    provider = FakeProvider([])
+    sql = "SELECT d.material, NULL AS metric_value FROM gold.allowed d WHERE d.material = '500-21-02' LIMIT 1"
+    context = FakeContext(
+        {
+            "status": "resolved",
+            "metric": "months_of_stock_cover",
+            "definition": {"base_dataset": "material_360"},
+            "dimensions": ["material"],
+            "dimension_mismatch": ["branch"],
+        },
+        sql=sql,
+    )
+    context.registry = type(
+        "Reg",
+        (),
+        {
+            "dataset_fields": {
+                "material_360": frozenset(
+                    {"material", "calmonth", "warehouse_stock_qty", "sell_in_bill_qty", "has_sell_in", "has_stock"}
+                ),
+            },
+        },
+    )()
+    dependencies = deps(context, provider, [{"material": "500-21-02", "metric_value": None}])
+    state = await build_workflow(dependencies).ainvoke(
+        AskDataRequest(
+            session_id="s1",
+            question="material 500-21-02 di cabang 0201 cover stok",
+            provider="qwen",
+            model="qwen-model",
+        ).model_dump()
+    )
+
+    assert state["status"] == "NO_DATA"
+    assert provider.calls == []
+    assert "sell-in nol" in state["answer"]["direct_answer"].casefold() or "tidak ada nilai" in state["answer"]["direct_answer"].casefold()
+
+
 async def test_stock_cover_with_branch_mismatch_runs_governed_with_cover_caveats() -> None:
     provider = FakeProvider([analysis()])
     sql = "SELECT d.material, SUM(d.warehouse_stock_qty) FROM gold.rpt_sap_material_month_semantic d LIMIT 10"
