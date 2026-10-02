@@ -165,6 +165,8 @@ class SemanticContextService:
         # broader warehouse/DC/store stock-scope ambiguity can capture it.
         mentions_oos = "oos" in words or "out of stock" in lowered or (
             "kosong" in words and bool(words & {"stok", "rak", "survei", "disurvei"})
+        ) or (
+            "kehabisan" in words and bool(words & {"stok", "stock"})
         )
         if mentions_oos and bool(words & {"sales", "penjualan"}) and bool(
             words & {"pengaruh", "dampak", "penurunan", "turun", "menurunkan"}
@@ -189,9 +191,17 @@ class SemanticContextService:
             }
         if mentions_oos:
             dimensions: list[str] = []
-            if "material" in words:
+            # "toko"/"outlet"/"gerai" alone is ambiguous between an
+            # aggregate ("berapa persen toko yang kosong stoknya") and a
+            # per-store ranking ("toko mana yang paling sering OOS") - only
+            # the latter, signalled by "mana", should force a breakdown.
+            wants_store_breakdown = bool(words & {"customer", "pelanggan"}) or (
+                bool(words & {"toko", "outlet", "gerai"})
+                and bool(words & {"mana", "tertinggi", "terbesar", "terendah", "terkecil", "terparah", "terburuk"})
+            )
+            if words & {"material", "produk", "sku"}:
                 dimensions = ["material_code"]
-            elif words & {"customer", "pelanggan"}:
+            elif wants_store_breakdown:
                 dimensions = ["cust_id", "cust_code"]
             return resolved("sat_oos_rate", dimensions)
 
@@ -308,7 +318,16 @@ class SemanticContextService:
             # rather than requiring the question to say "per material".
             dimensions.append("material")
         trend_time_dimension_inserted = False
-        if requested_dimensions is None and any(term in lowered for term in ("bulan", "bulanan", "month", "trend", "tren")):
+        # An empty requested_dimensions ([]) is what the governed_intent_route
+        # shortcuts in resolve() pass for their default company-wide grain
+        # (e.g. resolved("company_fill_rate", [])) - it is not the user
+        # explicitly asking to omit all dimensions, so trend/"per bulan"
+        # detection should still apply the same as the None (no-override)
+        # case. A genuinely explicit non-empty list (e.g. ["material"]) is
+        # never touched here.
+        if (requested_dimensions is None or requested_dimensions == []) and any(
+            term in lowered for term in ("bulan", "bulanan", "month", "trend", "tren")
+        ):
             if {"thn", "bln"} <= allowed:
                 dimensions = ["thn", "bln", *dimensions]
                 trend_time_dimension_inserted = True
@@ -347,6 +366,17 @@ class SemanticContextService:
             sql.append("WHERE " + "\n  AND ".join(predicates))
         if dimensions:
             sql.append("GROUP BY " + ", ".join(f"d.{name}" for name in dimensions))
+        requests_zero_movement = requested_dimensions is None and any(
+            term in lowered
+            for term in (
+                "tidak laku", "zero movement", "tidak terjual",
+                "tidak ada penjualan", "sama sekali tidak laku", "belum pernah terjual",
+            )
+        )
+        if requests_zero_movement and dimensions:
+            # Impala cannot resolve a SELECT alias (metric_value) inside
+            # HAVING - repeat the actual aggregate expression instead.
+            sql.append(f"HAVING {expression} = 0")
         ascending = any(
             term in lowered
             for term in (

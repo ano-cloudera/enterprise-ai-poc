@@ -1808,6 +1808,12 @@ metrics:
     - top selling product
     - top product
     - sales per produk
+    - produk tidak laku
+    - produk zero movement
+    - produk yang tidak terjual sama sekali
+    - sku tanpa penjualan
+    - produk sama sekali tidak laku
+    - produk belum pernah terjual
     - sales per product
     instructions: Use for "top N product/material by sales/revenue" questions (e.g. "top 5 produk", "produk terlaris", "best selling product") - this is the material-grain counterpart to gross_billing_value, which is company-level and does not support a product/material breakdown.
   custom_extensions:
@@ -1984,6 +1990,9 @@ metrics:
     - sku terlaris di alfamart
     - produk paling banyak terjual di partner
     - penjualan produk ke konsumen akhir
+    - produk b2b tidak laku
+    - produk zero movement di alfamart
+    - sku tanpa penjualan di partner
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"SO-01-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material","retail_plu"],"required_filters":["has_sell_out"],"governance_status":"scoped_metric","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-01","unit_format":"currency_idr"}'

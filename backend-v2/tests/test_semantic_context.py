@@ -317,3 +317,78 @@ def test_ranking_with_bulan_keyword_still_orders_by_metric_value() -> None:
         resolution["metric"], "top 10 produk bulan ini", resolution.get("dimensions")
     )
     assert "ORDER BY metric_value DESC" in sql
+
+
+@pytest.mark.parametrize("question", [
+    "tren fill rate per bulan",
+    "tren SAT OOS per bulan",
+    "tren stok cover per bulan",
+])
+def test_trend_questions_group_by_time_even_for_shortcut_metrics_with_empty_dimensions(
+    question: str,
+) -> None:
+    context = SemanticContextService()
+    resolution = context.resolve(question)
+
+    assert resolution["status"] == "resolved"
+    assert resolution.get("dimensions") == []
+    sql = context.compile_governed(resolution["metric"], question, resolution.get("dimensions"))
+    assert "GROUP BY" in sql
+    assert "ASC" in sql
+
+
+def test_shortcut_metric_without_trend_keyword_stays_dimensionless() -> None:
+    resolution = SemanticContextService().resolve("fill rate kita sekarang berapa secara keseluruhan")
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "company_fill_rate"
+    assert resolution.get("dimensions") == []
+
+
+def test_zero_movement_product_question_adds_having_clause() -> None:
+    context = SemanticContextService()
+    resolution = context.resolve("produk mana yang tidak laku sama sekali")
+
+    assert resolution["status"] == "resolved"
+    sql = context.compile_governed(
+        resolution["metric"], "produk mana yang tidak laku sama sekali", resolution.get("dimensions")
+    )
+    assert "HAVING" in sql
+    assert "= 0" in sql
+
+
+@pytest.mark.parametrize("question", [
+    "produk paling laku",
+    "produk terlaris",
+])
+def test_best_selling_product_questions_do_not_trigger_having_clause(question: str) -> None:
+    context = SemanticContextService()
+    resolution = context.resolve(question)
+
+    assert resolution["status"] == "resolved"
+    sql = context.compile_governed(resolution["metric"], question, resolution.get("dimensions"))
+    assert "HAVING" not in sql
+
+
+@pytest.mark.parametrize("question", [
+    "toko mana yang paling sering OOS",
+    "outlet mana yang paling sering kehabisan stok",
+    "gerai dengan OOS tertinggi",
+])
+def test_oos_questions_with_store_ranking_language_break_down_by_store(question: str) -> None:
+    context = SemanticContextService()
+    resolution = context.resolve(question)
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "sat_oos_rate"
+    assert resolution.get("dimensions") == ["cust_id", "cust_code"]
+
+
+def test_aggregate_oos_question_about_percent_of_stores_stays_dimensionless() -> None:
+    resolution = SemanticContextService().resolve(
+        "Berapa persen toko yang kosong stoknya pas disurvei bulan lalu?"
+    )
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "sat_oos_rate"
+    assert resolution.get("dimensions") == []

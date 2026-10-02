@@ -1,9 +1,38 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 2 Oct 2026 (latest) — Clarification-matching bug fixed (dash/token-insensitive substring match); systematic domain-by-domain enrichment of previously-unused governed dimensions (plant, division, fill_rate_band, mekanisme/program_status) plus much richer Bahasa Indonesia colloquial alias coverage across all 9 TEMPO Scan domains; one new metric (`stock_tempo_consignment_qty`); B2B outlet/toko ranking questions no longer wrongly trigger the Sell-In/Sell-Out clarification; MoM trend questions now order chronologically instead of by value. 121/121 backend-v2 tests passing. See checkpoint below for full detail.
+**Updated**: 2 Oct 2026 (latest) — Closed the 3 remaining "orange" gaps from the 9-domain checklist: MoM trend questions now work for metric shortcuts that pass an empty dimension list (fill rate, SAT OOS, stock cover), a new "produk tidak laku/zero movement" capability via a governed `HAVING` clause (Impala requires repeating the aggregate expression, not the SELECT alias), and SAT OOS questions now break down by store (`toko`/`outlet`/`gerai` + ranking language) instead of staying a single aggregate number. 132/132 backend-v2 tests passing (121 baseline + 11 new). See checkpoint below for full detail; previous checkpoint covers the broader domain enrichment pass.
 
-## Current checkpoint: domain enrichment (governed dimensions + Indonesian aliases), outlet ambiguity fix, trend ORDER BY fix (2 Oct 2026, latest)
+## Current checkpoint: trend shortcut fix, zero-movement product metric, OOS per-store breakdown (2 Oct 2026, latest)
+
+### Context: closing the 3 remaining "orange" items from the 9-domain enrichment checklist
+
+After the previous checkpoint's domain enrichment pass, 3 items remained flagged "orange" (known gap, not yet fixed): (1) trend/"per bulan" questions not working for several metrics that route through `resolve()`'s dimensionless shortcuts, (2) no way to ask "produk mana yang tidak laku sama sekali" (zero-movement products), (3) SAT OOS questions naming a store/outlet/gerai not actually breaking down by store. Confirmed all 3 needed **no new Impala view** — the underlying gold views already have the needed columns; these were purely semantic-layer (`context.py`) gaps.
+
+### 1. Trend shortcut fix: empty `dimensions=[]` was blocking the trend-prepend logic
+
+`resolve()`'s `resolved()` helper (used by `company_fill_rate`, `sat_oos_rate`, `material_fill_rate`, `months_of_stock_cover`, `service_unfulfilled_quantity`, etc.) always passes an explicit `dimensions` list into `compile_governed()` — including `[]` for its default company-wide grain. `compile_governed()`'s trend-prepend guard only fired when `requested_dimensions is None`, so `[]` (meant as "no explicit choice yet", not "user explicitly wants zero dimensions") silently skipped trend detection entirely — "tren fill rate per bulan" never got a `GROUP BY calmonth`. Fixed: the guard now also fires for `requested_dimensions == []`, while any genuinely non-empty explicit list (e.g. `["material"]` from `material_fill_rate`) is left untouched, so shortcuts that deliberately picked a non-time grain aren't second-guessed. Verified live and via `compile_governed()`: `"tren fill rate per bulan"`, `"tren SAT OOS per bulan"`, `"tren stok cover per bulan"` now all produce `GROUP BY` + chronological `ORDER BY ... ASC` (from the prior checkpoint's trend-ordering fix); non-trend shortcut questions (`"fill rate kita sekarang berapa"`) remain unaffected (still dimensionless).
+
+### 2. New capability: "produk tidak laku" / zero-movement products via governed `HAVING`
+
+Confirmed live that the data genuinely supports this question: 22,852 of 25,125 materials in `gold.rpt_sap_material_month_semantic` have `sell_in_bill_val = 0` across Q4 2024. Added a new `requests_zero_movement` detector in `compile_governed()` (keywords: "tidak laku", "zero movement", "tidak terjual", "tidak ada penjualan", etc.) that appends a `HAVING` clause after `GROUP BY`. **Impala-specific gotcha found and fixed during live verification**: Impala cannot resolve a `SELECT`-aliased column (`metric_value`) inside `HAVING` (`AnalysisException: Could not resolve column/field reference: 'metric_value'`) — the fix repeats the actual aggregate expression (`HAVING SUM(d.sell_in_bill_val) = 0`) instead of the alias. Live-verified: query returns 50/50 rows all with `metric_value = 0.0`. Added matching Indonesian aliases to `material_sell_in_value`/`material_sell_out_value` in `tempo_core.ossie.yaml`; confirmed no collision with the existing "paling laku"/"terlaris" (best-seller) aliases, which correctly do not trigger the `HAVING` clause.
+
+### 3. SAT OOS: store/outlet/gerai breakdown, with a deliberate aggregate-vs-ranking distinction
+
+`sat_oos_rate`'s `allowed_dimensions` already included `cust_id`/`cust_code`, but the `mentions_oos` dimension-selection block in `context.py` only recognized "customer"/"pelanggan" for that breakdown — "toko mana yang paling sering OOS" resolved to the right metric but with `dimensions=[]` (a single aggregate number, no per-store breakdown at all). Also added "kehabisan" + "stok"/"stock" as a `mentions_oos` trigger (previously only "kosong" was recognized, inconsistent with the OOS-skip language already added to `registry.py`'s ambiguity-skip in the previous checkpoint), and added "produk"/"sku" alongside "material" for the material-side breakdown.
+
+**Regression caught and fixed during testing**: naively adding bare "toko"/"outlet"/"gerai" to the breakdown trigger broke an existing test (`test_natural_sat_oos_questions_route_to_oos_metric`) — "Berapa persen toko yang kosong stoknya pas disurvei bulan lalu?" is an aggregate question ("what percent of stores"), not a per-store ranking, and was wrongly forced into a `cust_id`/`cust_code` breakdown. Fixed by gating the store breakdown on store language *plus* an explicit ranking signal (`mana`, `tertinggi`, `terbesar`, `terendah`, `terkecil`, `terparah`, `terburuk`) — "toko mana"/"outlet dengan OOS tertinggi" now correctly break down by store, while "berapa persen toko" correctly stays a single aggregate. Live-verified the per-store query against Impala (real OOS rates, up to 100% for the worst stores in the ranking).
+
+### Tests
+
+11 new regression tests added to `tests/test_semantic_context.py`: trend-via-shortcut `GROUP BY`+chronological order (3 questions), non-trend shortcut stays dimensionless, zero-movement `HAVING` clause present, best-seller questions do NOT trigger `HAVING` (2 questions), OOS store-ranking breakdown (3 questions), OOS aggregate-percentage question stays dimensionless. Full suite: **132/132 passing** (121 baseline + 11 new). Metric count assertion unchanged at 66 (no new metrics, only logic + aliases).
+
+### Not yet done
+
+- `"tren fill rate material per bulan"` (→ `material_fill_rate`, `dimensions=["material"]`, a genuinely non-empty explicit list) still does not get a calmonth breakdown added on top of material — deliberately left out of this fix's scope (the `== []` guard is conservative by design); would need a separate, explicitly-scoped decision about whether non-empty shortcut dimension lists should also allow trend-append.
+- Zero-movement detection only applies to `material_sell_in_value`/`material_sell_out_value` so far; the same `HAVING` mechanism in `compile_governed()` is generic (works for any metric+dimension combination), so extending it to other "underperforming X" questions (e.g. zero-movement outlets) is just an aliasing exercise, not new plumbing.
+
+## Previous checkpoint: domain enrichment (governed dimensions + Indonesian aliases), outlet ambiguity fix, trend ORDER BY fix (2 Oct 2026)
 
 ### Context: continuing from the 1 Oct dry-run audit, now broadening beyond the original 9 PDF questions
 
