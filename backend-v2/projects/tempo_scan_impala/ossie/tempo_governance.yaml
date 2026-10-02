@@ -17,10 +17,10 @@ ambiguities:
     options:
       - metric: gross_billing_value
         label: Sell-In Gross Billing Value
-        discriminators: [sell-in, sell in, tempo ke customer, gross sales, gross billing, general trade]
+        discriminators: [sell-in, sell in, sellin, tempo ke customer, gross sales, gross billing, general trade]
       - metric: material_sell_out_value
         label: Sell-Out Billing Value
-        discriminators: [sell-out, sell out, partner ke konsumen, retail sales, b2b]
+        discriminators: [sell-out, sell out, sellout, partner ke konsumen, retail sales, b2b]
 
   - name: ratio_direction
     trigger_terms: [rasio sell-in sell-out, sell-in vs sell-out, sell-out vs sell-in, rasio penjualan, perbandingan sell-out, perbandingan sell-in]

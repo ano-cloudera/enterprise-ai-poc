@@ -278,6 +278,23 @@ def test_service_level_uat_questions_use_published_metrics(
     "toko dengan omset terbesar di alfamart",
     "e-store mana yang paling banyak penjualannya",
 ])
+def test_dc_alfamart_sell_out_clarification_resolves_to_branch_ranking() -> None:
+    context = SemanticContextService()
+    question = (
+        "Top 10 DC Alfamart dengan penjualan tertinggi\n"
+        "Klarifikasi pengguna: sell-out"
+    )
+    resolution = context.resolve(question)
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "b2b_branch_sell_out_value"
+    sql = context.compile_governed(resolution["metric"], question, resolution.get("dimensions"))
+    assert "gold.corr_b2b_branch_estore_month" in sql
+    assert "GROUP BY d.branch" in sql
+    assert "GROUP BY d.material" not in sql
+    assert "LIMIT 10" in sql
+
+
 def test_outlet_toko_gerai_questions_resolve_to_b2b_branch_metric_without_sales_stage_clarification(
     question: str,
 ) -> None:

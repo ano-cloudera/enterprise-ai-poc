@@ -1,3 +1,5 @@
+import pytest
+
 from app.core.models import AnalysisOutput
 from app.services.chat import contextualize_question
 from app.services.history import ConversationStore
@@ -51,6 +53,28 @@ def test_short_sell_in_follow_up_reuses_the_previous_question() -> None:
 
     assert "Kalau jumlah penjualan selama Q4 berapa besar?" in contextualized
     assert "sell-in" in contextualized.casefold()
+
+
+@pytest.mark.parametrize("reply", ["data sellout", "data sell out", "Sell-Out", "sell-out aja"])
+def test_sell_out_clarification_replies_all_merge_with_the_prior_question(reply: str) -> None:
+    history = [
+        {
+            "question": "Top 10 DC Alfamart dengan penjualan tertinggi",
+            "answer": {
+                "direct_answer": (
+                    "Apakah Anda ingin melihat Sell-In (penjualan Tempo ke customer) "
+                    "atau Sell-Out (penjualan partner ke konsumen akhir)?"
+                ),
+            },
+        }
+    ]
+
+    contextualized = contextualize_question(reply, history)
+
+    assert contextualized == (
+        "Top 10 DC Alfamart dengan penjualan tertinggi\n"
+        "Klarifikasi pengguna: sell-out"
+    )
 
 
 def test_plain_sell_in_choice_preserves_the_original_top_product_request() -> None:

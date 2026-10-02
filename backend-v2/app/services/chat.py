@@ -13,6 +13,7 @@ from app.db.impala_backend import ImpalaBackend
 from app.graph.workflow import WorkflowDependencies, build_workflow
 from app.llm.registry import ProviderRegistry
 from app.semantic.context import SemanticContextService
+from app.semantic.registry import _normalize as normalize_for_match
 from app.services.history import ConversationStore
 from app.services.local_agent_client import LocalAgentClient
 from app.sql.validator import validate_sql
@@ -28,12 +29,19 @@ def _canonical_clarification_choice(question: str, clarification: str) -> str | 
     # resolves. Dash-insensitive ("sell out" vs "Sell-Out") since users type
     # the unhyphenated form far more often than the question's own wording.
     normalized = re.sub(r"[^a-z0-9]+", " ", question.casefold()).strip()
+    # Same folding as registry.resolve_ambiguity() discriminators: "Sell-Out",
+    # "sell out", and "sellout" all become the substring "sellout".
+    folded = normalize_for_match(question)
     offered = clarification.casefold().replace("–", "-")
     sell_in_phrases = ("sell in", "penjualan tempo ke customer", "penjualan tempo ke pelanggan")
     sell_out_phrases = ("sell out", "penjualan partner ke konsumen", "penjualan partner ke customer")
-    if "sell-in" in offered and any(phrase in normalized for phrase in sell_in_phrases):
+    if "sell-in" in offered and (
+        any(phrase in normalized for phrase in sell_in_phrases) or "sellin" in folded
+    ):
         return "sell-in"
-    if "sell-out" in offered and any(phrase in normalized for phrase in sell_out_phrases):
+    if "sell-out" in offered and (
+        any(phrase in normalized for phrase in sell_out_phrases) or "sellout" in folded
+    ):
         return "sell-out"
     return None
 
