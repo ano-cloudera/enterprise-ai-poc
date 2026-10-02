@@ -56,10 +56,21 @@ def contextualize_question(question: str, history: list[dict]) -> str:
     selected_choice = canonical_choice or question.strip()
     choice_tokens = set(re.findall(r"[a-z0-9]+(?:-[a-z0-9]+)?", canonical_choice or normalized))
     clarification_tokens = set(re.findall(r"[a-z0-9]+(?:-[a-z0-9]+)?", clarification.casefold()))
-    ignored = {"ya", "iya", "betul", "untuk", "data", "yang", "mau", "saya", "the", "a"}
+    # "tempo" is excluded alongside the other filler words - it is the
+    # brand name and appears in almost every clarification/question
+    # regardless of topic, so its presence is never a real signal that a
+    # short new question is actually answering the prior clarification.
+    ignored = {"ya", "iya", "betul", "untuk", "data", "yang", "mau", "saya", "the", "a", "tempo"}
     selected_tokens = {token for token in choice_tokens - ignored if len(token) > 2}
+    overlap = selected_tokens & clarification_tokens
     offers_choice = "?" in clarification or " atau " in f" {clarification.casefold()} "
-    if previous_question and offers_choice and (canonical_choice or selected_tokens & clarification_tokens):
+    # A single shared token is too weak a signal on its own - long
+    # clarification paragraphs (e.g. the ROI-promo proxy explanation) share
+    # common domain words ("penjualan", "produk") with completely unrelated
+    # follow-up questions purely by coincidence. Require at least two
+    # overlapping tokens (or an exact canonical match) before treating a
+    # new question as an answer to the old clarification.
+    if previous_question and offers_choice and (canonical_choice or len(overlap) >= 2):
         return f"{previous_question}\nKlarifikasi pengguna: {selected_choice}"
     return question
 

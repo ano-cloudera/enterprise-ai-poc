@@ -392,3 +392,20 @@ def test_aggregate_oos_question_about_percent_of_stores_stays_dimensionless() ->
     assert resolution["status"] == "resolved"
     assert resolution["metric"] == "sat_oos_rate"
     assert resolution.get("dimensions") == []
+
+
+@pytest.mark.parametrize("question", [
+    "Top 10 produk dengan penjualan terbesar di Tempo",
+    "penjualan terbesar di Tempo",
+    "berapa penjualan di Tempo bulan ini",
+])
+def test_sales_questions_mentioning_tempo_as_a_location_still_ask_sales_stage(question: str) -> None:
+    # The brand name "Tempo" appears in almost every Sell-In-flavored
+    # question and used to be a standalone "di tempo" discriminator that
+    # silently auto-selected Sell-In and skipped the clarification entirely
+    # - any question with "penjualan ... di Tempo" is genuinely ambiguous
+    # (General Trade/Sell-In vs B2B/Sell-Out) and must still ask.
+    resolution = SemanticContextService().resolve(question)
+
+    assert resolution["status"] == "needs_clarification"
+    assert resolution["reason"] == "sales_stage"

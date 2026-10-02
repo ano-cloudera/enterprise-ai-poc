@@ -78,6 +78,51 @@ def test_standalone_question_is_not_rewritten_from_history() -> None:
     assert contextualize_question("Top 5 produk dengan gross sales terbesar", history) == "Top 5 produk dengan gross sales terbesar"
 
 
+def test_unrelated_new_question_after_roi_promo_clarification_is_not_rewritten() -> None:
+    # The ROI-promo proxy clarification is a long paragraph that happens to
+    # share common domain words ("penjualan", "Tempo") with almost any new
+    # question - a brand-new, unrelated topic must not be misread as the
+    # user answering the ROI clarification just because of that overlap.
+    history = [
+        {
+            "question": "Hitung promo dengan ROI terbaik dan berikan rekomendasi/ saran",
+            "answer": {
+                "direct_answer": (
+                    "TEMPO tidak memiliki data biaya promo atau ROI langsung untuk SAT Promo "
+                    "(Alfamart) - data yang tersedia hanya deskripsi mekanisme promo (teks bebas), "
+                    "bukan nilai biaya terstruktur, dan SAT Promo hanya mencakup Desember 2024 tanpa "
+                    "baseline bulan sebelumnya di channel yang sama. Satu-satunya proxy yang bisa "
+                    "dihitung adalah dampak penjualan General Trade (bukan Alfamart langsung) untuk "
+                    "material yang sama, dibandingkan November (baseline) vs Desember (bulan promo). "
+                    "Metrik mana yang Anda mau?"
+                ),
+                "executive_summary": "",
+                "insights": [],
+            },
+        }
+    ]
+
+    reply = "Top 10 produk dengan penjualan terbesar di Tempo"
+    assert contextualize_question(reply, history) == reply
+
+
+def test_unrelated_new_question_after_sales_stage_clarification_is_not_rewritten() -> None:
+    history = [
+        {
+            "question": "berapa penjualan bulan ini?",
+            "answer": {
+                "direct_answer": (
+                    "Apakah Anda ingin melihat Sell-In (penjualan Tempo ke customer) atau "
+                    "Sell-Out (penjualan partner ke konsumen akhir)?"
+                ),
+            },
+        }
+    ]
+
+    reply = "stok gudang tempo berapa banyak"
+    assert contextualize_question(reply, history) == reply
+
+
 def test_short_answer_to_stock_clarification_reuses_previous_question() -> None:
     history = [
         {
