@@ -409,8 +409,12 @@ class SemanticContextService:
             marker in metric
             for marker in ("stock", "warehouse_stock", "sat_dc", "sat_store")
         )
-        maximum = 10 if is_stock_metric else 200
-        default = 10 if is_stock_metric else 50
+        is_promo_uplift_proxy = dataset_name == "sat_promo_material_uplift"
+        if is_stock_metric or is_promo_uplift_proxy:
+            maximum = 10
+        else:
+            maximum = 200
+        default = 10 if dimensions else 50
         limit = min(int(top.group(1)), maximum) if top else default
         sql.append(f"LIMIT {limit}")
         return "\n".join(sql)

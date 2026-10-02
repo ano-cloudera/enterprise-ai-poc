@@ -193,6 +193,19 @@ def test_governed_compiler_uses_real_requested_dimensions() -> None:
     assert "GROUP BY d.division" in division
     assert "d.material_code AS material_code" in material
     assert "GROUP BY d.material_code" in material
+    assert "LIMIT 10" in material
+    assert "LIMIT 50" not in material
+
+
+def test_company_wide_governed_metric_keeps_higher_default_limit() -> None:
+    context = SemanticContextService()
+    sql = context.compile_governed(
+        "company_fill_rate",
+        "Fill rate kita sekarang berapa secara keseluruhan?",
+        [],
+    )
+    assert "GROUP BY" not in sql
+    assert "LIMIT 50" in sql
 
 
 @pytest.mark.parametrize("question", [
@@ -429,6 +442,31 @@ def test_cabang_dimension_hint_does_not_produce_a_false_dimension_mismatch(quest
     assert resolution.get("dimension_mismatch") == []
 
 
+def test_promo_uplift_ranking_defaults_to_top_ten() -> None:
+    context = SemanticContextService()
+    question = "coba saya pengen liat margin uplift"
+    resolution = context.resolve("margin uplift")
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "promo_material_margin_uplift"
+
+    sql = context.compile_governed(resolution["metric"], question, resolution.get("dimensions"))
+    assert "d.material AS material" in sql
+    assert "ORDER BY metric_value DESC" in sql
+    assert "LIMIT 10" in sql
+    assert "LIMIT 50" not in sql
+
+
+def test_promo_uplift_honours_explicit_top_five() -> None:
+    context = SemanticContextService()
+    resolution = context.resolve("top 5 revenue uplift promo")
+    sql = context.compile_governed(
+        resolution["metric"],
+        "top 5 revenue uplift promo",
+        resolution.get("dimensions"),
+    )
+    assert "LIMIT 5" in sql
+
+
 def test_promo_roi_proxy_clarification_answer_in_prose_resolves_revenue_uplift() -> None:
     answer = (
         "oke sekali lagi coba keluarkan penjualan General Trade (bukan Alfamart langsung) "
@@ -460,6 +498,7 @@ def test_uat_branch_service_level_ranking_resolves_sales_office_fill_rate() -> N
     assert "gold.corr_service_sales_office_material_month" in sql
     assert "GROUP BY d.sales_off" in sql
     assert "ORDER BY metric_value ASC" in sql
+    assert "LIMIT 10" in sql
 
 
 @pytest.mark.parametrize("question", [
