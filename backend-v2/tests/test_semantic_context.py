@@ -271,13 +271,6 @@ def test_service_level_uat_questions_use_published_metrics(
     assert resolution.get("dimensions", []) == dimensions
 
 
-@pytest.mark.parametrize("question", [
-    "toko mana yang penjualannya paling tinggi",
-    "outlet mana yang paling laris",
-    "top 10 outlet alfamart",
-    "toko dengan omset terbesar di alfamart",
-    "e-store mana yang paling banyak penjualannya",
-])
 def test_stock_cover_question_filters_material_and_uses_full_q4() -> None:
     context = SemanticContextService()
     question = (
@@ -365,6 +358,13 @@ def test_dc_alfamart_sell_out_clarification_resolves_to_branch_ranking() -> None
     assert "LIMIT 10" in sql
 
 
+@pytest.mark.parametrize("question", [
+    "toko mana yang penjualannya paling tinggi",
+    "outlet mana yang paling laris",
+    "top 10 outlet alfamart",
+    "toko dengan omset terbesar di alfamart",
+    "e-store mana yang paling banyak penjualannya",
+])
 def test_outlet_toko_gerai_questions_resolve_to_b2b_branch_metric_without_sales_stage_clarification(
     question: str,
 ) -> None:

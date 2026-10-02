@@ -33,9 +33,14 @@ class FakeContext:
     def __init__(self, resolution: dict, sql: str = "SELECT d.material FROM gold.allowed d LIMIT 10") -> None:
         self.resolution = resolution
         self.sql = sql
+        base_dataset = (resolution.get("definition") or {}).get("base_dataset", "material_360")
+        self.registry = type("Reg", (), {"dataset_fields": {base_dataset: frozenset()}})()
 
     def resolve(self, question: str):
         return self.resolution
+
+    def metric_definition(self, metric: str):
+        return self.resolution.get("definition") or {"base_dataset": "material_360"}
 
     def planner_context(self, domains=None):
         return {"datasets": [{"view": "gold.allowed", "columns": ["material", "value"]}]}
@@ -208,6 +213,7 @@ async def test_entity_lookup_with_null_metric_value_returns_no_data() -> None:
     assert "sell-in nol" in state["answer"]["direct_answer"].casefold() or "tidak ada nilai" in state["answer"]["direct_answer"].casefold()
 
 
+@pytest.mark.asyncio
 async def test_stock_cover_with_branch_mismatch_runs_governed_with_cover_caveats() -> None:
     provider = FakeProvider([analysis()])
     sql = "SELECT d.material, SUM(d.warehouse_stock_qty) FROM gold.rpt_sap_material_month_semantic d LIMIT 10"

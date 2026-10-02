@@ -1,8 +1,8 @@
 # UAT — 9 pertanyaan dry-run (resolver + governed SQL), backend-v2 lokal
 
-**Run date:** 2026-10-02  
+**Run date:** 2026-10-02 (dry-run lokal agent: pytest **168 passed**, 9 pertanyaan di bawah)  
 **Lingkungan:** `enterprise-ai-poc` / `backend-v2`, working tree dengan perbaikan cabang fill-rate (#8)  
-**Metode:** `SemanticContextService.resolve()` → `compile_governed()` bila `status=resolved` tanpa `dimension_mismatch` → `validate_sql()`  
+**Metode:** `SemanticContextService.resolve()` → `compile_governed()` untuk semua `status=resolved` → `validate_sql()`  
 **Tidak dijalankan di run ini:** pipeline penuh `ChatService` (Qwen/GPT + Impala live). Untuk jawaban verbatim + angka live, ulangi di CAI seperti [2026-10-01-qwen-uat.md](2026-10-01-qwen-uat.md).
 
 ## Ringkasan vs run 2026-10-01 (Qwen + Impala live)
@@ -11,7 +11,7 @@
 |---|---|---|---|---|
 | 01 | Top 10 produk penjualan Tempo | SUCCESS · governed | **CLARIFICATION** · sales_stage | Sell-In vs Sell-Out; jawab **Sell-In** untuk lanjut ke `material_sell_in_value` |
 | 02 | Top 10 cabang / sales office | SUCCESS · sql_fallback | **RESOLVED · governed** | `sales_office_material_sell_in_value` · `gold.rpt_sap_sales_office_material_month_semantic` |
-| 03 | Stok produk A cabang A + cover hari | NO_DATA · governed | **RESOLVED + mismatch `branch`** | Planner/ hint; metric `months_of_stock_cover` tidak punya dimensi cabang |
+| 03 | Stok produk A cabang A + cover hari | NO_DATA · governed | **RESOLVED + mismatch `branch` · governed** | Caveats cabang/hari; kode material+cabang → filter entity + `LIMIT 1` |
 | 04 | Top 10 produk B2B | SUCCESS · governed | **RESOLVED · governed** | `material_sell_out_value` (SAP material sell-out, bukan PLU B2B branch) |
 | 05 | Top 10 DC Alfamart penjualan | CLARIFICATION | **CLARIFICATION** · sales_stage | Sama: perlu pilih Sell-In vs Sell-Out |
 | 06 | Stok produk A toko vs DC | CLARIFICATION | **CLARIFICATION** · sat_idm | Pilih DC stock qty vs store stock qty |
@@ -19,7 +19,7 @@
 | 08 | SL / fill rate cabang, urut terjelek | SUCCESS · governed (salah grain live lama) | **RESOLVED · governed** | **`sales_office_service_fill_rate`** · `ORDER BY metric_value ASC` |
 | 09 | Unloading + picking vs industri | SUCCESS · sql_fallback | **FALLBACK** · multi_concept | Perlu LLM planner (`sql_fallback`) |
 
-**Legenda status resolver:** `needs_clarification` → UI CLARIFICATION; `resolved` + SQL valid → path governed jika planner tidak override; `resolved` + `dimension_mismatch` → biasanya `sql_fallback` + `resolver_hint`; `fallback` → `sql_fallback`.
+**Legenda status resolver:** `needs_clarification` → UI CLARIFICATION; `resolved` + SQL valid → **governed** (termasuk `dimension_mismatch` + caveats partial); `fallback` → `sql_fallback`.
 
 ---
 
@@ -63,11 +63,11 @@ LIMIT 10
 - **Resolver:** `resolved`
 - **Metric:** `months_of_stock_cover`
 - **Dimensions:** `["material"]`
-- **Dimension mismatch:** `["branch"]` — permintaan “cabang A” tidak didukung grain metric ini
-- **Expected strategy:** `sql_fallback` (LLM + `resolver_hint`), bukan governed murni
-- **SQL kandidat (jika dimensi cabang diabaikan):** agregat per `material` saja — tidak memenuhi “cabang A”
+- **Dimension mismatch:** `["branch"]` — grain metric tidak punya cabang; jawaban **governed** + caveat (bukan `sql_fallback`).
+- **Placeholder A/A:** agregat per `material`, ranking default `LIMIT 10`.
+- **Kode konkret** (contoh `500-21-02` + cabang `0201`): `WHERE d.material = '500-21-02'`, Q4 penuh, `LIMIT 1`, caveat cabang/hari/bulan.
 
-- **Perbandingan 1 Oct:** NO_DATA governed (placeholder produk/cabang); gap data cabang + stock cover masih real.
+- **Perbandingan 1 Oct:** NO_DATA governed (placeholder); dengan kode entity, Impala bisa NO_DATA jika metric null.
 
 ---
 
@@ -133,7 +133,7 @@ FROM gold.corr_service_sales_office_material_month d
 WHERE d.calmonth BETWEEN 202410 AND 202412
 GROUP BY d.sales_off
 ORDER BY metric_value ASC
-LIMIT 50
+LIMIT 10
 ```
 
 - **Perbandingan live sebelum redeploy:** KPI ~0,777 company-wide = routing lama; setelah redeploy harus bar chart / tabel per `sales_off`, SL terburuk di atas (ASC).
