@@ -8,7 +8,7 @@ def test_context_is_derived_from_the_actual_tempo_ossie_contract() -> None:
     context = SemanticContextService()
 
     assert len(context.datasets) == 21
-    assert len(context.metrics) == 65
+    assert len(context.metrics) == 66
     material = context.table_policy("gold.rpt_sap_material_month_semantic")
     assert "material" in material.columns
     assert "sell_in_bill_val" in material.columns
@@ -256,3 +256,64 @@ def test_service_level_uat_questions_use_published_metrics(
     assert resolution["status"] == "resolved"
     assert resolution["metric"] == metric
     assert resolution.get("dimensions", []) == dimensions
+
+
+@pytest.mark.parametrize("question", [
+    "toko mana yang penjualannya paling tinggi",
+    "outlet mana yang paling laris",
+    "top 10 outlet alfamart",
+    "toko dengan omset terbesar di alfamart",
+    "e-store mana yang paling banyak penjualannya",
+])
+def test_outlet_toko_gerai_questions_resolve_to_b2b_branch_metric_without_sales_stage_clarification(
+    question: str,
+) -> None:
+    context = SemanticContextService()
+    resolution = context.resolve(question)
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "b2b_branch_sell_out_value"
+    sql = context.compile_governed(resolution["metric"], question, resolution.get("dimensions"))
+    assert "GROUP BY d.e_store" in sql
+
+
+def test_sell_in_sales_stage_clarification_is_unaffected_by_outlet_skip() -> None:
+    resolution = SemanticContextService().resolve("berapa penjualan sell-in bulan ini")
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "gross_billing_value"
+
+
+def test_existing_salesoffice_and_ratio_direction_skips_are_unaffected() -> None:
+    context = SemanticContextService()
+
+    salesoffice_resolution = context.resolve("sales office mana dengan penjualan tertinggi")
+    assert salesoffice_resolution["status"] == "resolved"
+
+    ratio_resolution = context.resolve("rasio penjualan partner terhadap penjualan tempo")
+    assert ratio_resolution["status"] == "resolved"
+    assert ratio_resolution["metric"] == "sell_out_to_sell_in_value_ratio"
+
+
+@pytest.mark.parametrize("question", [
+    "tren penjualan sell-in per bulan, naik atau turun",
+    "tren stok tempo per bulan",
+])
+def test_pure_trend_questions_order_chronologically(question: str) -> None:
+    context = SemanticContextService()
+    resolution = context.resolve(question)
+
+    assert resolution["status"] == "resolved"
+    sql = context.compile_governed(resolution["metric"], question, resolution.get("dimensions"))
+    assert "ORDER BY d.calmonth ASC" in sql
+
+
+def test_ranking_with_bulan_keyword_still_orders_by_metric_value() -> None:
+    context = SemanticContextService()
+    resolution = context.resolve("top 10 produk bulan ini")
+
+    assert resolution["status"] == "resolved"
+    sql = context.compile_governed(
+        resolution["metric"], "top 10 produk bulan ini", resolution.get("dimensions")
+    )
+    assert "ORDER BY metric_value DESC" in sql

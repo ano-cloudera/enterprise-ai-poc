@@ -377,7 +377,15 @@ class TempoOssieRegistry:
             # "Out of stock" is the published SAT OOS KPI, not a request to
             # choose between warehouse, partner-DC, and retail-store stock.
             if ambiguity.get("name") == "stock_scope" and any(
-                term in normalized for term in ("oos", "outofstock")
+                term in normalized for term in ("oos", "outofstock", "kehabisan", "kosong")
+            ):
+                continue
+            # "Stok konsinyasi" has its own published metric
+            # (stock_tempo_consignment_qty) that already implies the Tempo
+            # warehouse scope - it does not need the generic
+            # warehouse/DC/store clarification.
+            if ambiguity.get("name") == "stock_scope" and any(
+                term in normalized for term in ("konsinyasi", "consignment")
             ):
                 continue
             if (
@@ -387,6 +395,29 @@ class TempoOssieRegistry:
                     _normalize(term) in normalized
                     for term in ("revenue", "pendapatan", "nilai penjualan", "gross sales")
                 )
+            ):
+                continue
+            # "toko"/"outlet"/"gerai"/"e-store" language can only ever refer
+            # to the B2B/Sell-Out store-level grain - Sell-In's base datasets
+            # (monthly_executive, material_360) have no outlet/e_store field
+            # at all, so there is nothing to disambiguate UNLESS the
+            # question also explicitly asks to compare/combine with
+            # Sell-In/Tempo/general trade.
+            if ambiguity.get("name") == "sales_stage" and any(
+                term in normalized for term in ("toko", "outlet", "gerai", "estore", "e-store")
+            ) and not any(
+                _normalize(term) in normalized
+                for term in ("sell-in", "sell in", "tempo ke customer", "general trade", "gross billing")
+            ):
+                continue
+            # A question asking for the RATIO/variance BETWEEN Sell-In and
+            # Sell-Out ("rasio penjualan partner terhadap penjualan tempo")
+            # mentions "penjualan" twice but is not choosing one stage over
+            # the other - it wants the reconciliation metric that relates
+            # both. Let ratio_direction (below, more specific) handle it
+            # instead of sales_stage intercepting on the generic trigger.
+            if ambiguity.get("name") == "sales_stage" and any(
+                term in normalized for term in ("rasio", "ratio", "selisih", "gap", "variance")
             ):
                 continue
             if not any(
@@ -476,7 +507,7 @@ class TempoOssieRegistry:
             "branch": ("branch", "cabang partner", "branch b2b", "cabang"),
             "sales_off": ("sales off", "sales_off", "cabang"),
             "sales_office": ("sales office", "kantor penjualan", "office", "cabang"),
-            "fill_rate_band": ("fill rate band", "kategori fill", "low fill"),
+            "fill_rate_band": ("fill rate band", "kategori fill", "low fill", "per band", "fill rate per band"),
             "calmonth": ("bulan", "bulanan", "month", "trend", "tren"),
         }
         hinted_dimensions = {

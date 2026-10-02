@@ -22,11 +22,18 @@ logger = logging.getLogger(__name__)
 
 
 def _canonical_clarification_choice(question: str, clarification: str) -> str | None:
+    # Substring match on the question (not an exact-set membership check) so
+    # a short reply that carries extra filler words around the actual choice
+    # - "untuk sell out", "ya sell-in dong", "pilih sell out aja" - still
+    # resolves. Dash-insensitive ("sell out" vs "Sell-Out") since users type
+    # the unhyphenated form far more often than the question's own wording.
     normalized = re.sub(r"[^a-z0-9]+", " ", question.casefold()).strip()
     offered = clarification.casefold().replace("–", "-")
-    if "sell-in" in offered and normalized in {"sell in", "penjualan tempo ke customer", "penjualan tempo ke pelanggan"}:
+    sell_in_phrases = ("sell in", "penjualan tempo ke customer", "penjualan tempo ke pelanggan")
+    sell_out_phrases = ("sell out", "penjualan partner ke konsumen", "penjualan partner ke customer")
+    if "sell-in" in offered and any(phrase in normalized for phrase in sell_in_phrases):
         return "sell-in"
-    if "sell-out" in offered and normalized in {"sell out", "penjualan partner ke konsumen", "penjualan partner ke customer"}:
+    if "sell-out" in offered and any(phrase in normalized for phrase in sell_out_phrases):
         return "sell-out"
     return None
 

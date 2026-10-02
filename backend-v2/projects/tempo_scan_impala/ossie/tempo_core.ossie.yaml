@@ -1713,6 +1713,9 @@ metrics:
     - total sell-in
     - total penjualan sell-in
     - nilai sell-in
+    - omset tempo
+    - omzet tempo
+    - total omset
     instructions: Use for official company-level revenue with no breakdown, or a monthly trend only. Covers plain "sell-in"/"penjualan sell-in" questions with no explicit "gross" wording - a business user clarifying a Sell-In vs Sell-Out ambiguity typically answers with just "sell-in", not "gross sell-in". This metric only allows the calmonth dimension - it does NOT support a product/material breakdown. For "top N product/material by sales/revenue" questions, use material_sell_in_value instead. Gold is already IDR; never multiply by 100 again.
   custom_extensions:
   - vendor_name: TEMPO
@@ -1978,6 +1981,9 @@ metrics:
     - top produk di b2b
     - produk b2b dengan penjualan tertinggi
     - produk terlaris b2b
+    - sku terlaris di alfamart
+    - produk paling banyak terjual di partner
+    - penjualan produk ke konsumen akhir
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"SO-01-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material","retail_plu"],"required_filters":["has_sell_out"],"governance_status":"scoped_metric","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-01","unit_format":"currency_idr"}'
@@ -2062,6 +2068,12 @@ metrics:
     - fill rate
     - service level
     - tingkat pemenuhan
+    - fill rate per band
+    - fill rate berdasarkan band
+    - kategori fill rate
+    - band fill rate mana yang paling banyak
+    - material dengan fill rate rendah
+    - material dengan fill rate tinggi
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"FL-01","base_dataset":"service_level_material","allowed_dimensions":["calmonth","material","fill_rate_band"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-01","unit_format":"percent"}'
@@ -2124,6 +2136,9 @@ metrics:
     synonyms:
     - fill rate band count
     - jumlah material per band
+    - jumlah material per kategori fill rate
+    - berapa banyak material di setiap band fill rate
+    - distribusi fill rate band
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"FL-06","base_dataset":"service_level_material","allowed_dimensions":["calmonth","material","fill_rate_band"],"governance_status":"fixed_pending_business_approval","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-06","unit_format":"count"}'
@@ -2191,6 +2206,10 @@ metrics:
     synonyms:
     - sell-in sell-out variance
     - gap sell-in sell-out
+    - selisih sell-in dan sell-out
+    - selisih penjualan tempo dan penjualan partner
+    - beda sell-in sell-out per customer
+    - customer mana dengan selisih sell-in sell-out terbesar
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"SO-06","base_dataset":"customer_reconciliation","allowed_dimensions":["calmonth","customer"],"row_filter":"reconciliation_scope = ''shared_customer_only''","governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-06","unit_format":"currency_idr"}'
@@ -2205,6 +2224,8 @@ metrics:
     synonyms:
     - sell-out to sell-in ratio
     - rasio sell-out terhadap sell-in
+    - rasio penjualan partner terhadap penjualan tempo
+    - perbandingan sell-out dan sell-in per customer
     instructions: Canonical ratio direction. Not official sell-through.
   custom_extensions:
   - vendor_name: TEMPO
@@ -2289,6 +2310,8 @@ metrics:
     synonyms:
     - picking delay rate
     - tingkat keterlambatan picking
+    - sales office mana dengan keterlambatan picking tertinggi
+    - persentase keterlambatan picking
     instructions: Q4 aggregate; only offices with Picking data.
   custom_extensions:
   - vendor_name: TEMPO
@@ -2308,6 +2331,9 @@ metrics:
     - picking
     - data picking
     - analisa picking
+    - sales office mana dengan waktu picking tercepat
+    - sales office mana dengan waktu picking terlama
+    - durasi picking
     instructions: >-
       Coverage is partial - only 23 of 52 sales offices have any picking
       data (confirmed 1 Oct 2026); sales offices without a value should be
@@ -2352,6 +2378,9 @@ metrics:
     - unloading
     - data unloading
     - analisa unloading
+    - sales office mana dengan waktu unloading tercepat
+    - sales office mana dengan waktu unloading terlama
+    - durasi unloading
     instructions: >-
       Coverage is thin - only 14 of 52 sales offices have any unloading
       data (confirmed 1 Oct 2026, far sparser than picking's 23/52); sales
@@ -2394,6 +2423,10 @@ metrics:
     synonyms:
     - picking workload ratio
     - picking rows per sales line
+    - rasio picking per baris penjualan
+    - beban kerja picking
+    - rata-rata baris picking per sales office
+    - sales office mana dengan beban picking tertinggi
     instructions: Supporting workload proxy, not productivity.
   custom_extensions:
   - vendor_name: TEMPO
@@ -2418,6 +2451,25 @@ metrics:
     - top cabang b2b penjualan
     - penjualan partner ke konsumen akhir per cabang
     - penjualan partner ke konsumen akhir per branch
+    - top outlet penjualan alfamart
+    - penjualan per outlet
+    - penjualan per gerai
+    - gerai alfamart dengan penjualan tertinggi
+    - toko alfamart dengan penjualan tertinggi
+    - outlet mana yang paling laris
+    - outlet mana yang paling banyak penjualannya
+    - outlet terlaris
+    - toko terlaris
+    - toko mana yang penjualannya paling tinggi
+    - toko dengan omset terbesar
+    - toko dengan penjualan terbesar
+    - omset outlet terbesar
+    - omset toko terbesar
+    - top outlet alfamart
+    - top gerai alfamart
+    - top toko alfamart
+    - e-store mana yang paling banyak penjualannya
+    - e-store dengan penjualan tertinggi
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"B2B-01-BR","base_dataset":"b2b_branch_estore","allowed_dimensions":["calmonth","sales_off","branch","e_store"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"B02","unit_format":"currency_idr"}'
@@ -2434,6 +2486,10 @@ metrics:
     - b2b branch quantity
     - branch sell-out quantity
     - sales office b2b quantity
+    - outlet mana yang paling banyak terjual
+    - toko dengan jumlah penjualan terbanyak
+    - qty terjual per outlet
+    - quantity terjual per toko
     instructions: Branch and sales_off are distinct dimensions. Group by the dimension requested by the user; never treat either as a measure.
   custom_extensions:
   - vendor_name: TEMPO
@@ -2544,10 +2600,36 @@ metrics:
     - stock tempo
     - total stok gudang tempo
     - stock tempo quantity
+    - stok gudang mana yang paling banyak
+    - gudang mana dengan stok terbanyak
+    - stok per gudang tempo
+    - gudang tempo mana yang paling banyak
+    - stok gudang tempo mana yang paling banyak
     instructions: Set A only (PoC decision, 24 Sep 2026); Set B excluded pending official Tempo confirmation.
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"ST-02-SETA","base_dataset":"stock_tempo_month","allowed_dimensions":["calmonth","material","plant"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"T01","unit_format":"quantity"}'
+- name: stock_tempo_consignment_qty
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(stock_tempo_month.consignment_stock_qty)
+  datatype: Decimal
+  description: Stock tempo yang berstatus konsinyasi (consignment) di gudang Tempo, per material dan plant, Set A columns only, October-December 2024.
+  ai_context:
+    synonyms:
+    - stok konsinyasi
+    - stock konsinyasi
+    - consignment stock
+    - stok konsinyasi tempo
+    - stok konsinyasi per gudang
+    - gudang mana dengan stok konsinyasi terbanyak
+    instructions: Set A only (PoC decision, 24 Sep 2026); Set B excluded pending official Tempo confirmation. This is a
+      subset of total_stock_qty (consignment-flagged rows only, ~6% of rows), not an additional pipeline figure - never
+      add it to stock_tempo_total_qty as a combined total.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"ST-07-SETA","base_dataset":"stock_tempo_month","allowed_dimensions":["calmonth","material","plant"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"T07","unit_format":"quantity"}'
 - name: stock_tempo_value
   expression:
     dialects:
@@ -2562,6 +2644,11 @@ metrics:
     - stock value tempo
     - tempo stock value
     - stock tempo value
+    - nilai stok gudang mana yang paling tinggi
+    - gudang mana dengan nilai stok tertinggi
+    - nilai stok per gudang tempo
+    - nilai gudang tempo mana yang paling tinggi
+    - nilai stok gudang tempo mana yang paling tinggi
     instructions: Set A only (PoC decision, 24 Sep 2026); Set B excluded pending official Tempo confirmation.
   custom_extensions:
   - vendor_name: TEMPO
@@ -2581,6 +2668,10 @@ metrics:
     - stok dc partner
     - stok dc alfamart
     - dc stock quantity
+    - stok dc per divisi
+    - stok dc per unit bisnis
+    - divisi mana dengan stok dc terbanyak
+    - unit bisnis mana dengan stok dc terbanyak
     instructions: DC-level quantity only. Never add it to store stock quantity as a total pipeline metric. Confirmed Alfamart-only
       (Tempo, 1 Oct 2026) - same partner network as B2B.
   custom_extensions:
@@ -2599,6 +2690,9 @@ metrics:
     - dcstock value
     - dc stock value
     - nilai dcstock
+    - nilai stok dc per divisi
+    - nilai stok dc per unit bisnis
+    - divisi mana dengan nilai stok dc tertinggi
     instructions: DC-level value only. Never add it to store stock value as a total pipeline metric. Confirmed Alfamart-only
       (Tempo, 1 Oct 2026) - same partner network as B2B.
   custom_extensions:
@@ -2621,6 +2715,9 @@ metrics:
     - stok toko alfamart
     - retail stock
     - store stock quantity
+    - stok toko per divisi
+    - stok toko per unit bisnis
+    - divisi mana dengan stok toko terbanyak
     instructions: Store/customer-level quantity only. Never add it to DC stock quantity as a total pipeline metric. Confirmed
       Alfamart-only (Tempo, 1 Oct 2026) - same partner network as B2B.
   custom_extensions:
@@ -2639,6 +2736,8 @@ metrics:
     - storestock value
     - store stock value
     - nilai storestock
+    - nilai stok toko per divisi
+    - divisi mana dengan nilai stok toko tertinggi
     instructions: Store/customer-level value only. Never add it to DC stock value as a total pipeline metric. Confirmed
       Alfamart-only (Tempo, 1 Oct 2026) - same partner network as B2B.
   custom_extensions:
@@ -2659,6 +2758,10 @@ metrics:
     - out of stock
     - tingkat oos
     - tingkat out of stock
+    - toko mana yang paling sering kosong stok
+    - produk mana yang paling sering kehabisan stok
+    - persentase toko yang stoknya habis
+    - stok kosong di toko
     instructions: 'Stok_akhir = 0 as OOS definition is a PoC default, pending official Tempo sign-off.'
   custom_extensions:
   - vendor_name: TEMPO
@@ -2682,6 +2785,11 @@ metrics:
     - promo aktif
     - jumlah promo aktif
     - active promo
+    - observasi promo per jenis mekanisme
+    - jenis promo apa saja
+    - mekanisme promo apa yang paling banyak
+    - jumlah observasi per status program
+    - observasi promo per status program
     instructions: This is an observation-row count, not unique products, redemptions, or sales. Mechanism labels are raw and unmapped - never infer meaning from mekanisme. Every row in this data is a confirmed-active promo observation (Tempo confirmation, 28 Sep 2026); program_status codes Y/X/T do not distinguish active from inactive, so do not filter or break out an "active" subset by status - report the status code as-is if asked, but the whole dataset is active. State the December-only caveat.
   custom_extensions:
   - vendor_name: TEMPO
@@ -2700,6 +2808,8 @@ metrics:
     - jumlah sku promo
     - promo sku count
     - distinct promo materials
+    - jumlah sku promo per mekanisme
+    - jumlah sku promo per status program
     instructions: Count distinct material codes only. Every row in this data is a confirmed-active promo observation (Tempo confirmation, 28 Sep 2026), so this count does represent active-promo material coverage - but it still does not indicate effectiveness, uplift, revenue attribution, or ROI. State the December-only caveat.
   custom_extensions:
   - vendor_name: TEMPO

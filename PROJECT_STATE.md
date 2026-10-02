@@ -1,9 +1,52 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 1 Oct 2026 (latest) — Full audit and fix pass against the 9-question dry-run PDF plus live UAT against both GPT-4o and Qwen through the complete `ChatService` pipeline (deterministic resolver → governed/LLM-planned SQL → live Impala execution → LLM analysis). 6 of 9 dry-run issues fully fixed and verified end-to-end; SAT vs IDM partner-network confusion resolved with Tempo's direct confirmation (B2B = SAT = Alfamart only); new ROI-promo proxy metrics added; two cross-model bugs found and fixed (planner losing resolver context on `dimension_mismatch`/multi-concept questions; SQL validator rejecting `CASE WHEN` as a disallowed function). See checkpoint below for full detail.
+**Updated**: 2 Oct 2026 (latest) — Clarification-matching bug fixed (dash/token-insensitive substring match); systematic domain-by-domain enrichment of previously-unused governed dimensions (plant, division, fill_rate_band, mekanisme/program_status) plus much richer Bahasa Indonesia colloquial alias coverage across all 9 TEMPO Scan domains; one new metric (`stock_tempo_consignment_qty`); B2B outlet/toko ranking questions no longer wrongly trigger the Sell-In/Sell-Out clarification; MoM trend questions now order chronologically instead of by value. 121/121 backend-v2 tests passing. See checkpoint below for full detail.
 
-## Current checkpoint: dry-run audit, SAT/IDM governance fix, ROI promo proxy, live UAT (1 Oct 2026, latest)
+## Current checkpoint: domain enrichment (governed dimensions + Indonesian aliases), outlet ambiguity fix, trend ORDER BY fix (2 Oct 2026, latest)
+
+### Context: continuing from the 1 Oct dry-run audit, now broadening beyond the original 9 PDF questions
+
+The dry-run audit (previous checkpoint, below) fixed the 9 specific PDF questions. This session's explicit goal, per the user, was broader: enrich question-answering potential across *every* domain/dataset/Impala view, not just the 9 original questions — and account for how varied/colloquial real Indonesian phrasing is ("orang indonesia itu bahasa nya kaya dan beragam"). User explicitly authorized creating new Impala views/metrics where the underlying data supports it, with human-readable descriptions.
+
+### Clarification-answer-lost bug fixed first
+
+`_canonical_clarification_choice()` in `app/services/chat.py` required exact-set membership (`normalized in {"sell in", ...}`) with no tolerance for filler words, and its fallback token-check failed because "sell-out" (dashed, one token in the AI's own question text) never matched "sell"+"out" (two separate tokens in the user's undashed reply). A reply like "untuk sell out" was silently dropped, causing the AI to lose context and ask a second, wrong clarification. Fixed to substring matching (`any(phrase in normalized for phrase in sell_in_phrases/sell_out_phrases)`); verified via direct calls and `SemanticContextService.resolve()`/`compile_governed()` producing correct SQL. Full suite green throughout.
+
+### Domain-by-domain enrichment: newly-activated governed dimensions
+
+A gap analysis (comparing every dataset's declared fields in `tempo_core.ossie.yaml` against which fields actually appear inside some metric's SQL expression) found several fields that existed in the Gold views but were never exposed as queryable breakdowns. Activated:
+
+- **Stock Tempo**: `plant` (gudang) breakdown for `stock_tempo_total_qty`/`stock_tempo_value` — "mana"-style ranking phrasings ("stok gudang Tempo mana yang paling banyak") previously lost to the wrong, plant-less metric (`material_warehouse_stock_quantity`) purely on alias-substring-length scoring; fixed with longer, exact-word-order aliases that win the scoring race, plus live-verified `GROUP BY plant` SQL.
+- **Stock Tempo**: new metric `stock_tempo_consignment_qty` (previously-unused `consignment_stock_qty` field, confirmed live: 1.28M units across ~6% of rows, real plant-level breakdown e.g. plant 2300 leading at 550,855 units) — metric count assertion in `tests/test_semantic_context.py` bumped 65→66.
+- **SAT stock (DC/store)**: `division` (unit bisnis / BCL/FOOD/MILK/OTC) breakdown added to all 4 SAT stock metrics (`sat_dc_stock_quantity/value`, `sat_store_stock_quantity/value`), plus a `division`/`divisi`/`unit bisnis` hint in `context.py`'s `compile_governed()`.
+- **Service Level**: `fill_rate_band` breakdown — required a new explicit intent branch in `context.py` (`mentions_fill_rate_band`) since the pre-existing deterministic fill-rate routing block intercepted "per band"/"kategori fill rate" questions before alias scoring ever got a chance to pick a band-aware metric.
+- **SAT Promo**: `mekanisme`/`program_status` breakdown activated on `promo_observation_count`/`promo_material_count`, with hints added to `context.py` and matching Indonesian aliases ("mekanisme promo apa yang paling banyak", "jumlah observasi per status program").
+- **Cross-domain reconciliation**: confirmed `reconciliation_scope` is a constant (`shared_customer_only`, 100% of rows) — not a real breakdown gap, correctly left alone. Instead enriched the genuinely useful axis (`customer`) on `sell_in_minus_sell_out_value`/`sell_out_to_sell_in_value_ratio`, and fixed the `sales_stage` ambiguity wrongly intercepting ratio/gap-phrased reconciliation questions before the more-specific `ratio_direction` ambiguity could run (added a `rasio`/`ratio`/`selisih`/`gap`/`variance`-based skip in `registry.py`'s `resolve_ambiguity()`, plus new `trigger_terms`/discriminators on `ratio_direction` in `tempo_governance.yaml`).
+- **SAT OOS**: added colloquial "kehabisan"/"kosong" phrasings with a matching `stock_scope` ambiguity-skip (same pattern as the pre-existing OOS/consignment skips).
+- Broad additional Indonesian synonym coverage added to `gross_billing_value`, `material_sell_out_value`, and the existing (already correctly row-weighted) picking/unloading duration metrics — caught and reverted an accidental metric-duplication mistake along the way (don't re-declare a metric that already exists with a better, row-weighted expression; check existing `- name:` blocks first).
+
+### B2B outlet/toko ranking: ambiguity false-positive + alias gaps fixed
+
+Questions like "toko mana yang penjualannya paling tinggi" or "outlet mana yang paling laris" either wrongly triggered the Sell-In/Sell-Out `sales_stage` clarification, or failed outright (`unsupported`/`no_published_metric_match`), despite `gold.corr_b2b_branch_estore_month` already having clean, fast e_store-level aggregates (20,273 distinct outlets, confirmed live: top outlet R472 at Rp156,868,926.64). Root cause: `sales_stage`'s generic "penjualan" trigger ran before B2B-specific alias scoring, and Sell-In's base datasets (`monthly_executive`, `material_360`) have zero outlet/e_store field at all, so the ambiguity was never real. Fixed with a new skip block in `registry.py` (toko/outlet/gerai/e-store language skips `sales_stage` unless the question also explicitly says sell-in/general trade/gross billing), new aliases on `b2b_branch_sell_out_value`/`_quantity`, and adding bare `"toko"` to the `e_store` dimension hint in `context.py` (safe here since this metric has no competing store-level dimension to collide with). All 5 originally-failing phrasings now resolve correctly with `GROUP BY d.e_store`; live-verified against Impala.
+
+### MoM trend ORDER BY fixed (the audit's "no trend metric" claim was wrong — it already worked, just ordered badly)
+
+An earlier gap-analysis claim that "no growth MoM metric exists" turned out to be false: `compile_governed()` already auto-prepends the time dimension to `GROUP BY` whenever a question says "per bulan"/"tren"/"trend". The real bug was `ORDER BY` always sorting by `metric_value DESC/ASC` even for a pure trend question, making "naik atau turun" unreadable from the result order. Fixed: when the trend-prepend fires AND the question has no top-N/superlative ranking intent, `ORDER BY` uses the time dimension ascending instead. Ranking+bulan combos ("top 10 produk bulan ini") are unaffected (still value-ranked) via a `requests_ranking` flag that takes priority.
+
+**Separate, pre-existing, out-of-scope finding** (not fixed this session, needs explicit sign-off before touching): several of `context.py`'s `resolve()` dimensionless shortcuts (`company_fill_rate`, `sat_oos_rate`, `material_fill_rate`, `months_of_stock_cover`, `service_unfulfilled_quantity`) pass an explicit `dimensions=[]`/`["material"]` list into `compile_governed`, which bypasses the trend-prepend/ORDER BY logic entirely regardless of this fix — "tren fill rate per bulan" still does not get a `GROUP BY calmonth` today. Fixing this touches the `resolved()` helper's dimension-passing convention used by every shortcut call site in `resolve()`, so it needs a separate, explicitly-scoped pass.
+
+### Tests
+
+10 new regression tests added to `tests/test_semantic_context.py` (outlet/toko resolution + `GROUP BY e_store`, `sales_stage`/`ratio_direction`/`salesoffice` skip non-regression, trend `ORDER BY d.calmonth ASC`, ranking-with-bulan still `ORDER BY metric_value DESC`). Full suite: **121/121 passing** (111 baseline + 10 new), metric count assertion correctly stayed at 66 except for the one genuinely new metric (`stock_tempo_consignment_qty`, 65→66).
+
+### Not yet done
+
+- Fill-rate/OOS/stock-cover `resolve()` shortcuts' `dimensions=[]` convention blocking trend-prepend (flagged above) — needs a dedicated pass, not bundled into this one.
+- `picking_rows_per_sales_line` and `average_picking_minutes`/`average_unloading_minutes`/`picking_delay_rate` already existed with correct row-weighted expressions before this session (only synonyms were added, no new metrics) — verify this is still consistent after the next schema review.
+- `datasets/migration/recreate_all_gold_views.sql` is `.gitignore`d — the new `stock_tempo_consignment_qty` metric needed no new view (reused `gold.corr_stock_tempo_month_seta`'s existing `consignment_stock_qty` column), so no view-definition drift this time, but keep flagging this file's gitignore status whenever a *new* view is created.
+
+## Previous checkpoint: dry-run audit, SAT/IDM governance fix, ROI promo proxy, live UAT (1 Oct 2026)
 
 ### Context: live Impala access was established this session
 

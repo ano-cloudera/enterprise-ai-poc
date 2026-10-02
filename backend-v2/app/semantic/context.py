@@ -222,12 +222,17 @@ class SemanticContextService:
         # These high-frequency Service Level intents have exact published
         # metrics. Resolve their requested grain deterministically instead of
         # leaving synonymous fill-rate metrics to alias-score tie breaking.
+        mentions_fill_rate_band = "band" in words or "kategori" in lowered
         if "fill" in words and "rate" in words:
+            if mentions_fill_rate_band:
+                return resolved("service_fill_rate", ["fill_rate_band"])
             if "material" in words:
                 return resolved("material_fill_rate", ["material"])
             if "sales" in words and "office" in words:
                 return resolved("sales_office_service_fill_rate", ["sales_off"])
             return resolved("company_fill_rate", [])
+        if mentions_fill_rate_band and words & {"material", "jumlah", "berapa", "distribusi"}:
+            return resolved("service_material_month_count", ["fill_rate_band"])
         if {"po", "do"} <= words and bool(words & {"gap", "selisih"}):
             return resolved("service_unfulfilled_quantity", [])
 
@@ -282,10 +287,13 @@ class SemanticContextService:
             "sales_office": ("sales office", "kantor penjualan"),
             "sales_off": ("sales off",),
             "branch": ("branch", "cabang", "dc"),
-            "e_store": ("e-store", "estore"),
+            "e_store": ("e-store", "estore", "outlet", "gerai", "per toko", "toko"),
             "plu": ("plu",),
-            "plant": ("plant",),
-            "division": ("division", "divisi"),
+            "plant": ("plant", "gudang"),
+            "division": ("division", "divisi", "unit bisnis"),
+            "fill_rate_band": ("band", "kategori fill rate", "fill rate band"),
+            "mekanisme": ("mekanisme", "mechanism", "jenis promo", "tipe promo"),
+            "program_status": ("program status", "status program", "kode status", "status kode"),
         }
         dimensions = list(requested_dimensions) if requested_dimensions is not None else [name for name, terms in hints.items() if name in allowed and any(term in lowered for term in terms)]
         if any(name not in allowed for name in dimensions):
@@ -299,13 +307,16 @@ class SemanticContextService:
             # meaningful business use here, so always break down by material
             # rather than requiring the question to say "per material".
             dimensions.append("material")
+        trend_time_dimension_inserted = False
         if requested_dimensions is None and any(term in lowered for term in ("bulan", "bulanan", "month", "trend", "tren")):
             if {"thn", "bln"} <= allowed:
                 dimensions = ["thn", "bln", *dimensions]
+                trend_time_dimension_inserted = True
             else:
                 for time_dimension in ("calmonth", "calmonth_date", "reporting_month", "reporting_period", "bln"):
                     if time_dimension in allowed:
                         dimensions.insert(0, time_dimension)
+                        trend_time_dimension_inserted = True
                         break
         dimensions = list(dict.fromkeys(dimensions))
         expression = definition["expression"].replace(f"{dataset_name}.", "d.")
@@ -343,8 +354,24 @@ class SemanticContextService:
                 "paling sedikit", "paling jelek", "terburuk", "lowest", "bottom",
             )
         )
-        sql.append(f"ORDER BY metric_value {'ASC' if ascending else 'DESC'}")
         top = re.search(r"(?:top|teratas)\s+(\d+)", lowered)
+        requests_ranking = bool(top) or any(
+            term in lowered
+            for term in (
+                "tertinggi", "terbesar", "paling tinggi", "paling besar", "paling banyak",
+                "terendah", "terkecil", "paling kecil", "paling rendah", "paling sedikit",
+                "terburuk", "paling jelek", "ranking", "peringkat",
+            )
+        )
+        if trend_time_dimension_inserted and not requests_ranking:
+            # A pure trend/"per bulan" question (no top-N or superlative
+            # ranking intent) should read chronologically, not value-ranked
+            # - otherwise "naik atau turun" is unanswerable from the result
+            # order.
+            order_column = "d.thn, d.bln" if {"thn", "bln"} <= allowed else f"d.{dimensions[0]}"
+            sql.append(f"ORDER BY {order_column} ASC")
+        else:
+            sql.append(f"ORDER BY metric_value {'ASC' if ascending else 'DESC'}")
         is_stock_metric = any(
             marker in metric
             for marker in ("stock", "warehouse_stock", "sat_dc", "sat_store")

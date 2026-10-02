@@ -23,17 +23,17 @@ ambiguities:
         discriminators: [sell-out, sell out, partner ke konsumen, retail sales, b2b]
 
   - name: ratio_direction
-    trigger_terms: [rasio sell-in sell-out, sell-in vs sell-out, sell-out vs sell-in]
+    trigger_terms: [rasio sell-in sell-out, sell-in vs sell-out, sell-out vs sell-in, rasio penjualan, perbandingan sell-out, perbandingan sell-in]
     question: >-
       Apakah rasio yang Anda maksud Sell-Out dibagi Sell-In atau Sell-In
       dibagi Sell-Out?
     options:
       - metric: sell_out_to_sell_in_value_ratio
         label: Sell-Out / Sell-In
-        discriminators: [sell-out terhadap sell-in, sell-out dibagi sell-in]
+        discriminators: [sell-out terhadap sell-in, sell-out dibagi sell-in, penjualan partner terhadap penjualan tempo]
       - metric: sell_in_to_sell_out_value_ratio
         label: Sell-In / Sell-Out
-        discriminators: [sell-in terhadap sell-out, sell-in dibagi sell-out]
+        discriminators: [sell-in terhadap sell-out, sell-in dibagi sell-out, penjualan tempo terhadap penjualan partner]
 
   - name: stock_scope
     trigger_terms: [stock, stok, inventory, persediaan]
