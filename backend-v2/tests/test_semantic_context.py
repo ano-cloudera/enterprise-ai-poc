@@ -409,3 +409,21 @@ def test_sales_questions_mentioning_tempo_as_a_location_still_ask_sales_stage(qu
 
     assert resolution["status"] == "needs_clarification"
     assert resolution["reason"] == "sales_stage"
+
+
+@pytest.mark.parametrize("question", [
+    "Top 10 cabang/ sales office dengan penjualan terbesar di tempo",
+    "Sales office mana dengan picking delay rate tertinggi?",
+    "Cabang mana dengan rata-rata unloading terlama Q4?",
+])
+def test_cabang_dimension_hint_does_not_produce_a_false_dimension_mismatch(question: str) -> None:
+    # "cabang" ambiguously hints branch/sales_off/sales_office at once.
+    # Once the winning metric's allowed_dimensions actually covers one
+    # reading of "cabang" (e.g. sales_office), the other readings must not
+    # be reported as an unmet dimension_mismatch - that used to force every
+    # one of these questions through the LLM SQL-fallback planner instead
+    # of the already-correct governed SQL, and could fail outright.
+    resolution = SemanticContextService().resolve(question)
+
+    assert resolution["status"] == "resolved"
+    assert resolution.get("dimension_mismatch") == []

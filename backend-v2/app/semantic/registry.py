@@ -598,6 +598,20 @@ class TempoOssieRegistry:
         # "unsupported". A non-empty mismatch does not change status or
         # metric here; it only tells the caller this deterministic result is
         # less certain and worth a second opinion.
+        #
+        # "cabang" ambiguously hints branch/sales_off/sales_office all at
+        # once (see the dimension_terms comment above) - it is the one
+        # Indonesian word for a B2B partner branch, a Tempo sales office,
+        # and two differently-named physical columns for the latter
+        # concept across gold views. The winning metric's own alias scoring
+        # already picked the correct domain (B2B vs Tempo sales); once ANY
+        # member of this synonym group is actually covered by that metric's
+        # allowed_dimensions, the other members must not be reported as
+        # unmet - they were never separate, unanswered requests, just
+        # alternate readings of the one "cabang" the question asked for.
+        cabang_synonyms = {"branch", "sales_off", "sales_office"}
+        if hinted_dimensions & cabang_synonyms & allowed_dimensions:
+            hinted_dimensions = hinted_dimensions - cabang_synonyms
         dimension_mismatch = sorted(hinted_dimensions - {"calmonth"} - allowed_dimensions)
         return {
             "status": "resolved",
