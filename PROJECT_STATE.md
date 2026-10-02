@@ -1,9 +1,46 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 2 Oct 2026 (latest) — Closed the 3 remaining "orange" gaps from the 9-domain checklist: MoM trend questions now work for metric shortcuts that pass an empty dimension list (fill rate, SAT OOS, stock cover), a new "produk tidak laku/zero movement" capability via a governed `HAVING` clause (Impala requires repeating the aggregate expression, not the SELECT alias), and SAT OOS questions now break down by store (`toko`/`outlet`/`gerai` + ranking language) instead of staying a single aggregate number. 132/132 backend-v2 tests passing (121 baseline + 11 new). See checkpoint below for full detail; previous checkpoint covers the broader domain enrichment pass.
+**Updated**: 2 Oct 2026 (latest) — Live UAT against a 9-question test list surfaced two new resolver bugs, both fixed: (1) `contextualize_question()` falsely rewrote a brand-new, unrelated question into an answer for a stale clarification whenever they coincidentally shared one common word (e.g. the brand name "Tempo"); (2) `resolve_metric()`'s `dimension_mismatch` calculation treated `branch`/`sales_off`/`sales_office` as independent even though all three are just different readings of the ambiguous word "cabang", wrongly forcing already-correct governed SQL through the LLM fallback planner (which then errored) for "Top 10 cabang/sales office..." and 8 other golden questions in the Picking/Unloading domain. Also shipped UI/UX polish: chart/table duplication reduced (table collapses when a visual chart already shows the same rows), font-size standardized to the Tailwind scale, header badge simplified. 140/140 backend-v2 tests passing. See checkpoints below for full detail; two checkpoints back covers the broader domain enrichment pass.
 
-## Current checkpoint: trend shortcut fix, zero-movement product metric, OOS per-store breakdown (2 Oct 2026, latest)
+## Current checkpoint: false-positive clarification/dimension-mismatch bugs found via live UAT, UI/UX polish (2 Oct 2026, latest)
+
+### Context: live-testing the 9-question list plus everything enriched this session
+
+After the previous two checkpoints' domain enrichment and gap-closing work, the user ran the original 9-question PDF list end-to-end against the live UI (not just `resolve()`/`compile_governed()` in isolation) to sanity-check everything together, including the ROI-promo proxy clarification flow. This surfaced two real bugs invisible to isolated unit testing - both are "brand name / common word causes a false match" bugs, same root-cause family as the "di tempo" discriminator problem described below.
+
+### Bug 1: `contextualize_question()` swallowed an unrelated new question into a stale clarification
+
+Asking "Hitung promo dengan ROI terbaik..." correctly produced the ROI-promo-proxy clarification (3 metric options, by design - no direct ROI metric exists). But the very next, completely unrelated question - "Top 10 produk dengan penjualan terbesar di Tempo" - got silently rewritten by `contextualize_question()` (`app/services/chat.py`) into "`<old ROI question>`\nKlarifikasi pengguna: Top 10 produk...", because the two texts shared the single common word "penjualan" or "tempo" (the brand name, present in nearly every question). The function's token-overlap heuristic only required **one** shared token to treat a new question as a clarification answer. Fixed: `"tempo"` added to the ignored filler-word set, and at least **two** overlapping tokens (or an exact canonical match) are now required. Verified against all existing `test_history.py`/`test_semantic_context.py` clarification-matching tests - all still pass (the legitimate short-reply cases like "stok retail" share 2+ specific tokens with their clarification, so the stricter threshold doesn't affect them).
+
+### Bug 2: the `sales_stage` ambiguity's "di tempo" discriminator auto-selected Sell-In for almost any question
+
+Root cause of the ROI-promo clarification not even being reached correctly in some phrasings: `tempo_governance.yaml`'s `sales_stage` ambiguity had a bare `"di tempo"` discriminator for the Sell-In option - since the brand name appears in nearly every Sell-In-flavored question, this silently auto-selected Sell-In and skipped the Sell-In/Sell-Out clarification entirely for genuinely ambiguous questions (e.g. "penjualan terbesar di Tempo"). This is a **pre-existing bug from the feature's original commit**, not introduced this session. Removed the discriminator; genuinely Sell-In questions still have stronger signals (`sell-in`, `gross sales`, `tempo ke customer`, `general trade`) unaffected by the removal.
+
+### Bug 3 (found while live-testing question #2 of the 9-question list): false `dimension_mismatch` for the ambiguous word "cabang"
+
+"Top 10 cabang/ sales office dengan penjualan terbesar di tempo" returned a hard `ERROR` in the live UI ("Query data tidak dapat diselesaikan"). Root cause: the Indonesian word "cabang" hints three different dimension names at once in `registry.py`'s `dimension_terms` (`branch` for B2B partner branch, `sales_off` and `sales_office` - two physically different column names across different gold views for the same Tempo-sales-office concept). `resolve_metric()`'s `dimension_mismatch = hinted_dimensions - {calmonth} - allowed_dimensions` treated each hinted name independently, so even when the winning metric (`sales_office_material_sell_in_value`, `allowed_dimensions` includes `sales_office`) genuinely covered one reading of "cabang", the other two synonym names (`branch`, `sales_off`) were still reported as unmet. A non-empty `dimension_mismatch` makes `plan_query()` (`app/graph/workflow.py`) skip the already-correct governed SQL and hand the question to the LLM fallback planner instead - which then produced invalid SQL and surfaced as the live `ERROR`.
+
+Fixed: once any member of the `{branch, sales_off, sales_office}` synonym group is actually covered by the winning metric's `allowed_dimensions`, the other members are dropped from `hinted_dimensions` before computing the mismatch - they were never separate unanswered requests, just alternate readings of the one "cabang" the question asked for. Live-verified: the question now compiles to governed SQL and returns the correct per-sales-office ranking (sales office `0201` leading at Rp356.27M).
+
+**Verified against all 82 `golden_questions.yaml` questions before/after this fix**: 8 questions improved (false `dimension_mismatch` went from non-empty to `[]`, also affecting several Picking/Unloading-domain questions that share the same "cabang"/"sales office" ambiguity), zero regressions.
+
+### UI/UX polish (separate from the resolver bugs above, done earlier in this session)
+
+- **Chart/table duplication**: the result analyst's `insights` field was restating every row already visible in the chart/table as prose bullets. `prompts/result_analyst.md` now explicitly forbids repeating chart/table rows in `insights` - only genuine observations (patterns, outliers, gaps, caveats) belong there. Frontend (`frontend-v2/src/views/AskDataPage.tsx`): the data table now collapses by default (with a "Show/Hide table detail" toggle) whenever a visual chart (bar/line/area/scatter/pie) already renders the same rows; KPI-only or chart-less responses keep the table expanded as before.
+- **Font-size consistency**: replaced scattered arbitrary `text-[Npx]` values across the chat flow (user bubble, AI answer body, KPI card, SQL block, footer) with the standard Tailwind scale (`text-xs`/`text-sm`/`text-base`/`text-2xl`) so proportions stay consistent when zooming.
+- **Header badge**: replaced the top header's "Governed Ossie + Impala" chip with a green-dot "Database" indicator, matching the chat panel's existing badge style.
+
+### Tests
+
+6 new regression tests added this checkpoint (3 for the clarification/discriminator bugs in `tests/test_history.py`/`tests/test_semantic_context.py`, 3 for the `dimension_mismatch` synonym-group fix). Full suite: **140/140 passing** (134 from the prior checkpoint + 6 new). Frontend: 15/15 passing (unchanged by this checkpoint's UI work, verified after each change).
+
+### Not yet done
+
+- The `dimension_mismatch` synonym-group fix only covers the `branch`/`sales_off`/`sales_office` group (the one concretely found broken). If other dimension names end up with the same multi-hint-from-one-Indonesian-word pattern in future domain work, the same symptom (false mismatch forcing LLM fallback) could recur elsewhere - worth a broader audit if another live-UAT failure surfaces a similar case.
+- Fill-rate/OOS/stock-cover `resolve()` shortcuts' `dimensions=[]`/non-empty-list convention still blocks trend-prepend for a few metrics (`material_fill_rate` with `dimensions=["material"]`) - flagged in the prior checkpoint, still not fixed, needs a dedicated pass.
+
+## Previous checkpoint: trend shortcut fix, zero-movement product metric, OOS per-store breakdown (2 Oct 2026)
 
 ### Context: closing the 3 remaining "orange" items from the 9-domain enrichment checklist
 
