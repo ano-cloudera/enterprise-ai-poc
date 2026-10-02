@@ -16,6 +16,7 @@ from app.semantic.context import SemanticContextService
 from app.semantic.registry import _normalize as normalize_for_match
 from app.services.history import ConversationStore
 from app.services.local_agent_client import LocalAgentClient
+from app.services.user_facing_error import explain_failure
 from app.sql.validator import validate_sql
 
 
@@ -182,7 +183,13 @@ class ChatService:
                 request_id, request.session_id, request.provider, request.model, exc.code,
             )
             elapsed = round((perf_counter() - started) * 1000, 3)
-            auth_failed = exc.code == "IMPALA_AUTH_FAILED"
+            provider = self.dependencies.provider_registry.resolve(request.provider, request.model)
+            answer = await explain_failure(
+                provider=provider,
+                question=request.question,
+                failure={"kind": "data_backend", "code": exc.code},
+                request_id=request_id,
+            )
             return AskDataResponse(
                 request_id=request_id,
                 session_id=request.session_id,
@@ -190,32 +197,19 @@ class ChatService:
                 provider=request.provider,
                 model=request.model,
                 strategy="unsupported",
-                answer=AnalysisOutput(
-                    direct_answer=(
-                        "Autentikasi ke Impala gagal."
-                        if auth_failed
-                        else "Query data tidak dapat diselesaikan."
-                    ),
-                    executive_summary=(
-                        "Backend tidak dapat membuka sesi Impala. Hubungi operator aplikasi."
-                        if auth_failed
-                        else "Backend data mengembalikan kegagalan yang aman. Gunakan request ID untuk penelusuran operator."
-                    ),
-                    insights=[],
-                    business_implications=[],
-                    caveats=[
-                        "Periksa profil LDAP atau GSSAPI pada environment backend."
-                        if auth_failed
-                        else "Internal driver details are not exposed."
-                    ],
-                    data_reference="No result available.",
-                    chart_spec=None,
-                ),
+                answer=answer,
                 data=QueryData(), chart_spec=None, timings=Timings(total_ms=elapsed),
             )
         except Exception:
             logger.exception("ask_data_failed request_id=%s session_id=%s provider=%s model=%s", request_id, request.session_id, request.provider, request.model)
             elapsed = round((perf_counter() - started) * 1000, 3)
+            provider = self.dependencies.provider_registry.resolve(request.provider, request.model)
+            answer = await explain_failure(
+                provider=provider,
+                question=request.question,
+                failure={"kind": "internal", "code": "UNEXPECTED"},
+                request_id=request_id,
+            )
             return AskDataResponse(
                 request_id=request_id,
                 session_id=request.session_id,
@@ -223,12 +217,7 @@ class ChatService:
                 provider=request.provider,
                 model=request.model,
                 strategy="unsupported",
-                answer=AnalysisOutput(
-                    direct_answer="Permintaan tidak dapat diselesaikan dengan aman.",
-                    executive_summary="Terjadi kesalahan internal. Gunakan request ID untuk penelusuran operator.",
-                    insights=[], business_implications=[], caveats=["Internal error details are not exposed."],
-                    data_reference="No result available.", chart_spec=None,
-                ),
+                answer=answer,
                 data=QueryData(), chart_spec=None, timings=Timings(total_ms=elapsed),
             )
 

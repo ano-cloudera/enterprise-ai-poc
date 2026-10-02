@@ -16,6 +16,7 @@ from app.core.models import AnalysisOutput, QueryPlan
 from app.graph.state import AskDataState
 from app.semantic.context import is_governed_entity_lookup
 from app.llm.base import LLMProvider, ProviderError
+from app.services.user_facing_error import explain_failure
 from app.sql.validator import ValidatedSQL
 
 
@@ -389,9 +390,19 @@ def build_workflow(deps: WorkflowDependencies):
         if result.valid:
             update["validated_sql"] = result.sql or ""
         else:
+            error_answer = await explain_failure(
+                provider=_provider(state, deps),
+                question=state["question"],
+                failure={
+                    "kind": "sql_validation",
+                    "code": "INVALID_SQL",
+                    "detail": result.error or "",
+                },
+                request_id=str(state.get("request_id") or ""),
+            )
             update.update(
                 status="ERROR",
-                answer=_safe_answer("Query tidak dapat divalidasi dengan aman.", caveats=[result.error or "Invalid SQL"]),
+                answer=error_answer.model_dump(),
                 chart_spec=None,
                 query_result={"columns": [], "rows": [], "row_count": 0, "execution_ms": 0},
             )

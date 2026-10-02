@@ -13,6 +13,7 @@ from app.core.models import AnalysisOutput, AskDataResponse, QueryData, Timings
 from app.db.base import DataBackendError
 from app.main import create_app
 from app.api import chat as chat_api
+from app.llm.base import ProviderError
 from app.services.chat import ChatService, ImpalaQueryExecutor
 
 
@@ -110,10 +111,19 @@ async def test_chat_reports_impala_auth_failure_without_exposing_driver_details(
         def load(self, *_args, **_kwargs):
             return []
 
+    class FailingProvider:
+        async def generate_structured(self, *_args, **_kwargs):
+            raise ProviderError("PROVIDER_ERROR")
+
+    class FakeRegistry:
+        def resolve(self, *_args, **_kwargs):
+            return FailingProvider()
+
     service = object.__new__(ChatService)
     service.workflow = FailedWorkflow()
     service.history = EmptyHistory()
     service.settings = Settings(_env_file=None)
+    service.dependencies = SimpleNamespace(provider_registry=FakeRegistry())
     request = SimpleNamespace(
         session_id="session-1",
         question="Berapa fill rate?",
@@ -130,5 +140,6 @@ async def test_chat_reports_impala_auth_failure_without_exposing_driver_details(
     response = await service.run(request)
 
     assert response.status == "ERROR"
-    assert response.answer.direct_answer == "Autentikasi ke Impala gagal."
-    assert response.answer.caveats == ["Periksa profil LDAP atau GSSAPI pada environment backend."]
+    assert "impala" in response.answer.direct_answer.casefold() or "autentikasi" in response.answer.direct_answer.casefold()
+    assert any(response.request_id in caveat for caveat in response.answer.caveats)
+    assert "Internal error details" not in " ".join(response.answer.caveats)
