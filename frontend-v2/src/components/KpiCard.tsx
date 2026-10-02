@@ -27,9 +27,9 @@ export function KpiCard({ label, value, format, delta, icon: Icon, highlighted =
         <div className="grid h-8 w-8 place-items-center rounded-lg bg-violet-50 text-cloudera-violet"><Icon size={16} strokeWidth={2} /></div>
         {typeof delta === 'number' && <span className={`flex items-center gap-1 text-xs font-bold ${positive ? 'text-emerald-600' : 'text-rose-600'}`}>{positive ? <ArrowUpRight size={14} /> : <ArrowDownRight size={14} />}{Math.abs(delta).toFixed(1)}%</span>}
       </div>
-      <div className="mt-3 text-[11px] font-bold text-slate-500">{label}</div>
-      <div className={`mt-1 truncate font-black tracking-tight ${available ? 'text-[22px] text-cloudera-navy' : 'text-base text-slate-400'}`}>{available ? formatValue(value, format) : 'Not available'}</div>
-      {context && <div className="mt-1 truncate text-[10px] text-slate-400" title={context}>{context}</div>}
+      <div className="mt-3 text-xs font-bold text-slate-500">{label}</div>
+      <div className={`mt-1 truncate font-black tracking-tight ${available ? 'text-2xl text-cloudera-navy' : 'text-base text-slate-400'}`}>{available ? formatValue(value, format) : 'Not available'}</div>
+      {context && <div className="mt-1 truncate text-xs text-slate-400" title={context}>{context}</div>}
     </div>
   )
 }
