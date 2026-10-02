@@ -429,6 +429,25 @@ def test_cabang_dimension_hint_does_not_produce_a_false_dimension_mismatch(quest
     assert resolution.get("dimension_mismatch") == []
 
 
+def test_promo_roi_proxy_clarification_answer_in_prose_resolves_revenue_uplift() -> None:
+    answer = (
+        "oke sekali lagi coba keluarkan penjualan General Trade (bukan Alfamart langsung) "
+        "untuk material yang sama, dibandingkan November (baseline) vs Desember (bulan promo)"
+    )
+    resolution = SemanticContextService().resolve(answer)
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "promo_material_revenue_uplift"
+
+
+@pytest.mark.parametrize("choice", ["Revenue Uplift", "revenue uplift"])
+def test_promo_roi_proxy_short_label_still_resolves(choice: str) -> None:
+    resolution = SemanticContextService().resolve(choice)
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "promo_material_revenue_uplift"
+
+
 def test_uat_branch_service_level_ranking_resolves_sales_office_fill_rate() -> None:
     question = "Hitung service level/ fill rate di cabang tempo dan urutkan SL terjelek"
     service = SemanticContextService()

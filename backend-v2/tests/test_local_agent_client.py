@@ -71,12 +71,72 @@ async def test_timeout_raises_local_agent_error() -> None:
 
 @pytest.mark.asyncio
 async def test_http_error_raises_local_agent_error() -> None:
+    calls = 0
+
     def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
         return httpx.Response(500, json={"error": "agent_failed"})
 
-    client = LocalAgentClient(_settings(), transport=httpx.MockTransport(handler))
-    with pytest.raises(LocalAgentError):
+    client = LocalAgentClient(
+        _settings(local_agent_max_attempts=2, local_agent_retry_delay_seconds=0),
+        transport=httpx.MockTransport(handler),
+    )
+    with pytest.raises(LocalAgentError, match="HTTP_ERROR"):
         await client.query("Berapa gross sales?")
+    assert calls == 2
+
+
+@pytest.mark.asyncio
+async def test_retryable_http_error_succeeds_on_second_attempt() -> None:
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        if calls == 1:
+            return httpx.Response(503, json={"error": "busy"})
+        return httpx.Response(
+            200,
+            json={
+                "status": "ok",
+                "resolved_query_ids": ["PK-01"],
+                "final_response_markdown": "## Answer\n\nFill rate cabang A: 92%.",
+            },
+        )
+
+    client = LocalAgentClient(
+        _settings(local_agent_max_attempts=2, local_agent_retry_delay_seconds=0),
+        transport=httpx.MockTransport(handler),
+    )
+    payload = await client.query("Fill rate cabang")
+    assert payload["resolved_query_ids"] == ["PK-01"]
+    assert calls == 2
+
+
+@pytest.mark.asyncio
+async def test_refusal_does_not_retry() -> None:
+    calls = 0
+
+    def handler(request: httpx.Request) -> httpx.Response:
+        nonlocal calls
+        calls += 1
+        return httpx.Response(
+            200,
+            json={
+                "status": "intent_unavailable",
+                "resolved_query_ids": [],
+                "final_response_markdown": "## Answer\n\nNo match.",
+            },
+        )
+
+    client = LocalAgentClient(
+        _settings(local_agent_max_attempts=3, local_agent_retry_delay_seconds=0),
+        transport=httpx.MockTransport(handler),
+    )
+    with pytest.raises(LocalAgentError, match="NO_ANSWER"):
+        await client.query("Unknown metric")
+    assert calls == 1
 
 
 def test_markdown_to_plain_answer_strips_routing_section_and_headings() -> None:

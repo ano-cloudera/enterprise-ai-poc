@@ -215,16 +215,37 @@ class TempoOssieRegistry:
         # are still present. Check the ROI-proxy option discriminators
         # first, before the generic promo/ROI trigger below.
         roi_proxy_discriminators = {
-            "promo_material_revenue_uplift": ("revenue uplift",),
-            "promo_material_volume_uplift": ("volume uplift", "volume/qty uplift", "qty uplift"),
-            "promo_material_margin_uplift": ("margin uplift",),
+            "promo_material_revenue_uplift": (
+                "revenue uplift",
+                "penjualan general trade",
+                "dampak penjualan general trade",
+                "keluarkan penjualan general trade",
+            ),
+            "promo_material_volume_uplift": (
+                "volume uplift",
+                "volume/qty uplift",
+                "qty uplift",
+                "volume general trade",
+                "qty general trade",
+            ),
+            "promo_material_margin_uplift": ("margin uplift", "margin general trade"),
         }
         roi_proxy_selected = [
             metric
             for metric, terms in roi_proxy_discriminators.items()
             if any(_normalize(term) in normalized for term in terms)
         ]
-        if mentions_promo and len(roi_proxy_selected) == 1:
+        # User pasted the clarification's own proxy description (ID/EN) instead
+        # of the short metric label - treat Nov-vs-Dec General Trade as revenue.
+        if (
+            not roi_proxy_selected
+            and "generaltrade" in normalized
+            and "november" in normalized
+            and "desember" in normalized
+            and ("promo" in normalized or "alfamart" in normalized or "roi" in normalized)
+        ):
+            roi_proxy_selected = ["promo_material_revenue_uplift"]
+        if len(roi_proxy_selected) == 1:
             metric = roi_proxy_selected[0]
             return {
                 "status": "resolved",

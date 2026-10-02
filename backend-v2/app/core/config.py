@@ -67,6 +67,8 @@ class Settings(BaseSettings):
     local_agent_base_url: str = ""
     local_agent_timeout_seconds: float = Field(default=55, gt=0, le=120)
     local_agent_engine: str = "guided"
+    local_agent_max_attempts: int = Field(default=2, ge=1, le=5)
+    local_agent_retry_delay_seconds: float = Field(default=2.0, ge=0, le=30)
 
     @property
     def cors_origin_list(self) -> list[str]:
