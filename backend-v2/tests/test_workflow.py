@@ -269,7 +269,7 @@ async def test_picking_unloading_planner_clarification_tries_local_agent_second(
 
 
 @pytest.mark.asyncio
-async def test_resolver_clarification_uses_local_agent_second_when_configured() -> None:
+async def test_resolver_sell_in_clarification_does_not_skip_to_local_agent() -> None:
     provider = FakeProvider([])
     dependencies = deps(FakeContext({
         "status": "needs_clarification",
@@ -277,17 +277,15 @@ async def test_resolver_clarification_uses_local_agent_second_when_configured() 
         "options": [],
     }), provider, [])
     dependencies.local_agent_client = FakeLocalAgentClient(payload={
-        "resolved_query_ids": ["SI-01"],
-        "final_response_markdown": "## Answer\n\nTop produk sell-in dari Local Agent.",
+        "final_response_markdown": "## Answer\n\nShould not be used",
     })
 
     state = await build_workflow(dependencies).ainvoke(
         AskDataRequest(session_id="s", question="Top 10 produk penjualan di Tempo", provider="qwen", model="m").model_dump()
     )
 
-    assert state["status"] == "SUCCESS"
-    assert state["strategy"] == "local_agent_exploratory"
-    assert dependencies.local_agent_client.calls == ["Top 10 produk penjualan di Tempo"]
+    assert state["status"] == "CLARIFICATION"
+    assert dependencies.local_agent_client.calls == []
 
 
 @pytest.mark.asyncio

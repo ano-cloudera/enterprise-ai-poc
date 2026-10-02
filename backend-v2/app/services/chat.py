@@ -41,7 +41,9 @@ def _canonical_clarification_choice(question: str, clarification: str) -> str | 
 def contextualize_question(question: str, history: list[dict]) -> str:
     """Resolve a short clarification choice without replaying bulky query rows."""
     normalized = " ".join(question.casefold().replace("–", "-").split())
-    if len(normalized.split()) > 8 or not history:
+    # Full standalone questions (typical UAT prompts are 8+ tokens) must
+    # never be rewritten from prior-turn analyst prose in the same session.
+    if len(normalized.split()) >= 8 or not history:
         return question
     previous = history[-1]
     previous_question = str(previous.get("question") or "").strip()
@@ -63,7 +65,15 @@ def contextualize_question(question: str, history: list[dict]) -> str:
     ignored = {"ya", "iya", "betul", "untuk", "data", "yang", "mau", "saya", "the", "a", "tempo"}
     selected_tokens = {token for token in choice_tokens - ignored if len(token) > 2}
     overlap = selected_tokens & clarification_tokens
-    offers_choice = "?" in clarification or " atau " in f" {clarification.casefold()} "
+    offered = clarification.casefold()
+    offers_choice = (
+        ("sell-in" in offered and "sell-out" in offered)
+        or ("dc stock" in offered and "store stock" in offered)
+        or ("stok dc" in offered and "stok store" in offered)
+        or ("stok gudang tempo" in offered and ("stok dc" in offered or "stok retail" in offered))
+        or ("proxy" in offered and "promo" in offered and "metrik mana" in offered)
+        or (" atau " in f" {offered} " and "?" in clarification)
+    )
     # A single shared token is too weak a signal on its own - long
     # clarification paragraphs (e.g. the ROI-promo proxy explanation) share
     # common domain words ("penjualan", "produk") with completely unrelated

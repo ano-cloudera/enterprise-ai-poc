@@ -24,6 +24,21 @@ def test_history_persists_provider_model_and_structured_answer(tmp_path) -> None
     assert "reasoning" not in str(history).lower()
 
 
+def test_eight_word_uat_question_is_not_rewritten_after_long_prior_answer() -> None:
+    history = [
+        {
+            "question": "Analisa data unloading dan picking dan berikan Analisa dan perbandingan dengan Industri standard",
+            "answer": {
+                "direct_answer": (
+                    "Analisis unloading/picking Q4. Apakah Anda ingin detail per sales office?"
+                ),
+            },
+        }
+    ]
+    reply = "Top 10 produk dengan penjualan terbesar di Tempo"
+    assert contextualize_question(reply, history) == reply
+
+
 def test_short_sell_in_follow_up_reuses_the_previous_question() -> None:
     history = [
         {

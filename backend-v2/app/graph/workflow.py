@@ -144,7 +144,8 @@ async def _try_local_agent_fallback(state: AskDataState, deps: WorkflowDependenc
     if client is None or not getattr(client, "enabled", False):
         return None
     try:
-        payload = await client.query(state["question"], answer_language="id")
+        question = state.get("original_question") or state["question"]
+        payload = await client.query(question, answer_language="id")
     except Exception as exc:  # noqa: BLE001 - any failure here must degrade to None, not propagate
         logger.info("local_agent_fallback_failed request_id=%s reason=%s", state.get("request_id"), type(exc).__name__)
         return None
@@ -227,17 +228,6 @@ def build_workflow(deps: WorkflowDependencies):
             "timings": _with_timing(state, "context_ms", _elapsed(started)),
         }
         if resolution.get("status") == "needs_clarification":
-            if _should_try_local_agent_second(update, deps):
-                local_answer = await _try_local_agent_fallback(update, deps)
-                if local_answer is not None:
-                    update.update(
-                        status="SUCCESS",
-                        strategy="local_agent_exploratory",
-                        answer=local_answer,
-                        chart_spec=None,
-                        query_result={"columns": [], "rows": [], "row_count": 0, "execution_ms": 0},
-                    )
-                    return update
             update.update(
                 status="CLARIFICATION",
                 strategy="clarification",
