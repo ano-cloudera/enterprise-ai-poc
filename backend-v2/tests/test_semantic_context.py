@@ -257,7 +257,7 @@ def test_oos_sales_causality_is_rejected_instead_of_redirected_to_sales() -> Non
 
 @pytest.mark.parametrize(("question", "metric", "dimensions"), [
     ("Fill rate kita sekarang berapa secara keseluruhan?", "company_fill_rate", []),
-    ("Material apa yang fill rate-nya paling jelek?", "material_fill_rate", ["material"]),
+    ("Material apa yang fill rate-nya paling jelek?", "service_fill_rate", ["material"]),
     ("Sales office mana yang fill rate-nya paling rendah?", "sales_office_service_fill_rate", ["sales_off"]),
     ("Ada gap gak antara PO yang masuk sama DO yang kekirim?", "service_unfulfilled_quantity", []),
 ])
@@ -269,6 +269,21 @@ def test_service_level_uat_questions_use_published_metrics(
     assert resolution["status"] == "resolved"
     assert resolution["metric"] == metric
     assert resolution.get("dimensions", []) == dimensions
+
+
+def test_worst_material_fill_rate_includes_sell_in_for_runner_classification() -> None:
+    context = SemanticContextService()
+    question = (
+        "Material apa yang fill rate-nya paling jelek, "
+        "dan apakah itu produk high-runner atau long tail?"
+    )
+    resolution = context.resolve(question)
+    sql = context.compile_governed(resolution["metric"], question, resolution.get("dimensions"))
+
+    assert resolution["metric"] == "service_fill_rate"
+    assert "sell_in_qty" in sql
+    assert "HAVING SUM(d.service_po_qty) > 0" in sql
+    assert "rpt_service_level_material_month_semantic" in sql
 
 
 def test_stock_cover_question_filters_material_and_uses_full_q4() -> None:

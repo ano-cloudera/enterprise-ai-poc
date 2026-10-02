@@ -36,6 +36,17 @@ _RANKING_TERMS = (
     "terendah", "terkecil", "paling kecil", "paling rendah", "paling sedikit",
     "terburuk", "terjelek", "paling jelek", "ranking", "peringkat", "urutkan",
 )
+_VOLUME_CLASSIFICATION_TERMS = (
+    "high-runner", "high runner", "highrunner",
+    "long tail", "long-tail", "longtail",
+    "fast moving", "fast-moving", "slow moving", "slow-moving",
+    "volume", "laris", "terlaris", "movement", "runner",
+)
+
+
+def _question_wants_sell_in_volume_context(question: str) -> bool:
+    lowered = question.casefold()
+    return any(term in lowered for term in _VOLUME_CLASSIFICATION_TERMS)
 
 
 def _sql_string_literal(value: str) -> str:
@@ -347,7 +358,9 @@ class SemanticContextService:
             if mentions_fill_rate_band:
                 return resolved("service_fill_rate", ["fill_rate_band"])
             if "material" in words:
-                return resolved("material_fill_rate", ["material"])
+                # service_level_material carries sell-in alongside SL PO/DO
+                # for high-runner vs long-tail follow-ups on the same query.
+                return resolved("service_fill_rate", ["material"])
             if ("sales" in words and "office" in words) or bool(words & {"cabang", "branch"}):
                 return resolved("sales_office_service_fill_rate", ["sales_off"])
             return resolved("company_fill_rate", [])
@@ -458,6 +471,11 @@ class SemanticContextService:
         expression = definition["expression"].replace(f"{dataset_name}.", "d.")
         projections = [f"d.{name} AS {name}" for name in dimensions]
         projections.append(f"{expression} AS metric_value")
+        if _question_wants_sell_in_volume_context(question):
+            if "sell_in_bill_qty" in field_set:
+                projections.append("SUM(d.sell_in_bill_qty) AS sell_in_qty")
+            if "sell_in_bill_val" in field_set:
+                projections.append("SUM(d.sell_in_bill_val) AS sell_in_val")
         predicates = []
         for field in definition.get("required_filters", []):
             predicates.append(f"d.{field} = TRUE")
@@ -481,6 +499,16 @@ class SemanticContextService:
             sql.append("WHERE " + "\n  AND ".join(predicates))
         if dimensions:
             sql.append("GROUP BY " + ", ".join(f"d.{name}" for name in dimensions))
+        ascending = any(
+            term in lowered
+            for term in (
+                "terendah", "terkecil", "paling kecil", "paling rendah",
+                "paling sedikit", "paling jelek", "terjelek", "terburuk", "lowest", "bottom",
+            )
+        )
+        having_clauses: list[str] = []
+        if "fill_rate" in metric and ascending and "service_po_qty" in field_set:
+            having_clauses.append("SUM(d.service_po_qty) > 0")
         requests_zero_movement = requested_dimensions is None and any(
             term in lowered
             for term in (
@@ -491,14 +519,9 @@ class SemanticContextService:
         if requests_zero_movement and dimensions:
             # Impala cannot resolve a SELECT alias (metric_value) inside
             # HAVING - repeat the actual aggregate expression instead.
-            sql.append(f"HAVING {expression} = 0")
-        ascending = any(
-            term in lowered
-            for term in (
-                "terendah", "terkecil", "paling kecil", "paling rendah",
-                "paling sedikit", "paling jelek", "terjelek", "terburuk", "lowest", "bottom",
-            )
-        )
+            having_clauses.append(f"{expression} = 0")
+        if having_clauses:
+            sql.append("HAVING " + " AND ".join(having_clauses))
         requests_ranking, top = _question_requests_ranking(question)
         if trend_time_dimension_inserted and not requests_ranking and not entity_lookup:
             # A pure trend/"per bulan" question (no top-N or superlative
