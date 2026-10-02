@@ -1,9 +1,17 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 2 Oct 2026 (latest) — Live UAT against a 9-question test list surfaced two new resolver bugs, both fixed: (1) `contextualize_question()` falsely rewrote a brand-new, unrelated question into an answer for a stale clarification whenever they coincidentally shared one common word (e.g. the brand name "Tempo"); (2) `resolve_metric()`'s `dimension_mismatch` calculation treated `branch`/`sales_off`/`sales_office` as independent even though all three are just different readings of the ambiguous word "cabang", wrongly forcing already-correct governed SQL through the LLM fallback planner (which then errored) for "Top 10 cabang/sales office..." and 8 other golden questions in the Picking/Unloading domain. Also shipped UI/UX polish: chart/table duplication reduced (table collapses when a visual chart already shows the same rows), font-size standardized to the Tailwind scale, header badge simplified. 140/140 backend-v2 tests passing. See checkpoints below for full detail; two checkpoints back covers the broader domain enrichment pass.
+**Updated**: 2 Oct 2026 (latest) — UAT branch Service Level / fill-rate ranking now resolves to governed `sales_office_service_fill_rate` on `gold.corr_service_sales_office_material_month` with worst-first ordering (`terjelek` → `ORDER BY ASC`). 145/145 backend-v2 tests pass.
 
-## Current checkpoint: false-positive clarification/dimension-mismatch bugs found via live UAT, UI/UX polish (2 Oct 2026, latest)
+## Current checkpoint: UAT cabang fill-rate ranking uses governed sales-office view (2 Oct 2026, latest)
+
+Live UAT still showed `company_fill_rate` (~77.7%) with text claiming no cabang dimension — that symptom matches **pre-fix** resolver behavior on the deployed CAI app (shortcut knew `fill rate` but not `cabang` as sales-office grain). The gold view and metric already existed (`sales_office_service_fill_rate` → `gold.corr_service_sales_office_material_month`); Irvan’s Local Agent also covers this, but the main Ask Data path should not depend on fallback when OSSIE already publishes the breakdown.
+
+Fix (minimal, resolver + compile only): (1) treat `cabang`/`branch` like `sales office` in the fill-rate / service-level shortcut; (2) treat `service level` phrasing the same as `fill rate` when routing that shortcut; (3) add `terjelek` (and `urutkan` as ranking intent) so `compile_governed()` sorts worst-first (`ORDER BY metric_value ASC`) instead of default DESC. End-to-end workflow test confirms `strategy=governed`, SQL hits `corr_service_sales_office_material_month`, and the LLM planner is not used for planning. TEMPO Local Agent remains available for genuinely unsupported questions via `LOCAL_AGENT_BASE_URL` — not required for this UAT sentence once redeployed.
+
+Regression: UAT sentence + two nearby branch-ranking phrasings; full `backend-v2/tests/` **145/145**. All **82** golden questions unchanged / zero compile errors. Redeploy backend-v2 on CAI required for the live UI to change; env-only Local Agent without this resolver fix would still show the old company aggregate.
+
+## Previous checkpoint: false-positive clarification/dimension-mismatch bugs found via live UAT, UI/UX polish (2 Oct 2026)
 
 ### Context: live-testing the 9-question list plus everything enriched this session
 

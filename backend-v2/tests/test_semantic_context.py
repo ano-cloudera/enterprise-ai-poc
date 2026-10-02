@@ -427,3 +427,28 @@ def test_cabang_dimension_hint_does_not_produce_a_false_dimension_mismatch(quest
 
     assert resolution["status"] == "resolved"
     assert resolution.get("dimension_mismatch") == []
+
+
+def test_uat_branch_service_level_ranking_resolves_sales_office_fill_rate() -> None:
+    question = "Hitung service level/ fill rate di cabang tempo dan urutkan SL terjelek"
+    service = SemanticContextService()
+    resolution = service.resolve(question)
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "sales_office_service_fill_rate"
+    assert resolution.get("dimensions") == ["sales_off"]
+    sql = service.compile_governed(resolution["metric"], question, resolution["dimensions"])
+    assert "gold.corr_service_sales_office_material_month" in sql
+    assert "GROUP BY d.sales_off" in sql
+    assert "ORDER BY metric_value ASC" in sql
+
+
+@pytest.mark.parametrize("question", [
+    "Service level / fill rate cabang Tempo terbaik?",
+    "Hitung service level fill rate per sales office dan urutkan terbaik",
+])
+def test_other_branch_service_level_rankings_remain_governed(question: str) -> None:
+    resolution = SemanticContextService().resolve(question)
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "sales_office_service_fill_rate"

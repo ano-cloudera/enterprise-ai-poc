@@ -233,12 +233,15 @@ class SemanticContextService:
         # metrics. Resolve their requested grain deterministically instead of
         # leaving synonymous fill-rate metrics to alias-score tie breaking.
         mentions_fill_rate_band = "band" in words or "kategori" in lowered
-        if "fill" in words and "rate" in words:
+        mentions_fill_or_service_level = ("fill" in words and "rate" in words) or (
+            "service" in words and "level" in words
+        )
+        if mentions_fill_or_service_level:
             if mentions_fill_rate_band:
                 return resolved("service_fill_rate", ["fill_rate_band"])
             if "material" in words:
                 return resolved("material_fill_rate", ["material"])
-            if "sales" in words and "office" in words:
+            if ("sales" in words and "office" in words) or bool(words & {"cabang", "branch"}):
                 return resolved("sales_office_service_fill_rate", ["sales_off"])
             return resolved("company_fill_rate", [])
         if mentions_fill_rate_band and words & {"material", "jumlah", "berapa", "distribusi"}:
@@ -381,7 +384,7 @@ class SemanticContextService:
             term in lowered
             for term in (
                 "terendah", "terkecil", "paling kecil", "paling rendah",
-                "paling sedikit", "paling jelek", "terburuk", "lowest", "bottom",
+                "paling sedikit", "paling jelek", "terjelek", "terburuk", "lowest", "bottom",
             )
         )
         top = re.search(r"(?:top|teratas)\s+(\d+)", lowered)
@@ -390,7 +393,7 @@ class SemanticContextService:
             for term in (
                 "tertinggi", "terbesar", "paling tinggi", "paling besar", "paling banyak",
                 "terendah", "terkecil", "paling kecil", "paling rendah", "paling sedikit",
-                "terburuk", "paling jelek", "ranking", "peringkat",
+                "terburuk", "terjelek", "paling jelek", "ranking", "peringkat", "urutkan",
             )
         )
         if trend_time_dimension_inserted and not requests_ranking:

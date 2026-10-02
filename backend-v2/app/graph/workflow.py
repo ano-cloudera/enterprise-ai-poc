@@ -225,7 +225,9 @@ def build_workflow(deps: WorkflowDependencies):
     async def plan_query(state: AskDataState) -> AskDataState:
         started = perf_counter()
         resolution = state["semantic_resolution"]
-        if resolution.get("status") == "resolved" and not resolution.get("dimension_mismatch"):
+        if resolution.get("force_local_agent"):
+            plan = QueryPlan(strategy="unsupported", analysis_type="local_agent_fallback")
+        elif resolution.get("status") == "resolved" and not resolution.get("dimension_mismatch"):
             metric = str(resolution["metric"])
             dimensions = resolution.get("dimensions")
             governed_sql = (

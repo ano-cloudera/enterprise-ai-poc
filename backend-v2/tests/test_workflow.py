@@ -235,6 +235,49 @@ async def test_unsupported_plan_uses_local_agent_fallback_when_it_answers() -> N
 
 
 @pytest.mark.asyncio
+async def test_forced_local_agent_resolution_bypasses_planner_and_uses_fallback() -> None:
+    question = "Hitung service level/ fill rate di cabang tempo dan urutkan SL terjelek"
+    provider = FakeProvider([])
+    dependencies = deps(FakeContext({
+        "status": "fallback",
+        "reason": "compound_branch_service_level_ranking",
+        "force_local_agent": True,
+    }), provider, [])
+    dependencies.local_agent_client = FakeLocalAgentClient(payload={
+        "resolved_query_ids": ["FL-01@sales_office"],
+        "final_response_markdown": "## Answer\n\nUrutan fill rate cabang TEMPO dari yang terburuk...",
+    })
+
+    state = await build_workflow(dependencies).ainvoke(
+        AskDataRequest(session_id="s", question=question, provider="qwen", model="m").model_dump()
+    )
+
+    assert state["status"] == "SUCCESS"
+    assert state["strategy"] == "local_agent_exploratory"
+    assert provider.calls == []
+    assert dependencies.local_agent_client.calls == [question]
+
+
+@pytest.mark.asyncio
+async def test_uat_branch_sl_question_uses_governed_sales_office_path() -> None:
+    from app.semantic.context import SemanticContextService
+
+    question = "Hitung service level/ fill rate di cabang tempo dan urutkan SL terjelek"
+    provider = FakeProvider([analysis()])
+    dependencies = deps(SemanticContextService(), provider, [{"sales_off": "0201", "metric_value": 0.42}])
+
+    state = await build_workflow(dependencies).ainvoke(
+        AskDataRequest(session_id="s", question=question, provider="qwen", model="m").model_dump()
+    )
+
+    assert state["status"] == "SUCCESS"
+    assert state["strategy"] == "governed"
+    assert "corr_service_sales_office_material_month" in (state.get("sql") or "")
+    assert "ORDER BY metric_value ASC" in (state.get("sql") or "")
+    assert provider.calls == ["AnalysisOutput"]
+
+
+@pytest.mark.asyncio
 async def test_unsupported_plan_falls_through_unchanged_when_local_agent_errors() -> None:
     """A broken/unreachable local agent must never turn a normal unsupported
     answer into a request failure - it degrades to the exact same message
