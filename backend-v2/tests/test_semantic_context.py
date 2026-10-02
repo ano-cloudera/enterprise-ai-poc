@@ -278,6 +278,18 @@ def test_service_level_uat_questions_use_published_metrics(
     "toko dengan omset terbesar di alfamart",
     "e-store mana yang paling banyak penjualannya",
 ])
+def test_stock_cover_at_branch_sets_dimension_mismatch_not_sql_fallback() -> None:
+    question = (
+        "produk material 500-21-02 di cabang 0201 hitung bisa meng-cover "
+        "penjualan berapa hari dari stok tersebut"
+    )
+    resolution = SemanticContextService().resolve(question)
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "months_of_stock_cover"
+    assert resolution.get("dimension_mismatch") == ["branch"]
+
+
 def test_dc_alfamart_sell_out_clarification_resolves_to_branch_ranking() -> None:
     context = SemanticContextService()
     question = (

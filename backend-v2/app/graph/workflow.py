@@ -71,6 +71,45 @@ def _data_reference_from_sql(sql: str) -> str | None:
     return ", ".join(seen)
 
 
+_UNMET_DIMENSION_LABELS: dict[str, str] = {
+    "branch": "cabang/DC partner (B2B branch)",
+    "sales_off": "cabang Tempo (sales office)",
+    "sales_office": "sales office Tempo",
+    "customer": "customer/pelanggan",
+    "material": "material/produk/SKU",
+    "material_code": "material code",
+    "dcname": "nama DC partner",
+    "e_store": "outlet/e-store",
+    "plu": "PLU",
+    "kode_plu": "kode PLU",
+    "division": "division",
+    "cust_id": "toko/outlet (customer id)",
+    "cust_code": "kode customer",
+}
+
+
+def _governed_partial_caveats(resolution: dict[str, Any]) -> list[str]:
+    unmet = list(resolution.get("dimension_mismatch") or [])
+    if not unmet:
+        return []
+    metric = str(resolution.get("metric") or "")
+    labels = [_UNMET_DIMENSION_LABELS.get(name, name) for name in unmet]
+    joined = " dan ".join(labels)
+    caveats = [
+        "Permintaan breakdown per "
+        f"{joined} tidak tersedia pada metrik yang dipilih ({metric}) "
+        "dalam katalog governed Q4 2024. Angka di bawah hanya mencakup grain "
+        "yang memang didukung metrik ini."
+    ]
+    if metric == "months_of_stock_cover":
+        caveats.append(
+            "Cover stok ini proxy stok gudang Tempo terhadap Sell-In per material "
+            "(satuan bulan, Oktober–Desember 2024), bukan stok DC/outlet partner "
+            "per cabang dan bukan durasi harian."
+        )
+    return caveats
+
+
 def _safe_answer(text: str, *, caveats: list[str] | None = None) -> dict[str, Any]:
     return AnalysisOutput(
         direct_answer=text,
@@ -240,7 +279,9 @@ def build_workflow(deps: WorkflowDependencies):
     async def plan_query(state: AskDataState) -> AskDataState:
         started = perf_counter()
         resolution = state["semantic_resolution"]
-        if resolution.get("status") == "resolved" and not resolution.get("dimension_mismatch"):
+        partial_caveats: list[str] = []
+        if resolution.get("status") == "resolved":
+            partial_caveats = _governed_partial_caveats(resolution)
             metric = str(resolution["metric"])
             dimensions = resolution.get("dimensions")
             governed_sql = (
@@ -256,25 +297,11 @@ def build_workflow(deps: WorkflowDependencies):
             )
         else:
             semantic_context = deps.semantic_context.planner_context()
-            # The deterministic resolver may have already found a strong
-            # candidate even when it couldn't commit to it outright -
-            # dimension_mismatch (a resolved metric that can't cover a
-            # requested breakdown) and fallback/multi_concept_metric_mismatch
-            # (two+ concepts requested, e.g. "picking dan unloading", where
-            # one metric can't answer both) both carry real signal. Without
-            # this hint the planner sees only the raw question plus the full
-            # dataset/metric catalog and has to guess from scratch - observed
-            # live (1 Oct 2026, GPT-4o) to sometimes answer "unsupported" for
-            # requests a governed metric genuinely covers, because the
-            # specific candidate/concepts were never surfaced to it.
+            # Resolved metrics (including partial dimension coverage) always
+            # take the governed compile path above. Hints here are only for
+            # fallback/multi_concept cases where the planner must choose.
             resolver_hint: dict[str, Any] = {}
-            if resolution.get("status") == "resolved":
-                resolver_hint = {
-                    "deterministic_candidate_metric": resolution.get("metric"),
-                    "unmet_dimensions": resolution.get("dimension_mismatch"),
-                    "note": "A governed metric was matched but could not fully cover a requested breakdown dimension - prefer this metric if it still answers most of the question, and state in caveats which part (the unmet dimension) could not be honored. Only choose unsupported if this metric is genuinely unusable.",
-                }
-            elif resolution.get("status") == "fallback" and resolution.get("reason") == "multi_concept_metric_mismatch":
+            if resolution.get("status") == "fallback" and resolution.get("reason") == "multi_concept_metric_mismatch":
                 resolver_hint = {
                     "requested_concepts": resolution.get("requested_concepts"),
                     "candidate_metric_for_one_concept": resolution.get("candidate_metric"),
@@ -294,6 +321,7 @@ def build_workflow(deps: WorkflowDependencies):
             "strategy": plan.strategy,
             "query_plan": plan.model_dump(),
             "sql": plan.sql or "",
+            "governed_partial_caveats": partial_caveats,
             "semantic_context": deps.semantic_context.planner_context(plan.domains),
             "timings": _with_timing(state, "planning_ms", _elapsed(started)),
         }
@@ -403,6 +431,13 @@ def build_workflow(deps: WorkflowDependencies):
         schema_reference = _data_reference_from_sql(state.get("validated_sql") or state.get("sql") or "")
         if schema_reference:
             analysis = analysis.model_copy(update={"data_reference": schema_reference})
+        extra = list(state.get("governed_partial_caveats") or [])
+        if extra:
+            merged = list(analysis.caveats)
+            for item in extra:
+                if item not in merged:
+                    merged.append(item)
+            analysis = analysis.model_copy(update={"caveats": merged})
         return {
             **state,
             "status": "SUCCESS",

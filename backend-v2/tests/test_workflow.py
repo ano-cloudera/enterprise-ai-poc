@@ -52,7 +52,7 @@ class FakeContext:
             "examples": ["Berapa stok retail per division?"],
         }
 
-    def compile_governed(self, metric: str, question: str):
+    def compile_governed(self, metric: str, question: str, requested_dimensions=None):
         return self.sql
 
 
@@ -147,11 +147,8 @@ async def test_controlled_fallback_uses_exactly_planner_then_analyst() -> None:
 
 
 @pytest.mark.asyncio
-async def test_dimension_mismatch_routes_to_controlled_planner() -> None:
-    provider = FakeProvider([
-        {"strategy": "sql_fallback", "domains": ["sales"], "metrics": ["material_sell_in_value"], "dimensions": ["material"], "filters": {}, "analysis_type": "ranking", "sql": "SELECT d.material, d.value FROM gold.allowed d LIMIT 10", "clarification_question": None},
-        analysis(),
-    ])
+async def test_dimension_mismatch_uses_governed_sql_and_appends_partial_caveats() -> None:
+    provider = FakeProvider([analysis()])
     context = FakeContext({
         "status": "resolved",
         "metric": "gross_billing_value",
@@ -159,12 +156,46 @@ async def test_dimension_mismatch_routes_to_controlled_planner() -> None:
         "dimension_mismatch": ["material"],
     })
 
-    state = await build_workflow(deps(context, provider, [{"material": "A", "value": 10}])).ainvoke(
+    dependencies = deps(context, provider, [{"material": "A", "value": 10}])
+    state = await build_workflow(dependencies).ainvoke(
         AskDataRequest(session_id="s1", question="Sell-In per material", provider="qwen", model="qwen-model").model_dump()
     )
 
-    assert state["strategy"] == "sql_fallback"
-    assert provider.calls == ["QueryPlan", "AnalysisOutput"]
+    assert state["status"] == "SUCCESS"
+    assert state["strategy"] == "governed"
+    assert provider.calls == ["AnalysisOutput"]
+    assert dependencies.query_executor.queries == [context.sql]
+    assert any("material/produk/SKU" in caveat for caveat in state["answer"]["caveats"])
+
+
+@pytest.mark.asyncio
+async def test_stock_cover_with_branch_mismatch_runs_governed_with_cover_caveats() -> None:
+    provider = FakeProvider([analysis()])
+    sql = "SELECT d.material, SUM(d.warehouse_stock_qty) FROM gold.rpt_sap_material_month_semantic d LIMIT 10"
+    context = FakeContext(
+        {
+            "status": "resolved",
+            "metric": "months_of_stock_cover",
+            "definition": {"base_dataset": "material_360"},
+            "dimensions": ["material"],
+            "dimension_mismatch": ["branch"],
+        },
+        sql=sql,
+    )
+    dependencies = deps(context, provider, [{"material": "500-21-02", "metric_value": 2.5}])
+    question = (
+        "produk material 500-21-02 di cabang 0201 hitung cover penjualan berapa hari dari stok"
+    )
+    state = await build_workflow(dependencies).ainvoke(
+        AskDataRequest(session_id="s1", question=question, provider="qwen", model="qwen-model").model_dump()
+    )
+
+    assert state["status"] == "SUCCESS"
+    assert state["strategy"] == "governed"
+    assert provider.calls == ["AnalysisOutput"]
+    caveats = " ".join(state["answer"]["caveats"])
+    assert "cabang/DC partner" in caveats
+    assert "bulan" in caveats
 
 
 @pytest.mark.asyncio

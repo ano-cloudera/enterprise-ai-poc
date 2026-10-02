@@ -13,6 +13,7 @@ class AskDataState(TypedDict, total=False):
     model: str
     use_local_agent: bool
     semantic_resolution: dict[str, Any]
+    governed_partial_caveats: list[str]
     semantic_context: dict[str, Any]
     strategy: str
     query_plan: dict[str, Any]
