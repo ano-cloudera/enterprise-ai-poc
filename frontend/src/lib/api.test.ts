@@ -1,35 +1,8 @@
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { api } from './api'
-import type { DashboardState } from '../types/api'
 
-const dashboardState: DashboardState = {
-  filters: {},
-  date_range: { preset: null, start: null, end: null },
-  metric: 'x', dimension: 'y', highlights: [], ai_applied_context: [], revision: 1,
-  chat: { chart: null, table: { visible: false, columns: [] } },
-}
 
-function chatResponsePayload() {
-  return {
-    status: 'ok', question: 'Berapa Gross Sales Q4 2024?',
-    answer: { summary: 'Rp 3.8T', drivers: [], recommended_actions: [], caveats: [] },
-    data: { columns: [], rows: [] },
-    chart_spec: null,
-    ui_actions: [],
-    metadata: {
-      trace_id: 't1', session_id: 's1', intent: 'agent_studio',
-      resolved_context: dashboardState,
-      execution_time_ms: 1,
-    },
-  }
-}
-
-// Builds a fetch() Response whose body streams the given raw SSE text
-// across the given chunks — e.g. [['data: {...json...}\n\n']] delivers
-// everything in a single reader.read() call, mirroring what was actually
-// observed against Cloudera AI: the terminal {"type": "done"} frame
-// arriving in the same read() that also reports done: true.
 function sseResponse(chunks: string[]) {
   const encoder = new TextEncoder()
   let index = 0
@@ -37,52 +10,64 @@ function sseResponse(chunks: string[]) {
     getReader: () => ({
       read: async () => {
         if (index >= chunks.length) return { done: true, value: undefined }
-        const value = encoder.encode(chunks[index])
-        index += 1
-        const isLast = index >= chunks.length
-        return { done: isLast, value }
+        const value = encoder.encode(chunks[index++])
+        return { done: index >= chunks.length, value }
       },
     }),
   }
   return { ok: true, body } as unknown as Response
 }
 
-describe('api.chatStream', () => {
+
+describe('V2 API client', () => {
   afterEach(() => vi.restoreAllMocks())
 
-  it('yields the terminal done frame even when it arrives in the same read() that reports done: true', async () => {
-    const payload = chatResponsePayload()
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
-      sseResponse([`data: ${JSON.stringify({ type: 'progress', label: 'Memahami pertanyaan kamu...' })}\n\ndata: ${JSON.stringify({ type: 'done', response: payload })}\n\n`]),
-    ))
+  it('sends only the selected backend-discovered provider and model', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(sseResponse([
+      `data: ${JSON.stringify({ type: 'done', response: { status: 'SUCCESS' } })}\n\n`,
+    ]))
+    vi.stubGlobal('fetch', fetchMock)
 
     const events = []
-    for await (const event of api.chatStream('Berapa Gross Sales Q4 2024?', 's1', dashboardState)) {
-      events.push(event)
-    }
+    for await (const event of api.chatStream('question', 'session-1', { provider: 'gemini', model: 'gemini-configured' })) events.push(event)
 
-    expect(events).toHaveLength(2)
-    expect(events[0]).toEqual({ type: 'progress', label: 'Memahami pertanyaan kamu...' })
-    expect(events[1].type).toBe('done')
-    expect((events[1] as { type: 'done'; response: { answer: { summary: string } } }).response.answer.summary).toBe('Rp 3.8T')
+    expect(JSON.parse(fetchMock.mock.calls[0][1].body)).toEqual({
+      question: 'question', session_id: 'session-1', provider: 'gemini', model: 'gemini-configured',
+    })
+    expect(events.at(-1)).toEqual({ type: 'done', response: { status: 'SUCCESS' } })
   })
 
-  it('yields progress and done frames split across multiple network chunks', async () => {
-    const payload = chatResponsePayload()
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(
-      sseResponse([
-        `data: ${JSON.stringify({ type: 'progress', label: 'Memahami pertanyaan kamu...' })}\n\n`,
-        ': keep-alive\n\n',
-        `data: ${JSON.stringify({ type: 'progress', label: 'Mengambil angka dari data governed...' })}\n\n`,
-        `data: ${JSON.stringify({ type: 'done', response: payload })}\n\n`,
-      ]),
-    ))
+  it('passes an abort signal to the streaming request', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(sseResponse([
+      `data: ${JSON.stringify({ type: 'done', response: { status: 'SUCCESS' } })}\n\n`,
+    ]))
+    vi.stubGlobal('fetch', fetchMock)
+    const controller = new AbortController()
+
+    for await (const _ of api.chatStream('q', 's', { provider: 'qwen', model: 'qwen' }, controller.signal)) { /* consume */ }
+
+    expect(fetchMock.mock.calls[0][1].signal).toBe(controller.signal)
+  })
+
+  it('drains a final done frame delivered with done=true', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(sseResponse([
+      `data: ${JSON.stringify({ type: 'progress', stage: 'querying_data', label: 'Querying data' })}\n\ndata: ${JSON.stringify({ type: 'done', response: { status: 'SUCCESS' } })}\n\n`,
+    ])))
 
     const events = []
-    for await (const event of api.chatStream('Berapa Gross Sales Q4 2024?', 's1', dashboardState)) {
-      events.push(event)
-    }
+    for await (const event of api.chatStream('q', 's', { provider: 'qwen', model: 'qwen' })) events.push(event)
 
-    expect(events.map(e => e.type)).toEqual(['progress', 'progress', 'done'])
+    expect(events.map(event => event.type)).toEqual(['progress', 'done'])
+  })
+
+  it('rejects a stream that closes without a terminal frame', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(sseResponse([
+      `data: ${JSON.stringify({ type: 'progress', stage: 'querying_data', label: 'Querying data' })}\n\n`,
+    ])))
+
+    const consume = async () => {
+      for await (const _ of api.chatStream('q', 's', { provider: 'qwen', model: 'qwen' })) { /* consume */ }
+    }
+    await expect(consume()).rejects.toThrow('Stream ended without a terminal response')
   })
 })

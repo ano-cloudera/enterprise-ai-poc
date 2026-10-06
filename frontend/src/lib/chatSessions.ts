@@ -1,9 +1,21 @@
 import type { ChatResponse } from '../types/api'
+import type { ModelSelection } from '../types/api'
+import type { ProgressTraceEntry } from './streamProgress'
 
-export type StoredMessage = { role: 'user' | 'assistant'; content: string; response?: ChatResponse }
-export type ChatSession = { id: string; title: string; updatedAt: number; messages: StoredMessage[] }
+export type ProcessSnapshot = {
+  activeStepIndex: number
+  technicalTrace: ProgressTraceEntry[]
+}
 
-const STORAGE_KEY = 'scan.ask-ai.sessions'
+export type StoredMessage = {
+  role: 'user' | 'assistant'
+  content: string
+  response?: ChatResponse
+  processSnapshot?: ProcessSnapshot
+}
+export type ChatSession = { id: string; title: string; updatedAt: number; messages: StoredMessage[]; selection?: ModelSelection }
+
+const STORAGE_KEY = 'tempo-scan-v2.ask-data.sessions'
 const MAX_SESSIONS = 20
 
 export function createSessionId(): string {

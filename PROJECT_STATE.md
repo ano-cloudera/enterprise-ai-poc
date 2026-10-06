@@ -1,7 +1,7 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 6 Oct 2026 (latest) — Phase C multi-turn follow-up UAT harness + P0 binding fixes (session frame, heuristic `plan_follow_up`, governed execute fallbacks). Merged Gemini judge: **33/50** scenarios, **81/100** turns (`backend-v2/eval/uat_domain_5x5_followup_merged_latest.json`). Restart uvicorn after backend changes before UAT.
+**Updated**: 6 Oct 2026 (latest) — Phase C multi-turn follow-up UAT harness + P0 binding fixes (session frame, heuristic `plan_follow_up`, governed execute fallbacks). Merged Gemini judge: **33/50** scenarios, **81/100** turns (`backend/eval/uat_domain_5x5_followup_merged_latest.json`). Restart uvicorn after backend changes before UAT.
 
 ## Current checkpoint: follow-up UAT P0 + OSSIE multi-turn stack (6 Oct 2026, latest)
 
@@ -9,7 +9,7 @@
 
 50 follow-up scenarios (5 per domain × 10 domains, 2 turns each, shared `session_id`) scored by **Gemini management judge** plus mechanical HTTP checks. Baseline before this work was ~25/50 scenarios on judge; mechanical-only merge reached ~40/50 before judge strictness.
 
-### What landed (backend-v2)
+### What landed (backend)
 
 - **Follow-up pipeline**: `app/services/follow_up.py` (heuristic plan before LLM), `session_context.py` (referential rewrite, rank/compare, plant/material drill), `question_contextualize.py`, `chat.py` turn understanding (lite/clarify/follow_up).
 - **Governed path**: `semantic/context.py` (session metric continuation, extra predicates, OOS worst-first), `graph/workflow.py` (follow-up catalog row fallback, synthetic entity rows, skip false NO_DATA on follow-up context).
@@ -28,7 +28,7 @@
 
 **Totals**: 33/50 scenarios, 81/100 turns judge-acceptable. ~7 turns still fail only on `judge_unavailable` (provider flake) in various runs; retry picking/promo helped, sat_oos/cross_domain retry was worse — merged file keeps better per-domain reports.
 
-Run: `backend-v2/scripts/run_uat_domain_5x5_followup_all_domains.sh` (one process per domain; restart backend after code changes). Ephemeral per-run JSON is gitignored; committed summary: `eval/uat_domain_5x5_followup_merged_latest.json`.
+Run: `backend/scripts/run_uat_domain_5x5_followup_all_domains.sh` (one process per domain; restart backend after code changes). Ephemeral per-run JSON is gitignored; committed summary: `eval/uat_domain_5x5_followup_merged_latest.json`.
 
 ### P1 still open (real failures, not flake)
 
@@ -42,7 +42,7 @@ Run: `backend-v2/scripts/run_uat_domain_5x5_followup_all_domains.sh` (one proces
 
 ### Tests
 
-New follow-up/judge/routing tests under `backend-v2/tests/test_follow_up*.py`, `test_session_context.py`, etc. Full `pytest backend-v2/tests`: **270/270** (Oct 2026) — tests aligned with Phase C (semantic `unsupported` → clarification, readiness component fields, env-isolated `isolated_settings()` helper).
+New follow-up/judge/routing tests under `backend/tests/test_follow_up*.py`, `test_session_context.py`, etc. Full `pytest backend/tests`: **270/270** (Oct 2026) — tests aligned with Phase C (semantic `unsupported` → clarification, readiness component fields, env-isolated `isolated_settings()` helper).
 
 ### Ops
 
@@ -55,7 +55,7 @@ Live UAT still showed `company_fill_rate` (~77.7%) with text claiming no cabang 
 
 Fix (minimal, resolver + compile only): (1) treat `cabang`/`branch` like `sales office` in the fill-rate / service-level shortcut; (2) treat `service level` phrasing the same as `fill rate` when routing that shortcut; (3) add `terjelek` (and `urutkan` as ranking intent) so `compile_governed()` sorts worst-first (`ORDER BY metric_value ASC`) instead of default DESC. End-to-end workflow test confirms `strategy=governed`, SQL hits `corr_service_sales_office_material_month`, and the LLM planner is not used for planning. TEMPO Local Agent remains available for genuinely unsupported questions via `LOCAL_AGENT_BASE_URL` — not required for this UAT sentence once redeployed.
 
-Regression: UAT sentence + two nearby branch-ranking phrasings; full `backend-v2/tests/` **145/145**. All **82** golden questions unchanged / zero compile errors. Redeploy backend-v2 on CAI required for the live UI to change; env-only Local Agent without this resolver fix would still show the old company aggregate.
+Regression: UAT sentence + two nearby branch-ranking phrasings; full `backend/tests/` **145/145**. All **82** golden questions unchanged / zero compile errors. Redeploy backend on CAI required for the live UI to change; env-only Local Agent without this resolver fix would still show the old company aggregate.
 
 ## Previous checkpoint: false-positive clarification/dimension-mismatch bugs found via live UAT, UI/UX polish (2 Oct 2026)
 
@@ -81,7 +81,7 @@ Fixed: once any member of the `{branch, sales_off, sales_office}` synonym group 
 
 ### UI/UX polish (separate from the resolver bugs above, done earlier in this session)
 
-- **Chart/table duplication**: the result analyst's `insights` field was restating every row already visible in the chart/table as prose bullets. `prompts/result_analyst.md` now explicitly forbids repeating chart/table rows in `insights` - only genuine observations (patterns, outliers, gaps, caveats) belong there. Frontend (`frontend-v2/src/views/AskDataPage.tsx`): the data table now collapses by default (with a "Show/Hide table detail" toggle) whenever a visual chart (bar/line/area/scatter/pie) already renders the same rows; KPI-only or chart-less responses keep the table expanded as before.
+- **Chart/table duplication**: the result analyst's `insights` field was restating every row already visible in the chart/table as prose bullets. `prompts/result_analyst.md` now explicitly forbids repeating chart/table rows in `insights` - only genuine observations (patterns, outliers, gaps, caveats) belong there. Frontend (`frontend/src/views/AskDataPage.tsx`): the data table now collapses by default (with a "Show/Hide table detail" toggle) whenever a visual chart (bar/line/area/scatter/pie) already renders the same rows; KPI-only or chart-less responses keep the table expanded as before.
 - **Font-size consistency**: replaced scattered arbitrary `text-[Npx]` values across the chat flow (user bubble, AI answer body, KPI card, SQL block, footer) with the standard Tailwind scale (`text-xs`/`text-sm`/`text-base`/`text-2xl`) so proportions stay consistent when zooming.
 - **Header badge**: replaced the top header's "Governed Ossie + Impala" chip with a green-dot "Database" indicator, matching the chat panel's existing badge style.
 
@@ -293,7 +293,7 @@ in isolation) against both `gpt-4o` (OpenAI) and `Qwen3.8-27B-AWQ` (self-hosted,
 backing both). Full transcripts saved verbatim (model output copy-pasted, not summarized) to
 `docs/uat/2026-10-01-gpt4o/` (one file per question) and `docs/uat/2026-10-01-qwen-uat.md`
 (single compiled file, per user request). Found 2 real bugs neither model-specific, both now
-fixed and verified (111/111 backend-v2 tests passing throughout):
+fixed and verified (111/111 backend tests passing throughout):
 
 1. **The LLM query planner was never told what the deterministic resolver already found.**
    When `resolve()` returns `dimension_mismatch` (a matched metric that can't fully cover a
@@ -363,7 +363,7 @@ Live UAT: "Berapa biaya iklan TV Q4 2024" (TV advertising spend - not a TEMPO co
 
 Adopted `reference/tempo-agent-api` (a separately deployed, already-live sibling system at `http://tempo-local-agent.ml-d5612ef4-e6f.apps.ocpb.imid.local/`) as an optional fallback for questions our own OSSIE planner reports as `strategy=unsupported`. Before implementing, read that system's actual code (`router.py`, `tools.py`, `impala_runner.py`) rather than trusting its env vars alone - initial concern from `NEO4J_QUERY_API`/`QDRANT_URL` env vars (looked like an ungoverned vector-search system) turned out to be wrong: Neo4j/Qdrant are only used for routing/semantic search there, and actual data execution always runs a registered `query_id`'s catalog SQL against Impala - "Never accepts ad-hoc SQL" and "SQL composed from governed TEMPO tables (not LLM-generated)" appear verbatim in that repo's own code/docstrings. Live-tested 3 real queries against the running instance before writing any code: Q4 gross sell-in and top-5-by-material answers matched our own OSSIE numbers almost exactly (single-rupiah rounding differences), confirming it reads the same `gold.*` data. Latency was 24-46s per query, and it has its own separate KPI catalog (not guaranteed to agree with ours in every case), so per explicit direction this is presented as a labeled "exploratory" answer rather than a hard refusal - the broader instruction for this session was "answer as much as possible, don't block hard; be honest about confidence via the exploratory label instead."
 
-Zero-risk design: `WorkflowDependencies.local_agent_client` defaults to `None` (inert everywhere unless `LOCAL_AGENT_BASE_URL` is explicitly set); the fallback is only tried inside the existing `strategy == "unsupported"` branch; every failure mode (disabled, timeout, HTTP error, the agent's own refusal) is swallowed and degrades to the exact same `UNSUPPORTED` message that existed before this feature - never a request-level error. New `Strategy` literal `local_agent_exploratory` distinguishes this path in logs/frontend. 12 new tests (8 for `LocalAgentClient`, 4 for the workflow fallback branch), 110/110 backend-v2 tests passing at the time.
+Zero-risk design: `WorkflowDependencies.local_agent_client` defaults to `None` (inert everywhere unless `LOCAL_AGENT_BASE_URL` is explicitly set); the fallback is only tried inside the existing `strategy == "unsupported"` branch; every failure mode (disabled, timeout, HTTP error, the agent's own refusal) is swallowed and degrades to the exact same `UNSUPPORTED` message that existed before this feature - never a request-level error. New `Strategy` literal `local_agent_exploratory` distinguishes this path in logs/frontend. 12 new tests (8 for `LocalAgentClient`, 4 for the workflow fallback branch), 110/110 backend tests passing at the time.
 
 **Not yet turned on anywhere** - `LOCAL_AGENT_BASE_URL` is not set by default; an operator must opt in explicitly.
 
@@ -373,7 +373,7 @@ Live UAT screenshot showed a governed answer's "Data reference" section renderin
 
 ### Greeting/capability detection broke on a common typo (`abf8965`)
 
-"hallo kamu bintu apa ?" (typo: bintu instead of bantu) was misrouted through the governed/SQL-fallback path and returned `UNSUPPORTED`, instead of being recognized as a conversational capability question like its correctly-spelled sibling already was. Root cause in `_is_conversational_request()` (`backend-v2/app/graph/workflow.py`): the greeting-plus-question form is longer than the plain `short_greeting` word cap, so it only had one path to match (`capability_request`'s regex), and that regex required the literal word "bantu" with no typo tolerance. Fixed by adding a small curated set of one-letter-swap typos for "bantu" (bintu, bnatu, nautu, nato, antuh, natu) plus a shorter word-order pattern - a fixed lookup table for one specific word, not a fuzzy matcher, verified not to create false positives on real business questions.
+"hallo kamu bintu apa ?" (typo: bintu instead of bantu) was misrouted through the governed/SQL-fallback path and returned `UNSUPPORTED`, instead of being recognized as a conversational capability question like its correctly-spelled sibling already was. Root cause in `_is_conversational_request()` (`backend/app/graph/workflow.py`): the greeting-plus-question form is longer than the plain `short_greeting` word cap, so it only had one path to match (`capability_request`'s regex), and that regex required the literal word "bantu" with no typo tolerance. Fixed by adding a small curated set of one-letter-swap typos for "bantu" (bintu, bnatu, nautu, nato, antuh, natu) plus a shorter word-order pattern - a fixed lookup table for one specific word, not a fuzzy matcher, verified not to create false positives on real business questions.
 
 ### Branding/layout cleanup (`0e50b1a`, `a0001d8`)
 
@@ -388,17 +388,17 @@ Several small UI polish items from live screenshots: removed the "BETTER DATA. B
 
 ## Previous checkpoint: V2 Ask Data loading indicator UX pass (30 Sep 2026, latest)
 
-Purely frontend, no backend/governance changes. `frontend-v2/src/views/AskDataPage.tsx`'s loading state (shown while an SSE stream is in flight) went through 3 iterations based on live user feedback against screenshots:
+Purely frontend, no backend/governance changes. `frontend/src/views/AskDataPage.tsx`'s loading state (shown while an SSE stream is in flight) went through 3 iterations based on live user feedback against screenshots:
 
-1. **`08cf7c8`**: replaced a single static pulsing dot with 3 staggered bouncing dots (a typical "AI is thinking" animation) plus a pulsing brand mark, and changed the pre-first-event default label from "Understanding request..." to "AI is analyzing..." — the backend's real progress labels (`Understanding request` → `Retrieving semantic context` → `Preparing governed query` → `Validating query` → `Querying TEMPO data` → `Analyzing result`, from `backend-v2/app/services/chat.py`'s `stream()`) still override this as they arrive via SSE, unchanged.
+1. **`08cf7c8`**: replaced a single static pulsing dot with 3 staggered bouncing dots (a typical "AI is thinking" animation) plus a pulsing brand mark, and changed the pre-first-event default label from "Understanding request..." to "AI is analyzing..." — the backend's real progress labels (`Understanding request` → `Retrieving semantic context` → `Preparing governed query` → `Validating query` → `Querying TEMPO data` → `Analyzing result`, from `backend/app/services/chat.py`'s `stream()`) still override this as they arrive via SSE, unchanged.
 2. **`26783e1`**: the Stop button (at the time, inside the progress pill next to the label) looked cramped against the text — added a vertical divider and more padding/a rose hover state.
 3. **`fb83900`**: the user pointed out Claude Code's own pattern - the send button itself (bottom-right of the message composer) swaps into a Stop button in the same position while a request runs, rather than a separate Stop control appearing elsewhere. Replicated that: the composer's submit button now renders as a Stop (square icon, calls the same `stopRequest()`/`AbortController` already in place) when `loading` is true, and the progress pill was simplified back to just the bouncing dots + label with no button of its own.
 
-Verified after each step: `npm test -- --run AskDataPage` (5/5 passing) and `npm run build` (Next.js 15.5.25 production build succeeds) in `frontend-v2/`.
+Verified after each step: `npm test -- --run AskDataPage` (5/5 passing) and `npm run build` (Next.js 15.5.25 production build succeeds) in `frontend/`.
 
 ## Current checkpoint: missing `kerberos` package silently broke GSSAPI in isolated venvs (30 Sep 2026, latest)
 
-Live deploy of `backend-v2` to the Private Cloud environment failed with `TTransportException` after one retry. The actual cause was one line above the error, easy to miss:
+Live deploy of `backend` to the Private Cloud environment failed with `TTransportException` after one retry. The actual cause was one line above the error, easy to miss:
 
 ```text
 SASLWarning: kerberos module not installed, GSSAPI will be ignored
@@ -406,11 +406,11 @@ SASLWarning: kerberos module not installed, GSSAPI will be ignored
 
 `puresasl.client` (used by `thrift_sasl`) needs the separate `kerberos` PyPI package (a C extension wrapping the system `libkrb5`) to actually perform GSSAPI operations - `pure-sasl` alone is pure Python and cannot do this itself, despite the confusingly similar name. Without `kerberos` installed, puresasl silently falls back to a non-GSSAPI path instead of erroring loudly, and the server then rejects the connection.
 
-**Why the earlier manual Workbench GSSAPI test (see the "Impala/DWH migration" checkpoint further below) didn't catch this**: that test ran in an interactive Workbench session that apparently had `kerberos` available at the system/global level, outside any project virtualenv. `backend-v2`'s isolated `.venv-cai` and each of the three Impala-backed Agent Studio V1 tools' own sandboxed dependency sets do not inherit anything from that global environment - each needs the package listed in its own requirements file.
+**Why the earlier manual Workbench GSSAPI test (see the "Impala/DWH migration" checkpoint further below) didn't catch this**: that test ran in an interactive Workbench session that apparently had `kerberos` available at the system/global level, outside any project virtualenv. `backend`'s isolated `.venv-cai` and each of the three Impala-backed Agent Studio V1 tools' own sandboxed dependency sets do not inherit anything from that global environment - each needs the package listed in its own requirements file.
 
-**Fix** (commit `8336980`): added `kerberos==1.3.1` to `backend-v2/requirements-impala.txt` and to all three Impala-backed V1 Agent Studio tools' `requirements.txt` (`execute_governed_query`, `execute_readonly_sql`, `execute_governed_metric_query`) - harmless to also have it present for LDAP/PLAIN-only deployments like the old AWS environment.
+**Fix** (commit `8336980`): added `kerberos==1.3.1` to `backend/requirements-impala.txt` and to all three Impala-backed V1 Agent Studio tools' `requirements.txt` (`execute_governed_query`, `execute_readonly_sql`, `execute_governed_metric_query`) - harmless to also have it present for LDAP/PLAIN-only deployments like the old AWS environment.
 
-**Not yet verified**: this package needs system Kerberos dev headers (`krb5-devel` / `libkrb5-dev`) present at pip-install/build time. If the CAI runtime image lacks them, installing `kerberos` will fail to build - that would be a separate environment/infra issue to flag, distinct from this code fix. Redeploy `backend-v2` (and re-import the V1 tools if revisited) and confirm the package actually builds and installs before assuming this is fully resolved.
+**Not yet verified**: this package needs system Kerberos dev headers (`krb5-devel` / `libkrb5-dev`) present at pip-install/build time. If the CAI runtime image lacks them, installing `kerberos` will fail to build - that would be a separate environment/infra issue to flag, distinct from this code fix. Redeploy `backend` (and re-import the V1 tools if revisited) and confirm the package actually builds and installs before assuming this is fully resolved.
 
 ## Current checkpoint: SAT OOS, Service Level, and request cancellation hardening (30 Sep 2026)
 
@@ -483,7 +483,7 @@ The exact same failure ("gross sales untuk top 5 produk" wrongly answered at com
 5. Backstory was condensed (228 → 144 lines) to reduce reasoning-chain length as a suspected cause of point 4 → done (`6103414`).
 6. **Still failed after all of the above, and confirmed model-agnostic, not ChatGPT-specific**: an initial live trace attributed to ChatGPT showed this failure, but a second live trace on the SAME question using the private Qwen model (not ChatGPT) showed the identical failure pattern - the agent's own stated retry intent ("I'll retry with plain wording") did not match the tool call it actually sent (still contained "gross sales sell-in"), and the same odd "re-summarize the tool/metric-catalog JSON repeatedly" loop appeared in both traces. This is an execution-consistency failure when chaining multiple tool calls with carried-over conversational context that reproduces across at least two different underlying models (Qwen and ChatGPT), not a single model's quirk, and not a gap in the resolver or the instructions - both were re-confirmed correct for this exact question via direct simulation immediately before this conclusion. Root cause is more likely in the Agent Studio orchestration layer (e.g. how "Ask question to coworker" context/history is assembled across a multi-tool-call chain) than in any one model's instruction-following.
 
-**Decision**: stop spending further iterations on the V1 Agent Studio Backstory for this specific bug class. The V2 application (`backend-v2`/`frontend-v2`, see checkpoint above) already handles this exact question correctly, verified live via CAI UAT with a real screenshot (Rp 786,892,979,793 for the same "top 5 produk" question) - V2's fix lives in code (`planner_context()`'s Ossie-derived dataset/metric selection, not an LLM-authored natural-language retry), which does not depend on a chat model (or Agent Studio's orchestration of one) consistently executing multi-step retry reasoning correctly. Treat V1 Agent Studio as a frozen reference/demo channel going forward for this class of question; put further governed-analytics effort into V2.
+**Decision**: stop spending further iterations on the V1 Agent Studio Backstory for this specific bug class. The V2 application (`backend`/`frontend`, see checkpoint above) already handles this exact question correctly, verified live via CAI UAT with a real screenshot (Rp 786,892,979,793 for the same "top 5 produk" question) - V2's fix lives in code (`planner_context()`'s Ossie-derived dataset/metric selection, not an LLM-authored natural-language retry), which does not depend on a chat model (or Agent Studio's orchestration of one) consistently executing multi-step retry reasoning correctly. Treat V1 Agent Studio as a frozen reference/demo channel going forward for this class of question; put further governed-analytics effort into V2.
 
 The Backstory fixes above are still correct and still committed - they were not reverted, since they do measurably reduce (not eliminate) the failure rate and remain the best available version if V1 Agent Studio is ever revisited. They are just not being iterated on further.
 
@@ -505,7 +505,7 @@ Commit `1604e9d`, pushed. Found while executing `docs/uat-questions-2026-09-29.m
 
 ### Scope delivered
 
-- **Separate applications**: `backend-v2/` (FastAPI) and `frontend-v2/` (Next.js), each with its own CAI launcher, dependencies, environment example, tests, and deployment documentation. V1 remains intact.
+- **Separate applications**: `backend/` (FastAPI) and `frontend/` (Next.js), each with its own CAI launcher, dependencies, environment example, tests, and deployment documentation. V1 remains intact.
 - **Controlled backend workflow**: understand request → retrieve Ossie context → governed or fallback query planning → SQL validation → Impala execution → answer/chart generation.
 - **Governed-first behavior**: Ossie metric and dimension metadata is preferred. Unsupported business questions may use a clearly marked SQL fallback, subject to read-only SQLGlot validation, table allowlisting, row limits, and function allowlisting.
 - **Pluggable LLM providers**: Qwen private/OpenAI-compatible, Google Gemini, and OpenAI. Provider selection is controlled by backend environment variables; API keys remain backend-only.

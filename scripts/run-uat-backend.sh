@@ -2,7 +2,7 @@
 # Run backend UAT: resolver dry-run + optional live /chat per eval/uat_domain_matrix.yaml
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-BE="$ROOT/backend-v2"
+BE="$ROOT/backend"
 BASE_URL="${BASE_URL:-http://127.0.0.1:8000}"
 PROVIDER="${PROVIDER:-gemini}"
 TIMEOUT="${TIMEOUT:-240}"

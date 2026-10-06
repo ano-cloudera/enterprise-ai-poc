@@ -9,7 +9,7 @@ command -v "$PYTHON_BIN" >/dev/null || { echo "Python 3.10 is required. Set PYTH
 "$PYTHON_BIN" -m venv .venv
 source .venv/bin/activate
 python -m pip install --upgrade pip
-pip install -r backend/requirements-lock.txt
+pip install -r backend/requirements.txt -r backend/requirements-impala.txt
 python scripts/generate_sample_data.py
 cd frontend
 npm install

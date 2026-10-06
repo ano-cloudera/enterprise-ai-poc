@@ -11,9 +11,9 @@ required = [
     ROOT / "README.md",
     ROOT / "backend/app/main.py",
     ROOT / "backend/app/graph/workflow.py",
-    ROOT / "backend/app/tools/sql_validator.py",
-    ROOT / "frontend/src/views/DashboardPage.tsx",
-    ROOT / "frontend/src/views/AskAIPage.tsx",
+    ROOT / "backend/app/sql/validator.py",
+    ROOT / "frontend/src/views/AskDataPage.tsx",
+    ROOT / "frontend/src/views/SettingsPage.tsx",
     ROOT / "projects/tempo_scan/semantic/manifest.yaml",
     ROOT / "projects/tempo_scan/fixtures/commercial_sales_daily.csv",
 ]

@@ -1,1 +1,1 @@
-"""Reusable enterprise AI PoC backend."""
+"""TEMPO Scan Commercial Intelligence V2 backend."""

@@ -2,7 +2,7 @@
 # Phase C5: live B3 management questions against OSSIE-only backend.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-BE="$ROOT/backend-v2"
+BE="$ROOT/backend"
 BASE_URL="${BASE_URL:-http://127.0.0.1:8000}"
 PROVIDER="${PROVIDER:-gemini}"
 TIMEOUT="${TIMEOUT:-240}"

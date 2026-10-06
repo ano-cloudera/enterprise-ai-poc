@@ -4,7 +4,7 @@
 
 TEMPO Scan V2 is a separate Ask Data application pair, not a replacement for V1. It preserves the proven TEMPO visual identity, chat/session experience, governed semantic assets, Impala connectivity, SQL safety, SSE behavior, and CAI deployment pattern while removing Dashboard and Agent Studio from the V2 runtime. A normal analytical request follows a bounded LangGraph workflow with at most two LLM calls: planning/SQL, then result analysis/chart specification.
 
-The deliverable is complete when `frontend-v2` and `backend-v2` start independently, expose the requested APIs, support Qwen/Gemini/OpenAI selection, execute governed and controlled-fallback paths through deterministic validation, stream progress safely, render structured results, and have offline tests that do not require live credentials. V1 files remain behaviorally unchanged.
+The deliverable is complete when `frontend` and `backend` start independently, expose the requested APIs, support Qwen/Gemini/OpenAI selection, execute governed and controlled-fallback paths through deterministic validation, stream progress safely, render structured results, and have offline tests that do not require live credentials. V1 files remain behaviorally unchanged.
 
 ## Existing artifact reuse plan
 
@@ -28,9 +28,9 @@ The deliverable is complete when `frontend-v2` and `backend-v2` start independen
 
 ## Architecture
 
-`frontend-v2` is a Next.js App Router application with only Ask Data and Settings routes. The browser calls same-origin `/api/*`; Next.js rewrites requests to the configured Backend V2 CAI URL, retaining the proven workaround for CAI cross-origin restrictions. The UI discovers models from `/models`, disables unavailable entries, sends the selected provider/model on every chat request, streams progress through POST SSE, and persists conversations locally.
+`frontend` is a Next.js App Router application with only Ask Data and Settings routes. The browser calls same-origin `/api/*`; Next.js rewrites requests to the configured Backend V2 CAI URL, retaining the proven workaround for CAI cross-origin restrictions. The UI discovers models from `/models`, disables unavailable entries, sends the selected provider/model on every chat request, streams progress through POST SSE, and persists conversations locally.
 
-`backend-v2` is a self-contained FastAPI application. Its LangGraph nodes are:
+`backend` is a self-contained FastAPI application. Its LangGraph nodes are:
 
 1. `understand_request` — retrieve semantic/business context and classify clarification/unsupported cases.
 2. `plan_query` — resolve a governed metric deterministically where possible; otherwise ask the chosen LLM for a structured controlled-fallback plan using only approved schema context.
@@ -77,7 +77,7 @@ External and database exceptions are logged server-side with request IDs and nor
 
 ## Deployment
 
-Each V2 directory contains its own dependencies, README, environment example, and CAI entrypoint. Backend binds to the CAI-provided port and host pattern already proven by V1. Frontend uses the proven Python CAI launcher pattern, portable Node fallback, dynamic CAI port, and server-side rewrite; its directory resolution targets `frontend-v2`. Prompt paths resolve from the installed backend package root, never the process working directory.
+Each V2 directory contains its own dependencies, README, environment example, and CAI entrypoint. Backend binds to the CAI-provided port and host pattern already proven by V1. Frontend uses the proven Python CAI launcher pattern, portable Node fallback, dynamic CAI port, and server-side rewrite; its directory resolution targets `frontend`. Prompt paths resolve from the installed backend package root, never the process working directory.
 
 ## Verification
 

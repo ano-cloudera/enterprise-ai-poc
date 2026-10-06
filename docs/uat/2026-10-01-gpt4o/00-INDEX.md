@@ -1,4 +1,4 @@
-# UAT Index — GPT-4o (OpenAI) via backend-v2, live Impala
+# UAT Index — GPT-4o (OpenAI) via backend, live Impala
 
 Run date: 2026-10-01. Provider: `openai` / `gpt-4o`. Backend: full `ChatService` pipeline
 (deterministic resolver → governed SQL or LLM query planner → SQL validation → live Impala

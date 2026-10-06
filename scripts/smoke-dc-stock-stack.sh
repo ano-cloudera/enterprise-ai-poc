@@ -14,7 +14,7 @@ export LOCAL_AGENT_BASE_URL=
 export LOCAL_AGENT_PRIMARY=0
 export ASK_DATA_ROUTING="${ASK_DATA_ROUTING:-auto}"
 
-BE="$ROOT/backend-v2"
+BE="$ROOT/backend"
 PY="${ROOT}/.venv/bin/python"
 [[ -x "$PY" ]] || PY=python3
 

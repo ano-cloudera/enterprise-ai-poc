@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Phase C4: FE + backend-v2 only (no tempo_agent_v3 sidecar).
+# Phase C4: FE + backend only (no tempo_agent_v3 sidecar).
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 export LOCAL_AGENT_BASE_URL=
@@ -7,8 +7,8 @@ export LOCAL_AGENT_PRIMARY=0
 export ASK_DATA_ROUTING="${ASK_DATA_ROUTING:-auto}"
 export BACKEND_PORT="${BACKEND_PORT:-8000}"
 export PORT=3000
-BE="$ROOT/backend-v2"
-FE="$ROOT/frontend-v2"
+BE="$ROOT/backend"
+FE="$ROOT/frontend"
 
 if [[ -f "$ROOT/.env" ]]; then
   set -a

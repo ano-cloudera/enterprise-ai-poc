@@ -1,9 +1,14 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { ProjectProvider } from '../src/lib/project'
-import { DashboardStateProvider } from '../src/lib/dashboardState'
+import { Provider } from 'react-redux'
+import { ModelSelectionBootstrap } from '../src/store/ModelSelectionBootstrap'
+import { store } from '../src/store/store'
 
 export function Providers({ children }: { children: ReactNode }) {
-  return <ProjectProvider><DashboardStateProvider>{children}</DashboardStateProvider></ProjectProvider>
+  return (
+    <Provider store={store}>
+      <ModelSelectionBootstrap>{children}</ModelSelectionBootstrap>
+    </Provider>
+  )
 }

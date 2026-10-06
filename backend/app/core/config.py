@@ -2,163 +2,118 @@ from __future__ import annotations
 
 from functools import lru_cache
 from pathlib import Path
-from typing import Literal
 
-from pydantic import Field, SecretStr
+from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from app.core.impala_env import load_impala_profile
+from app.core.llm_env import gemini_model_from_env_files
+
+
+BACKEND_ROOT = Path(__file__).resolve().parents[2]
+REPO_ROOT = BACKEND_ROOT.parent
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=(".env", "../.env"), env_file_encoding="utf-8", extra="ignore"
+        env_file=(BACKEND_ROOT / ".env", BACKEND_ROOT.parent / ".env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+        populate_by_name=True,
     )
 
-    app_name: str = "Enterprise AI PoC"
+    app_name: str = "TEMPO Scan Commercial Intelligence V2"
     app_env: str = "local"
-    api_prefix: str = "/api"
     cors_origins: str = "http://localhost:3000,http://127.0.0.1:3000"
+    default_llm_provider: str = "gemini"
 
-    # OSSIE/Impala is the only active semantic layer and data backend now -
-    # the legacy DuckDB-synthetic semantic layer (app/semantic/, per-project
-    # YAML resolution) has been removed. "legacy" is kept as a Literal
-    # option only because forecast/weather/market intelligence still query
-    # DuckDB-synthetic tables directly and haven't been retargeted to
-    # Impala yet; they're deliberately unreachable from routing until that
-    # happens (see route_intent), not because this default still serves them.
-    project_id: str = "tempo_scan_impala"
-    project_root: Path = Field(default_factory=lambda: Path(__file__).resolve().parents[3] / "projects")
-    semantic_execution_mode: Literal["legacy", "ossie"] = "ossie"
+    qwen_base_url: str = ""
+    qwen_api_key: SecretStr = Field(
+        default=SecretStr(""),
+        validation_alias=AliasChoices("QWEN_API_KEY", "QWEN_API_TOKEN"),
+    )
+    qwen_model: str = ""
+    qwen_verify_ssl: bool = True
+
+    gemini_base_url: str = "https://generativelanguage.googleapis.com/v1beta"
+    gemini_api_key: SecretStr = Field(
+        default=SecretStr(""),
+        validation_alias=AliasChoices("GEMINI_API_KEY", "GOOGLE_API_KEY"),
+    )
+    gemini_model: str = Field(
+        default="gemini-3.8-flash",
+        validation_alias=AliasChoices("GEMINI_MODEL", "MODEL_GEMINI"),
+    )
+
+    openai_base_url: str = "https://api.openai.com/v1"
+    openai_api_key: SecretStr = SecretStr("")
+    openai_model: str = ""
+    openai_verify_ssl: bool = True
+
+    llm_request_timeout_seconds: float = Field(default=60, gt=0, le=300)
+    llm_max_tokens: int = Field(default=1800, ge=100, le=8000)
+
+    project_root: Path = BACKEND_ROOT / "projects"
     ossie_project_id: str = "tempo_scan_impala"
-    ossie_max_rows: int = Field(default=200, ge=1, le=1000)
-    # forecast/weather/market (app/graph/nodes.py) are disconnected from
-    # routing but keep their code, and still read the synthetic tempo_scan
-    # project's semantic/*.yaml (forecast.yaml, weather.yaml, etc.) rather
-    # than the governed OSSIE project - named separately from project_id so
-    # it doesn't silently follow that default if it changes again.
-    legacy_synthetic_project_id: str = "tempo_scan"
-
-    data_backend: Literal["duckdb", "trino", "impala"] = "impala"
-    duckdb_path: Path = Field(default_factory=lambda: Path(__file__).resolve().parents[3] / "runtime" / "tempo_scan.duckdb")
-
-    trino_jdbc_url: str = ""
-    trino_host: str = ""
-    trino_port: int = Field(default=443, ge=1, le=65535)
-    trino_http_scheme: Literal["http", "https"] = "https"
-    trino_catalog: str = ""
-    trino_schema: str = ""
-    trino_user: str = ""
-    trino_password: SecretStr = SecretStr("")
-    trino_access_token: SecretStr = SecretStr("")
-    trino_verify_ssl: bool = True
-    trino_connect_timeout_seconds: float = Field(default=10, gt=0, le=120)
-    trino_query_timeout_seconds: float = Field(default=60, gt=0, le=300)
-    trino_max_rows: int = Field(default=500, ge=1, le=5000)
-
+    sql_max_rows: int = Field(default=200, ge=1, le=1000)
     impala_host: str = "localhost"
     impala_port: int = 21050
-    impala_database: str = "default"
+    impala_database: str = "gold"
     impala_auth_mechanism: str = "PLAIN"
     impala_user: str = ""
     impala_password: str = ""
     impala_use_ssl: bool = False
-    # CDP coordinators fronted by a gateway (e.g. the ano03 Impala VW) require
-    # HTTP transport over 443 rather than the raw Thrift binary protocol on
-    # 21050 - impyla's connect() only enables that when use_http_transport is
-    # explicitly True and http_path is set. Defaults keep the prior binary
-    # Thrift behavior unchanged for any existing direct-coordinator setup.
     impala_use_http_transport: bool = False
     impala_http_path: str = ""
-    # Required when impala_auth_mechanism is GSSAPI (Kerberized clusters,
-    # e.g. the 29 Sep 2026 Private Cloud on-prem environment) - identifies
-    # the server-side Impala Kerberos principal's service name (the part
-    # before "/hostname@REALM"). impyla's connect() ignores this for
-    # non-GSSAPI auth mechanisms.
     impala_kerberos_service_name: str = "impala"
+    impala_query_timeout_seconds: int = Field(default=60, ge=1, le=600)
+    # When set to `aws` or `ingram`, load IMPALA_* from that labeled block in repo `.env`
+    # (see ### IMPALA CREDENTIALS … ENV sections). Avoids duplicate-key override bugs.
+    impala_credential_profile: str = "aws"
+    conversation_db_path: Path = BACKEND_ROOT / "runtime" / "conversation_history.sqlite"
 
-    llm_mode: Literal["mock", "remote"] = "mock"
-    qwen_base_url: str = ""
-    qwen_model: str = "Qwen3.8-27B-AWQ"
-    qwen_api_token: SecretStr = SecretStr("")
-    qwen_request_timeout_seconds: float = Field(default=60, gt=0, le=300)
-    qwen_max_retries: int = Field(default=1, ge=0, le=1)
-    qwen_verify_ssl: bool = True
-    qwen_disable_thinking: bool = True
-    qwen_max_tokens: int = Field(default=1400, ge=100, le=8000)
+    # Optional fallback: a separately governed sibling system (TEMPO Local
+    # Agent) queried only when our own OSSIE-driven planner can't match a
+    # published metric at all (strategy=unsupported). Disabled by default -
+    # empty base_url means the fallback node is skipped entirely, so
+    # existing behavior is unchanged unless an operator opts in.
+    local_agent_base_url: str = ""
+    # When true and base_url is set, force tempo_agent_v3 (legacy; prefer ask_data_routing=v3).
+    local_agent_primary: bool = False
+    # auto | ossie | v3 — see app/services/ask_data_routing.py
+    ask_data_routing: str = "auto"
+    local_agent_timeout_seconds: float = Field(default=180, gt=0, le=600)
+    local_agent_engine: str = "langgraph"
+    local_agent_max_attempts: int = Field(default=2, ge=1, le=5)
+    local_agent_retry_delay_seconds: float = Field(default=2.0, ge=0, le=30)
 
-    # When set, the backend routes LLM calls through this LiteLLM proxy
-    # (litellm/config.yaml's "commercial-intelligence" model group) instead
-    # of calling Qwen directly. Empty by default so existing deployments
-    # that haven't stood up the LiteLLM Application keep working unchanged.
-    litellm_base_url: str = ""
-    litellm_api_key: SecretStr = SecretStr("")
-    litellm_model_group: str = "commercial-intelligence"
-    # The Agent Studio workflow group name in litellm/config.yaml. Not
-    # callable yet (see litellm/config.yaml) — kept here so the routing
-    # decision of "should we prefer Agent Studio" lives in one place once
-    # it is provisioned, rather than being hardcoded at call sites.
-    litellm_agent_studio_model_group: str = "agent-studio-workflow"
-    litellm_use_agent_studio: bool = False
+    # OSSIE workflow answer-quality loop (Phase B1)
+    judge_max_iterations: int = Field(default=2, ge=0, le=5)
+    judge_enabled: bool = True
 
-    # Selects run_chat()'s implementation (app/services/chat.py): "graph"
-    # keeps the existing LangGraph workflow untouched; "agent_studio" calls
-    # the deployed Agent Studio workflow's REST API directly
-    # (createSession/kickoff/events) and adapts its Markdown answer into
-    # ChatResponse (see app/services/agent_studio_client.py and
-    # app/services/markdown_chart_adapter.py). A plain env var toggle, not a
-    # DB-backed runtime setting, so a dev can flip it per-environment
-    # (.env / CAI Application env vars) without touching runtime_settings.
-    chat_backend: Literal["graph", "agent_studio"] = "graph"
-    agent_studio_base_url: str = ""
-    agent_studio_api_key: SecretStr = SecretStr("")
-    agent_studio_poll_timeout_seconds: float = Field(default=90, gt=0, le=600)
-    agent_studio_poll_interval_seconds: float = Field(default=2, gt=0, le=30)
+    # In-process TEMPO domain graph (knowledge/tempo_domain_graph.yaml)
+    business_graph_enabled: bool = Field(default=True, validation_alias="BUSINESS_GRAPH_ENABLED")
 
-    serpapi_api_key: SecretStr = SecretStr("")
-    serpapi_enabled: bool = True
-    serpapi_max_queries: int = Field(default=5, ge=1, le=11)
-    serper_api_key: SecretStr = SecretStr("")
-    serper_enabled: bool = True
-    serper_max_queries: int = Field(default=5, ge=1, le=11)
-    market_api_base_url: str = "http://127.0.0.1:8100"
-
-    @property
-    def market_collector_api_key(self) -> str:
-        """Prefer the correct Serper key; retain the old variable during migration."""
-        return self.serper_api_key.get_secret_value() or self.serpapi_api_key.get_secret_value()
-
-    sql_max_rows: int = 500
-    sql_max_repair_attempts: int = 1
-
-    # Enables the optional Guardrails AI (guardrailsai.com) validators
-    # (DetectJailbreak on input, SecretsPresent on output) in
-    # app/guardrails/service.py, on top of the always-on deterministic
-    # regex checks. GuardrailService itself never reads a token - Guardrails
-    # Hub authenticates via `guardrails configure --token`, which writes to
-    # ~/.guardrailsrc. GUARDRAILS_TOKEN (see .env.example) exists only for
-    # app_cai_backend.py's ensure_guardrails() to run that CLI command and
-    # install the Hub validators automatically on first startup — it is
-    # never read by this Settings class or by GuardrailService. If the
-    # package/Hub install is missing or fails, GuardrailService falls back
-    # to deterministic-only checks rather than failing the request.
-    guardrails_enabled: bool = False
-
-    telemetry_db_path: Path = Field(default_factory=lambda: Path(__file__).resolve().parents[3] / "runtime" / "telemetry.sqlite")
-
-    # Chat history per session_id (see app/services/conversation_store.py),
-    # so multi-turn memory survives across requests/process restarts, not
-    # just within one browser tab's lifetime. Same runtime/ convention as
-    # duckdb_path and telemetry_db_path above.
-    conversation_db_path: Path = Field(default_factory=lambda: Path(__file__).resolve().parents[3] / "runtime" / "conversation_history.sqlite")
+    # Phase C7 — optional PuppyGraph (off critical path; schema stub in knowledge/)
+    puppygraph_enabled: bool = Field(default=False, validation_alias="PUPPYGRAPH_ENABLED")
+    puppygraph_base_url: str = Field(default="", validation_alias="PUPPYGRAPH_BASE_URL")
 
     @property
     def cors_origin_list(self) -> list[str]:
-        return [item.strip() for item in self.cors_origins.split(",") if item.strip()]
-
-    @property
-    def project_dir(self) -> Path:
-        return self.project_root / self.project_id
+        return [value.strip() for value in self.cors_origins.split(",") if value.strip()]
 
 
 @lru_cache(maxsize=1)
 def get_settings() -> Settings:
-    return Settings()
+    settings = Settings()
+    updates: dict = {}
+    profile = settings.impala_credential_profile.strip().lower()
+    if profile:
+        updates.update(load_impala_profile(REPO_ROOT / ".env", profile) or {})
+    gemini_from_env = gemini_model_from_env_files(backend_root=BACKEND_ROOT, repo_root=REPO_ROOT)
+    if gemini_from_env:
+        updates["gemini_model"] = gemini_from_env
+    elif not (settings.gemini_model or "").strip() and settings.gemini_api_key.get_secret_value():
+        updates["gemini_model"] = "gemini-3.8-flash"
+    if updates:
+        return settings.model_copy(update=updates)
+    return settings

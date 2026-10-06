@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
-# Full local stack: tempo_agent_v3 (judge loop) + backend-v2 (API/proxy) + frontend-v2.
+# Full local stack: tempo_agent_v3 (judge loop) + backend (API/proxy) + frontend.
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 V3="$ROOT/reference/tempo_agent_v3"
-BE="$ROOT/backend-v2"
-FE="$ROOT/frontend-v2"
+BE="$ROOT/backend"
+FE="$ROOT/frontend"
 
 if [[ -f "$ROOT/.env" ]]; then
   set -a

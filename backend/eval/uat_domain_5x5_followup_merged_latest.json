@@ -1,0 +1,2660 @@
+{
+  "merged_from": [
+    "uat_domain_5x5_followup_run_715403a4.json",
+    "uat_domain_5x5_followup_run_4e6d8ddf.json",
+    "uat_domain_5x5_followup_run_fdf15b9f.json",
+    "uat_domain_5x5_followup_run_82ed3548.json",
+    "uat_domain_5x5_followup_run_af863ae9.json",
+    "uat_domain_5x5_followup_run_bb78f971.json",
+    "uat_domain_5x5_followup_run_36c6b90d.json",
+    "uat_domain_5x5_followup_run_f0d3e1bd.json",
+    "uat_domain_5x5_followup_run_cfeb5f76.json",
+    "uat_domain_5x5_followup_run_008f6c3e.json"
+  ],
+  "base_url": "http://127.0.0.1:8000",
+  "provider": "gemini",
+  "judge_enabled": true,
+  "scenarios_passed": 36,
+  "scenarios_total": 50,
+  "turns_passed": 84,
+  "turns_total": 100,
+  "judge_passed": 84,
+  "judge_total": 100,
+  "by_domain": [
+    {
+      "domain": "b2b",
+      "scenarios_passed": 4,
+      "scenarios_total": 5,
+      "scenarios": [
+        {
+          "id": "b2b-fu-01",
+          "domain": "b2b",
+          "title": "Top DC Alfamart lalu drill Palembang produk",
+          "session_id": "uat-fu-b2b-fu-01-017b7410",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Top 10 DC Alfamart dengan penjualan sell-out tertinggi Q4 2024",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "999a761b-0cab-4381-8862-b5cec9776b94",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "Respon sangat akurat dan selaras dengan prinsip domain B2B Sell-Out Alfamart. Angka metrik konsisten dengan sample data hasil query dan penyajian eksekutif ringkas serta siap dipresentasikan ke manajemen."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "breakdown based on cabang palembang, top 3 produk terbaik based on penjualan",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 3,
+              "request_id": "96d421ab-4201-4d02-89c8-39e00988b383",
+              "judge": {
+                "acceptable": true,
+                "score": 8,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "The response handles the follow-up request well by transparently stating grain limitations in the governed dataset rather than fabricating branch-level product numbers. It clearly reports the national top 3 products with accurate data grounding and provides appropriate caveats for management review."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_4e6d8ddf.json"
+        },
+        {
+          "id": "b2b-fu-02",
+          "domain": "b2b",
+          "title": "Casual top cabang lalu detail DC pertama",
+          "session_id": "uat-fu-b2b-fu-02-aacd94ca",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "top penjualan cabang Alfamart?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "cf115d8b-300f-423e-9302-bcade469a730",
+              "judge": {
+                "acceptable": true,
+                "score": 10,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "Jawaban sangat baik dan siap untuk demo manajemen. Angka penjualan DC Alfamart sepenuhnya akurat sesuai data sample_rows governed, dengan pemisahan domain Sell-Out B2B yang tepat serta penjelasan DC cabang yang jelas."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "untuk cabang rank 1 dari hasil itu, sebutkan nilai sell-out dan nama DC-nya",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 1,
+              "request_id": "21b28e27-22f1-4cc5-bf6c-bec2edd03ed9",
+              "judge": {
+                "acceptable": true,
+                "score": 10,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "Jawaban sangat akurat dan koheren dengan konteks percakapan sebelumnya. Asisten berhasil mengidentifikasi DC rank 1 (DC PALEMBANG) beserta nilai Sell-Out yang tepat sesuai data governed Q4 2024 tanpa fabrikasi."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_4e6d8ddf.json"
+        },
+        {
+          "id": "b2b-fu-03",
+          "domain": "b2b",
+          "title": "Top produk sell-out lalu cabang kontributor",
+          "session_id": "uat-fu-b2b-fu-03-89045e21",
+          "pass": false,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Top 10 produk sell-out partner dengan nilai tertinggi Q4 2024",
+              "pass": false,
+              "mechanical_pass": true,
+              "note": "judge score=4: The model answered a B2B partner Sell-Out question using Tempo Sell-In billing data. While the numbe",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "b4f0e654-1a23-4cfc-a813-594e4acf017d",
+              "judge": {
+                "acceptable": false,
+                "score": 4,
+                "grounded_in_data": true,
+                "domain_appropriate": false,
+                "follow_up_coherent": null,
+                "issues": [
+                  "Commercial domain mismatch: user requested Sell-Out B2B partner, but the system executed and presented Sell-In billing data (rpt_sap_material_month_semantic / sell_in_bill_val).",
+                  "Although transparently noted in caveats, presenting Sell-In ranking as the direct answer to a Sell-Out question is not acceptable for management decision-making."
+                ],
+                "summary": "The model answered a B2B partner Sell-Out question using Tempo Sell-In billing data. While the numbers are grounded in the returned table rows and the discrepancy is acknowledged in the caveats, substituting Sell-In for Sell-Out violates core domain boundaries and is not demo-ready."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "material teratas tadi, DC mana yang paling besar kontribusi sell-out-nya?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "44750b77-f79f-400d-be41-1e41d7ffaef4",
+              "judge": {
+                "acceptable": true,
+                "score": 8,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "The model handled the follow-up question transparently by identifying the top material from the previous context and properly acknowledging the grain limitation of the underlying dataset (material level without branch/DC breakdown), avoiding hallucination of branch numbers while providing sound commercial guidance."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_4e6d8ddf.json"
+        },
+        {
+          "id": "b2b-fu-04",
+          "domain": "b2b",
+          "title": "Typo phrasing lalu top 3 DC",
+          "session_id": "uat-fu-b2b-fu-04-933b4bf7",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "mau tau dong top 10 total penjualn berdasarkan cabang di alfamart",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "f212d7ae-fbab-47a2-8278-17e2394c1941",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The response accurately interprets the typo in the prompt, maps Alfamart branches correctly to DC locations, and appropriately categorizes the data as B2B Sell-Out for Q4 2024. All reported figures align with the governed query results, making it fully ready for management demonstration."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "dari ranking itu, bandingkan DC urutan 1 dan urutan 2",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 2,
+              "request_id": "a8983c4c-24a3-4ec9-9626-d882270bb7b3",
+              "judge": {
+                "acceptable": true,
+                "score": 10,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "Response correctly compares the top 2 Alfamart DCs from the prior turn with precise calculations (Rp 1.82 M / +9.56% difference), perfectly adhering to B2B Sell-Out domain definitions and governed data."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_4e6d8ddf.json"
+        },
+        {
+          "id": "b2b-fu-05",
+          "domain": "b2b",
+          "title": "Q4 phrasing lalu follow top 5 only",
+          "session_id": "uat-fu-b2b-fu-05-dc311e3f",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Total sell-out partner Alfamart Q4 2024 per cabang, urutkan terbesar",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "0d81478e-9563-480e-80d9-afec741ad33c",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The response accurately addresses the Q4 2024 Alfamart sell-out ranking per branch using governed B2B data. Numerical values strictly match the returned rows, the commercial domain distinction between sell-in and sell-out partner channel is properly respected, and the executive summary is well-structured for management."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "tampilkan hanya top 5 saja dari daftar tadi",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 5,
+              "request_id": "723eceaa-6551-4e8a-9bbc-c57d0de02003",
+              "judge": {
+                "acceptable": true,
+                "score": 10,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "Turn 2 perfectly filters the previous turn's Alfamart B2B ranking to the top 5 DC branches. All values match the governed query rows precisely, and the commercial distinction between partner sell-out and Tempo sell-in is explicitly preserved."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_4e6d8ddf.json"
+        }
+      ]
+    },
+    {
+      "domain": "cross_domain",
+      "scenarios_passed": 3,
+      "scenarios_total": 5,
+      "scenarios": [
+        {
+          "id": "cross-fu-01",
+          "domain": "cross_domain",
+          "title": "Pareto sell-in lalu top3 contribution",
+          "session_id": "uat-fu-cross-fu-01-e561393d",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Bantu jelaskan pareto penjualan sell-in Q4 2024 top produk Tempo",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "8a75575c-b489-4d2a-9534-8e71bb382636",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The response accurately analyzes the top sell-in materials for Q4 2024 using governed SAP material data. Figures and rankings directly match the underlying query results, executive takeaways are well-structured, and limitations regarding SKU naming and top-10 boundaries are transparently stated."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "tiga produk teratas tadi, berapa persen kontribusi ke total sell-in?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "0952a5db-f731-4a68-be11-f963a1787101",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "The assistant handled the follow-up question transparently and accurately. It computed the sum of the top three SKUs correctly, clearly stated that the percentage was calculated against the top 10 cohort due to the result set limit, and explicitly avoided fabricating a grand total for the entire catalog."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_008f6c3e.json"
+        },
+        {
+          "id": "cross-fu-02",
+          "domain": "cross_domain",
+          "title": "Concept sell-in vs sell-out lalu analytic sell-in",
+          "session_id": "uat-fu-cross-fu-02-5132682b",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Halo, apa bedanya sell-in Tempo dan sell-out Alfamart untuk tim manajemen?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "conversational",
+              "row_count": 0,
+              "request_id": "a1da637e-a31d-4bb1-8e30-8753ffdca7de",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The conversational conceptual explanation clearly and accurately distinguishes Tempo Sell-In from Alfamart Sell-Out without fabricating data or metrics, making it well-suited for a management audience."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "Berapa total sell-in Tempo Q4 2024?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 3,
+              "request_id": "bfa4e9f3-a35a-4af6-8047-f15ac81cb1e8",
+              "judge": {
+                "acceptable": true,
+                "score": 10,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "Jawaban sangat baik dan akurat. Agregasi total Q4 2024 sebesar Rp 3,84 triliun beserta rincian bulanan Oktober-Desember 2024 konsisten persis dengan data governed, didukung pemisahan konsep sell-in vs sell-out yang tepat dan bahasa eksekutif yang siap didemokan."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_008f6c3e.json"
+        },
+        {
+          "id": "cross-fu-03",
+          "domain": "cross_domain",
+          "title": "Stok vs sell-in FE001 lalu only sell-in",
+          "session_id": "uat-fu-cross-fu-03-434737f5",
+          "pass": false,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Bagaimana hubungan stok Tempo dan sell-in material FE001 Q4?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "CLARIFICATION",
+              "strategy": "clarification",
+              "row_count": 0,
+              "request_id": "0bbb2619-458f-44cf-a69c-54469481a226",
+              "judge": {
+                "acceptable": true,
+                "score": 8,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The assistant appropriately triggers a clarification without fabricating cross-domain analytics between inventory and sell-in, guiding the user toward an available query grain."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "cukup tampilkan sell-in FE001 per bulan Q4",
+              "pass": false,
+              "mechanical_pass": false,
+              "note": "judge_unavailable: Model provider request failed",
+              "status": "NO_DATA",
+              "strategy": "governed",
+              "row_count": 0,
+              "request_id": "29793001-9a57-4458-a972-a8becb49ed32",
+              "judge": null,
+              "judge_error": "Model provider request failed"
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_008f6c3e.json"
+        },
+        {
+          "id": "cross-fu-04",
+          "domain": "cross_domain",
+          "title": "DC stok SAT + sell-out lalu drill DC",
+          "session_id": "uat-fu-cross-fu-04-91f414a4",
+          "pass": false,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "DC Alfamart mana stok SAT-nya paling tinggi dan sell-out-nya juga tinggi Q4?",
+              "pass": false,
+              "mechanical_pass": true,
+              "note": "judge_unavailable: Model provider request failed",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 1,
+              "request_id": "16459a7e-340b-4bc9-9e23-f80fcb55756c",
+              "judge": null,
+              "judge_error": "Model provider request failed"
+            },
+            {
+              "turn": 2,
+              "question": "DC yang muncul di jawaban tadi, top 3 produk sell-out-nya",
+              "pass": false,
+              "mechanical_pass": false,
+              "note": "judge score=4: The system correctly avoids fabricating data when referencing the previous turn, but provides a blun",
+              "status": "NO_DATA",
+              "strategy": "governed",
+              "row_count": 0,
+              "request_id": "0eb44f66-22aa-487c-b35c-3869d339b94c",
+              "judge": {
+                "acceptable": false,
+                "score": 4,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": false,
+                "issues": [
+                  "Turn 2 failed to reference or contextualize Turn 1's outcome (Turn 1 did not produce a specific DC name due to null query results).",
+                  "Generic NO_DATA response ('Tidak ada data yang cocok...') provides no conversational clarity or guidance to management."
+                ],
+                "summary": "The system correctly avoids fabricating data when referencing the previous turn, but provides a blunt, unhelpful NO_DATA fallback instead of explaining that no DC was identified in the prior answer."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_008f6c3e.json"
+        },
+        {
+          "id": "cross-fu-05",
+          "domain": "cross_domain",
+          "title": "Capability lalu ask picking",
+          "session_id": "uat-fu-cross-fu-05-2f0b3dcc",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Halo, data apa saja yang bisa ditanyakan untuk review manajemen Q4 di sistem ini?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "conversational",
+              "row_count": 0,
+              "request_id": "ee715415-a4c1-4b11-92ee-5f698c6cbb30",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "Respon pengenalan kapabilitas sangat baik dan terstruktur, merangkum domain analitik komersial TEMPO Q4 2024 secara akurat (Sell-In, B2B Sell-Out, Stock Tempo, SAT Stock/OOS, dan Service Level) tanpa halusinasi angka."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "ok tampilkan top 5 sales office picking terlama Q4",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 5,
+              "request_id": "b3d6c9f7-d21b-4202-99fb-c3d54fbe96e7",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "The response accurately retrieves and summarizes the top 5 sales offices with the longest picking durations in Q4 2024. All metrics match the underlying query rows perfectly, with clear contextual insights and domain-appropriate caveats."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_008f6c3e.json"
+        }
+      ]
+    },
+    {
+      "domain": "picking",
+      "scenarios_passed": 4,
+      "scenarios_total": 5,
+      "scenarios": [
+        {
+          "id": "picking-fu-01",
+          "domain": "picking",
+          "title": "Longest picking lalu office 0201 detail",
+          "session_id": "uat-fu-picking-fu-01-9a6831a3",
+          "pass": false,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Sales office mana dengan rata-rata durasi picking terlama Q4 2024?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "80ec4e0d-0984-41ef-95b1-3d0311498cea",
+              "judge": {
+                "acceptable": true,
+                "score": 10,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "Jawaban sangat akurat dan selaras dengan hasil query governed data. Identifikasi sales office 0234 sebagai kantor dengan rata-rata durasi picking terlama (23,57 menit) tepat, didukung ringkasan eksekutif dan wawasan perbandingan yang relevan serta layak untuk demo manajemen."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "office terlama tadi, bandingkan dengan office tercepat dari ranking yang sama",
+              "pass": false,
+              "mechanical_pass": true,
+              "note": "judge_unavailable: Model provider request failed",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "2f89255a-d0af-494f-a136-4907050be4bc",
+              "judge": null,
+              "judge_error": "Model provider request failed"
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_36c6b90d.json"
+        },
+        {
+          "id": "picking-fu-02",
+          "domain": "picking",
+          "title": "Top10 slow lalu company avg",
+          "session_id": "uat-fu-picking-fu-02-7a1f5b99",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Top 10 sales office dengan picking time tertinggi Q4",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "92d48dc3-ab93-4fda-a8f0-36a7a0ab9576",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The response accurately identifies the top sales offices by picking duration in Q4 2024 using governed data. The metric values align with sample rows, the business scope correctly distinguishes internal warehouse operations from partner channels, and the presentation is demo-ready."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "berapa rata-rata picking company-wide untuk Q4?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "826b6fed-dbb9-42f0-be67-3dbdaca23603",
+              "judge": {
+                "acceptable": true,
+                "score": 7,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [
+                  "Underlying query engine repeated the Top 10 breakdown rather than generating a company-wide aggregation query, but the assistant handled this correctly by refusing to fabricate an unweighted national average."
+                ],
+                "summary": "The assistant appropriately identified that the returned dataset only contained Top 10 sales offices and transparently explained that a true company-wide weighted average cannot be calculated from this subset. By avoiding hallucinated aggregation, the response remains trustworthy and acceptable for management review."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_36c6b90d.json"
+        },
+        {
+          "id": "picking-fu-03",
+          "domain": "picking",
+          "title": "Fastest lalu slowest compare",
+          "session_id": "uat-fu-picking-fu-03-f46aa4b6",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Sales office mana picking-nya paling efisien (tercepat) Q4 2024?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "7474ff5e-a6a9-4349-b3b9-dfec750d1290",
+              "judge": {
+                "acceptable": true,
+                "score": 10,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "Jawaban sangat akurat dan terstruktur rapi untuk demo manajemen. Sales office tercepat (0268 dengan 1.42 menit) diidentifikasi dengan benar sesuai data governed tanpa halusinasi angka."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "bandingkan durasi picking office tercepat vs office 0201",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 1,
+              "request_id": "64d050ae-b2cf-4aef-bab0-1cbe168e3281",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "The assistant handled the comparison accurately and honestly by referencing the fastest office (0268 at 1.42 minutes) and clearly stating that office 0201 had no recorded picking activity in Q4 2024 without hallucinating values."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_36c6b90d.json"
+        },
+        {
+          "id": "picking-fu-04",
+          "domain": "picking",
+          "title": "Top10 slow lalu cek office 0201",
+          "session_id": "uat-fu-picking-fu-04-432b0931",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Top 10 sales office dengan rata-rata picking terlama Q4 2024",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "f85b4d23-1551-4a86-878f-c558834fbb7e",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The response accurately identifies and ranks the slowest sales offices by average picking duration for Q4 2024, perfectly aligning with the governed query rows. Insights and caveats are clear, domain-appropriate, and well-tailored for management presentation."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "apakah sales office 0201 ada di daftar tadi? kalau ya berapa menit rata-ratanya?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "cf91e090-bc82-4136-880f-c787403cd7c9",
+              "judge": {
+                "acceptable": true,
+                "score": 10,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "The assistant correctly identified that sales office 0201 was not present in the top 10 list from the prior turn. It appropriately refrained from fabricating an unqueried duration figure and clearly stated that a dedicated query would be required to retrieve specific metrics for 0201."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_36c6b90d.json"
+        },
+        {
+          "id": "picking-fu-05",
+          "domain": "picking",
+          "title": "Dual metric clarify lalu chip picking",
+          "session_id": "uat-fu-picking-fu-05-15cbe303",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Analisa data unloading dan picking dan berikan analisa perbandingan dengan industri standard",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "CLARIFICATION",
+              "strategy": "clarification",
+              "row_count": 0,
+              "request_id": "fdb48bc4-3b32-43d8-ac9c-d5c2ed4e359c",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The response properly requests clarification between picking and unloading operational metrics without fabricating external industry benchmarks or combining disparate governed queries. It clearly guides the user on the available TEMPO data scope."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "Analisa durasi picking per sales office Q4 2024",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "f5611799-3c27-4c1f-8663-ce309c9f5068",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "The response effectively follows up on the previous clarification turn by executing a governed query on picking duration per sales office for Q4 2024. Figures and rankings align with governed data, and caveats appropriately address the absence of external industry benchmark metrics."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_36c6b90d.json"
+        }
+      ]
+    },
+    {
+      "domain": "promo",
+      "scenarios_passed": 3,
+      "scenarios_total": 5,
+      "scenarios": [
+        {
+          "id": "promo-fu-01",
+          "domain": "promo",
+          "title": "Top uplift lalu material detail",
+          "session_id": "uat-fu-promo-fu-01-a46c10ea",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Top 10 material dengan revenue uplift promo SAT Desember 2024",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "5fb2e360-bf2b-49f2-8be3-b4f147bbc07e",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The response accurately ranks the materials based on governed data and correctly highlights commercial channel nuances between sell-in proxy uplift and POS sell-out in the caveats, making it fully ready for management demonstration."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "material rank 1 uplift tadi, jelaskan proxy Nov vs Des yang dipakai",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 1,
+              "request_id": "f6d1f526-b7ec-404e-8916-e6b416de403e",
+              "judge": {
+                "acceptable": true,
+                "score": 8,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [
+                  "Returned query retrieved aggregate Q4 value instead of separate Calmonth November and December rows, but this limitation is transparently disclosed."
+                ],
+                "summary": "The assistant coherently tracked the top material (001-00-03) from turn 1 and accurately explained the sell-in billing value proxy without hallucinating unretrieved monthly breakdown figures. The grain limitation was handled transparently and professionally for management demonstration."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_cfeb5f76.json"
+        },
+        {
+          "id": "promo-fu-02",
+          "domain": "promo",
+          "title": "ROI clarify lalu pilih revenue proxy",
+          "session_id": "uat-fu-promo-fu-02-92bacf6a",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Hitung promo dengan ROI terbaik dan berikan rekomendasi operasional",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "CLARIFICATION",
+              "strategy": "clarification",
+              "row_count": 0,
+              "request_id": "42f71589-7a07-4288-b0b4-1c5d6278514c",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The assistant appropriately triggers a clarification instead of fabricating promo spending or ROI figures. It accurately distinguishes between Alfamart promo mechanics and GT sales baseline proxies, presenting a clear choice for management."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "Revenue Uplift General Trade Nov vs Des untuk material promo top 10",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "9938472d-351d-4899-8497-9892c4295b53",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "The response accurately executes the follow-up request from the prior turn clarification, grounding all numbers and rankings in the governed table. Domain context (GT sell-in cross-channel proxy for SAT promo) and commercial caveats are articulated cleanly for management."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_cfeb5f76.json"
+        },
+        {
+          "id": "promo-fu-03",
+          "domain": "promo",
+          "title": "Observation count lalu mechanism hint",
+          "session_id": "uat-fu-promo-fu-03-4e9d3f5f",
+          "pass": false,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Berapa jumlah observasi promo SAT Q4 2024 per material? Top 10 material",
+              "pass": false,
+              "mechanical_pass": true,
+              "note": "judge_unavailable: Model provider request failed",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "0d925cfa-57f8-4cc5-9977-4cd6a17853e9",
+              "judge": null,
+              "judge_error": "Model provider request failed"
+            },
+            {
+              "turn": 2,
+              "question": "material dengan observasi terbanyak, apa mekanisme promo dominan di teks?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "7a6db391-922b-4035-8932-0e618faf56b2",
+              "judge": {
+                "acceptable": true,
+                "score": 8,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "The assistant correctly identifies material 001-00-03 from the data and provides an honest, unhallucinated response stating that promo mechanism text fields are unavailable in the underlying dataset."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_cfeb5f76.json"
+        },
+        {
+          "id": "promo-fu-04",
+          "domain": "promo",
+          "title": "Mechanism rank lalu count same mekanisme",
+          "session_id": "uat-fu-promo-fu-04-e57bd754",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Top 10 mekanisme promo SAT (teks) dengan observasi terbanyak Des 2024",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "222e03b3-a775-4aad-b039-f05235c022d3",
+              "judge": {
+                "acceptable": true,
+                "score": 8,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The assistant handled the missing mechanism text dimension transparently by explaining table limitations without hallucination. It presented the available top material uplift figures accurately from the governed dataset and clearly distinguished GT sell-in proxy metrics from Alfamart sell-out data."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "mekanisme rank 1, berapa material unik terkait?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 1,
+              "request_id": "4d18281a-a4b6-4466-b470-cf7eea434560",
+              "judge": {
+                "acceptable": true,
+                "score": 7,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [
+                  "Karena turn 1 menggunakan proxy level-material akibat ketiadaan teks mekanisme promo, follow-up count material unik pada rank 1 secara inheren hanya memetakan kembali ke 1 SKU tersebut."
+                ],
+                "summary": "Tanggapan secara logis menindaklanjuti entitas rank 1 dari turn sebelumnya (SKU 001-00-03) dan menyajikan data sell-in billing value Q4 2024 yang sesuai dengan baris query. Penjelasan dan caveat disampaikan secara jujur serta transparan mengenai batasan granularitas data."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_cfeb5f76.json"
+        },
+        {
+          "id": "promo-fu-05",
+          "domain": "promo",
+          "title": "Program status lalu top material in status",
+          "session_id": "uat-fu-promo-fu-05-ab064397",
+          "pass": false,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Distribusi promo SAT by program status Q4 2024",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 3,
+              "request_id": "b523fd5c-d991-4ea3-ae23-fca317c90ca2",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The response accurately reports the distribution of SAT promo observations across program status codes with correct aggregation and percentages. Honest caveats regarding the reporting period snapshot and status code definitions are well documented for executive review."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "status dominan tadi, top 5 material by uplift",
+              "pass": false,
+              "mechanical_pass": true,
+              "note": "judge_unavailable: Model provider request failed",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 5,
+              "request_id": "cd99e1e4-3421-45c4-958c-52b8a128d493",
+              "judge": null,
+              "judge_error": "Model provider request failed"
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_cfeb5f76.json"
+        }
+      ]
+    },
+    {
+      "domain": "sales",
+      "scenarios_passed": 5,
+      "scenarios_total": 5,
+      "scenarios": [
+        {
+          "id": "sales-fu-01",
+          "domain": "sales",
+          "title": "Gross sell-in lalu breakdown bulan",
+          "session_id": "uat-fu-sales-fu-01-88751115",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Berapa total gross billing / sell-in TEMPO untuk Q4 2024?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 1,
+              "request_id": "5a2659db-81a7-4afc-9409-632cfaf16e54",
+              "judge": {
+                "acceptable": true,
+                "score": 10,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "Jawaban sangat akurat dan selaras penuh dengan data governed SAP TEMPO Q4 2024. Penyajian angka tepat tanpa halusinasi, serta dilengkapi penjelasan konteks dan caveats komersial yang sangat layak untuk demo level manajemen."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "tampilkan per bulan Oktober November Desember untuk pertanyaan tadi",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 3,
+              "request_id": "f989822b-55f5-47e8-b4a8-e9349cf34695",
+              "judge": {
+                "acceptable": true,
+                "score": 10,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "Jawaban follow-up sangat baik dan akurat; breakdown bulanan Oktober, November, dan Desember 2024 sepenuhnya konsisten dengan total gross billing Q4 2024 pada turn sebelumnya serta didukung narasi tren yang tajam dan eksekutif."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_715403a4.json"
+        },
+        {
+          "id": "sales-fu-02",
+          "domain": "sales",
+          "title": "Top material lalu drill office untuk rank 1",
+          "session_id": "uat-fu-sales-fu-02-a44aa219",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Top 10 produk dengan penjualan sell-in terbesar di Tempo Q4 2024",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "aac02aba-377c-4e4b-b382-56bdccd96cf1",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The response accurately identifies the top sell-in materials for Tempo in Q4 2024 using governed semantic data. Figures and rankings directly match the returned data rows with clear executive summaries and insights suitable for management review."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "untuk produk rank 1 dari tabel tadi, top 5 sales office dengan sell-in produk itu",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 5,
+              "request_id": "d641979c-f4d5-483f-b98c-cb5ebd67515a",
+              "judge": {
+                "acceptable": true,
+                "score": 10,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "Respon follow-up sangat baik dan koheren, mengidentifikasi material rank 1 ('001-00-03') dari konteks turn sebelumnya dengan tepat. Angka top 5 sales office konsisten dengan data governed query, domain sell-in dijaga dengan benar, serta insight agregat disajikan secara akurat dan profesional untuk manajemen."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_715403a4.json"
+        },
+        {
+          "id": "sales-fu-03",
+          "domain": "sales",
+          "title": "Top office lalu top produk di office",
+          "session_id": "uat-fu-sales-fu-03-01e8851b",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Top 10 cabang sales office dengan sell-in terbesar Q4 2024",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "2dd33f5c-3b37-4c6f-b274-cf4a948c4e95",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "Jawaban sangat baik dan akurat sesuai data governed. Metrik sell-in Tempo cabang sales office untuk Q4 2024 dijabarkan secara jelas, konsisten dengan sample rows, dan menyertakan caveat domain yang tepat untuk presentasi manajemen."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "cabang paling atas tadi, top 5 material sell-in-nya",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 5,
+              "request_id": "6daf30d4-0e22-425d-8aa7-3e631f2b5b8a",
+              "judge": {
+                "acceptable": true,
+                "score": 10,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "Model correctly maintained conversational context by identifying sales office 0201 from turn 1 and retrieving its top 5 sell-in materials for Q4 2024. All aggregated figures, ranking orders, and percentages match the governed query results precisely."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_715403a4.json"
+        },
+        {
+          "id": "sales-fu-04",
+          "domain": "sales",
+          "title": "Office 0201 material rank lalu banding office lain",
+          "session_id": "uat-fu-sales-fu-04-60e2a243",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Top 5 material dengan sell-in terbesar di sales office 0201 Q4 2024",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 5,
+              "request_id": "ca1e553f-80c8-4e74-8859-c020ecb2070e",
+              "judge": {
+                "acceptable": true,
+                "score": 8,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [
+                  "Dataset semantic yang dipanggil tidak memiliki grain tingkat material sehingga pertanyaan utama mengenai ranking material tidak dapat dijawab secara langsung."
+                ],
+                "summary": "Asisten memberikan respons yang sangat transparan dan profesional dengan menjelaskan keterbatasan butir data (grain) tanpa memalsukan atau mengarang data tingkat material. Angka total sell-in sales office 0201 sepenuhnya selaras dengan data kueri terkelola dan domain sell-in ditangani dengan tepat."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "bandingkan total sell-in office 0201 vs 0280 Q4 untuk konteks yang sama",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 2,
+              "request_id": "dacbff40-327a-462f-a08e-a575f93f9d22",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "The response accurately compares Q4 2024 sell-in performance between sales offices 0201 and 0280 based on the governed dataset. Calculations (difference, ratio, and share) are precise and verified against the sample rows, maintaining professional tone and appropriate commercial context."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_715403a4.json"
+        },
+        {
+          "id": "sales-fu-05",
+          "domain": "sales",
+          "title": "Top quantity lalu nilai rupiah produk teratas",
+          "session_id": "uat-fu-sales-fu-05-6a8bbb16",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Produk mana yang paling banyak terjual (quantity sell-in) di Tempo Q4 2024? Top 10",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "5164d1cd-71ac-4543-a4ba-bf0c1da42d62",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The assistant provides an accurate, well-structured answer grounded in governed sell-in billing quantity data for Tempo Q4 2024. Figures and rankings directly match the underlying query results, and appropriate commercial caveats are stated."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "produk urutan pertama tadi, berapa nilai rupiah sell-in-nya?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 1,
+              "request_id": "890e5d92-f1e1-4417-b36d-615d6faa8c1c",
+              "judge": {
+                "acceptable": true,
+                "score": 10,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "Respon sangat baik dan konsisten dengan konteks giliran sebelumnya. Sistem berhasil mengidentifikasi produk urutan pertama (material 003-92-03) dari Turn 1 dan menyajikan nilai rupiah sell-in Q4 2024 secara akurat sesuai data governed (Rp 77,43 miliar) tanpa halusinasi."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_715403a4.json"
+        }
+      ]
+    },
+    {
+      "domain": "sat_oos",
+      "scenarios_passed": 4,
+      "scenarios_total": 5,
+      "scenarios": [
+        {
+          "id": "oos-fu-01",
+          "domain": "sat_oos",
+          "title": "Worst material lalu outlet count",
+          "session_id": "uat-fu-oos-fu-01-248bbfb6",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Material mana dengan OOS rate SAT terburuk Q4 2024? Top 10",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "3bc9ebc1-1b41-48c1-b200-05f716bcbdb9",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The response accurately identifies the top materials with the worst SAT OOS rates in Q4 2024, strictly aligning with governed data metrics and presenting crisp, executive-ready insights."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "material terburuk tadi, berapa outlet yang tersurvei?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "6cd54461-c606-42e4-8586-cd5a865430cb",
+              "judge": {
+                "acceptable": true,
+                "score": 8,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "The assistant handled the follow-up question transparently by acknowledging the top material and clearly stating that outlet/survey counts are not available in the current aggregate table, avoiding metric hallucination."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_af863ae9.json"
+        },
+        {
+          "id": "oos-fu-02",
+          "domain": "sat_oos",
+          "title": "Company OOS lalu worst region hint",
+          "session_id": "uat-fu-oos-fu-02-1429ea54",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Berapa rata-rata OOS rate SAT company-wide Q4 2024?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 1,
+              "request_id": "f0048e4f-2f3a-4f35-b28d-141ca0af1356",
+              "judge": {
+                "acceptable": true,
+                "score": 10,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "Jawaban langsung dan akurat menyajikan angka OOS SAT company-wide Q4 2024 sebesar 7.54% sesuai data governed, didukung executive summary dan caveat yang jelas untuk kebutuhan demo manajemen."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "material mana yang paling sering OOS dibanding rata-rata tadi?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "77860769-df22-496b-9720-db564429eb82",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "The response accurately identifies the top out-of-stock materials for SAT in Q4 2024 directly grounded in the returned governed data, maintaining context from turn 1."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_af863ae9.json"
+        },
+        {
+          "id": "oos-fu-03",
+          "domain": "sat_oos",
+          "title": "PLU OOS lalu stok hint",
+          "session_id": "uat-fu-oos-fu-03-76da6ddd",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Top 10 PLU dengan OOS tertinggi Q4 2024",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "2c50eca0-4890-4e9e-9890-2e370b7151cd",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "Jawaban terstruktur dengan sangat baik, mencerminkan metrik OOS dari tabel governed SAT shelf survey untuk Q4 2024 secara akurat dan menyajikan rangkuman eksekutif yang tajam serta profesional untuk manajemen."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "PLU rank 1, apakah stok retail-nya rendah di data yang sama?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 1,
+              "request_id": "4ebd08c3-15ef-49f8-8382-6770b81d9ed3",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "Jawaban sangat baik dan koheren dengan turn sebelumnya, secara tepat mengidentifikasi PLU peringkat 1 (20103266). Penjelasan metrik OOS ritel 100% serta batasan data (frekuensi rak kosong vs stok absolut gudang) disampaikan secara transparan dan profesional untuk kebutuhan manajemen."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_af863ae9.json"
+        },
+        {
+          "id": "oos-fu-04",
+          "domain": "sat_oos",
+          "title": "Worst outlet lalu material di outlet",
+          "session_id": "uat-fu-oos-fu-04-8d5d9c6b",
+          "pass": false,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Outlet/toko mana dengan OOS rate terburuk Q4 2024?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "9239093e-75f4-4430-9a8e-3c03d5bc687f",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The response accurately identifies the worst-performing outlets with 100% OOS rate in Q4 2024 using governed SAT OOS data. It provides clear commercial insights regarding parent accounts (cust_code) and includes well-formulated caveats suitable for executive presentation."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "outlet terburuk itu, top 3 material OOS",
+              "pass": false,
+              "mechanical_pass": true,
+              "note": "judge_unavailable: Model provider request failed",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 3,
+              "request_id": "c6661a50-2123-4887-9046-074756beee4b",
+              "judge": null,
+              "judge_error": "Model provider request failed"
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_af863ae9.json"
+        },
+        {
+          "id": "oos-fu-05",
+          "domain": "sat_oos",
+          "title": "Trend hint lalu definisi OOS",
+          "session_id": "uat-fu-oos-fu-05-4ddb6806",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Bagaimana tren OOS SAT Q4 dibanding bulan sebelumnya?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 3,
+              "request_id": "f8d7c44c-f033-4f6b-8f8a-17591329db78",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "Jawaban sangat solid dan demo-ready. Angka OOS Q4 2024 disajikan secara akurat sesuai data governed (7,37%, 7,15%, dan 8,17%), delta persentase dihitung dengan tepat, serta transparan memberikan catatan bahwa data bulan sebelum Q4 (September) tidak tersedia dalam query."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "oke, cukup tampilkan OOS rate Desember 2024 top 5 material saja",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 5,
+              "request_id": "41252eaf-37b5-4390-bde3-294a2eb2ba6b",
+              "judge": {
+                "acceptable": true,
+                "score": 8,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [
+                  "Query underlying agregat mencakup Q4 tanpa filter ketat calmonth_date khusus Desember 2024, namun telah didiskusikan secara transparan pada bagian caveats."
+                ],
+                "summary": "Jawaban menyajikan 5 material teratas sesuai dengan data hasil query secara tepat dan akurat tanpa halusinasi angka. Keterbatasan filter bulan Desember telah diungkapkan secara jujur pada bagian catatan (caveats), sehingga tetap layak dan aman untuk demo manajemen."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_af863ae9.json"
+        }
+      ]
+    },
+    {
+      "domain": "service_level",
+      "scenarios_passed": 5,
+      "scenarios_total": 5,
+      "scenarios": [
+        {
+          "id": "sl-fu-01",
+          "domain": "service_level",
+          "title": "Worst offices lalu material drill rank 1 office",
+          "session_id": "uat-fu-sl-fu-01-d1a50b88",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Hitung service level/ fill rate di cabang tempo dan urutkan SL terjelek Q4",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "ea891ee8-5e70-47ca-b873-eae5055dc8f4",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The response accurately identifies and ranks the lowest-performing Tempo sales offices by service level/fill rate for Q4 2024 using governed data. The metric calculations, ranking order, and executive summary align directly with the returned dataset, making it fully ready for management demonstration."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "cabang paling jelek tadi, top 5 material dengan fill rate terendah",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 5,
+              "request_id": "75d14476-ac73-44c2-9f82-dc1958d4648c",
+              "judge": {
+                "acceptable": true,
+                "score": 10,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "Turn 2 seamlessly carried context from Turn 1, accurately identifying branch 0245 as the lowest-performing branch and drilling down into its top 5 worst-performing materials. The metrics strictly match the governed dataset with appropriate business caveats regarding tied 0% fill rates."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_bb78f971.json"
+        },
+        {
+          "id": "sl-fu-02",
+          "domain": "service_level",
+          "title": "Company fill lalu band distribution",
+          "session_id": "uat-fu-sl-fu-02-459583de",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Berapa fill rate / service level rata-rata company Tempo Q4 2024?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 1,
+              "request_id": "d5cdef3f-fa18-4da5-9dec-052e9ec4395a",
+              "judge": {
+                "acceptable": true,
+                "score": 10,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "Jawaban sangat akurat, didukung langsung oleh data governed service level Q4 2024 sebesar 77.68%, serta dilengkapi penjelasan formula dan konteks bisnis yang sangat tepat untuk audiens manajemen."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "tampilkan distribusi fill rate band per sales office top 10 terendah",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "b24ce5ca-4b44-4569-8a96-13d843883a49",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "The response accurately maintains the Q4 2024 temporal context from Turn 1, providing a well-structured ranking of the bottom 10 sales offices by fill rate. The figures and narrative are fully aligned with governed query results and appropriate for management reporting."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_bb78f971.json"
+        },
+        {
+          "id": "sl-fu-03",
+          "domain": "service_level",
+          "title": "Material SL lalu office for material",
+          "session_id": "uat-fu-sl-fu-03-b9cd7207",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Top 10 material dengan service level terendah Q4 2024",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "1064c8a5-b417-467a-bd6b-4aaf4e404932",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The response accurately identifies the top 10 materials with the lowest service level for Q4 2024 using the governed semantic layer. The executive summary and caveats provide clear, commercially sound context regarding zero fulfillment despite existing purchase orders."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "material rank 1, sales office mana yang paling drag fill rate-nya?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "0d0e8a01-cfa2-4cd3-93d7-837cb6086af3",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "Respon follow-up sangat baik dan kontekstual. Asisten berhasil mengidentifikasi material peringkat 1 (035-39-01) dari turn sebelumnya dan secara akurat melaporkan bahwa seluruh sales office yang tercatat memiliki fill rate 0.0%, disertai insight bisnis logis bahwa isu tersebut merupakan kendala suplai nasional bukan localized drag."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_bb78f971.json"
+        },
+        {
+          "id": "sl-fu-04",
+          "domain": "service_level",
+          "title": "Band distribution lalu worst band offices",
+          "session_id": "uat-fu-sl-fu-04-23e71b5d",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Distribusi fill rate band service level Q4 2024",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 3,
+              "request_id": "9e2b0881-c24c-41aa-b759-34502a08e4d2",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "Jawaban sangat akurat dan terstruktur dengan baik untuk audiens manajemen. Metrik service level fill rate per band untuk Q4 2024 disajikan persis sesuai data sample rows dengan konteks DO vs PO yang tepat."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "band terendah, list sales office yang dominan di band itu",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "a2ee856e-22fe-416d-b4bc-2756afa06bd1",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "The response handles the multi-turn context smoothly by identifying the sales offices with the lowest service level fill rates for Q4 2024. All cited metrics accurately match the governed query results, domain boundaries (Tempo sales office DO/PO service level) are respected, and the executive narrative is clear and demo-ready."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_bb78f971.json"
+        },
+        {
+          "id": "sl-fu-05",
+          "domain": "service_level",
+          "title": "PO-DO gap lalu office 0245 drill",
+          "session_id": "uat-fu-sl-fu-05-ef73a19f",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Sales office mana dengan gap PO vs DO terbesar Q4 2024?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "3bca72f7-25c8-4e72-af1e-78fe044223fd",
+              "judge": {
+                "acceptable": true,
+                "score": 10,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "Jawaban sangat akurat dan selaras dengan sample data hasil governed query Q4 2024. Peringkat dan nilai gap PO vs DO disajikan secara profesional, lengkap dengan penegasan konteks sell-in serta definisi kalkulasi yang transparan untuk kebutuhan manajemen."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "office dengan gap terbesar tadi, breakdown per material top 5",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 5,
+              "request_id": "da7d72e6-78ba-4e90-91cf-7de5e86fe7e9",
+              "judge": {
+                "acceptable": true,
+                "score": 10,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "Tanggapan follow-up drill-down sangat akurat dan koheren dengan konteks sales office 0245 dari putaran sebelumnya. Angka breakdown per material tepat sesuai data governed tanpa fabrikasi, serta penyajian narasi dan insight sangat layak untuk presentasi manajemen."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_bb78f971.json"
+        }
+      ]
+    },
+    {
+      "domain": "stock_sat",
+      "scenarios_passed": 2,
+      "scenarios_total": 5,
+      "scenarios": [
+        {
+          "id": "stock-sat-fu-01",
+          "domain": "stock_sat",
+          "title": "DC pile-up lalu PLU di DC pertama",
+          "session_id": "uat-fu-stock-sat-fu-01-51565d90",
+          "pass": false,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Top 10 DC dengan penumpukan stok SAT tertinggi Q4 2024",
+              "pass": false,
+              "mechanical_pass": false,
+              "note": "judge score=4: The assistant appropriately avoided hallucinating metrics but failed to retrieve any data for the re",
+              "status": "NO_DATA",
+              "strategy": "governed",
+              "row_count": 0,
+              "request_id": "63e9ff14-dbec-4cb9-a72c-6e4bbbe4700b",
+              "judge": {
+                "acceptable": false,
+                "score": 4,
+                "grounded_in_data": true,
+                "domain_appropriate": false,
+                "follow_up_coherent": null,
+                "issues": [
+                  "Returned NO_DATA for a primary SAT DC stock query in Q4 2024, likely due to an unhandled metric definition or misconfigured branch/DC filter.",
+                  "Lacks contextual explanation or guidance on data availability for management users."
+                ],
+                "summary": "The assistant appropriately avoided hallucinating metrics but failed to retrieve any data for the requested Q4 2024 SAT DC stock pile-up ranking. Returning a blank NO_DATA result for a core test scenario is not acceptable for a management demonstration."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "DC rank 1 tadi, top 5 PLU dengan stok retail tertinggi",
+              "pass": false,
+              "mechanical_pass": false,
+              "note": "judge score=5: Meskipun asisten jujur dan tidak memalsukan data, penanganan follow-up kurang koheren karena tidak m",
+              "status": "NO_DATA",
+              "strategy": "governed",
+              "row_count": 0,
+              "request_id": "ad51f969-9a72-4303-9d0b-c8891d29699c",
+              "judge": {
+                "acceptable": false,
+                "score": 5,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": false,
+                "issues": [
+                  "Turn 1 menghasilkan NO_DATA sehingga entitas 'DC rank 1' belum terbentuk dari konteks sebelumnya.",
+                  "Respon tidak memberikan klarifikasi kontekstual bahwa DC rank 1 tidak ditemukan pada pertanyaan sebelumnya, melainkan hanya pesan generik NO_DATA."
+                ],
+                "summary": "Meskipun asisten jujur dan tidak memalsukan data, penanganan follow-up kurang koheren karena tidak menjelaskan ketiadaan entitas acuan ('DC rank 1') akibat kegagalan data pada turn sebelumnya, sehingga belum layak untuk demo manajemen."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_82ed3548.json"
+        },
+        {
+          "id": "stock-sat-fu-02",
+          "domain": "stock_sat",
+          "title": "Store stock lalu division breakdown",
+          "session_id": "uat-fu-stock-sat-fu-02-3b94559a",
+          "pass": false,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Berapa stok retail SAT per division Q4 2024? Top 10 division",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 4,
+              "request_id": "55f24c53-8be0-4f95-bc25-a684cfa002b1",
+              "judge": {
+                "acceptable": true,
+                "score": 10,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "Jawaban sangat memuaskan dan siap untuk demo manajemen. Data disajikan secara akurat sesuai sample rows dengan perhitungan persentase dan total agregat yang tepat, serta memberikan klarifikasi transparan bahwa hanya terdapat 4 divisi aktif meskipun pengguna meminta top 10."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "division teratas, DC mana yang menopang stok terbesar?",
+              "pass": false,
+              "mechanical_pass": true,
+              "note": "judge score=4: Although the assistant honestly acknowledged that DC breakdown data was missing and avoided hallucin",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 1,
+              "request_id": "3077ed8e-8ae3-4d87-b449-5c454b74256d",
+              "judge": {
+                "acceptable": false,
+                "score": 4,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": false,
+                "issues": [
+                  "Query generation error: the NLU parser mistook the Indonesian interrogative word 'mana' as a literal DC name filter (dcname = 'mana').",
+                  "The core question ('DC mana yang menopang stok terbesar?') was left completely unanswered.",
+                  "Not suitable for a management demo due to obvious parsing failure on basic Indonesian question syntax."
+                ],
+                "summary": "Although the assistant honestly acknowledged that DC breakdown data was missing and avoided hallucinating, the underlying SQL generator committed a critical NLU error by parsing the question word 'mana' as a DC filter. Consequently, it failed to answer the user's business question, making this response unacceptable for a management demo."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_82ed3548.json"
+        },
+        {
+          "id": "stock-sat-fu-03",
+          "domain": "stock_sat",
+          "title": "Clarify DC vs store lalu pilih DC",
+          "session_id": "uat-fu-stock-sat-fu-03-cff1d7d2",
+          "pass": false,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Stok Alfamart Q4 2024 yang paling tinggi di mana?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "CLARIFICATION",
+              "strategy": "clarification",
+              "row_count": 0,
+              "request_id": "7dd8d853-5bac-473c-8f71-530f39cb8498",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The response properly requests clarification regarding the inventory grain (Tempo warehouse, partner DC, or retail store) without fabricating numbers or making false assumptions, perfectly adhering to the clarification rubric for Alfamart stock inquiries."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "maksud saya stok di DC partner, top 10 DC",
+              "pass": false,
+              "mechanical_pass": false,
+              "note": "judge score=4: The assistant appropriately clarified the stock grain in Turn 1, but failed to retrieve any data in ",
+              "status": "NO_DATA",
+              "strategy": "governed",
+              "row_count": 0,
+              "request_id": "ad7f3052-408f-4298-af96-93708ecc8326",
+              "judge": {
+                "acceptable": false,
+                "score": 4,
+                "grounded_in_data": true,
+                "domain_appropriate": false,
+                "follow_up_coherent": false,
+                "issues": [
+                  "Returned NO_DATA after user answered clarification prompt for DC partner stock.",
+                  "Failed to carry over context (Q4 2024 Alfamart stock) or correctly query the SAT DC inventory table."
+                ],
+                "summary": "The assistant appropriately clarified the stock grain in Turn 1, but failed to retrieve any data in Turn 2 once the user specified 'DC partner, top 10 DC'. Returning an empty result without actionable context or explanation is not acceptable for a management demo."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_82ed3548.json"
+        },
+        {
+          "id": "stock-sat-fu-04",
+          "domain": "stock_sat",
+          "title": "Named DC lalu compare second DC",
+          "session_id": "uat-fu-stock-sat-fu-04-948ab217",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Berapa stok SAT di DC Palembang Q4 2024?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 1,
+              "request_id": "c18d8101-030b-480c-a192-54fa6edadaa6",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The response accurately reports the aggregate SAT stock figure of 339,267 units for DC Palembang in Q4 2024, fully matching the governed query data. It clearly differentiates partner DC stock from internal sales office inventory and provides helpful grain caveats appropriate for management reporting."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "bandingkan dengan DC Makassar untuk periode yang sama",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 1,
+              "request_id": "22467505-67f3-46c6-8fdf-6543ef4cd9ef",
+              "judge": {
+                "acceptable": true,
+                "score": 7,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [
+                  "Asisten tidak menyajikan komparasi langsung secara berdampingan (misal selisih volume vs DC Palembang 339.267 dari turn 1), melainkan hanya menyajikan angka DC Makassar dan mencatat limitasi komparasi pada caveats."
+                ],
+                "summary": "Jawaban akurat dan grounded dalam menyajikan data stok SAT DC Makassar untuk periode Q4 2024 sesuai konteks turn sebelumnya. Walaupun tidak melakukan kalkulasi selisih komparasi langsung terhadap DC Palembang secara eksplisit di ringkasan eksekutif, asisten secara jujur mendokumentasikan batasan tersebut dalam caveat sehingga tetap aman dan layak untuk demo manajemen."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_82ed3548.json"
+        },
+        {
+          "id": "stock-sat-fu-05",
+          "domain": "stock_sat",
+          "title": "PLU rank lalu OOS hint same PLU",
+          "session_id": "uat-fu-stock-sat-fu-05-ea7a6d10",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Top 10 PLU dengan stok retail SAT tertinggi Q4",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "92f2584c-3221-4241-bf50-1a19c2597247",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The response accurately ranks top retail stock PLUs for the Alfamart partner channel based on governed data from Q4 2024. Numbers, ranking positions, and variance metrics match the underlying query results, and caveats regarding the monthly stock aggregation grain are transparently communicated."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "PLU rank 1, apakah ada indikasi OOS di data SAT?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 1,
+              "request_id": "f79f8b60-3703-48f6-ad72-fbd4950b23fc",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "The response accurately links the follow-up question to the top-ranked PLU (125161) from the previous turn and correctly references its Q4 stock total. It provides an honest and management-ready commercial caveat explaining that aggregate monthly store stock data cannot capture localized or transient store-level OOS events."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_82ed3548.json"
+        }
+      ]
+    },
+    {
+      "domain": "stock_tempo",
+      "scenarios_passed": 3,
+      "scenarios_total": 5,
+      "scenarios": [
+        {
+          "id": "stock-tempo-fu-01",
+          "domain": "stock_tempo",
+          "title": "Cover days lalu material lowest cover",
+          "session_id": "uat-fu-stock-tempo-fu-01-1dfee2c6",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Material Tempo mana dengan stock cover days terendah Q4 2024? Top 10",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "451251d6-8f89-4e91-97ac-1d9b602896e3",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The response accurately reflects the governed query results for the lowest stock cover materials in Q4 2024. It correctly identifies the negative values in the data and proactively provides business context and caveats explaining why these extreme negative ratios occur."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "material paling kritis tadi, berapa quantity stok gudang Tempo-nya?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 1,
+              "request_id": "34e2682c-1e94-42fa-9dbd-3dfd1337b4a9",
+              "judge": {
+                "acceptable": true,
+                "score": 7,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [
+                  "Underlying governed query retrieved sell-in metric rather than warehouse_stock_qty, though the assistant transparently explained this gap rather than hallucinating data."
+                ],
+                "summary": "The assistant correctly identified the critical material ('074-26-00') from Turn 1. While the underlying governed query retrieved a Sell-In value instead of warehouse stock quantity, the assistant handled this transparently by stating the data limitation rather than hallucinating metrics, making it acceptable for management demonstration."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_fdf15b9f.json"
+        },
+        {
+          "id": "stock-tempo-fu-02",
+          "domain": "stock_tempo",
+          "title": "Warehouse qty lalu plant filter",
+          "session_id": "uat-fu-stock-tempo-fu-02-9f2475a9",
+          "pass": false,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Top 10 material dengan stok gudang Tempo tertinggi Q4 2024",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "7e2ea288-d52b-4c4e-9367-948e1cf9dd3f",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The response accurately identifies the top materials by warehouse stock volume according to the governed data. It proactively provides an important domain caveat that the quarterly metric aggregates monthly snapshots rather than representing a single closing balance."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "dari top 3 material itu, tampilkan per plant bila ada di data",
+              "pass": false,
+              "mechanical_pass": true,
+              "note": "judge_unavailable: Model provider request failed",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 3,
+              "request_id": "784f0877-a885-4367-9d14-7b16ed940022",
+              "judge": null,
+              "judge_error": "Model provider request failed"
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_fdf15b9f.json"
+        },
+        {
+          "id": "stock-tempo-fu-03",
+          "domain": "stock_tempo",
+          "title": "Total stock company lalu FE001 detail",
+          "session_id": "uat-fu-stock-tempo-fu-03-4b5483f6",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Berapa total stok gudang Tempo company-wide Q4 2024?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "334d77fd-4554-47ef-a51f-79c1785fb30e",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The response provides an accurate and well-contextualized synthesis of internal Tempo warehouse inventory for Q4 2024 based on the governed dataset. It properly flags critical nuances, such as monthly snapshot summation across Q4 and limiting the scope to the top 10 plants, making it reliable and demo-ready for executive review."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "bagaimana stok material FE001 dibanding total tadi?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 1,
+              "request_id": "42cb5089-ccf3-45c2-b03a-a713d42d61c3",
+              "judge": {
+                "acceptable": true,
+                "score": 8,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "The assistant appropriately identified that the underlying query returned only the material identifier without numeric stock quantities, refusing to fabricate figures or comparisons against the prior turn's total. It clearly explained the technical limitation and caveats to management."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_fdf15b9f.json"
+        },
+        {
+          "id": "stock-tempo-fu-04",
+          "domain": "stock_tempo",
+          "title": "Low stock list lalu sell-in link hint",
+          "session_id": "uat-fu-stock-tempo-fu-04-9b719d3f",
+          "pass": false,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Material mana yang stok gudang Tempo-nya paling rendah Q4? Top 10",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "c90a8419-c122-4234-b9c2-c694b9ebd95c",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The response accurately identifies the lowest stock materials in Tempo warehouses for Q4 2024 based on governed query data. It correctly cites the metrics, provides sound executive context regarding the negative snapshot balances and raw material categories, and is well-suited for a management demo."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "material rank 1 yang stok rendah itu, apakah sell-in Q4-nya juga rendah?",
+              "pass": false,
+              "mechanical_pass": true,
+              "note": "judge_unavailable: Model provider request failed",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 1,
+              "request_id": "f0926d84-acb6-4105-9b09-0eb896aa63d6",
+              "judge": null,
+              "judge_error": "Model provider request failed"
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_fdf15b9f.json"
+        },
+        {
+          "id": "stock-tempo-fu-05",
+          "domain": "stock_tempo",
+          "title": "Plant ranking lalu satu plant materials",
+          "session_id": "uat-fu-stock-tempo-fu-05-a3802253",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Plant mana dengan total stok Tempo tertinggi Q4 2024?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "0bd25338-b579-47da-80e4-1a08246b80c0",
+              "judge": {
+                "acceptable": true,
+                "score": 10,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "Jawaban sangat akurat dan selaras penuh dengan data hasil query. Peringkat plant 2300 sebagai pemilik stok tertinggi di Q4 2024 dijelaskan secara lugas dengan bahasa manajemen profesional serta dilengkapi caveat penting mengenai sifat agregasi stok bulanan vs snapshot."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "plant teratas tadi, top 5 material by stock",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 5,
+              "request_id": "573baeed-4dc9-4746-ae2f-d8d75653cd3e",
+              "judge": {
+                "acceptable": true,
+                "score": 10,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "Turn 2 seamlessly resolved the contextual reference to the top plant from turn 1 (Plant 2300) and accurately reported the top 5 materials by stock volume with full data fidelity and clear business caveats."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_fdf15b9f.json"
+        }
+      ]
+    },
+    {
+      "domain": "unloading",
+      "scenarios_passed": 3,
+      "scenarios_total": 5,
+      "scenarios": [
+        {
+          "id": "unloading-fu-01",
+          "domain": "unloading",
+          "title": "Longest unloading lalu compare fastest",
+          "session_id": "uat-fu-unloading-fu-01-37af5c74",
+          "pass": false,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Cabang mana dengan rata-rata unloading terlama Q4 2024?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "6a5180fc-8bbc-4e26-af5f-55e2bc6cfda8",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "Jawaban sangat baik dan akurat sesuai data governed Q4 2024. Peringkat unloading dan angka durasi konsisten dengan data, serta penjelasan domain operasional sales office Tempo dijabarkan dengan jelas dan profesional untuk manajemen."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "cabang terlama vs cabang tercepat dari daftar tadi, tampilkan angkanya",
+              "pass": false,
+              "mechanical_pass": true,
+              "note": "judge_unavailable: Model provider request failed",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "ebe2a084-813a-43cd-a0be-51ecba013088",
+              "judge": null,
+              "judge_error": "Model provider request failed"
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_f0d3e1bd.json"
+        },
+        {
+          "id": "unloading-fu-02",
+          "domain": "unloading",
+          "title": "Top10 unloading lalu office rank 5",
+          "session_id": "uat-fu-unloading-fu-02-b2c82dad",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Top 10 sales office dengan unloading time tertinggi Q4",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "bb780491-149f-404d-94b5-52f478417df7",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The response accurately identifies the top sales offices by unloading time in Q4 2024 from the governed dataset. The figures align precisely with the underlying data, and the insights and caveats provide clear, executive-ready operational context."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "sales office urutan 5 dari ranking itu berapa menit rata-ratanya?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 1,
+              "request_id": "5e1f4515-93f3-4a0a-8351-f1180face038",
+              "judge": {
+                "acceptable": true,
+                "score": 10,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "The response accurately identifies sales office 0274 as rank 5 from the prior turn with exactly 175.56 minutes of unloading time, fully grounded and demo-ready."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_f0d3e1bd.json"
+        },
+        {
+          "id": "unloading-fu-03",
+          "domain": "unloading",
+          "title": "Shortest lalu company avg",
+          "session_id": "uat-fu-unloading-fu-03-8914bd04",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Sales office mana unloading-nya paling efisien (tercepat) Q4 2024?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "329ca9e1-33f0-4d1e-acf9-2198de087e61",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The response accurately identifies sales office 0290 as having the fastest unloading time for Q4 2024, perfectly matching the governed data. Executive summary and insights are crisp and well-structured for management presentation."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "rata-rata unloading company-wide Q4?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "3411cfd9-189d-4901-8cc9-a70810db6f4b",
+              "judge": {
+                "acceptable": true,
+                "score": 8,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "The assistant handled the company-wide follow-up well by explicitly clarifying that the governed query returned sales-office-level rows rather than a single rolled-up company-wide aggregate, avoiding fabricated overall KPIs while accurately describing the returned data distribution."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_f0d3e1bd.json"
+        },
+        {
+          "id": "unloading-fu-04",
+          "domain": "unloading",
+          "title": "Compare 0201 vs 0202 lalu explain gap",
+          "session_id": "uat-fu-unloading-fu-04-63c5172a",
+          "pass": true,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Bandingkan rata-rata unloading sales office 0201 vs 0202 Q4 2024",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 1,
+              "request_id": "463a0cfe-0313-4473-a0f6-fc88d85d768b",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [],
+                "summary": "The response accurately reflects the governed dataset, presenting the 185.47 minutes metric for sales office 0202 while transparently noting the absence of unloading records for sales office 0201 without hallucinating missing figures."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "office mana yang lebih lambat dan selisihnya berapa menit?",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 1,
+              "request_id": "b2bbf64d-c6c3-4317-b5c6-cbec93e5f8db",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "The response accurately and coherently addresses the follow-up question by stating that sales office 0201 lacks unloading records, preventing an artificial calculation of difference or speed ranking. It demonstrates strong hallucination prevention and is fully demo-ready for management."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_f0d3e1bd.json"
+        },
+        {
+          "id": "unloading-fu-05",
+          "domain": "unloading",
+          "title": "Company avg lalu top 3 slowest",
+          "session_id": "uat-fu-unloading-fu-05-4b84e9d3",
+          "pass": false,
+          "turns": [
+            {
+              "turn": 1,
+              "question": "Berapa rata-rata unloading minutes company-wide Tempo Q4 2024?",
+              "pass": false,
+              "mechanical_pass": true,
+              "note": "judge score=3: Asisten gagal menjawab pertanyaan mengenai rata-rata unloading minutes company-wide untuk Q4 2024. S",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 10,
+              "request_id": "171f2278-ed23-4df7-8ad1-ea7baff4daff",
+              "judge": {
+                "acceptable": false,
+                "score": 3,
+                "grounded_in_data": false,
+                "domain_appropriate": true,
+                "follow_up_coherent": null,
+                "issues": [
+                  "Pertanyaan meminta rata-rata unloading minutes company-wide, namun sistem mengembalikan rincian per sales office tanpa menghitung atau menyajikan angka rata-rata company-wide.",
+                  "Model analisis narasi gagal menghasilkan jawaban substantif (fallback error boilerplate), sehingga tidak layak untuk demo manajemen.",
+                  "Direct answer dan executive summary tidak memberikan jawaban langsung atas metrik yang ditanyakan."
+                ],
+                "summary": "Asisten gagal menjawab pertanyaan mengenai rata-rata unloading minutes company-wide untuk Q4 2024. Sistem justru memicu fallback boilerplate karena model narasi gagal merespons, serta hasil query yang ditarik berupa data per cabang tanpa kalkulasi agregat nasional yang diminta."
+              },
+              "judge_error": null
+            },
+            {
+              "turn": 2,
+              "question": "tampilkan top 3 sales office di atas rata-rata tadi",
+              "pass": true,
+              "mechanical_pass": true,
+              "note": "ok",
+              "status": "SUCCESS",
+              "strategy": "governed",
+              "row_count": 3,
+              "request_id": "e60f8629-a102-4755-be87-9c89f989ae14",
+              "judge": {
+                "acceptable": true,
+                "score": 9,
+                "grounded_in_data": true,
+                "domain_appropriate": true,
+                "follow_up_coherent": true,
+                "issues": [],
+                "summary": "Respon turn 2 menyajikan top 3 sales office dengan durasi unloading tertinggi secara akurat dan konsisten dengan data governed query (0260, 0280, dan 0252). Narasi eksekutif dan insight yang disajikan tajam, relevan dengan domain logistik Tempo, serta siap dipresentasikan kepada manajemen."
+              },
+              "judge_error": null
+            }
+          ],
+          "_source_report": "uat_domain_5x5_followup_run_f0d3e1bd.json"
+        }
+      ]
+    }
+  ]
+}

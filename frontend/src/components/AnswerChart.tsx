@@ -1,66 +1,116 @@
-import { ResponsiveContainer, LineChart, Line, CartesianGrid, XAxis, YAxis, Tooltip, BarChart, Bar, AreaChart, Area, PieChart, Pie, Cell, Legend } from 'recharts'
-import type { TooltipValueType } from 'recharts'
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ChartSpec } from '../types/api'
-import { formatBusinessLabel, formatBusinessValue } from '../lib/businessPresentation'
+import { truncateAxisLabel } from '../lib/answerFormatting'
+import { ASSISTANT_CHART_CLASS } from './ConversationInner'
 
-const SERIES_COLORS = ['#FF5A1F', '#635BFF', '#3EBAA5', '#9A8CFF']
-const AXIS_TICK = { fontSize: 10, fill: '#7C849A' }
-const GRID_STROKE = '#E7E8F0'
-const legendStyle = { fontSize: 11, paddingTop: 8 }
+const COLORS = ['#FF5A1F', '#635BFF', '#3EBAA5', '#9A8CFF']
+const tick = { fontSize: 11, fill: '#64748B' }
+const CHART_MARGIN_DENSE_BOTTOM = 88
+const CHART_MARGIN_DEFAULT_BOTTOM = 52
 
-export function AnswerChart({ chart }: { chart: ChartSpec | null }) {
-  if (!chart || chart.type === 'none' || chart.type === 'table') return null
-  const rows = chart.x.map((x, index) => ({ x, ...(Object.fromEntries(chart.series.map(series => [series.name, Number(series.data[index] ?? 0)]))) }))
-  const formatValue = (value: number) => formatBusinessValue(chart.metric || chart.y_label || 'value', value, chart.metric || undefined, chart.unit_format)
-  const tooltipFormatter = (value: TooltipValueType | undefined, name: number | string | undefined) => {
-    const displayValue = Array.isArray(value) ? value[0] : value
-    return [formatValue(Number(displayValue ?? 0)), formatBusinessLabel(String(name ?? 'Value'))] as [string, string]
+function formatAxisNumber(value: number): string {
+  const abs = Math.abs(value)
+  if (abs >= 1_000_000_000) return `${(value / 1_000_000_000).toFixed(abs % 1_000_000_000 === 0 ? 0 : 1)}B`
+  if (abs >= 1_000_000) return `${(value / 1_000_000).toFixed(abs % 1_000_000 === 0 ? 0 : 1)}M`
+  if (abs >= 1_000) return `${(value / 1_000).toFixed(abs % 1_000 === 0 ? 0 : 1)}K`
+  return String(value)
+}
+
+function formatTooltipValue(value: unknown): string {
+  return typeof value === 'number' ? value.toLocaleString('id-ID') : String(value ?? '')
+}
+
+export function AnswerChart({
+  chart,
+  rows,
+  className = '',
+  embedded = false,
+}: {
+  chart: ChartSpec | null
+  rows: Record<string, unknown>[]
+  className?: string
+  /** Render inside a parent card (no outer answer-surface). */
+  embedded?: boolean
+}) {
+  if (!chart || chart.type === 'table' || chart.type === 'kpi' || !chart.x || !chart.y || !rows.length) return null
+  const seriesNames = chart.series ? [...new Set(rows.map(row => String(row[chart.series!] ?? 'Unknown')))] : []
+  const flattenRankingSeries = chart.type === 'bar' && Boolean(chart.series) && rows.length > 1 && seriesNames.length === rows.length
+  const xKey = flattenRankingSeries ? '__category' : chart.x
+  const visibleSeriesNames = flattenRankingSeries ? [] : seriesNames
+  const yField = chart.y!
+  const rawYValues = rows.map(row => Number(row[yField] ?? 0))
+  const maxY = rawYValues.length ? Math.max(...rawYValues) : 0
+  const scaleRatioToPercent =
+    chart.type === 'bar' &&
+    yField === 'metric_value' &&
+    rawYValues.every(value => value >= 0 && value <= 1.5) &&
+    (maxY <= 1 || /fill rate|service level|sl\b/i.test(chart.title))
+  const toDisplayY = (value: unknown) => {
+    const numeric = Number(value ?? 0)
+    return scaleRatioToPercent ? numeric * 100 : numeric
   }
-  const legendFormatter = (value: string) => <span className="text-slate-600">{formatBusinessLabel(value)}</span>
-  const showLegend = chart.series.length >= 2
-  return (
-    <div className="mt-5 rounded-2xl border border-slate-200 bg-slate-50/60 p-4">
-      <div className="mb-3 text-xs font-extrabold text-cloudera-navy">{chart.title}</div>
-      <div className="h-44">
+  const data = flattenRankingSeries
+    ? rows.map(row => ({ ...row, __category: `${String(row[chart.x!] ?? '')} · ${String(row[chart.series!] ?? 'Unknown')}`, [yField]: toDisplayY(row[yField]) }))
+    : seriesNames.length
+    ? [...rows.reduce((groups, row) => {
+        const category = String(row[chart.x!] ?? '')
+        const point = groups.get(category) || { [chart.x!]: row[chart.x!] }
+        point[String(row[chart.series!] ?? 'Unknown')] = toDisplayY(row[chart.y!])
+        groups.set(category, point)
+        return groups
+      }, new Map<string, Record<string, unknown>>()).values()]
+    : rows.map(row => ({ ...row, [yField]: toDisplayY(row[yField]) }))
+  const categoryCount = data.length
+  const denseCategories = chart.type === 'bar' && categoryCount >= 6
+  const chartMargin = {
+    top: 12,
+    right: 16,
+    bottom: denseCategories ? CHART_MARGIN_DENSE_BOTTOM : CHART_MARGIN_DEFAULT_BOTTOM,
+    left: 4,
+  }
+  const xAxis = (
+    <XAxis
+      dataKey={xKey}
+      tick={tick}
+      axisLine={false}
+      tickLine={false}
+      interval={0}
+      minTickGap={denseCategories ? 0 : 24}
+      height={denseCategories ? 72 : 48}
+      angle={denseCategories ? -38 : 0}
+      textAnchor={denseCategories ? 'end' : 'middle'}
+      tickFormatter={value => truncateAxisLabel(value, denseCategories ? 18 : 24)}
+    />
+  )
+  const axes = (
+    <>
+      <CartesianGrid vertical={false} stroke="#E7E8F0" />
+      {xAxis}
+      <YAxis tick={tick} axisLine={false} tickLine={false} width={56} tickFormatter={formatAxisNumber} />
+      <Tooltip formatter={formatTooltipValue} />
+      {visibleSeriesNames.length > 0 && <Legend verticalAlign="bottom" wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />}
+    </>
+  )
+  const keys = visibleSeriesNames.length ? visibleSeriesNames : [yField]
+  const chartHeight = denseCategories ? 'h-[22rem]' : embedded ? 'h-64' : 'h-72'
+  const body = (
+    <>
+      <div className={`text-sm font-semibold text-cloudera-navy ${embedded ? 'mb-3' : 'mb-4'}`}>{chart.title}</div>
+      <div className={chartHeight}>
         <ResponsiveContainer width="100%" height="100%">
-          {chart.type === 'bar' ? (
-            <BarChart data={rows} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-              <CartesianGrid vertical={false} stroke={GRID_STROKE} />
-              <XAxis dataKey="x" tick={AXIS_TICK} axisLine={false} tickLine={false} />
-              <YAxis tick={AXIS_TICK} tickFormatter={formatValue} axisLine={false} tickLine={false} width={56} />
-              <Tooltip formatter={tooltipFormatter} />
-              {showLegend && <Legend formatter={legendFormatter} wrapperStyle={legendStyle} iconSize={8} iconType="circle" />}
-              {chart.series.map((s, i) => <Bar key={s.name} dataKey={s.name} name={formatBusinessLabel(s.name)} fill={SERIES_COLORS[i % SERIES_COLORS.length]} radius={[4, 4, 0, 0]} maxBarSize={24} />)}
-            </BarChart>
-          ) : chart.type === 'area' ? (
-            <AreaChart data={rows} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-              <CartesianGrid vertical={false} stroke={GRID_STROKE} />
-              <XAxis dataKey="x" tick={AXIS_TICK} axisLine={false} tickLine={false} />
-              <YAxis tick={AXIS_TICK} tickFormatter={formatValue} axisLine={false} tickLine={false} width={56} />
-              <Tooltip formatter={tooltipFormatter} />
-              {showLegend && <Legend formatter={legendFormatter} wrapperStyle={legendStyle} iconSize={8} iconType="circle" />}
-              {chart.series.map((s, i) => <Area key={s.name} type="monotone" dataKey={s.name} name={formatBusinessLabel(s.name)} stroke={SERIES_COLORS[i % SERIES_COLORS.length]} strokeWidth={2} fill={SERIES_COLORS[i % SERIES_COLORS.length]} fillOpacity={0.1} />)}
-            </AreaChart>
-          ) : chart.type === 'pie' ? (
-            <PieChart>
-              <Pie data={rows} dataKey={chart.series[0]?.name} nameKey="x" innerRadius={42} outerRadius={68} paddingAngle={2} stroke="#F7F8FC" strokeWidth={2}>
-                {rows.map((_, i) => <Cell key={i} fill={SERIES_COLORS[i % SERIES_COLORS.length]} />)}
-              </Pie>
-              <Tooltip formatter={tooltipFormatter} />
-              <Legend formatter={legendFormatter} wrapperStyle={legendStyle} iconSize={8} iconType="circle" />
-            </PieChart>
-          ) : (
-            <LineChart data={rows} margin={{ top: 4, right: 4, left: 0, bottom: 0 }}>
-              <CartesianGrid vertical={false} stroke={GRID_STROKE} />
-              <XAxis dataKey="x" tick={AXIS_TICK} axisLine={false} tickLine={false} />
-              <YAxis tick={AXIS_TICK} tickFormatter={formatValue} axisLine={false} tickLine={false} width={56} />
-              <Tooltip formatter={tooltipFormatter} />
-              {showLegend && <Legend formatter={legendFormatter} wrapperStyle={legendStyle} iconSize={8} iconType="circle" />}
-              {chart.series.map((s, i) => <Line key={s.name} type="monotone" dataKey={s.name} name={formatBusinessLabel(s.name)} stroke={SERIES_COLORS[i % SERIES_COLORS.length]} strokeWidth={2} dot={{ r: 3, strokeWidth: 0 }} />)}
-            </LineChart>
-          )}
+    {chart.type === 'bar' ? <BarChart data={data} margin={chartMargin}>{axes}{keys.map((key, index) => <Bar key={key} dataKey={key} fill={COLORS[index % COLORS.length]} radius={[6, 6, 0, 0]} maxBarSize={54} />)}</BarChart>
+      : chart.type === 'area' ? <AreaChart data={data} margin={chartMargin}>{axes}{keys.map((key, index) => <Area key={key} dataKey={key} stroke={COLORS[index % COLORS.length]} fill={COLORS[index % COLORS.length]} fillOpacity={0.12} />)}</AreaChart>
+      : chart.type === 'scatter' ? <ScatterChart margin={chartMargin}><CartesianGrid vertical={false} stroke="#E7E8F0" /><XAxis type="number" dataKey={chart.x} name={chart.x} tick={tick} /><YAxis type="number" dataKey={chart.y} name={chart.y} tick={tick} width={56} tickFormatter={formatAxisNumber} /><Tooltip cursor={{ strokeDasharray: '3 3' }} formatter={formatTooltipValue} />{chart.series ? seriesNames.map((name, index) => <Scatter key={name} name={name} data={rows.filter(row => String(row[chart.series!] ?? 'Unknown') === name)} fill={COLORS[index % COLORS.length]} />) : <Scatter data={data} fill={COLORS[2]} />}{chart.series && <Legend wrapperStyle={{ fontSize: 12 }} />}</ScatterChart>
+      : chart.type === 'pie' ? <PieChart margin={{ bottom: 16 }}><Pie data={data} dataKey={chart.y} nameKey={chart.x} innerRadius={52} outerRadius={88}>{data.map((_, index) => <Cell key={index} fill={COLORS[index % COLORS.length]} />)}</Pie><Tooltip formatter={formatTooltipValue} /><Legend verticalAlign="bottom" wrapperStyle={{ fontSize: 12, paddingTop: 8 }} /></PieChart>
+      : <LineChart data={data} margin={chartMargin}>{axes}{keys.map((key, index) => <Line key={key} dataKey={key} stroke={COLORS[index % COLORS.length]} strokeWidth={2} />)}</LineChart>}
         </ResponsiveContainer>
       </div>
-    </div>
+    </>
   )
+
+  if (embedded) {
+    return <div className={`${ASSISTANT_CHART_CLASS} ${className}`.trim()}>{body}</div>
+  }
+
+  return <div className={`answer-surface pb-6 ${ASSISTANT_CHART_CLASS} ${className}`.trim()}>{body}</div>
 }

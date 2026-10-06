@@ -1,7 +1,7 @@
-# UAT — 9 pertanyaan dry-run (resolver + governed SQL), backend-v2 lokal
+# UAT — 9 pertanyaan dry-run (resolver + governed SQL), backend lokal
 
 **Run date:** 2026-10-02 (dry-run lokal agent: pytest **168 passed**, 9 pertanyaan di bawah)  
-**Lingkungan:** `enterprise-ai-poc` / `backend-v2`, working tree dengan perbaikan cabang fill-rate (#8)  
+**Lingkungan:** `enterprise-ai-poc` / `backend`, working tree dengan perbaikan cabang fill-rate (#8)  
 **Metode:** `SemanticContextService.resolve()` → `compile_governed()` untuk semua `status=resolved` → `validate_sql()`  
 **Tidak dijalankan di run ini:** pipeline penuh `ChatService` (Qwen/GPT + Impala live). Untuk jawaban verbatim + angka live, ulangi di CAI seperti [2026-10-01-qwen-uat.md](2026-10-01-qwen-uat.md).
 
@@ -159,7 +159,7 @@ LIMIT 10
 ## Repro lokal
 
 ```bash
-cd backend-v2
+cd backend
 ../.venv/bin/python -m pytest tests/ -q
 # Resolver snapshot: lihat commit script di git history atau ulangi resolve() per pertanyaan di atas.
 ```

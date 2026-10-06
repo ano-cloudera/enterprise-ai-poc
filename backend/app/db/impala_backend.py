@@ -3,11 +3,22 @@ from __future__ import annotations
 import logging
 from time import perf_counter
 
-from app.core.config import get_settings
+from app.core.config import Settings, get_settings
 from app.db.base import BackendColumn, BackendExecutionContext, BackendQueryResult, DataBackendError, DataBackendHealth, QueryTelemetry, normalize_value
 
 
 logger = logging.getLogger(__name__)
+
+
+def is_impala_configured(settings: Settings) -> bool:
+    if not settings.impala_host:
+        return False
+    mechanism = settings.impala_auth_mechanism.upper()
+    if mechanism == "GSSAPI":
+        return bool(settings.impala_kerberos_service_name)
+    if mechanism in {"PLAIN", "LDAP"}:
+        return bool(settings.impala_user and settings.impala_password)
+    return True
 
 
 def _is_transient_connection_error(exc: Exception) -> bool:
@@ -50,17 +61,29 @@ def _is_transient_connection_error(exc: Exception) -> bool:
     )
 
 
+def _is_authentication_error(exc: Exception) -> bool:
+    message = str(exc).casefold()
+    code = getattr(exc, "code", None)
+    response = getattr(exc, "response", None)
+    if response is None:
+        response = getattr(exc, "http_response", None)
+    status = getattr(response, "status_code", None)
+    return code in (401, 403) or status in (401, 403) or any(
+        term in message for term in ("401", "403", "unauthorized", "forbidden", "authentication")
+    )
+
+
 class ImpalaBackend:
     dialect = "hive"
-    def __init__(self) -> None:
-        self.settings = get_settings()
+    def __init__(self, settings: Settings | None = None) -> None:
+        self.settings = settings or get_settings()
 
     def health(self) -> tuple[str, str]:
-        configured = bool(self.settings.impala_host and self.settings.impala_user)
+        configured = is_impala_configured(self.settings)
         return ("configured" if configured else "degraded", "impala")
 
     def health_check(self, probe: bool = False) -> DataBackendHealth:
-        configured = bool(self.settings.impala_host and self.settings.impala_user)
+        configured = is_impala_configured(self.settings)
         return DataBackendHealth(type="impala", status="unknown" if configured else "misconfigured")
 
     def query(self, sql: str) -> list[dict]:
@@ -83,7 +106,7 @@ class ImpalaBackend:
         )
         cursor = conn.cursor()
         try:
-            cursor.execute(sql)
+            cursor.execute(sql, configuration={"QUERY_TIMEOUT_S": str(self.settings.impala_query_timeout_seconds)})
             columns = [item[0] for item in cursor.description]
             return [dict(zip(columns, row)) for row in cursor.fetchall()]
         finally:
@@ -99,10 +122,12 @@ class ImpalaBackend:
                 break
             except Exception as exc:
                 retrying = attempt == 0 and _is_transient_connection_error(exc)
+                safe_error_code = "IMPALA_AUTH_FAILED" if _is_authentication_error(exc) else "IMPALA_QUERY_FAILED"
                 logger.warning(
-                    "data_query backend=impala success=false driver_error_type=%s "
+                    "data_query backend=impala success=false driver_error_type=%s safe_error_code=%s "
                     "attempt=%d retrying=%s trace_id=%s",
                     type(exc).__name__,
+                    safe_error_code,
                     attempt + 1,
                     str(retrying).lower(),
                     context.trace_id,
@@ -114,9 +139,9 @@ class ImpalaBackend:
                     query_latency_ms=(perf_counter() - started) * 1000,
                     row_count=0,
                     success=False,
-                    safe_error_code="IMPALA_QUERY_FAILED",
+                    safe_error_code=safe_error_code,
                 )
-                raise DataBackendError("IMPALA_QUERY_FAILED", telemetry) from exc
+                raise DataBackendError(safe_error_code, telemetry) from exc
         names = list(records[0]) if records else []
         rows = [[normalize_value(record.get(name)) for name in names] for record in records]
         return BackendQueryResult(

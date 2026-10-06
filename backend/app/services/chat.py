@@ -1,276 +1,577 @@
 from __future__ import annotations
 
-import time
-import uuid
+import asyncio
 import logging
-from collections.abc import AsyncIterator
+from time import perf_counter
 from typing import Any
+import uuid
 
-from app.core.config import get_settings
-from app.core.schemas import (
-    ChatMetadata,
-    ChatRequest,
-    ChatResponse,
-    ChartSpec,
-    DashboardState,
-    ExecutiveAnswer,
-    QueryData,
-    ui_action_adapter,
-)
-from app.graph.workflow import workflow
-from app.monitoring.store import TelemetryStore
-from app.services import agent_studio_client, agent_studio_progress, markdown_chart_adapter
-from app.services.conversation_store import ConversationStore
+from app.core.config import Settings
+from app.core.models import AnalysisOutput, AskDataRequest, AskDataResponse, ChartSpec, QueryData, Timings
+from app.db.base import BackendExecutionContext, DataBackendError
+from app.db.impala_backend import ImpalaBackend
+from app.graph.workflow import WorkflowDependencies, build_workflow
+from app.llm.registry import ProviderRegistry
+from app.semantic.context import SemanticContextService
+from app.services.history import ConversationStore
+from app.services.ask_data_routing import resolve_ask_data_route, v3_agent_available
+from app.services.conversational import TurnUnderstanding, understand_turn
+from app.services.follow_up import analysis_context_from_history
+from app.services.question_contextualize import resolve_question_for_pipeline
+from app.services.session_context import build_session_frame
+from app.services.local_agent_client import LocalAgentClient, LocalAgentError
+from app.services.ossie_trace import NODE_LABELS, trace_detail
+from app.services.v3_answer_polish import polish_v3_answer
+from app.services.user_facing_error import explain_failure
+from app.sql.validator import validate_sql
 
 
-telemetry = TelemetryStore()
-conversations = ConversationStore()
 logger = logging.getLogger(__name__)
 
-
-def _agent_studio_context(session_id: str) -> str:
-    """The Master Agent's Backstory already defines a FOLLOW_UP envelope
-    (user_question + prior_context: metric/period/dimensions/filters/
-    source_view) for context-dependent questions like "Kalau November
-    saja?" - but it expects the CALLER to assemble that envelope, and
-    until now nothing did: every question was sent with an empty context,
-    so a genuine follow-up like "breakdown per bulan?" got "saya belum
-    memiliki konteks pertanyaan sebelumnya" instead of being resolved
-    against the prior turn.
-
-    Deliberately NOT re-parsing our own structured envelope here (metric/
-    period/etc as separate fields) - that would resurrect the same
-    fragile-parsing problem markdown_chart_adapter.py just moved away
-    from. Instead, the last assistant answer's full Markdown (already
-    exactly what ConversationStore stores as this backend's
-    answer_summary - see the two call sites of append_turn) is handed to
-    the Master Agent as free-form context text, and its own LLM reasoning
-    extracts whatever's relevant, the same way a human pasting the
-    previous answer back in would.
-    """
-    history = conversations.load_history(session_id, limit=2)
-    assistant_turns = [turn["content"] for turn in history if turn["role"] == "assistant"]
-    return assistant_turns[-1] if assistant_turns else ""
+_NO_GOVERNED_REF = "no governed query result attached"
 
 
-async def run_chat(request: ChatRequest) -> ChatResponse:
-    if get_settings().chat_backend == "agent_studio":
-        return await _run_chat_agent_studio(request)
-    return await _run_chat_graph(request)
+def _normalize_governed_v3_response(response: AskDataResponse) -> AskDataResponse:
+    ref = (response.answer.data_reference or "").casefold()
+    missing = _NO_GOVERNED_REF in ref and response.data.row_count == 0
+    if response.strategy != "governed" or response.status != "SUCCESS" or not missing:
+        return response
+    caveats = list(response.answer.caveats)
+    caveat = (
+        "Jawaban belum terhubung ke hasil query governed Impala (tidak ada query_id atau baris data). "
+        "Ulangi dengan pertanyaan analitik yang spesifik."
+    )
+    if caveat not in caveats:
+        caveats.insert(0, caveat)
+    answer = response.answer.model_copy(update={"caveats": caveats})
+    return response.model_copy(update={"status": "NO_DATA", "answer": answer})
 
 
-async def run_chat_stream(request: ChatRequest) -> AsyncIterator[dict[str, Any]]:
-    """Yields {"type": "progress", "label": ...} while the answer is being
-    worked on, then a final {"type": "done", "response": ChatResponse} -
-    powers /chat/stream (SSE) so the frontend can show real progress
-    instead of a static spinner.
+def _session_last_metric(history: list[dict]) -> str | None:
+    for entry in reversed(history):
+        frame = entry.get("session_frame")
+        if not isinstance(frame, dict):
+            continue
+        metric = frame.get("last_metric")
+        if isinstance(metric, str) and metric.strip():
+            return metric.strip()
+    return None
 
-    The "graph" backend already answers in a couple seconds, so it yields
-    no progress events, only the final "done" - progress messaging is only
-    worth it for the agent_studio backend's much longer multi-agent chain.
-    """
-    if get_settings().chat_backend != "agent_studio":
-        yield {"type": "done", "response": await _run_chat_graph(request)}
-        return
 
-    trace_id = str(uuid.uuid4())
-    started = time.perf_counter()
-    seen_data_retrieval = False
-    try:
-        context = _agent_studio_context(request.session_id)
-        async for item in agent_studio_client.stream_workflow(user_input=request.question, context=context):
-            if item["kind"] == "event":
-                event = item["event"]
-                message = agent_studio_progress.stage_message(event, seen_data_retrieval=seen_data_retrieval)
-                if agent_studio_progress.is_data_retrieval_stage(event):
-                    seen_data_retrieval = True
-                if message:
-                    yield {"type": "progress", "label": message}
-                continue
+class ImpalaQueryExecutor:
+    def __init__(self, settings: Settings) -> None:
+        self.backend = ImpalaBackend(settings)
 
-            # item["kind"] == "completed"
-            parsed = markdown_chart_adapter.parse(item["output"], request.question)
-            conversations.append_turn(request.session_id, request.question, parsed.answer.markdown or "")
-            latency_ms = round((time.perf_counter() - started) * 1000)
-            telemetry.record(
-                trace_id=item["trace_id"],
-                question=request.question,
-                intent="agent_studio",
-                status="ok",
-                latency_ms=latency_ms,
-                metadata={"agent_studio_trace_id": item["trace_id"]},
-            )
-            yield {
-                "type": "done",
-                "response": ChatResponse(
-                    status="ok",
-                    question=request.question,
-                    answer=parsed.answer,
-                    data=parsed.data,
-                    chart_spec=parsed.chart_spec,
-                    ui_actions=[],
-                    metadata=ChatMetadata(
-                        trace_id=item["trace_id"],
-                        session_id=request.session_id,
-                        intent="agent_studio",
-                        resolved_context=request.context,
-                        execution_time_ms=latency_ms,
-                    ),
-                ),
-            }
-            return
-    except agent_studio_client.AgentStudioError:
-        logger.exception("Agent Studio chat stream failed trace_id=%s", trace_id)
-        latency_ms = round((time.perf_counter() - started) * 1000)
-        telemetry.record(trace_id=trace_id, question=request.question, intent="agent_studio", status="error", latency_ms=latency_ms, metadata={"safe_error": True})
-        yield {
-            "type": "done",
-            "response": ChatResponse(
-                status="error",
-                question=request.question,
-                answer=ExecutiveAnswer(summary="Governed data could not be retrieved right now.", drivers=[], recommended_actions=["Try again in a moment or rephrase the question."], caveats=["Internal error details are not exposed."]),
-                data=QueryData(),
-                chart_spec=None,
-                ui_actions=[],
-                metadata=ChatMetadata(trace_id=trace_id, session_id=request.session_id, intent="agent_studio", resolved_context=request.context, execution_time_ms=latency_ms),
-            ),
+    async def execute(self, sql: str, request_id: str) -> dict:
+        result = await asyncio.to_thread(
+            self.backend.execute,
+            sql,
+            BackendExecutionContext(trace_id=request_id, purpose="ask_data_v2"),
+        )
+        return {
+            "columns": [column.name for column in result.columns],
+            "rows": result.records(),
+            "row_count": result.row_count,
+            "execution_ms": result.telemetry.query_latency_ms,
         }
 
 
-async def _run_chat_agent_studio(request: ChatRequest) -> ChatResponse:
-    """chat_backend="agent_studio": delegates the answer entirely to the
-    deployed Agent Studio workflow (Master -> Data -> Analysis agents) and
-    adapts its Markdown output into ChatResponse. See
-    app/services/agent_studio_client.py and markdown_chart_adapter.py.
-
-    Uses ConversationStore purely to thread the previous answer's Markdown
-    into Agent Studio's `context` param (see _agent_studio_context) so a
-    follow-up question ("breakdown per bulan?") can be resolved against
-    what was just asked, matching the FOLLOW_UP envelope the Master
-    Agent's Backstory expects a caller to provide - not for
-    intent/validation_status telemetry, which stay Agent Studio's own
-    trace_id/events, same as the streaming path.
-    """
-    trace_id = str(uuid.uuid4())
-    started = time.perf_counter()
-    try:
-        context = _agent_studio_context(request.session_id)
-        result = await agent_studio_client.run_workflow(user_input=request.question, context=context)
-        parsed = markdown_chart_adapter.parse(result.output, request.question)
-        conversations.append_turn(request.session_id, request.question, parsed.answer.markdown or "")
-        latency_ms = round((time.perf_counter() - started) * 1000)
-        telemetry.record(
-            trace_id=result.trace_id,
-            question=request.question,
-            intent="agent_studio",
-            status="ok",
-            latency_ms=latency_ms,
-            metadata={"agent_studio_trace_id": result.trace_id, "event_count": len(result.events)},
+class ChatService:
+    def __init__(
+        self,
+        settings: Settings,
+        *,
+        dependencies: WorkflowDependencies | None = None,
+        history: ConversationStore | None = None,
+    ) -> None:
+        self.settings = settings
+        context = SemanticContextService(settings.project_root / settings.ossie_project_id)
+        self.dependencies = dependencies or WorkflowDependencies(
+            semantic_context=context,
+            provider_registry=ProviderRegistry(settings),
+            query_executor=ImpalaQueryExecutor(settings),
+            sql_validator=lambda sql, validation_context: validate_sql(sql, validation_context, max_rows=settings.sql_max_rows),
+            validation_context=context,
+            local_agent_client=LocalAgentClient(settings),
+            judge_max_iterations=settings.judge_max_iterations,
+            judge_enabled=settings.judge_enabled,
         )
-        return ChatResponse(
-            status="ok",
+        self.workflow = build_workflow(self.dependencies)
+        self.history = history or ConversationStore(settings.conversation_db_path)
+
+    def delete_session_history(self, session_id: str) -> int:
+        return self.history.delete_session(session_id)
+
+    def _v3_client(self) -> LocalAgentClient | None:
+        client = self.dependencies.local_agent_client
+        if client is None or not client.enabled:
+            return None
+        return client
+
+    def _route_for_question(
+        self,
+        question: str,
+        *,
+        session_last_metric: str | None = None,
+        session_analysis_context: dict[str, Any] | None = None,
+        turn_understanding: TurnUnderstanding | None = None,
+    ) -> tuple[str, dict[str, Any]]:
+        resolution = self.dependencies.semantic_context.resolve(
+            question,
+            session_last_metric=session_last_metric,
+            session_analysis_context=session_analysis_context,
+            turn_understanding=turn_understanding.model_dump() if turn_understanding else None,
+        )
+        route = resolve_ask_data_route(question, self.settings, semantic_resolution=resolution)
+        return route, resolution
+
+    def _session_frame_for_turn(
+        self,
+        request: AskDataRequest,
+        response: AskDataResponse,
+        workflow_state: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
+        resolution = (workflow_state or {}).get("semantic_resolution") or {}
+        metric = resolution.get("metric")
+        dimensions = resolution.get("dimensions")
+        return build_session_frame(
             question=request.question,
-            answer=parsed.answer,
-            data=parsed.data,
-            chart_spec=parsed.chart_spec,
-            ui_actions=[],
-            metadata=ChatMetadata(
-                trace_id=result.trace_id,
+            status=response.status,
+            strategy=response.strategy,
+            rows=response.data.rows,
+            metric=str(metric) if isinstance(metric, str) else None,
+            dimensions=[str(item) for item in dimensions] if isinstance(dimensions, list) else None,
+        )
+
+    def _persist_turn(
+        self,
+        request: AskDataRequest,
+        response: AskDataResponse,
+        chart: ChartSpec | None,
+        *,
+        workflow_state: dict[str, Any] | None = None,
+    ) -> None:
+        self.history.append(
+            request.session_id,
+            request.question,
+            response.answer,
+            response.data.rows,
+            chart,
+            request.provider,
+            request.model,
+            status=response.status,
+            strategy=response.strategy,
+            session_frame=self._session_frame_for_turn(request, response, workflow_state),
+        )
+
+    async def _run_via_tempo_agent_v3(
+        self,
+        request: AskDataRequest,
+        *,
+        request_id: str,
+        question: str,
+        client: LocalAgentClient,
+    ) -> AskDataResponse:
+        started = perf_counter()
+        try:
+            response = await client.ask_data(
+                question,
                 session_id=request.session_id,
-                intent="agent_studio",
-                resolved_context=request.context,
-                execution_time_ms=latency_ms,
-            ),
+                provider=request.provider,
+                model=request.model,
+                request_id=request_id,
+                answer_language="id",
+            )
+        except LocalAgentError as exc:
+            logger.warning("tempo_agent_v3_primary_failed request_id=%s code=%s", request_id, exc.code)
+            provider = self.dependencies.provider_registry.resolve(request.provider, request.model)
+            answer = await explain_failure(
+                provider=provider,
+                question=question,
+                failure={"kind": "internal", "code": f"LOCAL_AGENT_{exc.code}"},
+                request_id=request_id,
+            )
+            elapsed = round((perf_counter() - started) * 1000, 3)
+            return AskDataResponse(
+                request_id=request_id,
+                session_id=request.session_id,
+                status="ERROR",
+                provider=request.provider,
+                model=request.model,
+                strategy="unsupported",
+                answer=answer,
+                data=QueryData(),
+                chart_spec=None,
+                timings=Timings(total_ms=elapsed),
+            )
+        timings = response.timings.model_copy(update={"total_ms": round((perf_counter() - started) * 1000, 3)})
+        response = polish_v3_answer(
+            _normalize_governed_v3_response(response.model_copy(update={"timings": timings}))
         )
-    except agent_studio_client.AgentStudioError:
-        logger.exception("Agent Studio chat backend failed trace_id=%s", trace_id)
-        latency_ms = round((time.perf_counter() - started) * 1000)
-        telemetry.record(trace_id=trace_id, question=request.question, intent="agent_studio", status="error", latency_ms=latency_ms, metadata={"safe_error": True})
-        return ChatResponse(
-            status="error",
+        self._persist_turn(request, response, response.chart_spec)
+        logger.info(
+            "ask_data_v3 request_id=%s session_id=%s strategy=%s status=%s total_ms=%s",
+            request_id,
+            request.session_id,
+            response.strategy,
+            response.status,
+            timings.total_ms,
+        )
+        return response
+
+    def _routing_mode(self) -> str:
+        return (self.settings.ask_data_routing or "auto").strip().lower()
+
+    def _v3_fallback_to_ossie_on_error(self) -> bool:
+        return self._routing_mode() == "auto" and not self.settings.local_agent_primary
+
+    async def _understand_turn(
+        self,
+        request: AskDataRequest,
+        conversation_history: list[dict],
+    ) -> TurnUnderstanding:
+        provider = self.dependencies.provider_registry.resolve(request.provider, request.model)
+        return await understand_turn(
+            provider=provider,
             question=request.question,
-            answer=ExecutiveAnswer(summary="Governed data could not be retrieved right now.", drivers=[], recommended_actions=["Try again in a moment or rephrase the question."], caveats=["Internal error details are not exposed."]),
-            data=QueryData(),
-            chart_spec=None,
-            ui_actions=[],
-            metadata=ChatMetadata(trace_id=trace_id, session_id=request.session_id, intent="agent_studio", resolved_context=request.context, execution_time_ms=latency_ms),
+            conversation_history=conversation_history,
         )
 
+    def _build_initial_state(
+        self,
+        request: AskDataRequest,
+        *,
+        request_id: str,
+        question: str,
+        resolution: dict[str, Any],
+        conversation_history: list[dict],
+        session_analysis_context: dict[str, Any] | None = None,
+        turn_understanding: TurnUnderstanding | None = None,
+    ) -> dict[str, Any]:
+        state: dict[str, Any] = {
+            **request.model_dump(),
+            "original_question": request.question,
+            "question": question,
+            "semantic_resolution": resolution,
+            "conversation_history": [
+                {"question": item["question"], "answer": item["answer"]}
+                for item in conversation_history
+            ],
+            "session_last_metric": _session_last_metric(conversation_history),
+            "request_id": request_id,
+            "retry_count": 0,
+            "timings": {},
+        }
+        if turn_understanding is not None:
+            payload = turn_understanding.model_dump()
+            state["turn_understanding"] = payload
+            state["conversational_intent"] = payload
+        if session_analysis_context:
+            state["session_analysis_context"] = session_analysis_context
+        return state
 
-async def _run_chat_graph(request: ChatRequest) -> ChatResponse:
-    trace_id = str(uuid.uuid4())
-    started = time.perf_counter()
-    # Prior turns from this session, loaded once per request - a plain
-    # SQLite table keyed by session_id (see conversation_store.py), not a
-    # LangGraph checkpointer. Each graph run is otherwise fully stateless:
-    # nodes only read "history", nothing in the graph accumulates it.
-    history = conversations.load_history(request.session_id)
-    initial = {
-        "question": request.question,
-        "language": request.language,
-        "session_id": request.session_id,
-        "history": history,
-        "dashboard_state": request.context.model_dump(),
-        "trace_id": trace_id,
-        "repair_attempts": 0,
-        "fallback_used": False,
-    }
-    try:
-        state = await workflow.ainvoke(initial)
-        latency_ms = round((time.perf_counter() - started) * 1000)
-        answer = ExecutiveAnswer.model_validate(state.get("answer") or {"summary": "No validated answer.", "drivers": [], "recommended_actions": [], "caveats": []})
-        raw_chart = state.get("chart_spec")
-        chart = ChartSpec.model_validate(raw_chart) if raw_chart and raw_chart.get("type") != "none" else None
-        # unit_format is read from raw_chart directly (not from `chart`,
-        # which becomes None whenever type == "none" - the common case for
-        # a single-value, no-dimension answer) so DataTable still gets it
-        # even when there's no chart to render.
-        unit_format = raw_chart.get("unit_format") if raw_chart else None
-        rows = state.get("rows", [])
-        columns = list(rows[0].keys()) if rows else []
-        status = state.get("status", "ok")
-        resolved_state = DashboardState.model_validate(state.get("resolved_state") or request.context.model_dump())
-        conversations.append_turn(request.session_id, request.question, answer.summary)
-        telemetry.record(
-            trace_id=trace_id,
-            question=request.question,
-            intent=state.get("intent", "unknown"),
-            status=status,
-            latency_ms=latency_ms,
-            validation_status=state.get("validation_status", "not_applicable"),
-            rows_returned=len(rows),
-            metadata={
-                "fallback": bool(state.get("fallback_used")),
-                "ui_actions": len(state.get("ui_actions", [])),
-                "model": state.get("model_telemetry") or {},
-                "data": state.get("data_telemetry") or {},
-            },
-        )
-        return ChatResponse(
-            status=status if status in {"ok", "fallback", "error"} else "ok",
-            question=request.question,
+    def _response_from_state(
+        self,
+        request: AskDataRequest,
+        *,
+        request_id: str,
+        state: dict[str, Any],
+        started: float,
+    ) -> AskDataResponse:
+        answer = AnalysisOutput.model_validate(state["answer"])
+        chart = ChartSpec.model_validate(state["chart_spec"]) if state.get("chart_spec") else None
+        raw_data = state.get("query_result") or {"columns": [], "rows": [], "row_count": 0, "execution_ms": 0}
+        timings = {**state.get("timings", {}), "total_ms": round((perf_counter() - started) * 1000, 3)}
+        return AskDataResponse(
+            request_id=request_id,
+            session_id=request.session_id,
+            status=state.get("status", "ERROR"),
+            provider=request.provider,
+            model=request.model,
+            strategy=state.get("strategy", "unsupported"),
             answer=answer,
-            data=QueryData(columns=columns, rows=rows, unit_format=unit_format),
+            data=QueryData.model_validate(raw_data),
             chart_spec=chart,
-            ui_actions=[ui_action_adapter.validate_python(a) for a in state.get("ui_actions", [])],
-            metadata=ChatMetadata(
-                trace_id=trace_id,
+            timings=Timings.model_validate(timings),
+            retry_count=state.get("retry_count", 0),
+        )
+
+    async def _stream_ossie_workflow(
+        self,
+        request: AskDataRequest,
+        *,
+        request_id: str,
+        question: str,
+        resolution: dict[str, Any],
+        conversation_history: list[dict],
+        session_analysis_context: dict[str, Any] | None = None,
+        turn_understanding: TurnUnderstanding | None = None,
+    ):
+        started = perf_counter()
+        initial = self._build_initial_state(
+            request,
+            request_id=request_id,
+            question=question,
+            resolution=resolution,
+            conversation_history=conversation_history,
+            session_analysis_context=session_analysis_context,
+            turn_understanding=turn_understanding,
+        )
+        last_state: dict[str, Any] | None = None
+        try:
+            async for chunk in self.workflow.astream(initial):
+                for node_name, state in chunk.items():
+                    last_state = state
+                    stage, label = NODE_LABELS.get(node_name, (node_name, node_name.replace("_", " ").title()))
+                    detail = trace_detail(node_name, state)
+                    yield {
+                        "type": "progress",
+                        "stage": stage,
+                        "label": label,
+                        "detail": detail,
+                    }
+            if last_state is None:
+                raise RuntimeError("workflow produced no state")
+            response = self._response_from_state(
+                request, request_id=request_id, state=last_state, started=started
+            )
+            self._persist_turn(request, response, response.chart_spec, workflow_state=last_state)
+            yield {"type": "done", "response": response}
+        except DataBackendError as exc:
+            logger.warning(
+                "ask_data_backend_failed request_id=%s safe_error_code=%s",
+                request_id,
+                exc.code,
+            )
+            provider = self.dependencies.provider_registry.resolve(request.provider, request.model)
+            answer = await explain_failure(
+                provider=provider,
+                question=request.question,
+                failure={"kind": "data_backend", "code": exc.code},
+                request_id=request_id,
+            )
+            elapsed = round((perf_counter() - started) * 1000, 3)
+            yield {
+                "type": "done",
+                "response": AskDataResponse(
+                    request_id=request_id,
+                    session_id=request.session_id,
+                    status="ERROR",
+                    provider=request.provider,
+                    model=request.model,
+                    strategy="unsupported",
+                    answer=answer,
+                    data=QueryData(),
+                    chart_spec=None,
+                    timings=Timings(total_ms=elapsed),
+                ),
+            }
+        except Exception:
+            logger.exception("ask_data_failed request_id=%s", request_id)
+            provider = self.dependencies.provider_registry.resolve(request.provider, request.model)
+            answer = await explain_failure(
+                provider=provider,
+                question=request.question,
+                failure={"kind": "internal", "code": "UNEXPECTED"},
+                request_id=request_id,
+            )
+            elapsed = round((perf_counter() - started) * 1000, 3)
+            yield {
+                "type": "done",
+                "response": AskDataResponse(
+                    request_id=request_id,
+                    session_id=request.session_id,
+                    status="ERROR",
+                    provider=request.provider,
+                    model=request.model,
+                    strategy="unsupported",
+                    answer=answer,
+                    data=QueryData(),
+                    chart_spec=None,
+                    timings=Timings(total_ms=elapsed),
+                ),
+            }
+
+    async def run(self, request: AskDataRequest, *, force_ossie: bool = False) -> AskDataResponse:
+        request_id = str(uuid.uuid4())
+        started = perf_counter()
+        conversation_history = self.history.load(request.session_id, limit=4)
+        session_metric = _session_last_metric(conversation_history)
+        session_ctx = analysis_context_from_history(conversation_history)
+        turn = await self._understand_turn(request, conversation_history)
+        question = resolve_question_for_pipeline(request.question, conversation_history, turn)
+        route, resolution = self._route_for_question(
+            question,
+            session_last_metric=session_metric,
+            session_analysis_context=session_ctx or None,
+            turn_understanding=turn,
+        )
+        if turn.is_conversational:
+            logger.info("ask_data_route=conversational request_id=%s session_id=%s", request_id, request.session_id)
+            force_ossie = True
+        if not force_ossie and route == "v3" and v3_agent_available(self.settings):
+            client = self._v3_client()
+            if client is not None:
+                logger.info("ask_data_route=v3 request_id=%s session_id=%s", request_id, request.session_id)
+                v3_response = await self._run_via_tempo_agent_v3(
+                    request, request_id=request_id, question=question, client=client
+                )
+                if v3_response.status != "ERROR" or not self._v3_fallback_to_ossie_on_error():
+                    return v3_response
+                logger.info("ask_data_v3_failed_fallback_ossie request_id=%s", request_id)
+        logger.info("ask_data_route=ossie request_id=%s session_id=%s", request_id, request.session_id)
+        initial = self._build_initial_state(
+            request,
+            request_id=request_id,
+            question=question,
+            resolution=resolution,
+            conversation_history=conversation_history,
+            session_analysis_context=session_ctx or None,
+            turn_understanding=turn,
+        )
+        try:
+            state = await self.workflow.ainvoke(initial)
+            response = self._response_from_state(
+                request, request_id=request_id, state=state, started=started
+            )
+            self._persist_turn(request, response, response.chart_spec, workflow_state=state)
+            logger.info(
+                "ask_data request_id=%s session_id=%s provider=%s model=%s strategy=%s status=%s retry_count=%s timings=%s turn_rationale=%s",
+                request_id, request.session_id, request.provider, request.model, response.strategy, response.status, response.retry_count, response.timings.model_dump_json(), turn.rationale[:120],
+            )
+            return response
+        except DataBackendError as exc:
+            # The adapter already emitted safe telemetry. Do not attach the
+            # chained driver traceback here because HTTP responses can contain
+            # infrastructure details that do not belong in application logs.
+            logger.warning(
+                "ask_data_backend_failed request_id=%s session_id=%s provider=%s model=%s safe_error_code=%s",
+                request_id, request.session_id, request.provider, request.model, exc.code,
+            )
+            elapsed = round((perf_counter() - started) * 1000, 3)
+            provider = self.dependencies.provider_registry.resolve(request.provider, request.model)
+            answer = await explain_failure(
+                provider=provider,
+                question=request.question,
+                failure={"kind": "data_backend", "code": exc.code},
+                request_id=request_id,
+            )
+            return AskDataResponse(
+                request_id=request_id,
                 session_id=request.session_id,
-                intent=state.get("intent", "unknown"),
-                resolved_context=resolved_state,
-                execution_time_ms=latency_ms,
-            ),
+                status="ERROR",
+                provider=request.provider,
+                model=request.model,
+                strategy="unsupported",
+                answer=answer,
+                data=QueryData(), chart_spec=None, timings=Timings(total_ms=elapsed),
+            )
+        except Exception:
+            logger.exception("ask_data_failed request_id=%s session_id=%s provider=%s model=%s", request_id, request.session_id, request.provider, request.model)
+            elapsed = round((perf_counter() - started) * 1000, 3)
+            provider = self.dependencies.provider_registry.resolve(request.provider, request.model)
+            answer = await explain_failure(
+                provider=provider,
+                question=request.question,
+                failure={"kind": "internal", "code": "UNEXPECTED"},
+                request_id=request_id,
+            )
+            return AskDataResponse(
+                request_id=request_id,
+                session_id=request.session_id,
+                status="ERROR",
+                provider=request.provider,
+                model=request.model,
+                strategy="unsupported",
+                answer=answer,
+                data=QueryData(), chart_spec=None, timings=Timings(total_ms=elapsed),
+            )
+
+    async def stream(self, request: AskDataRequest):
+        request_id = str(uuid.uuid4())
+        conversation_history = self.history.load(request.session_id, limit=4)
+        session_metric = _session_last_metric(conversation_history)
+        session_ctx = analysis_context_from_history(conversation_history)
+        turn = await self._understand_turn(request, conversation_history)
+        question = resolve_question_for_pipeline(request.question, conversation_history, turn)
+        route, resolution = self._route_for_question(
+            question,
+            session_last_metric=session_metric,
+            session_analysis_context=session_ctx or None,
+            turn_understanding=turn,
         )
-    except Exception:
-        logger.exception("Chat workflow failed trace_id=%s", trace_id)
-        latency_ms = round((time.perf_counter() - started) * 1000)
-        telemetry.record(trace_id=trace_id, question=request.question, intent="error", status="error", latency_ms=latency_ms, metadata={"safe_error": True})
-        return ChatResponse(
-            status="error",
-            question=request.question,
-            answer=ExecutiveAnswer(summary="Workflow could not complete safely.", drivers=[], recommended_actions=["Retry the request or contact the application operator with the trace ID."], caveats=["Internal error details are not exposed."]),
-            data=QueryData(),
-            chart_spec=None,
-            ui_actions=[],
-            metadata=ChatMetadata(trace_id=trace_id, session_id=request.session_id, intent="error", resolved_context=request.context, execution_time_ms=latency_ms),
+        skip_v3 = turn.is_conversational
+        if skip_v3:
+            logger.info("ask_data_route=conversational stream request_id=%s session_id=%s", request_id, request.session_id)
+        client = (
+            None
+            if skip_v3
+            else self._v3_client()
+            if route == "v3" and v3_agent_available(self.settings)
+            else None
         )
+        if client is not None:
+            logger.info("ask_data_route=v3 stream request_id=%s session_id=%s", request_id, request.session_id)
+            try:
+                async for event in client.stream_ask_data(
+                    question,
+                    session_id=request.session_id,
+                    provider=request.provider,
+                    model=request.model,
+                    request_id=request_id,
+                    answer_language="id",
+                ):
+                    if event.get("type") == "progress":
+                        yield {
+                            "type": "progress",
+                            "stage": event.get("stage") or "agent",
+                            "label": event.get("label") or "Processing",
+                            "detail": event.get("detail"),
+                        }
+                        continue
+                    if event.get("type") == "done":
+                        payload = event.get("response") or event
+                        if isinstance(payload, dict) and "answer" in payload:
+                            response = polish_v3_answer(
+                                _normalize_governed_v3_response(AskDataResponse.model_validate(payload))
+                            )
+                            self._persist_turn(request, response, response.chart_spec)
+                            yield {"type": "done", "response": response}
+                        else:
+                            yield event
+                        return
+                    if "request_id" in event and "answer" in event:
+                        response = polish_v3_answer(
+                            _normalize_governed_v3_response(AskDataResponse.model_validate(event))
+                        )
+                        self._persist_turn(request, response, response.chart_spec)
+                        yield {"type": "done", "response": response}
+                        return
+                fallback = self._v3_fallback_to_ossie_on_error()
+                response = await self._run_via_tempo_agent_v3(
+                    request, request_id=request_id, question=question, client=client
+                )
+                if response.status != "ERROR" or not fallback:
+                    yield {"type": "done", "response": response}
+                    return
+                logger.info("ask_data_v3_stream_fallback_ossie request_id=%s", request_id)
+            except LocalAgentError:
+                if not self._v3_fallback_to_ossie_on_error():
+                    response = await self._run_via_tempo_agent_v3(
+                        request, request_id=request_id, question=question, client=client
+                    )
+                    yield {"type": "done", "response": response}
+                    return
+                logger.info("ask_data_v3_stream_fallback_ossie request_id=%s", request_id)
+
+        logger.info("ask_data_route=ossie stream request_id=%s session_id=%s", request_id, request.session_id)
+        async for event in self._stream_ossie_workflow(
+            request,
+            request_id=request_id,
+            question=question,
+            resolution=resolution,
+            conversation_history=conversation_history,
+            session_analysis_context=session_ctx or None,
+            turn_understanding=turn,
+        ):
+            yield event

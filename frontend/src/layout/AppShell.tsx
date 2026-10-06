@@ -1,90 +1,218 @@
 'use client'
 
-import { useEffect, useState, type ReactNode } from 'react'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import {
-  Bot, ChevronLeft, ChevronRight, Clock3, Gauge, LayoutDashboard, Menu,
-  Settings, X,
-} from 'lucide-react'
+import { Bot, Download, PanelLeftClose, PanelLeftOpen, Plus, Settings } from 'lucide-react'
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 import { BrandMark } from '../components/BrandMark'
-import { useProject } from '../lib/project'
+import { ConversationSessionList, type ConversationSessionListProps } from '../components/ConversationSessionList'
+import { appConfig } from '../config/appConfig'
 
-const nav = [
-  { to: '/', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/ask-ai', label: 'Ask AI', icon: Bot },
-  { to: '/monitoring', label: 'AI Monitoring', icon: Gauge },
-  { to: '/settings', label: 'Settings', icon: Settings },
-] as const
+const navigation = [
+  { href: '/', label: appConfig.navigationAskData, icon: Bot },
+  { href: '/settings', label: appConfig.navigationSettings, icon: Settings },
+]
+
+export type ChatSessionSidebarState = Omit<ConversationSessionListProps, 'collapsed'> & {
+  onNewChat: () => void
+}
+
+export type ChatPageChromeState = {
+  showDownload: boolean
+  downloadingPdf: boolean
+  loading: boolean
+  onDownloadPdf: () => void
+  /** Hide top header title (e.g. empty Ask Data) so branding stays in the conversation area. */
+  minimalHeader?: boolean
+}
+
+type ChatLayoutState = {
+  sidebarCollapsed: boolean
+  toggleSidebarCollapsed: () => void
+  chatSessionSidebar: ChatSessionSidebarState | null
+  setChatSessionSidebar: (state: ChatSessionSidebarState | null) => void
+  chatPageChrome: ChatPageChromeState | null
+  setChatPageChrome: (state: ChatPageChromeState | null) => void
+}
+
+const ChatLayoutContext = createContext<ChatLayoutState>({
+  sidebarCollapsed: false,
+  toggleSidebarCollapsed: () => undefined,
+  chatSessionSidebar: null,
+  setChatSessionSidebar: () => undefined,
+  chatPageChrome: null,
+  setChatPageChrome: () => undefined,
+})
+
+export function useChatLayout() {
+  return useContext(ChatLayoutContext)
+}
 
 export function AppShell({ children }: { children: ReactNode }) {
-  const { config } = useProject()
   const pathname = usePathname()
-  const [collapsed, setCollapsed] = useState(false)
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const [openedAt, setOpenedAt] = useState('')
-  const active = (to: string | null) => Boolean(to && (to === '/' ? pathname === '/' : pathname.startsWith(to)))
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [chatSessionSidebar, setChatSessionSidebarState] = useState<ChatSessionSidebarState | null>(null)
+  const [chatPageChrome, setChatPageChromeState] = useState<ChatPageChromeState | null>(null)
 
-  useEffect(() => setOpenedAt(formatOpenedAt(new Date())), [])
+  const toggleSidebarCollapsed = useCallback(() => {
+    setSidebarCollapsed(current => !current)
+  }, [])
+
+  const setChatSessionSidebar = useCallback((state: ChatSessionSidebarState | null) => {
+    setChatSessionSidebarState(state)
+  }, [])
+
+  const setChatPageChrome = useCallback((state: ChatPageChromeState | null) => {
+    setChatPageChromeState(state)
+  }, [])
+
+  const layoutValue = useMemo(
+    () => ({
+      sidebarCollapsed,
+      toggleSidebarCollapsed,
+      chatSessionSidebar,
+      setChatSessionSidebar,
+      chatPageChrome,
+      setChatPageChrome,
+    }),
+    [sidebarCollapsed, toggleSidebarCollapsed, chatSessionSidebar, setChatSessionSidebar, chatPageChrome, setChatPageChrome],
+  )
+
+  const onAskData = pathname === '/'
+  const showChatWorkspace = onAskData && chatSessionSidebar !== null
+  const sidebarExpandedClass = sidebarCollapsed ? 'lg:w-[68px]' : 'lg:w-[240px]'
+  const mainPadClass = sidebarCollapsed ? 'lg:pl-[68px]' : 'lg:pl-[240px]'
 
   return (
-    <div className="min-h-screen overflow-x-clip bg-cloudera-mist text-cloudera-ink">
-      <aside className={`fixed inset-y-0 left-0 z-30 hidden flex-col border-r border-slate-200 bg-white py-4 transition-[width] duration-200 lg:flex ${collapsed ? 'w-20 px-3' : 'w-[232px] px-4'}`}>
-        <div className={collapsed ? 'flex justify-center' : 'px-1'}>{collapsed ? <CompactBrand /> : <BrandMark />}</div>
-        <nav aria-label="Primary navigation" className="mt-6 space-y-1">
-          {nav.map(item => <NavigationItem key={item.label} {...item} compact={collapsed} active={active(item.to)} />)}
-        </nav>
-        <button onClick={() => setCollapsed(value => !value)} aria-label={collapsed ? 'Expand sidebar' : 'Collapse sidebar'} className="absolute -right-3 top-20 grid h-6 w-6 place-items-center rounded-full border border-slate-200 bg-white text-slate-400 shadow-sm hover:text-cloudera-navy">{collapsed ? <ChevronRight size={13} /> : <ChevronLeft size={13} />}</button>
-        <div className={`mt-auto border-t border-slate-100 pt-4 ${collapsed ? 'text-center' : 'px-1'}`}>
-          {collapsed ? <div className="text-[10px] font-black text-cloudera-navy" title="Tempo Scan Commercial Intelligence">TS</div> : <><div className="text-xs font-extrabold text-cloudera-navy">Tempo Scan</div><div className="mt-0.5 text-[11px] text-slate-500">Commercial Intelligence</div><div className="mt-1.5 text-[10px] text-slate-400">Powered by Cloudera AI</div></>}
+    <ChatLayoutContext.Provider value={layoutValue}>
+      <div className="min-h-screen bg-cloudera-mist text-cloudera-ink">
+        <aside
+          aria-label="Primary sidebar"
+          className={`fixed inset-y-0 left-0 z-30 hidden ${sidebarExpandedClass} flex-col border-r border-slate-200 bg-white transition-[width] duration-300 ease-in-out lg:flex`}
+        >
+          <div
+            className={`flex shrink-0 items-center gap-2 border-b border-slate-100 ${
+              sidebarCollapsed ? 'flex-col justify-center px-2 py-3' : 'justify-between px-3 py-3'
+            }`}
+          >
+            {!sidebarCollapsed ? (
+              <div className="min-w-0 flex-1">
+                <BrandMark />
+              </div>
+            ) : (
+              <img src="/cloudera-logo.png" alt="Cloudera" className="h-9 w-9 shrink-0 rounded-lg shadow-sm" />
+            )}
+            <button
+              type="button"
+              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-expanded={!sidebarCollapsed}
+              onClick={toggleSidebarCollapsed}
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-slate-500 transition-colors hover:bg-slate-50 hover:text-cloudera-navy"
+            >
+              {sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+            </button>
+          </div>
+
+          <div className={`flex min-h-0 flex-1 flex-col ${sidebarCollapsed ? 'items-center px-2 py-3' : 'px-3 py-3'}`}>
+            {showChatWorkspace && (
+              <button
+                type="button"
+                aria-label="New chat"
+                title="New chat"
+                onClick={chatSessionSidebar.onNewChat}
+                className={
+                  sidebarCollapsed
+                    ? 'mb-3 grid h-10 w-10 place-items-center rounded-xl bg-cloudera-orange text-white hover:brightness-95'
+                    : 'btn-primary mb-4 h-11 w-full text-sm'
+                }
+              >
+                <Plus size={sidebarCollapsed ? 18 : 16} />
+                {!sidebarCollapsed && <span>New Chat</span>}
+              </button>
+            )}
+
+            <nav aria-label="Primary navigation" className={`space-y-0.5 ${sidebarCollapsed ? 'w-full' : ''}`}>
+              {!sidebarCollapsed && (
+                <div className="type-sidebar-section mb-2 px-1">Navigation</div>
+              )}
+              {navigation.map(item => {
+                const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
+                const Icon = item.icon
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    title={item.label}
+                    className={`type-sidebar-nav flex items-center rounded-xl transition-colors ${
+                      sidebarCollapsed ? 'h-10 w-10 justify-center' : 'h-11 gap-2 px-2'
+                    } ${active ? 'bg-violet-50 font-semibold text-cloudera-violet' : 'text-slate-600 hover:bg-slate-50'}`}
+                  >
+                    <span className="grid h-8 w-8 shrink-0 place-items-center">
+                      <Icon size={18} />
+                    </span>
+                    {!sidebarCollapsed && item.label}
+                  </Link>
+                )
+              })}
+            </nav>
+
+            {showChatWorkspace && chatSessionSidebar && (
+              <ConversationSessionList
+                collapsed={sidebarCollapsed}
+                sessions={chatSessionSidebar.sessions}
+                activeSessionId={chatSessionSidebar.activeSessionId}
+                onOpenSession={chatSessionSidebar.onOpenSession}
+                onRemoveSession={chatSessionSidebar.onRemoveSession}
+              />
+            )}
+          </div>
+
+          {!sidebarCollapsed && (
+            <div className="shrink-0 border-t border-slate-100 px-3 py-3">
+              <div className="type-sidebar-brand text-sm">{appConfig.sidebarProductName}</div>
+              <div className="type-chat-meta">{appConfig.sidebarTagline}</div>
+            </div>
+          )}
+        </aside>
+
+        <div className={`flex min-h-screen flex-col transition-[padding-left] duration-300 ease-in-out ${mainPadClass}`} style={{ minHeight: '100dvh' }}>
+          <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 sm:px-5">
+            {onAskData && chatPageChrome?.minimalHeader ? (
+              <div className="min-w-0 flex-1" aria-hidden />
+            ) : (
+              <div className="type-app-title min-w-0 truncate">{appConfig.headerTitle}</div>
+            )}
+            <div className="flex shrink-0 items-center gap-2">
+              <div className="chip py-1">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                Database
+              </div>
+              {onAskData && chatPageChrome?.showDownload && (
+                <button
+                  type="button"
+                  aria-label="Download conversation as PDF"
+                  disabled={chatPageChrome.downloadingPdf || chatPageChrome.loading}
+                  onClick={chatPageChrome.onDownloadPdf}
+                  className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 px-2 text-xs font-semibold text-slate-600 transition-colors hover:border-cloudera-orange/40 hover:bg-orange-50/50 disabled:opacity-50"
+                >
+                  <Download size={14} />
+                  <span className="hidden md:inline">{chatPageChrome.downloadingPdf ? 'PDF…' : 'PDF'}</span>
+                </button>
+              )}
+            </div>
+          </header>
+          <main className={`min-h-0 flex-1 ${onAskData ? 'flex min-h-0 flex-col' : 'p-4 sm:p-6'}`}>{children}</main>
         </div>
-      </aside>
 
-      <div className={`transition-[padding] duration-200 ${collapsed ? 'lg:pl-20' : 'lg:pl-[232px]'}`}>
-        <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-slate-200 bg-white/95 px-4 shadow-[0_1px_0_rgba(36,19,95,0.02)] backdrop-blur sm:h-[88px] sm:px-8">
-          <div className="flex min-w-0 items-center gap-4">
-            <button onClick={() => setMobileOpen(true)} aria-label="Open navigation" className="grid h-10 w-10 shrink-0 place-items-center rounded-xl border border-slate-200 text-slate-600 lg:hidden"><Menu size={19} /></button>
-            <div className="min-w-0">
-              <div className="truncate text-xl font-black leading-tight tracking-[-0.02em] text-cloudera-navy sm:text-[22px]">Commercial Intelligence</div>
-              <div className="mt-1 hidden text-xs font-medium leading-none text-slate-400 sm:block sm:text-sm">Tempo Scan</div>
-            </div>
-          </div>
-          <div className="ml-auto mr-4 hidden items-center gap-2.5 border-r border-slate-200 pr-4 sm:mr-5 sm:flex sm:pr-5">
-            <span className="grid h-8 w-8 shrink-0 place-items-center rounded-lg bg-slate-50 text-slate-400">
-              <Clock3 size={16} />
-            </span>
-            <div className="text-left">
-              <div className="text-[9px] font-bold uppercase leading-none tracking-[0.1em] text-slate-400">Latest opened</div>
-              <div className="mt-1.5 whitespace-nowrap text-[11px] font-bold leading-none text-cloudera-navy sm:text-xs">{openedAt || '—'}</div>
-            </div>
-          </div>
-          <button className="flex items-center gap-2.5 rounded-xl border border-slate-200 bg-white p-2 pr-3.5 shadow-sm transition hover:bg-slate-50" aria-label="User profile">
-            <span className="grid h-9 w-9 place-items-center rounded-lg bg-cloudera-navy text-xs font-extrabold text-white">AD</span>
-            <span className="hidden text-left sm:block"><span className="block text-[13px] font-extrabold leading-tight text-cloudera-navy">Andi Dharma</span><span className="mt-1 block text-[10px] leading-none text-slate-400">Management</span></span>
-          </button>
-        </header>
-        <main className="min-w-0 p-4 sm:p-5 xl:p-6 2xl:p-7">{children}</main>
+        <nav aria-label="Mobile navigation" className="fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-slate-200 bg-white p-2 lg:hidden">
+          {navigation.map(item => (
+            <Link key={item.href} href={item.href} className="flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold text-cloudera-navy">
+              <item.icon size={16} />
+              {item.label}
+            </Link>
+          ))}
+        </nav>
       </div>
-
-      {mobileOpen && <div className="fixed inset-0 z-50 bg-cloudera-navy/20" onMouseDown={event => { if (event.target === event.currentTarget) setMobileOpen(false) }}><aside role="dialog" aria-modal="true" aria-label="Main navigation" className="flex h-full w-[min(84vw,300px)] flex-col bg-white p-4 shadow-2xl"><div className="flex items-center justify-between"><BrandMark /><button onClick={() => setMobileOpen(false)} aria-label="Close navigation" className="grid h-9 w-9 place-items-center rounded-lg text-slate-500 hover:bg-slate-100"><X size={18} /></button></div><div className="mt-3 text-xs font-bold text-cloudera-navy">Commercial Intelligence</div><nav className="mt-7 space-y-1">{nav.map(item => <NavigationItem key={item.label} {...item} compact={false} active={active(item.to)} onNavigate={() => setMobileOpen(false)} />)}</nav><div className="mt-auto border-t border-slate-100 pt-4"><div className="text-xs font-extrabold text-cloudera-navy">Tempo Scan</div><div className="mt-0.5 text-[11px] text-slate-500">Commercial Intelligence</div><div className="mt-1.5 text-[10px] text-slate-400">Powered by Cloudera AI</div></div></aside></div>}
-    </div>
+    </ChatLayoutContext.Provider>
   )
-}
-
-function NavigationItem({ to, label, icon: Icon, compact, active, onNavigate }: { to: string | null; label: string; icon: typeof LayoutDashboard; compact: boolean; active: boolean; onNavigate?: () => void }) {
-  const classes = `flex h-11 items-center rounded-xl text-xs font-bold transition ${compact ? 'justify-center px-1' : 'gap-2.5 px-2'} ${active ? 'bg-violet-50 text-cloudera-violet ring-1 ring-inset ring-violet-100' : to ? 'text-slate-600 hover:bg-slate-50 hover:text-cloudera-navy' : 'cursor-default text-slate-400'}`
-  const content = <><span aria-hidden="true" className={`grid h-8 w-8 shrink-0 place-items-center rounded-lg transition ${active ? 'bg-white text-cloudera-violet shadow-sm' : 'text-slate-500'}`}><Icon size={17} strokeWidth={2.1} /></span><span className={compact ? 'sr-only' : ''}>{label}</span>{!to && !compact && <span className="ml-auto text-[8px] font-bold uppercase tracking-wide text-slate-300">Soon</span>}</>
-  if (!to) return <div className={classes} aria-disabled="true" title={compact ? label : undefined}>{content}</div>
-  return <Link href={to} onClick={onNavigate} className={classes} title={compact ? label : undefined}>{content}</Link>
-}
-
-function CompactBrand() { return <img src="/cloudera-logo.png" alt="Cloudera" className="h-9 w-9 rounded-lg" /> }
-
-function formatOpenedAt(value: Date) {
-  const parts = new Intl.DateTimeFormat('en-US', {
-    day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit',
-    hour12: false, timeZone: 'Asia/Jakarta',
-  }).formatToParts(value)
-  const part = (type: Intl.DateTimeFormatPartTypes) => parts.find(item => item.type === type)?.value || ''
-  return `${part('day')} ${part('month')} ${part('year')}, ${part('hour')}:${part('minute')} WIB`
 }

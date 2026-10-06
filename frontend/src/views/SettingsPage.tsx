@@ -1,52 +1,140 @@
 'use client'
 
-import { FormEvent, useEffect, useState } from 'react'
-import { Bot, Globe2, Save, SlidersHorizontal } from 'lucide-react'
-import { api } from '../lib/api'
+import { useMemo } from 'react'
+import { appConfig } from '../config/appConfig'
+import { PageCenter } from '../components/PageCenter'
+import {
+  friendlyUnavailableMessage,
+  modelSelectionValue,
+  parseModelSelectionValue,
+  providerDeploymentHint,
+  providerDisplayName,
+  uniqueProviders,
+} from '../lib/modelLabels'
+import { useModelSelection } from '../lib/modelSelection'
+import type { ModelInfo } from '../types/api'
 
-export function SettingsPage() {
-  const [settings, setSettings] = useState<any>(null)
-  const [saved, setSaved] = useState(false)
-  const [error, setError] = useState('')
-
-  useEffect(() => { api.settings().then(setSettings).catch((e: Error) => setError(e.message)) }, [])
-
-  async function save(e: FormEvent) {
-    e.preventDefault(); setSaved(false)
-    try { const updated = await api.updateSettings({ language: settings.language, system_prompt: settings.system_prompt, model_name: settings.model_name }); setSettings(updated); setSaved(true); setTimeout(() => setSaved(false), 1800) }
-    catch (err) { setError((err as Error).message) }
+function ModelOptions({ models, groupByProvider }: { models: ModelInfo[]; groupByProvider: boolean }) {
+  if (!groupByProvider) {
+    return models.map(model => (
+      <option key={modelSelectionValue(model)} value={modelSelectionValue(model)} disabled={!model.available}>
+        {model.label}
+      </option>
+    ))
   }
 
+  const providers = uniqueProviders(models)
+  return providers.map(provider => {
+    const group = models.filter(model => model.provider === provider)
+    return (
+      <optgroup key={provider} label={providerDisplayName(provider)}>
+        {group.map(model => (
+          <option key={modelSelectionValue(model)} value={modelSelectionValue(model)} disabled={!model.available}>
+            {model.label}
+          </option>
+        ))}
+      </optgroup>
+    )
+  })
+}
+
+export function SettingsPage() {
+  const { models, selection, loading, error, select, retryLoad } = useModelSelection()
+
+  const hasAvailableModel = models.some(model => model.available)
+  const groupByProvider = uniqueProviders(models).length > 1
+
+  const selectedModel = useMemo(
+    () => models.find(model => model.provider === selection?.provider && model.id === selection?.model) ?? null,
+    [models, selection],
+  )
+
+  const selectValue = selection ? `${selection.provider}::${selection.model}` : ''
+
   return (
-    <div className="mx-auto max-w-6xl">
-      <div className="mb-5"><h1 className="page-title">Settings</h1><p className="page-subtitle">Configure how SCAN responds for your team.</p></div>
-      {error && <div className="mb-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}
-      {!settings ? <div className="card-pad text-sm text-slate-500">Loading settings…</div> : (
-        <form onSubmit={save} className="space-y-4">
-          <SettingSection icon={Bot} title="AI Model">
-            <div className="grid gap-4 md:grid-cols-[minmax(0,1fr)_220px]"><div><label className="text-xs font-bold text-slate-600">Active model</label><input className="input mt-2" value={settings.model_name} onChange={e => setSettings({ ...settings, model_name: e.target.value })} /></div><div><label className="text-xs font-bold text-slate-600">Runtime</label><div className="mt-2 flex h-[42px] items-center rounded-xl border border-slate-200 bg-slate-50 px-3 text-sm font-bold text-cloudera-navy">{formatRuntimeMode(settings.llm_mode)}</div></div></div>
-          </SettingSection>
+    <PageCenter className="max-w-[760px]">
+      <h1 className="type-app-title text-xl sm:text-2xl">Settings</h1>
+      <p className="type-chat-body mt-2 text-slate-600">{appConfig.settingsSubtitle}</p>
 
-          <SettingSection icon={Globe2} title="Response Language" subtitle="Choose the default response language. Auto follows the user's language.">
-            <div className="flex flex-wrap gap-3">{['auto','id','en'].map(lang => <button key={lang} type="button" onClick={() => setSettings({ ...settings, language: lang })} className={`rounded-xl border px-4 py-2.5 text-sm font-bold ${settings.language === lang ? 'border-cloudera-orange bg-orange-50 text-cloudera-orange' : 'border-slate-200 bg-white text-slate-600'}`}>{lang === 'auto' ? 'Auto detect' : lang === 'id' ? 'Bahasa Indonesia' : 'English'}</button>)}</div>
-          </SettingSection>
+      <section className="card mt-5 space-y-4 p-6 sm:p-7">
+        <div>
+          <h2 className="text-[15px] font-semibold text-cloudera-navy">AI Model</h2>
+          <p className="type-chat-meta mt-1 text-slate-500">{appConfig.settingsModelHelper}</p>
+        </div>
 
-          <SettingSection icon={SlidersHorizontal} title="General Prompt / System Instruction" subtitle="Guide how the assistant should behave for your team.">
-            <textarea className="input min-h-[190px] resize-y leading-6" value={settings.system_prompt} onChange={e => setSettings({ ...settings, system_prompt: e.target.value })} />
-          </SettingSection>
+        {loading && (
+          <p className="type-chat-body text-slate-500" role="status">
+            Loading models…
+          </p>
+        )}
 
-          <div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4 shadow-card"><div className="text-xs text-slate-500">Changes apply to this workspace.</div><button className="btn-primary"><Save size={16} />{saved ? 'Saved' : 'Save Configuration'}</button></div>
-        </form>
-      )}
-    </div>
+        {!loading && error && (
+          <div className="space-y-3 rounded-xl border border-rose-100 bg-rose-50/80 px-4 py-3">
+            <p className="type-chat-body text-rose-900">Unable to load available models.</p>
+            <button type="button" onClick={retryLoad} className="btn-secondary py-2 text-xs">
+              Retry
+            </button>
+          </div>
+        )}
+
+        {!loading && !error && models.length > 0 && !hasAvailableModel && (
+          <p className="type-chat-body text-slate-600">No AI models are currently available.</p>
+        )}
+
+        {!loading && !error && models.length > 0 && (
+          <>
+            <div className="space-y-2">
+              <label className="sr-only" htmlFor="settings-ai-model">
+                AI Model
+              </label>
+              <select
+                id="settings-ai-model"
+                aria-label="AI Model"
+                disabled={!hasAvailableModel}
+                className="input"
+                value={hasAvailableModel ? selectValue : ''}
+                onChange={event => {
+                  const parsed = parseModelSelectionValue(event.target.value)
+                  if (parsed) select(parsed)
+                }}
+              >
+                {!hasAvailableModel && <option value="">No models available</option>}
+                {hasAvailableModel && !selection && <option value="">Select a model</option>}
+                <ModelOptions models={models} groupByProvider={groupByProvider} />
+              </select>
+            </div>
+
+            {selectedModel && (
+              <div className="space-y-2 border-t border-slate-100 pt-4">
+                {selectedModel.available ? (
+                  <p className="type-chat-body flex items-center gap-2 text-emerald-700">
+                    <span className="text-emerald-500" aria-hidden>
+                      ●
+                    </span>
+                    Ready
+                  </p>
+                ) : (
+                  <div className="type-chat-body space-y-1 text-slate-600">
+                    <p className="flex items-center gap-2">
+                      <span className="text-slate-400" aria-hidden>
+                        ○
+                      </span>
+                      Unavailable
+                    </p>
+                    <p className="type-chat-meta pl-5 text-slate-500">
+                      {friendlyUnavailableMessage(selectedModel.reason)}
+                    </p>
+                  </div>
+                )}
+                <p className="type-chat-meta text-slate-500">
+                  Provider: {providerDisplayName(selectedModel.provider)}
+                </p>
+                <p className="type-chat-meta text-slate-400">{providerDeploymentHint(selectedModel.provider)}</p>
+              </div>
+            )}
+          </>
+        )}
+      </section>
+    </PageCenter>
   )
 }
-
-function formatRuntimeMode(mode: string) {
-  const normalized = String(mode || '').toLowerCase()
-  if (normalized === 'live' || normalized === 'production') return 'Connected'
-  if (normalized === 'mock') return 'Mock'
-  return mode ? 'Configured' : 'Not configured'
-}
-
-function SettingSection({ icon: Icon, title, subtitle, children }: any) { return <section className="card-pad"><div className="flex gap-3"><div className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-orange-50 text-cloudera-orange"><Icon size={19} /></div><div className="min-w-0 flex-1"><div className="text-sm font-extrabold text-cloudera-navy">{title}</div>{subtitle && <p className="mt-1 text-xs leading-5 text-slate-400">{subtitle}</p>}<div className="mt-4">{children}</div></div></div></section> }

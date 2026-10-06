@@ -3,47 +3,40 @@ from __future__ import annotations
 from typing import Any, TypedDict
 
 
-class GraphState(TypedDict, total=False):
-    question: str
-    language: str
+class AskDataState(TypedDict, total=False):
+    request_id: str
     session_id: str
-    # Prior turns in this session, oldest first - loaded from
-    # ConversationStore (app/services/conversation_store.py) by
-    # services/chat.py before each graph invocation. Nodes only ever read
-    # this field; it never accumulates within the graph itself (no
-    # LangGraph checkpointer is used - see workflow.py).
-    history: list[dict[str, str]]
-    trace_id: str
-    dashboard_state: dict[str, Any]
-    resolved_state: dict[str, Any]
-    intent: str
-    semantic_context: str
+    question: str
+    original_question: str
+    conversation_history: list[dict[str, Any]]
+    session_last_metric: str | None
+    session_analysis_context: dict[str, Any]
+    provider: str
+    model: str
+    use_local_agent: bool
     semantic_resolution: dict[str, Any]
-    semantic_plan: dict[str, Any]
-    capability_status: str
-    scope_notice: str
-    analytical_intent: dict[str, Any]
-    forecast_intent: dict[str, Any]
-    weather_intent: dict[str, Any]
-    weather_evidence: dict[str, Any]
-    market_intent: dict[str, Any]
-    market_evidence: dict[str, Any]
+    governed_partial_caveats: list[str]
+    governed_entity_lookup: bool
+    semantic_context: dict[str, Any]
+    strategy: str
+    query_plan: dict[str, Any]
     sql: str
-    sql_reason: str
     validated_sql: str
-    validation_status: str
     validation_error: str
-    repair_attempts: int
-    rows: list[dict[str, Any]]
-    result_check_status: str
-    result_check_error: str
+    query_result: dict[str, Any]
     answer: dict[str, Any]
-    chart_spec: dict[str, Any]
-    ui_actions: list[dict[str, Any]]
+    chart_spec: dict[str, Any] | None
     status: str
-    fallback_used: bool
-    model_telemetry: dict[str, Any]
-    data_telemetry: dict[str, Any]
-    guardrail_error: str
-    reset_requested: bool
-    governance_probe_detected: bool
+    error: str
+    retry_count: int
+    timings: dict[str, float]
+    inquiry_brief: dict[str, Any]
+    judge_iteration: int
+    judge_review: dict[str, Any]
+    judge_issues: list[str]
+    judge_retry_synthesize: bool
+    judge_synthesis_hint: str
+    judge_retry_plan: bool
+    judge_plan_hint: str
+    conversational_intent: dict[str, Any]
+    turn_understanding: dict[str, Any]

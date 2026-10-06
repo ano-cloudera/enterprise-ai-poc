@@ -1,104 +1,69 @@
-export type DashboardState = {
-  filters: Record<string, string[]>
-  date_range: { preset: string | null; start: string | null; end: string | null }
-  metric: string
-  dimension: string
-  highlights: { target: string; value: string }[]
-  ai_applied_context: AppliedContextItem[]
-  revision: number
-  chat: {
-    chart: { chart_type: Exclude<ChartSpec['type'], 'none'>; dimension: string; metric: string } | null
-    table: { visible: boolean; columns: string[] }
-  }
+export type ProviderName = 'qwen' | 'gemini' | 'openai'
+
+export type ModelInfo = {
+  provider: ProviderName
+  id: string
+  label: string
+  available: boolean
+  reason: string | null
 }
 
-export type AppliedContextItem = { kind: 'filter' | 'date_range'; target: string; label: string }
+export type ModelSelection = { provider: ProviderName; model: string }
 
 export type ChartSpec = {
-  type: 'line' | 'bar' | 'area' | 'pie' | 'table' | 'none'
+  type: 'bar' | 'line' | 'area' | 'scatter' | 'pie' | 'table' | 'kpi'
   title: string
-  x: string[]
-  series: { name: string; data: (number | string | null)[] }[]
-  x_label?: string | null
-  y_label?: string | null
-  dimension?: string | null
-  metric?: string | null
-  // Governed unit for this metric's numeric value (currency_idr, quantity,
-  // percent, ratio, minutes, count) - declared per-metric in
-  // tempo_core.ossie.yaml, not guessed from the field/metric name.
-  unit_format?: string | null
-  target?: 'chat' | 'dashboard' | 'both'
+  x?: string | null
+  y?: string | null
+  series?: string | null
 }
 
-export type UIActionType =
-  | 'SET_FILTER'
-  | 'SET_DATE_RANGE'
-  | 'CHANGE_METRIC'
-  | 'CHANGE_DIMENSION'
-  | 'RENDER_CHART'
-  | 'SHOW_TABLE'
-  | 'HIGHLIGHT_CARD'
-  | 'RESET_FILTER'
-
-export type UIAction =
-  | { type: 'SET_FILTER'; target: string; value: string[] }
-  | { type: 'SET_DATE_RANGE'; value: string | { start: string; end: string } }
-  | { type: 'CHANGE_METRIC'; value: string }
-  | { type: 'CHANGE_DIMENSION'; value: string }
-  | { type: 'RENDER_CHART'; target: 'chat' | 'dashboard' | 'both'; value: { chart_type: Exclude<ChartSpec['type'], 'none'>; dimension: string; metric: string } }
-  | { type: 'SHOW_TABLE'; target: 'chat' | 'dashboard' | 'both'; value: { columns: string[] } }
-  | { type: 'HIGHLIGHT_CARD'; target: string; value: string | string[] }
-  | { type: 'RESET_FILTER'; target?: string }
+export type AnalysisOutput = {
+  direct_answer: string
+  executive_summary: string
+  insights: string[]
+  business_implications: string[]
+  caveats: string[]
+  data_reference: string
+  chart_spec: ChartSpec | null
+}
 
 export type ChatResponse = {
-  status: 'ok' | 'fallback' | 'error'
-  question: string
-  answer: {
-    summary: string
-    drivers: string[]
-    recommended_actions: string[]
-    caveats: string[]
-    // Verbatim Markdown from the agent_studio chat backend (see
-    // markdown_chart_adapter.py) - when present, StructuredAnswer renders
-    // this directly (react-markdown) instead of reconstructing a card
-    // from summary/drivers/caveats. Absent/null for the "graph" backend.
-    markdown?: string | null
-  }
-  data: {
-    columns: string[]
-    rows: Record<string, unknown>[]
-    unit_format?: string | null
-  }
+  request_id: string
+  session_id: string
+  status: 'SUCCESS' | 'CLARIFICATION' | 'NO_DATA' | 'UNSUPPORTED' | 'ERROR'
+  provider: ProviderName
+  model: string
+  strategy:
+    | 'governed'
+    | 'sql_fallback'
+    | 'clarification'
+    | 'unsupported'
+    | 'conversational'
+    | 'exploratory_local'
+    | 'local_agent_exploratory'
+    | 'error'
+  answer: AnalysisOutput
+  data: { columns: string[]; rows: Record<string, unknown>[]; row_count: number; execution_ms: number }
   chart_spec: ChartSpec | null
-  ui_actions: UIAction[]
-  metadata: {
-    trace_id: string
-    session_id: string
-    intent: string
-    resolved_context: DashboardState
-    execution_time_ms: number
+  timings: {
+    context_ms?: number
+    planning_ms?: number
+    validation_ms?: number
+    agent_ms?: number
+    query_ms?: number
+    analysis_ms?: number
+    total_ms: number
   }
+  retry_count: number
 }
 
-export type DashboardOverview = {
-  profile?: string
-  period: string
-  kpis: { key: string; label: string; value: number | string; format: string; delta: number | null }[]
-  sales_trend: { month: string; sales: number }[]
-  region_sales: { region: string; sales: number }[]
-  top_products: { product: string; category: string; sales: number }[]
-  channel_share: { channel: string; sales: number; share: number }[]
-  ai_insight: { headline: string; summary: string; actions: string[] }
-  labels?: Record<string, string>
-  scope_badges?: string[]
-  refreshed_at?: string
-  forecast?: { value: number; format: string; period: string; delta?: number | null }
-  market_signals?: {
-    opportunity_score?: number
-    opportunity_context?: string
-    market_growth?: number
-    competitive_pressure?: number
-    distribution_gap?: number
-    weather_correlation?: number
-  }
+export type SuggestedQuestion = {
+  id: string
+  question: string
+  domain: string
+  domains: string[]
+  difficulty: 'simple' | 'medium' | 'complex'
+  analysis_type: string
+  expected_visualization: string
 }

@@ -2,7 +2,7 @@
 
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
-**Goal:** Deliver separate, production-oriented `frontend-v2` and `backend-v2` applications by adapting proven TEMPO V1 artifacts into a two-call controlled LangGraph Ask Data workflow.
+**Goal:** Deliver separate, production-oriented `frontend` and `backend` applications by adapting proven TEMPO V1 artifacts into a two-call controlled LangGraph Ask Data workflow.
 
 **Architecture:** A self-contained FastAPI backend uses Ossie-first resolution, controlled approved-schema SQL fallback, SQLGlot validation, Impala execution, and provider-neutral structured generation. A pruned Next.js frontend retains the existing chat/session/visualization experience and communicates through the existing CAI-safe same-origin rewrite and SSE pattern.
 
@@ -12,7 +12,7 @@
 
 ## Global Constraints
 
-- V1 source behavior must remain unchanged; all product changes live in `frontend-v2`, `backend-v2`, and V2 documentation.
+- V1 source behavior must remain unchanged; all product changes live in `frontend`, `backend`, and V2 documentation.
 - Reuse the current 20-dataset/62-metric `tempo_scan_impala` Ossie contract and existing Impala Kerberos/TLS configuration.
 - Agent Studio, CrewAI, and autonomous agent loops are forbidden in V2 runtime.
 - Normal analytical execution uses at most two LLM calls plus at most one SQL repair attempt.
@@ -33,7 +33,7 @@
 ### Task 1: Backend V2 foundation and provider registry
 
 **Files:**
-- Create: `backend-v2/app/core/config.py`, `backend-v2/app/core/models.py`, `backend-v2/app/llm/base.py`, `backend-v2/app/llm/providers.py`, `backend-v2/app/llm/registry.py`, `backend-v2/app/main.py`, `backend-v2/app/api/models.py`, `backend-v2/tests/test_models_api.py`, `backend-v2/tests/test_providers.py`
+- Create: `backend/app/core/config.py`, `backend/app/core/models.py`, `backend/app/llm/base.py`, `backend/app/llm/providers.py`, `backend/app/llm/registry.py`, `backend/app/main.py`, `backend/app/api/models.py`, `backend/tests/test_models_api.py`, `backend/tests/test_providers.py`
 - Reuse: relevant package markers, requirements, safe error middleware, and V1 provider HTTP conventions
 
 **Interfaces:**
@@ -47,7 +47,7 @@
 ### Task 2: Semantic context, SQL policy, and question bank
 
 **Files:**
-- Create: `backend-v2/app/semantic/context.py`, `backend-v2/app/semantic/questions.py`, `backend-v2/app/sql/validator.py`, `backend-v2/app/api/random_queries.py`, `backend-v2/data/random_queries.yaml`, `backend-v2/projects/tempo_scan_impala/**`, `backend-v2/tests/test_semantic_context.py`, `backend-v2/tests/test_sql_validator.py`, `backend-v2/tests/test_random_queries.py`
+- Create: `backend/app/semantic/context.py`, `backend/app/semantic/questions.py`, `backend/app/sql/validator.py`, `backend/app/api/random_queries.py`, `backend/data/random_queries.yaml`, `backend/projects/tempo_scan_impala/**`, `backend/tests/test_semantic_context.py`, `backend/tests/test_sql_validator.py`, `backend/tests/test_random_queries.py`
 - Reuse/adapt: V1 Ossie registry/service, Ossie YAML/governance/golden questions, SQLGlot policy, Impala backend primitives.
 
 **Interfaces:**
@@ -62,7 +62,7 @@
 ### Task 3: Controlled LangGraph workflow, persistence, and SSE API
 
 **Files:**
-- Create: `backend-v2/app/graph/state.py`, `backend-v2/app/graph/nodes.py`, `backend-v2/app/graph/workflow.py`, `backend-v2/app/services/chat.py`, `backend-v2/app/services/history.py`, `backend-v2/app/api/chat.py`, `backend-v2/prompts/*.md`, `backend-v2/tests/test_workflow.py`, `backend-v2/tests/test_chat_api.py`, `backend-v2/tests/test_history.py`
+- Create: `backend/app/graph/state.py`, `backend/app/graph/nodes.py`, `backend/app/graph/workflow.py`, `backend/app/services/chat.py`, `backend/app/services/history.py`, `backend/app/api/chat.py`, `backend/prompts/*.md`, `backend/tests/test_workflow.py`, `backend/tests/test_chat_api.py`, `backend/tests/test_history.py`
 - Reuse/adapt: V1 governed query compiler, Impala client, conversation SQLite store, structured output prompts/backstories, SSE heartbeat route.
 
 **Interfaces:**
@@ -77,7 +77,7 @@
 ### Task 4: Frontend V2 Ask Data application
 
 **Files:**
-- Create/adapt: `frontend-v2/app/**`, `frontend-v2/src/**`, `frontend-v2/package*.json`, Next/Tailwind/TypeScript/Vitest configs and tests.
+- Create/adapt: `frontend/app/**`, `frontend/src/**`, `frontend/package*.json`, Next/Tailwind/TypeScript/Vitest configs and tests.
 - Reuse/adapt: V1 layout/branding, Ask AI view, sessions, API/SSE parser, Recharts/table/KPI components.
 
 **Interfaces:**
@@ -93,7 +93,7 @@
 ### Task 5: CAI deployment artifacts and documentation
 
 **Files:**
-- Create: `backend-v2/app_cai_backend.py`, `backend-v2/start.sh`, `backend-v2/.env.example`, `backend-v2/README.md`, `frontend-v2/app_cai_frontend.py`, `frontend-v2/start.sh`, `frontend-v2/.env.example`, `frontend-v2/README.md`.
+- Create: `backend/app_cai_backend.py`, `backend/start.sh`, `backend/.env.example`, `backend/README.md`, `frontend/app_cai_frontend.py`, `frontend/start.sh`, `frontend/.env.example`, `frontend/README.md`.
 - Adapt: V1 dynamic ports, path discovery, dependency installation, proxy configuration, log handling, and CAI environment conventions.
 
 **Interfaces:**
