@@ -134,8 +134,12 @@ def analysis_context_from_history(history: list[dict]) -> dict[str, Any]:
         return ctx
     metric = stored.get("last_metric")
     ranked = list(stored.get("ranked_entities") or [])
+    stored_dims = list(stored.get("last_dimensions") or [])
     if not ranked:
-        ranked = _ranked_entities_from_rows(_rows_for_chart_follow_up(anchor))
+        ranked = _ranked_entities_from_rows(
+            _rows_for_chart_follow_up(anchor),
+            preferred_dimensions=stored_dims,
+        )
     if not metric:
         metric = infer_governed_metric_from_turn(anchor, ranked_entities=ranked)
     if not metric and not ranked:
@@ -227,6 +231,23 @@ def _wants_branch_contribution_drill(question: str) -> bool:
     return any(t in lowered for t in ("dc mana", "cabang mana", "kontribusi", "branch mana"))
 
 
+def _wants_dc_support_drill(question: str) -> bool:
+    lowered = _normalize(question)
+    return any(t in lowered for t in ("menopang", "menyokong", "mendukung")) and "dc" in lowered
+
+
+def _wants_plu_drill_at_dc(question: str) -> bool:
+    lowered = _normalize(question)
+    return "plu" in lowered or "stok retail" in lowered or "retail" in lowered
+
+
+def _wants_sell_out_product_drill(question: str) -> bool:
+    lowered = _normalize(question)
+    return any(t in lowered for t in ("sell-out", "sell out", "sellout")) and any(
+        t in lowered for t in _DRILL_MATERIAL_TERMS
+    )
+
+
 def _wants_sell_in_crosscheck(question: str) -> bool:
     lowered = _normalize(question)
     return any(
@@ -235,12 +256,21 @@ def _wants_sell_in_crosscheck(question: str) -> bool:
     )
 
 
+_DC_CITY_STOP = frozenset({
+    "mana", "yang", "dengan", "partner", "alfamart", "tertinggi", "terbesar", "terbanyak",
+    "stok", "stock", "sat", "di", "ke", "dan", "atau", "untuk", "pada",
+})
+
+
 def _dc_cities_from_text(text: str) -> list[str]:
     cities: list[str] = []
-    for match in re.finditer(r"\bdc\s+([a-zA-Z]+)", text, re.IGNORECASE):
-        city = match.group(1).title()
-        if city not in cities:
-            cities.append(city)
+    for match in re.finditer(r"\bdc\s+([A-Za-z]+)", text, re.IGNORECASE):
+        city = match.group(1)
+        if city.casefold() in _DC_CITY_STOP:
+            continue
+        label = city.title()
+        if label not in cities:
+            cities.append(label)
     return cities
 
 
@@ -254,6 +284,21 @@ def _bind_entity_from_catalog(question: str, catalog: list[dict[str, Any]]) -> d
         if bound:
             return bound
     # Rank references (legacy phrases)
+    if any(
+        t in lowered
+        for t in (
+            "muncul di jawaban",
+            "di jawaban tadi",
+            "yang muncul",
+            "dari jawaban",
+            "dc yang",
+            "status dominan",
+            "dominan tadi",
+        )
+    ):
+        return catalog[0]
+    if any(t in lowered for t in ("terburuk", "paling buruk", "outlet terburuk", "toko terburuk")):
+        return catalog[0]
     if any(t in lowered for t in ("pertama", "paling atas", "teratas", "rank 1", "urutan 1", "top 1")):
         for item in catalog:
             if item.get("rank") == 1:
@@ -496,6 +541,32 @@ def plan_follow_up(question: str, ctx: dict[str, Any]) -> FollowUpPlan | None:
             )
 
     last_dims = list(ctx.get("last_dimensions") or [])
+    promo_context = (
+        domain_id == "promo"
+        or "promo_observation" in last_metric.casefold()
+        or "program_status" in last_dims
+    )
+    if promo_context and any(t in lowered for t in ("uplift", "by uplift")) and any(
+        t in lowered for t in ("status dominan", "dominan tadi", "tadi", "dominan")
+    ):
+        ent = _bind_entity_from_catalog(question, catalog) or (catalog[0] if catalog else None)
+        if ent is None and "program_status" in last_dims:
+            ent = {
+                "rank": 1,
+                "id": "Y",
+                "entity_type": "program_status",
+                "dimension": "program_status",
+            }
+        return FollowUpPlan(
+            intent="drill_down",
+            filter_entity=ent,
+            to_grain="material",
+            limit=_parse_top_n(question, default=5),
+            domain_id="promo",
+            from_grain=str(from_grain or "program_status"),
+            metric_override="promo_material_revenue_uplift",
+        )
+
     if (
         domain_id == "service_level"
         or "fill_rate" in last_metric.casefold()
@@ -558,6 +629,26 @@ def plan_follow_up(question: str, ctx: dict[str, Any]) -> FollowUpPlan | None:
                 from_grain=str(from_grain) if from_grain else None,
             )
 
+    if (
+        catalog
+        and len(catalog) >= 2
+        and any(t in lowered for t in ("tercepat", "paling cepat", "efisien"))
+        and any(t in lowered for t in ("terlama", "terlambat", "paling lambat", "tertinggi"))
+        and any(t in lowered for t in ("ranking", "daftar", "sama", "bandingkan", " vs "))
+    ):
+        slow_ent = catalog[0]
+        fast_ent = catalog[-1]
+        grain = str(slow_ent.get("dimension") or slow_ent.get("entity_type") or "sales_office")
+        return FollowUpPlan(
+            intent="compare",
+            filter_entity=None,
+            to_grain=None,
+            limit=None,
+            domain_id=str(domain_id) if domain_id else None,
+            from_grain=grain,
+            compare_entities=[slow_ent, fast_ent],
+        )
+
     relimit = _RELIMIT_RE.search(lowered)
     if relimit:
         return FollowUpPlan(
@@ -599,6 +690,78 @@ def plan_follow_up(question: str, ctx: dict[str, Any]) -> FollowUpPlan | None:
         )
 
     filter_entity = _bind_entity_from_catalog(question, catalog)
+    if filter_entity and from_grain == "division" and (
+        _wants_dc_support_drill(question) or _wants_branch_contribution_drill(question)
+    ):
+        return FollowUpPlan(
+            intent="drill_down",
+            filter_entity=filter_entity,
+            to_grain="dcname",
+            limit=_parse_top_n(question, default=10),
+            domain_id="stock_sat",
+            from_grain="division",
+            metric_override="sat_dc_stock_quantity",
+        )
+
+    if (
+        filter_entity
+        and str(filter_entity.get("dimension") or filter_entity.get("entity_type") or "") == "dcname"
+        and _wants_plu_drill_at_dc(question)
+    ):
+        return FollowUpPlan(
+            intent="drill_down",
+            filter_entity=filter_entity,
+            to_grain="plu",
+            limit=_parse_top_n(question, default=5),
+            domain_id="stock_sat",
+            from_grain="dcname",
+            metric_override="sat_store_stock_quantity",
+        )
+
+    if filter_entity and _wants_sell_out_product_drill(question):
+        grain = str(filter_entity.get("dimension") or filter_entity.get("entity_type") or "branch")
+        if grain in ("dcname", "branch"):
+            limit = _parse_top_n(question, default=3)
+            return FollowUpPlan(
+                intent="drill_down",
+                filter_entity=filter_entity,
+                to_grain="material",
+                limit=limit,
+                domain_id="b2b",
+                from_grain=grain,
+                metric_override="material_sell_out_value",
+            )
+
+    if filter_entity and domain_id == "promo" and any(
+        t in lowered for t in ("status dominan", "dominan tadi", "by uplift", "uplift", "material")
+    ):
+        return FollowUpPlan(
+            intent="drill_down",
+            filter_entity=filter_entity,
+            to_grain="material",
+            limit=_parse_top_n(question, default=5),
+            domain_id="promo",
+            from_grain=str(from_grain or "program_status"),
+            metric_override="promo_material_revenue_uplift",
+        )
+
+    if (
+        not filter_entity
+        and catalog
+        and domain_id == "promo"
+        and any(t in lowered for t in ("status dominan", "dominan tadi"))
+    ):
+        filter_entity = catalog[0]
+        return FollowUpPlan(
+            intent="drill_down",
+            filter_entity=filter_entity,
+            to_grain="material",
+            limit=_parse_top_n(question, default=5),
+            domain_id="promo",
+            from_grain=str(from_grain or "program_status"),
+            metric_override="promo_material_revenue_uplift",
+        )
+
     if (
         not filter_entity
         and catalog
@@ -787,6 +950,21 @@ def _drill_metric_and_dimensions(plan: FollowUpPlan, ctx: dict[str, Any]) -> tup
     if plan.to_grain == "branch" and entity:
         return "b2b_branch_sell_out_value", ["branch"], predicates
 
+    if plan.to_grain == "plu" and entity:
+        preds = list(predicates)
+        pred = _entity_predicate(entity, default_grain="dcname", flexible_branch=True)
+        if pred:
+            preds.append(pred)
+        return "sat_store_stock_quantity", ["plu"], preds
+
+    if plan.to_grain == "dcname" and entity:
+        dim = str(entity.get("entity_type") or entity.get("dimension") or "division")
+        preds = list(predicates)
+        if dim == "division" and "division" not in " ".join(preds).casefold():
+            div_lit = _sql_string_literal(str(entity.get("id") or ""))
+            preds.append(f"d.division = {div_lit}")
+        return "sat_dc_stock_quantity", ["dcname"], preds
+
     if plan.to_grain == "plant" and entity:
         if domain == "stock_tempo" or "stock" in last_metric.casefold():
             return "stock_tempo_total_qty", ["plant"], predicates
@@ -826,6 +1004,19 @@ def _drill_metric_and_dimensions(plan: FollowUpPlan, ctx: dict[str, Any]) -> tup
                     off_dim = "sales_off"
                 dims.append(off_dim)
             return "sales_office_service_fill_rate", dims, preds
+        if domain == "promo" or "promo" in last_metric.casefold():
+            override = str(plan.metric_override or "")
+            if override == "promo_material_revenue_uplift" or "uplift" in override:
+                preds = [p for p in predicates if "program_status" not in p.casefold()]
+                if entity and str(entity.get("entity_type") or entity.get("dimension") or "") == "program_status":
+                    status_id = str(entity.get("id") or "Y")
+                    status_lit = _sql_string_literal(status_id)
+                    preds.append(
+                        "d.material IN (SELECT DISTINCT p.material_code "
+                        "FROM gold.rpt_sat_promo_material_december_semantic p "
+                        f"WHERE p.program_status = {status_lit})"
+                    )
+                return "promo_material_revenue_uplift", ["material"], preds
         if domain == "sales" or "sell_in" in last_metric.casefold():
             dims = ["material"]
             if entity and str(entity.get("entity_type") or "") in ("sales_office", "sales_off"):
@@ -834,11 +1025,30 @@ def _drill_metric_and_dimensions(plan: FollowUpPlan, ctx: dict[str, Any]) -> tup
         if domain == "b2b" or "b2b" in last_metric.casefold() or "sell_out" in last_metric.casefold():
             # corr_b2b_material_plu is not reliably queryable in PoC Impala; use governed
             # material sell-out semantic (same family as management "top produk" questions).
-            branch_predicates = [p for p in predicates if not p.casefold().startswith("d.branch")]
+            branch_predicates = [p for p in predicates if "dcname" not in p.casefold()]
+            if entity:
+                ent_dim = str(entity.get("entity_type") or entity.get("dimension") or "")
+                eid = str(entity.get("id") or "")
+                if ent_dim == "dcname" and eid:
+                    city = re.sub(r"^dc\s+", "", eid, flags=re.IGNORECASE).strip() or eid
+                    branch_predicates.append(
+                        f"UPPER(d.branch) LIKE CONCAT('%', UPPER({_sql_string_literal(city)}), '%')"
+                    )
+                elif ent_dim == "branch" and eid:
+                    branch_predicates.append(
+                        _entity_predicate(entity, default_grain="branch", flexible_branch=True) or ""
+                    )
+                    branch_predicates = [p for p in branch_predicates if p]
             return "material_sell_out_value", ["material"], branch_predicates
         if domain == "stock_sat":
+            ent_type = str((entity or {}).get("entity_type") or (entity or {}).get("dimension") or "")
+            if ent_type == "dcname" or default_grain == "dcname":
+                return "sat_store_stock_quantity", ["plu"], predicates
             return "sat_store_stock_quantity", ["plu"], predicates
         if domain == "sat_oos":
+            ent_type = str((entity or {}).get("entity_type") or (entity or {}).get("dimension") or "")
+            if ent_type in ("cust_id", "cust_code", "customer"):
+                return "sat_oos_rate", ["material_code"], predicates
             return "sat_oos_rate", ["material_code"], predicates
         return "material_sell_in_value", ["material"], predicates
 

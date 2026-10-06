@@ -148,6 +148,26 @@ def test_stock_tempo_plant_top_materials_follow_up() -> None:
     assert any("2300" in p for p in res.get("follow_up_entity_filters") or [])
 
 
+def test_picking_slowest_vs_fastest_from_same_ranking_compare() -> None:
+    ctx = build_analysis_context(
+        metric="average_picking_minutes",
+        dimensions=["sales_office"],
+        entity_dimension="sales_office",
+        ranked_entities=[
+            {"rank": 1, "id": "0234", "dimension": "sales_office", "metric_value": 23.5},
+            {"rank": 10, "id": "0274", "dimension": "sales_office", "metric_value": 12.1},
+        ],
+        last_question="Sales office mana dengan rata-rata durasi picking terlama Q4 2024?",
+    )
+    q = "office terlama tadi, bandingkan dengan office tercepat dari ranking yang sama"
+    plan = plan_follow_up(q, ctx)
+    assert plan is not None
+    assert plan.intent == "compare"
+    assert plan.compare_entities is not None
+    ids = {str(e["id"]) for e in plan.compare_entities}
+    assert ids == {"0234", "0274"}
+
+
 def test_picking_fastest_vs_office_0201_compare_follow_up() -> None:
     ctx = build_analysis_context(
         metric="average_picking_minutes",
@@ -178,6 +198,58 @@ def test_unloading_company_avg_follow_up_aggregate() -> None:
     assert plan.intent == "aggregate"
 
 
+def test_stock_sat_dc_rank1_plu_drill_follow_up() -> None:
+    ctx = build_analysis_context(
+        metric="sat_dc_stock_quantity",
+        dimensions=["dcname"],
+        entity_dimension="dcname",
+        ranked_entities=[{"rank": 1, "id": "DC MAKASSAR", "dimension": "dcname", "metric_value": 500_000}],
+        last_question="Top 10 DC dengan penumpukan stok SAT tertinggi Q4 2024",
+    )
+    q = "DC rank 1 tadi, top 5 PLU dengan stok retail tertinggi"
+    res = try_follow_up_governed_resolution(q, ctx, understanding=None)
+    assert res is not None
+    assert res["metric"] == "sat_store_stock_quantity"
+    assert "plu" in res["dimensions"]
+    filters = " ".join(res.get("follow_up_entity_filters") or [])
+    assert "MAKASSAR" in filters.upper()
+
+
+def test_stock_sat_division_to_dc_support_follow_up() -> None:
+    ctx = build_analysis_context(
+        metric="sat_store_stock_quantity",
+        dimensions=["division"],
+        entity_dimension="division",
+        ranked_entities=[{"rank": 1, "id": "FOOD", "dimension": "division", "metric_value": 1_000_000}],
+        last_question="Berapa stok retail SAT per division Q4 2024? Top 10 division",
+    )
+    q = "division teratas, DC mana yang menopang stok terbesar?"
+    res = try_follow_up_governed_resolution(q, ctx, understanding=None)
+    assert res is not None
+    assert res["metric"] == "sat_dc_stock_quantity"
+    assert "dcname" in res["dimensions"]
+    filters = " ".join(res.get("follow_up_entity_filters") or [])
+    assert "FOOD" in filters.upper()
+    assert "MANA" not in filters.upper()
+
+
+def test_cross_domain_dc_sell_out_product_drill_follow_up() -> None:
+    ctx = build_analysis_context(
+        metric="sat_dc_stock_quantity",
+        dimensions=["dcname"],
+        entity_dimension="dcname",
+        ranked_entities=[{"rank": 1, "id": "DC Makassar", "dimension": "dcname", "metric_value": 500_000}],
+        last_question="DC Alfamart mana stok SAT-nya paling tinggi Q4?",
+    )
+    q = "DC yang muncul di jawaban tadi, top 3 produk sell-out-nya"
+    res = try_follow_up_governed_resolution(q, ctx, understanding=None)
+    assert res is not None
+    assert res["metric"] == "material_sell_out_value"
+    assert "material" in res["dimensions"]
+    filters = " ".join(res.get("follow_up_entity_filters") or [])
+    assert "MAKASSAR" in filters.upper()
+
+
 def test_stock_tempo_fe001_follow_up_metric() -> None:
     ctx = build_analysis_context(
         metric="material_warehouse_stock_quantity",
@@ -191,3 +263,24 @@ def test_stock_tempo_fe001_follow_up_metric() -> None:
     assert res is not None
     assert res["metric"] == "material_warehouse_stock_quantity"
     assert any("FE001" in p for p in res.get("follow_up_entity_filters") or [])
+
+
+def test_promo_status_dominant_to_uplift_material_follow_up() -> None:
+    ctx = build_analysis_context(
+        metric="promo_observation_count",
+        dimensions=["program_status"],
+        entity_dimension="program_status",
+        ranked_entities=[
+            {"rank": 1, "id": "Y", "dimension": "program_status", "metric_value": 1200},
+            {"rank": 2, "id": "X", "dimension": "program_status", "metric_value": 400},
+        ],
+        last_question="Distribusi promo SAT by program status Q4 2024",
+    )
+    q = "status dominan tadi, top 5 material by uplift"
+    res = try_follow_up_governed_resolution(q, ctx, understanding=None)
+    assert res is not None
+    assert res["metric"] == "promo_material_revenue_uplift"
+    assert "material" in res["dimensions"]
+    filters = " ".join(res.get("follow_up_entity_filters") or [])
+    assert "program_status" in filters.casefold()
+    assert "'Y'" in filters or "Y" in filters

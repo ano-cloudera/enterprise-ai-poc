@@ -16,6 +16,17 @@ def deterministic_ops_duration_answer(
     metric_folded = metric.casefold()
     if "picking" not in metric_folded and "unloading" not in metric_folded:
         return None
+    company_avg = any(
+        term in lowered
+        for term in ("company-wide", "company wide", "seluruh perusahaan", "companywide", "nasional")
+    ) and any(term in lowered for term in ("rata-rata", "rata rata", "average", "berapa"))
+    if company_avg and len(rows) == 1 and isinstance(rows[0], dict) and "metric_value" in rows[0]:
+        try:
+            minutes_f = float(rows[0]["metric_value"])
+        except (TypeError, ValueError):
+            return None
+        label = "picking" if "picking" in metric_folded else "unloading"
+        return f"Rata-rata durasi {label} company-wide Q4 2024: {minutes_f:.2f} menit (agregat governed)."
     if not any(term in lowered for term in ("mana", "office", "cabang", "sales office")):
         return None
     if not any(

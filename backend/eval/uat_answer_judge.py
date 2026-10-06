@@ -125,7 +125,7 @@ async def judge_management_turn(
 
     last_error: str | None = None
     verdict: UATAnswerVerdict | None = None
-    for attempt in range(2):
+    for attempt in range(4):
         try:
             verdict = await provider.generate_structured(
                 [
@@ -143,8 +143,8 @@ async def judge_management_turn(
             break
         except ProviderError as exc:
             last_error = str(exc)
-            if attempt == 0:
-                await asyncio.sleep(2.0)
+            if attempt < 3:
+                await asyncio.sleep(2.0 * (attempt + 1))
         except Exception as exc:  # noqa: BLE001
             return None, f"judge_failed:{type(exc).__name__}"
     if verdict is None:

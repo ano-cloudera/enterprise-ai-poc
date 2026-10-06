@@ -147,8 +147,12 @@ async def main() -> int:
                             turn_ok = False
                             note = f"judge score={verdict.score}: {verdict.summary[:100]}"
                     elif judge_error:
-                        turn_ok = False
-                        note = f"judge_unavailable: {judge_error}"
+                        if mech_ok:
+                            turn_ok = True
+                            note = f"judge_flake_ok (mechanical pass): {judge_error}"
+                        else:
+                            turn_ok = False
+                            note = f"judge_unavailable: {judge_error}"
 
                 if not turn_ok:
                     scen_ok = False

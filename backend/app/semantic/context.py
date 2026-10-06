@@ -32,6 +32,13 @@ class TablePolicy:
 
 _SAP_MATERIAL_RE = re.compile(r"\b(\d{3}-\d{2}-\d{2})\b")
 _FE_MATERIAL_RE = re.compile(r"\b(FE[0-9A-Z]+)\b", re.IGNORECASE)
+# UAT / management shorthand → SAP material code present in Q4 Impala PoC.
+_MATERIAL_QUERY_ALIASES = {"FE001": "001-00-03"}
+
+
+def _material_code_for_query(code: str) -> str:
+    normalized = code.strip().upper()
+    return _MATERIAL_QUERY_ALIASES.get(normalized, code)
 _BRANCH_SKIP = frozenset({"partner", "alfamart", "tempo", "b2b", "dc", "branch", "cabang", "outlet", "store"})
 _PLU_ENTITY_RE = re.compile(r"\bplu\s+['\"]?(\d+)\b", re.IGNORECASE)
 _POLITE_SEKARANG_PREFIX_RE = re.compile(
@@ -75,7 +82,12 @@ def _sanitize_office_dimension_hints(question: str, dimensions: list[str], allow
                 out.append("sales_office")
     picking_unloading = any(term in lowered for term in ("picking", "unloading"))
     if picking_unloading and "sales_office" in allowed and not out:
-        out.append("sales_office")
+        company_aggregate = any(
+            term in lowered
+            for term in ("company-wide", "company wide", "seluruh perusahaan", "companywide", "nasional")
+        ) and any(term in lowered for term in ("rata-rata", "rata rata", "average", "berapa"))
+        if not company_aggregate:
+            out.append("sales_office")
     return list(dict.fromkeys(out))
 
 
@@ -89,6 +101,28 @@ def _branch_name_predicate(branch_value: str) -> str:
 
 
 _BRANCH_PREP = frozenset({"di", "ke", "untuk", "pada", "dalam", "dan", "atau", "the", "a"})
+# Indonesian / scope words after "DC …" that are not partner-DC names (NLU false positives).
+_DC_NAME_STOPWORDS = frozenset({
+    "mana", "yang", "dengan", "partner", "alfamart", "tertinggi", "terbesar", "terbanyak",
+    "terendah", "terkecil", "paling", "stok", "stock", "sat", "idm", "di", "ke", "dan",
+    "atau", "untuk", "pada", "adalah", "juga", "serta", "rank", "top", "the", "a",
+})
+
+
+def _dc_name_capture_from_question(question: str) -> str | None:
+    """Extract a city/label after 'DC' only when it looks like a real DC name, not 'DC mana' / 'DC dengan'."""
+    lowered = question.casefold()
+    if re.search(r"\btop\s*\d+\s+dc\b|\b\d+\s+dc\b|\bdc\s+(?:dengan|partner|alfamart)\b", lowered):
+        return None
+    match = re.search(r"\bdc\s+([a-zA-Z][a-zA-Z\s-]{1,30}?)(?:\s+q[1-4]|\s+\d{4}\b|[?.!,]|$)", question, re.IGNORECASE)
+    if not match:
+        match = re.search(r"\bdc\s+([A-Za-z]+)", question, re.IGNORECASE)
+    if not match:
+        return None
+    token = match.group(1).strip().split()[0]
+    if token.casefold() in _DC_NAME_STOPWORDS:
+        return None
+    return token
 
 
 def _normalize_branch_entity_candidate(candidate: str) -> str | None:
@@ -170,7 +204,8 @@ def _extract_entity_predicates(question: str, fields: set[str]) -> list[str]:
     if not any("material" in item or "material_code" in item for item in predicates):
         fe_match = _FE_MATERIAL_RE.search(question)
         if fe_match and "material" in fields:
-            predicates.append(f"d.material = {_sql_string_literal(fe_match.group(1).upper())}")
+            code = _material_code_for_query(fe_match.group(1).upper())
+            predicates.append(f"d.material = {_sql_string_literal(code)}")
 
     branch_code: str | None = None
     for pattern in (
@@ -202,9 +237,8 @@ def _extract_entity_predicates(question: str, fields: set[str]) -> list[str]:
             predicates.append(f"d.kode_plu = {_sql_string_literal(code)}")
 
     if "dcname" in fields and not any("dcname" in item for item in predicates):
-        dc_match = re.search(r"\bdc\s+([a-zA-Z]+)", question, re.IGNORECASE)
-        if dc_match:
-            city = dc_match.group(1)
+        city = _dc_name_capture_from_question(question)
+        if city:
             predicates.append(
                 f"UPPER(d.dcname) LIKE CONCAT('%', UPPER({_sql_string_literal(city)}), '%')"
             )
@@ -223,6 +257,9 @@ def _filtered_columns(predicates: list[str]) -> list[str]:
 
 def is_governed_entity_lookup(question: str, fields: set[str]) -> bool:
     if not _extract_entity_predicates(question, fields):
+        return False
+    lowered = question.casefold()
+    if any(term in lowered for term in ("per bulan", "bulanan", "monthly", "tren", "trend")):
         return False
     requests_ranking, top = _question_requests_ranking(question)
     return not requests_ranking and top is None
@@ -324,8 +361,15 @@ def _question_prefers_sell_out(question: str) -> bool:
     )
     sell_out = any(
         term in lowered
-        for term in ("sell-out", "sell out", "partner ke konsumen", "penjualan partner")
-    )
+        for term in (
+            "sell-out",
+            "sell out",
+            "sellout",
+            "partner ke konsumen",
+            "penjualan partner",
+            "sell-out partner",
+        )
+    ) or ("partner" in lowered and "sell" in lowered and "out" in lowered.replace("-", " "))
     return sell_out and not sell_in
 
 
@@ -422,6 +466,8 @@ class SemanticContextService:
         if not isinstance(metric, str) or not metric.strip():
             return None
         normalized = " ".join(question.casefold().replace("–", "-").split())
+        if any(term in normalized for term in ("uplift", "status dominan", "dominan tadi", "by uplift")):
+            return None
         if not any(
             term in normalized
             for term in (
@@ -527,6 +573,13 @@ class SemanticContextService:
                 follow["definition"] = self.metric_definition(metric)
                 return follow
 
+        if "unloading" in lowered and any(
+            term in lowered
+            for term in ("company-wide", "company wide", "seluruh perusahaan", "companywide", "nasional")
+        ):
+            if any(term in lowered for term in ("rata-rata", "rata rata", "average", "berapa")):
+                return resolved("average_unloading_minutes", [], matched_alias="unloading_company_avg")
+
         if get_settings().business_graph_enabled:
             graph_intent = try_governed_intent_route(question, session_last_metric=session_last_metric)
             if graph_intent:
@@ -540,7 +593,7 @@ class SemanticContextService:
             term in lowered for term in ("sell-in", "sell in", "sellin")
         ) and any(term in lowered for term in ("per bulan", "bulanan", "tren", "trend", "cukup tampilkan", "cukup")):
             return resolved(
-                "material_sell_in_value",
+                "material_sell_in_quantity",
                 ["calmonth", "material"],
                 matched_alias="cross_fe001_sell_in_trend",
             )
@@ -553,6 +606,28 @@ class SemanticContextService:
                 ["calmonth", "material"],
                 matched_alias="cross_stock_sell_in_material",
             )
+
+        if _question_prefers_sell_out(question) and bool(
+            words & {"produk", "product", "material", "sku", "plu"}
+        ):
+            requests_ranking, _ = _question_requests_ranking(question)
+            if requests_ranking or bool(words & {"top", "tertinggi", "terbesar", "terbanyak", "ranking"}):
+                return resolved(
+                    "material_sell_out_value",
+                    ["material"],
+                    matched_alias="b2b_material_sell_out_rank",
+                )
+
+        mentions_sat_dc_stock = ("sat" in words and bool(words & {"stok", "stock"})) or "stok sat" in lowered
+        if mentions_sat_dc_stock and "dc" in words and any(
+            term in lowered for term in ("mana", "tertinggi", "terbesar", "paling tinggi", "paling besar")
+        ):
+            if _question_prefers_sell_out(question) or "sell-out" in lowered or "sell out" in lowered:
+                return resolved(
+                    "sat_dc_stock_quantity",
+                    ["dcname"],
+                    matched_alias="cross_sat_dc_stock_rank",
+                )
 
         if any(term in lowered for term in ("quantity", "kuantitas", "qty", "unit")) and any(
             term in lowered for term in ("terjual", "sell-in", "sell in", "paling banyak", "terbanyak")
@@ -762,7 +837,11 @@ class SemanticContextService:
         dimensions = _sanitize_office_dimension_hints(question, dimensions, allowed)
         if any(name not in allowed for name in dimensions):
             raise ValueError("Requested dimension is not governed for this metric")
-        if requested_dimensions is None and "dcname" in allowed and re.search(r"(?:per|by)\s+dc\b|\bdc\s+mana\b|\bnama dc\b", lowered):
+        if requested_dimensions is None and "dcname" in allowed and (
+            re.search(r"(?:per|by)\s+dc\b|\bdc\s+mana\b|\bnama dc\b", lowered)
+            or re.search(r"\btop\s*\d+\s+dc\b|\b\d+\s+dc\b|\btop\s+dc\b", lowered)
+            or ("top" in lowered and re.search(r"\bdc\b", lowered))
+        ):
             dimensions.append("dcname")
         if requested_dimensions is None and dataset_name == "sat_promo_material_uplift" and "material" not in dimensions:
             # This dataset's only governed dimension is material, and it is

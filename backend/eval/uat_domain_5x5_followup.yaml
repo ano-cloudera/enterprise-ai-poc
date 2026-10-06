@@ -462,7 +462,7 @@ scenarios:
         expect: { status: SUCCESS, strategy: governed, min_rows: 1 }
         judge: { criteria: ["Promo uplift ranking material."] }
       - question: "material rank 1 uplift tadi, jelaskan proxy Nov vs Des yang dipakai"
-        expect: { status: SUCCESS, strategy: governed, min_rows: 0 }
+        expect: { status: SUCCESS, strategy: [governed, conversational], min_rows: 0 }
         judge: { criteria: ["Follow-up definisi proxy uplift; tidak ROI palsu."] }
 
   - id: promo-fu-02

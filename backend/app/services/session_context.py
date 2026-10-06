@@ -46,6 +46,8 @@ _DRILL_REFERENTIAL_MARKERS = (
     "ke lima",
     "ke limat",
     "terakhir",
+    "dominan",
+    "status dominan",
 )
 
 _COMPARE_REFERENTIAL_MARKERS = (
@@ -84,6 +86,8 @@ _ENTITY_KEYS = (
     "division",
     "e_store",
     "cust_id",
+    "program_status",
+    "fill_rate_band",
 )
 
 
@@ -114,8 +118,10 @@ def build_session_frame(
         return {}
     if not rows:
         return {}
-    ranked = _ranked_entities_from_rows(rows)
+    ranked = _ranked_entities_from_rows(rows, preferred_dimensions=list(dimensions or []))
     entity_dimension = ranked[0]["dimension"] if ranked else None
+    if not entity_dimension and dimensions:
+        entity_dimension = str(dimensions[0])
     analysis_context = build_analysis_context(
         metric=metric,
         dimensions=list(dimensions or []),
@@ -136,20 +142,35 @@ def build_session_frame(
     }
 
 
-def _ranked_entities_from_rows(rows: list[dict]) -> list[dict[str, Any]]:
+def _ranked_entities_from_rows(
+    rows: list[dict],
+    *,
+    preferred_dimensions: list[str] | None = None,
+) -> list[dict[str, Any]]:
     if not rows:
         return []
     dimension: str | None = None
     first = rows[0] if isinstance(rows[0], dict) else {}
-    for key in _ENTITY_KEYS:
+    for key in preferred_dimensions or []:
         if first.get(key) not in (None, ""):
             dimension = key
             break
+    if not dimension:
+        for key in _ENTITY_KEYS:
+            if first.get(key) not in (None, ""):
+                dimension = key
+                break
     ranked: list[dict[str, Any]] = []
     for index, row in enumerate(rows[:25]):
         if not isinstance(row, dict):
             continue
-        entity_id = _row_entity_id(row)
+        entity_id: str | None = None
+        if dimension:
+            value = row.get(dimension)
+            if value not in (None, ""):
+                entity_id = str(value)
+        if not entity_id:
+            entity_id = _row_entity_id(row)
         if not entity_id:
             continue
         item: dict[str, Any] = {

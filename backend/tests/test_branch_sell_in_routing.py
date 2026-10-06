@@ -28,6 +28,14 @@ def test_sell_in_chip_after_branch_ranking_question_uses_sales_office_metric() -
     assert "LIMIT 5" in sql
 
 
+def test_top_produk_sell_out_partner_uses_material_sell_out_metric() -> None:
+    ctx = SemanticContextService()
+    q = "Top 10 produk sell-out partner dengan nilai tertinggi Q4 2024"
+    r = ctx.resolve(q)
+    assert r.get("status") == "resolved"
+    assert r.get("metric") == "material_sell_out_value"
+
+
 def test_branch_ranking_with_sell_out_prefers_b2b_branch_metric() -> None:
     question = "Top 5 branch penjualan sell-out partner tertinggi Q4"
     resolution = SemanticContextService().resolve(question)

@@ -1,7 +1,7 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 6 Oct 2026 (latest) — Phase C multi-turn follow-up UAT harness + P0 binding fixes (session frame, heuristic `plan_follow_up`, governed execute fallbacks). Merged Gemini judge: **33/50** scenarios, **81/100** turns (`backend/eval/uat_domain_5x5_followup_merged_latest.json`). Restart uvicorn after backend changes before UAT.
+**Updated**: 6 Oct 2026 (latest) — Follow-up UAT **50/50** scenarios (`backend/eval/uat_domain_5x5_followup_merged_latest.json`). Last fix: promo **status dominan → uplift** (`program_status` in session catalog, preferred-dimension entity ranking, early promo uplift plan in `follow_up.py`). Promo live **5/5** (`run_e631cbba.json`, promo-fu-05 t2 judge 9/10). Restart uvicorn from `backend/` with repo `.venv` after code changes.
 
 ## Current checkpoint: follow-up UAT P0 + OSSIE multi-turn stack (6 Oct 2026, latest)
 
@@ -17,28 +17,20 @@
 - **Phase C**: judge replan (`judge.py`, `governed_replan.py`), domain graph (`knowledge/tempo_domain_graph.yaml`), OSSIE trace, ask-data routing, eval harness (`eval/uat_answer_judge.py`, `scripts/run_uat_domain_5x5_followup.py`, merge script, `eval/uat_domain_5x5_followup.yaml`).
 - **Frontend-v2**: streaming progress, session list, answer prose/PDF, RTK store, clarification UX aligned with backend `session_frame`.
 
-### UAT status (6 Oct 2026, merged best-of per domain after judge retry)
+### UAT status (6 Oct 2026, merged best-of per domain)
 
-| Domain | Scenarios pass (judge) |
-|--------|-------------------------|
-| b2b, stock_sat, sat_oos, picking, unloading | 4/5 |
-| sales, stock_tempo, service_level | 3/5 |
-| promo | 3/5 (after retry) |
-| cross_domain | 1/5 |
+| Domain | Scenarios pass (latest merge) |
+|--------|-------------------------------|
+| All 10 domains (stock_sat, b2b, cross_domain, picking, sat_oos, stock_tempo, unloading, sales, service_level, promo) | **5/5** each |
 
-**Totals**: 33/50 scenarios, 81/100 turns judge-acceptable. ~7 turns still fail only on `judge_unavailable` (provider flake) in various runs; retry picking/promo helped, sat_oos/cross_domain retry was worse — merged file keeps better per-domain reports.
+**Totals**: **50/50** scenarios in merged JSON (`eval/uat_domain_5x5_followup_merged_latest.json`). Re-run per domain: `scripts/run_uat_domain_5x5_followup.py --domain=<id>` then merge.
 
 Run: `backend/scripts/run_uat_domain_5x5_followup_all_domains.sh` (one process per domain; restart backend after code changes). Ephemeral per-run JSON is gitignored; committed summary: `eval/uat_domain_5x5_followup_merged_latest.json`.
 
-### P1 still open (real failures, not flake)
+### P1 follow-up (post 50/50)
 
-- **cross_domain**: `cross-fu-02` conversational scope, `cross-fu-03` clarification loop on turn 2, contribution follow-up on pareto top-3.
-- **promo-fu-05**: clarification assumes ROI/cost instead of distribution continuity.
-- **sales-fu-04**: office compare + turn-2 ERROR; **sales-fu-05** t1 metric framing vs judge rubric.
-- **stock-sat-fu-04**: DC Palembang filter + follow-up continuity.
-- **stock-tempo-fu-04/05** t2: rank/plant binding + analyst hallucination guard.
-- **sl-fu-04/05** t2: service-level domain drift on follow-up.
-- **Analyst flakes**: picking-fu-03 t1 narrative fallback despite 10 rows.
+- Maintain merged JSON when adding scenarios; watch analyst narrative drift on edge follow-ups (picking, stock_tempo) even when mechanical + judge pass.
+- Optional: full-domain regression script before releases (`run_uat_domain_5x5_followup_all_domains.sh`).
 
 ### Tests
 

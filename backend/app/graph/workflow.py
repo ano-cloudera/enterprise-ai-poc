@@ -237,11 +237,12 @@ def build_workflow(deps: WorkflowDependencies):
         if intent.is_conversational:
             guidance = deps.semantic_context.guidance_context(original_question)
             first_turn = not bool(state.get("conversation_history"))
-            convo_prompt = (
-                "conversational_sell_in_out.md"
-                if intent.rationale == "concept_sell_in_vs_sell_out"
-                else "greeting.md"
-            )
+            if intent.rationale == "concept_sell_in_vs_sell_out":
+                convo_prompt = "conversational_sell_in_out.md"
+            elif intent.rationale == "promo_proxy_explain":
+                convo_prompt = "conversational_intent.md"
+            else:
+                convo_prompt = "greeting.md"
             try:
                 answer = await _provider(state, deps).generate_structured(
                     [
@@ -264,15 +265,28 @@ def build_workflow(deps: WorkflowDependencies):
                     max_tokens=900,
                 )
             except ProviderError:
-                answer = AnalysisOutput(
-                    direct_answer="Halo! Senang bisa bantu 👋",
-                    executive_summary="Saya siap membantu analisis data komersial TEMPO untuk periode Q4 2024.",
-                    insights=[],
-                    business_implications=[],
-                    caveats=["Cakupan data tersedia untuk Oktober–Desember 2024."],
-                    data_reference="TEMPO governed capability catalog.",
-                    chart_spec=None,
+                from app.services.conversational_fallback import (
+                    deterministic_capability_overview_answer,
+                    deterministic_promo_uplift_proxy_explain,
+                    deterministic_sell_in_vs_sell_out_answer,
                 )
+
+                if intent.rationale == "concept_sell_in_vs_sell_out":
+                    answer = AnalysisOutput.model_validate(deterministic_sell_in_vs_sell_out_answer())
+                elif intent.rationale == "capability_overview":
+                    answer = AnalysisOutput.model_validate(deterministic_capability_overview_answer())
+                elif intent.rationale == "promo_proxy_explain":
+                    answer = AnalysisOutput.model_validate(deterministic_promo_uplift_proxy_explain())
+                else:
+                    answer = AnalysisOutput(
+                        direct_answer="Halo! Senang bisa bantu 👋",
+                        executive_summary="Saya siap membantu analisis data komersial TEMPO untuk periode Q4 2024.",
+                        insights=[],
+                        business_implications=[],
+                        caveats=["Cakupan data tersedia untuk Oktober–Desember 2024."],
+                        data_reference="TEMPO governed capability catalog.",
+                        chart_spec=None,
+                    )
             if intent.attach_domain_catalog:
                 excluded = guidance.get("excluded_focus")
                 excluded_key = excluded if isinstance(excluded, str) else None

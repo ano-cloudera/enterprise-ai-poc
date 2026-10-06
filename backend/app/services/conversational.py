@@ -141,6 +141,38 @@ def _session_block(history: list[dict[str, Any]]) -> dict[str, Any]:
     return block
 
 
+def _is_capability_overview(question: str) -> bool:
+    lowered = question.casefold().replace("–", "-")
+    if not any(
+        term in lowered
+        for term in (
+            "data apa saja",
+            "bisa ditanyakan",
+            "bisa tanya",
+            "what can i ask",
+            "capabilities",
+            "capability",
+            "domain apa",
+            "fitur apa",
+        )
+    ):
+        return False
+    return not any(term in lowered for term in ("top ", "berapa total", "ranking", "hitung"))
+
+
+def _is_promo_proxy_explain_follow_up(question: str, history: list[dict[str, Any]]) -> bool:
+    lowered = question.casefold()
+    if not any(term in lowered for term in ("jelaskan", "explain", "proxy", "nov vs", "november")):
+        return False
+    if not history:
+        return False
+    from app.services.follow_up import analysis_context_from_history
+
+    ctx = analysis_context_from_history(history)
+    metric = str(ctx.get("last_metric") or "").casefold()
+    return "promo" in metric or "uplift" in metric
+
+
 def _is_sell_in_vs_sell_out_concept(question: str) -> bool:
     lowered = question.casefold().replace("–", "-")
     asks_contrast = any(term in lowered for term in ("beda", "bedanya", "perbedaan", "difference", "vs "))
@@ -234,6 +266,22 @@ async def understand_turn(
             attach_domain_catalog=False,
             pipeline_question=q,
             rationale="concept_sell_in_vs_sell_out",
+        )
+
+    if session.get("first_turn") and _is_capability_overview(q):
+        return TurnUnderstanding(
+            is_conversational=True,
+            attach_domain_catalog=True,
+            pipeline_question=q,
+            rationale="capability_overview",
+        )
+
+    if _is_promo_proxy_explain_follow_up(q, history):
+        return TurnUnderstanding(
+            is_conversational=True,
+            attach_domain_catalog=False,
+            pipeline_question=q,
+            rationale="promo_proxy_explain",
         )
 
     try:

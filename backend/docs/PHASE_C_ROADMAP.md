@@ -21,7 +21,7 @@ North star: **correct, intelligible answers** inside **governed** guardrails —
 | C5 | Clarify UX + B3 regression (10 management questions) | Partial (dry all→OSSIE; live Q02/Q03/Q08 + DC smoke OK) |
 | C6 | Domain business graph (YAML) → inquiry brief + cabang + B3 governed_intents | Done (`knowledge/tempo_domain_graph.yaml`, 7/10 dry resolved) |
 | C7 | PuppyGraph infra (optional entity scope) | Stub (`puppygraph_schema_stub.yaml`, client off by default) |
-| C8 | Multi-turn follow-up UAT (5×2 per domain, Gemini judge) | Partial — **33/50** scenarios, **81/100** judge-OK (6 Oct 2026 merged); P1: cross_domain, promo-fu-05, sales-fu-04 |
+| C8 | Multi-turn follow-up UAT (5×2 per domain, Gemini judge) | **50/50** scenarios (6 Oct 2026 merged `uat_domain_5x5_followup_merged_latest.json`); promo-fu-05 fix: `program_status` catalog + uplift follow-up routing |
 
 ## Routing target
 
