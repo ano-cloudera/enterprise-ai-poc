@@ -9,6 +9,8 @@ class AskDataState(TypedDict, total=False):
     question: str
     original_question: str
     conversation_history: list[dict[str, Any]]
+    session_last_metric: str | None
+    session_analysis_context: dict[str, Any]
     provider: str
     model: str
     use_local_agent: bool
@@ -28,3 +30,13 @@ class AskDataState(TypedDict, total=False):
     error: str
     retry_count: int
     timings: dict[str, float]
+    inquiry_brief: dict[str, Any]
+    judge_iteration: int
+    judge_review: dict[str, Any]
+    judge_issues: list[str]
+    judge_retry_synthesize: bool
+    judge_synthesis_hint: str
+    judge_retry_plan: bool
+    judge_plan_hint: str
+    conversational_intent: dict[str, Any]
+    turn_understanding: dict[str, Any]

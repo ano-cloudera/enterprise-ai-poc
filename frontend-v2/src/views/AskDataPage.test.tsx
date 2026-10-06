@@ -3,11 +3,14 @@ import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-libra
 import { afterEach, describe, expect, it, vi } from 'vitest'
 
 import { api } from '../lib/api'
+import { downloadConversationPdf } from '../lib/chatPdfExport'
 import { AppShell } from '../layout/AppShell'
-import { ModelSelectionProvider } from '../lib/modelSelection'
+import { appConfig } from '../config/appConfig'
+import { renderWithProviders } from '../test/renderWithProviders'
 import { AskDataPage } from './AskDataPage'
 
 vi.mock('../lib/api', () => ({ api: { models: vi.fn(), randomQueries: vi.fn(), chatStream: vi.fn() } }))
+vi.mock('../lib/chatPdfExport', () => ({ downloadConversationPdf: vi.fn().mockResolvedValue(undefined) }))
 vi.mock('next/navigation', () => ({ usePathname: () => '/' }))
 
 describe('V2 Ask Data page', () => {
@@ -29,7 +32,7 @@ describe('V2 Ask Data page', () => {
         timings: { context_ms: 1, planning_ms: 1, validation_ms: 1, query_ms: 1, analysis_ms: 1, total_ms: 6 }, retry_count: 0,
       } }
     }) as never)
-    render(<ModelSelectionProvider><AskDataPage /></ModelSelectionProvider>)
+    renderWithProviders(<AskDataPage />)
 
     fireEvent.click(await screen.findByRole('button', { name: 'Berapa total Gross Billing Value?' }))
 
@@ -53,38 +56,39 @@ describe('V2 Ask Data page', () => {
         timings: { context_ms: 1, planning_ms: 1, validation_ms: 1, query_ms: 1, analysis_ms: 1, total_ms: 6 }, retry_count: 0,
       } }
     }) as never)
-    render(<ModelSelectionProvider><AskDataPage /></ModelSelectionProvider>)
+    renderWithProviders(<AskDataPage />)
 
-    fireEvent.change(screen.getByPlaceholderText('Ask a commercial question...'), { target: { value: 'Berapa gross sales Q4?' } })
+    fireEvent.change(screen.getByPlaceholderText(appConfig.chatPlaceholder), { target: { value: 'Berapa gross sales Q4?' } })
     fireEvent.click(await screen.findByRole('button', { name: 'Send question' }))
 
     const directAnswer = await screen.findByText('Gross Sales Q4 sebesar Rp10 miliar.')
-    expect(directAnswer.className).toContain('font-semibold')
+    expect(directAnswer.closest('p')?.className ?? '').toContain('type-chat-lead')
     screen.getByText('Business implications')
     screen.getByText('Prioritaskan ketersediaan stok Desember.')
     screen.getByText('gold.rpt_sap_monthly_executive_semantic')
+    expect(screen.getByText('Qwen · Governed · 0.0s')).toBeTruthy()
+    expect(screen.queryByText('Analysis complete')).toBeNull()
   })
 
-  it('toggles the navigation and conversation sidebars together for full-screen chat', async () => {
+  it('collapses the primary sidebar from the sidebar toggle', async () => {
     vi.mocked(api.models).mockResolvedValue({ models: [{ provider: 'qwen', id: 'qwen-model', label: 'Qwen Private', available: true, reason: null }] })
-    render(<AppShell><ModelSelectionProvider><AskDataPage /></ModelSelectionProvider></AppShell>)
+    renderWithProviders(
+      <AppShell>
+        <AskDataPage />
+      </AppShell>,
+    )
 
     const navigation = screen.getByLabelText('Primary sidebar')
-    const history = screen.getByLabelText('Conversation history sidebar')
-    expect(navigation.getAttribute('aria-hidden')).toBe('false')
-    expect(history.getAttribute('aria-hidden')).toBe('false')
+    expect(screen.getByRole('button', { name: 'Collapse sidebar' })).toBeTruthy()
+    expect(screen.getByRole('button', { name: 'New chat' })).toBeTruthy()
 
-    fireEvent.click(screen.getByRole('button', { name: 'Enter full screen chat' }))
+    fireEvent.click(screen.getByRole('button', { name: 'Collapse sidebar' }))
 
-    expect(navigation.getAttribute('aria-hidden')).toBe('true')
-    expect(history.getAttribute('aria-hidden')).toBe('true')
-    expect(navigation.hasAttribute('inert')).toBe(true)
-    expect(history.hasAttribute('inert')).toBe(true)
-    fireEvent.click(screen.getByRole('button', { name: 'Exit full screen chat' }))
-    expect(navigation.getAttribute('aria-hidden')).toBe('false')
-    expect(history.getAttribute('aria-hidden')).toBe('false')
-    expect(navigation.hasAttribute('inert')).toBe(false)
-    expect(history.hasAttribute('inert')).toBe(false)
+    expect(screen.getByRole('button', { name: 'Expand sidebar' })).toBeTruthy()
+    expect(navigation.className).toContain('lg:w-[68px]')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }))
+    expect(navigation.className).toContain('lg:w-[240px]')
   })
 
   it('lets the user stop a request that is still loading', async () => {
@@ -93,14 +97,38 @@ describe('V2 Ask Data page', () => {
       yield { type: 'progress', stage: 'querying_data', label: 'Querying TEMPO data' }
       await new Promise<void>((_resolve, reject) => signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true }))
     }) as never)
-    render(<ModelSelectionProvider><AskDataPage /></ModelSelectionProvider>)
+    renderWithProviders(<AskDataPage />)
 
-    fireEvent.change(screen.getByPlaceholderText('Ask a commercial question...'), { target: { value: 'Berapa fill rate?' } })
+    fireEvent.change(screen.getByPlaceholderText(appConfig.chatPlaceholder), { target: { value: 'Berapa fill rate?' } })
     fireEvent.click(await screen.findByRole('button', { name: 'Send question' }))
     fireEvent.click(await screen.findByRole('button', { name: 'Stop request' }))
 
     await waitFor(() => expect(screen.queryByRole('button', { name: 'Stop request' })).toBeNull())
     expect(screen.getByText('Request stopped.')).toBeTruthy()
+  })
+
+  it('downloads the visible conversation as PDF after a completed answer', async () => {
+    vi.mocked(api.models).mockResolvedValue({ models: [{ provider: 'qwen', id: 'qwen-model', label: 'Qwen Private', available: true, reason: null }] })
+    vi.mocked(api.chatStream).mockImplementation((async function* () {
+      yield { type: 'done', response: {
+        request_id: 'r-dl', session_id: 's-dl', status: 'SUCCESS', provider: 'qwen', model: 'qwen-model', strategy: 'governed',
+        answer: { direct_answer: 'Done.', executive_summary: 'Done.', insights: [], business_implications: [], caveats: [], data_reference: 'gold.table', chart_spec: null },
+        data: { columns: [], rows: [], row_count: 0, execution_ms: 1 }, chart_spec: null,
+        timings: { total_ms: 5 }, retry_count: 0,
+      } }
+    }) as never)
+    renderWithProviders(
+      <AppShell>
+        <AskDataPage />
+      </AppShell>,
+    )
+
+    fireEvent.change(screen.getByPlaceholderText(appConfig.chatPlaceholder), { target: { value: 'Test export?' } })
+    fireEvent.click(await screen.findByRole('button', { name: 'Send question' }))
+    await screen.findByText('Done.')
+    fireEvent.click(screen.getByRole('button', { name: 'Download conversation as PDF' }))
+
+    await waitFor(() => expect(downloadConversationPdf).toHaveBeenCalled())
   })
 
   it('times out a request and clears its loading state after 90 seconds', async () => {
@@ -110,12 +138,12 @@ describe('V2 Ask Data page', () => {
       yield { type: 'progress', stage: 'querying_data', label: 'Querying TEMPO data' }
       await new Promise<void>((_resolve, reject) => signal?.addEventListener('abort', () => reject(new DOMException('Aborted', 'AbortError')), { once: true }))
     }) as never)
-    render(<ModelSelectionProvider><AskDataPage /></ModelSelectionProvider>)
+    renderWithProviders(<AskDataPage />)
 
-    fireEvent.change(screen.getByPlaceholderText('Ask a commercial question...'), { target: { value: 'Berapa fill rate?' } })
+    fireEvent.change(screen.getByPlaceholderText(appConfig.chatPlaceholder), { target: { value: 'Berapa fill rate?' } })
     fireEvent.click(await screen.findByRole('button', { name: 'Send question' }))
     await screen.findByRole('button', { name: 'Stop request' })
-    await act(async () => { await vi.advanceTimersByTimeAsync(90_000) })
+    await act(async () => { await vi.advanceTimersByTimeAsync(120_000) })
 
     expect(screen.queryByRole('button', { name: 'Stop request' })).toBeNull()
     expect(screen.getByText('Request timed out. Please try again.')).toBeTruthy()

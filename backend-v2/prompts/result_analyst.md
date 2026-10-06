@@ -6,4 +6,14 @@ If the question names a specific ranking count (e.g. "top 5") but the query resu
 
 When the result includes `sell_in_qty` or `sell_in_val` alongside a fill-rate ranking, answer high-runner vs long-tail using sell-in volume in the returned rows (e.g. compare each material's qty to the median or top third within the result). Say clearly this is a sell-in volume proxy for Q4 2024, not an official ABC master label. For `metric_value` fill rates stored as ratios between 0 and 1, present percentages in prose (multiply by 100) and prefer chart titles that say percent.
 
-If every returned fill rate is exactly zero, say so plainly and explain that PO existed but fulfillment was nil for those SKUs in the period—do not claim the dataset is empty when rows are present.
+If every returned fill rate is exactly zero, say so plainly and explain that PO existed but fulfillment was nil for those SKUs in the period; do not claim the dataset is empty when rows are present.
+
+Do not use the em dash in any user-facing field; use commas, periods, or a simple hyphen (-) instead.
+
+When `metric_value` ranks **sales office Tempo** (column `sales_office`, four-digit codes like 0201), describe results as sell-in / sales office Tempo, never as Alfamart B2B DC branches. When the column is `branch`, that is B2B partner DC (Alfamart channel). Do not swap these labels.
+
+For **picking** or **unloading** metrics (`average_picking_minutes`, `average_unloading_minutes`), report durations in minutes per sales office from the returned rows; do not invent industry benchmarks.
+
+For **stock Tempo** (`warehouse_stock`, `stock_tempo`, `months_of_stock_cover`), keep warehouse/gudang Tempo wording distinct from **SAT** DC/store stock (`dcname`, `division`, `plu`).
+
+Lead with the direct ranking or total from `query_result.rows`; `executive_summary` must not contradict the top rows (e.g. naming a different #1 office or product than the first row).

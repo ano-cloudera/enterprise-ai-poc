@@ -254,6 +254,33 @@ class TempoOssieRegistry:
                 "definition": self.metric_definition(metric),
                 "dimension_mismatch": [],
             }
+        requests_promo_rank = any(
+            term in normalized
+            for term in ("terbaik", "tertinggi", "terbesar", "top", "rank", "paling", "observasi", "jumlah")
+        )
+        if (
+            mentions_promo
+            and requests_promo_attribution
+            and requests_promo_rank
+            and "rekomendasi" not in normalized
+        ):
+            return {
+                "status": "resolved",
+                "metric": "promo_material_revenue_uplift",
+                "matched_alias": "promo_uplift_rank",
+                "definition": self.metric_definition("promo_material_revenue_uplift"),
+                "dimension_mismatch": [],
+            }
+        if mentions_promo and requests_promo_rank and any(
+            term in normalized for term in ("observasi", "observation", "jumlah", "count")
+        ):
+            return {
+                "status": "resolved",
+                "metric": "promo_observation_count",
+                "matched_alias": "promo_observation_rank",
+                "definition": self.metric_definition("promo_observation_count"),
+                "dimension_mismatch": [],
+            }
         if mentions_promo and (requests_promo_attribution or requests_unavailable_promo_period):
             return {
                 "status": "needs_clarification",
@@ -536,6 +563,11 @@ class TempoOssieRegistry:
             for dimension, terms in dimension_terms.items()
             if any(_normalize(term) in normalized for term in terms)
         }
+        # "sales office" folds to salesoffice, which falsely contains the
+        # sales_off hint "salesoff" - prefer sales_office for Tempo office metrics.
+        if "salesoffice" in normalized or "kantorpenjualan" in normalized:
+            hinted_dimensions.discard("sales_off")
+            hinted_dimensions.add("sales_office")
         company_scope = any(
             _normalize(term) in normalized
             for term in ("company", "perusahaan", "tempo total", "total tempo")

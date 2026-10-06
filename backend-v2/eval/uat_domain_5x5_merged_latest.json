@@ -1,0 +1,1192 @@
+{
+  "merged_from": [
+    "/Users/trianonurhikmat/Documents/Works/cloudera/enterprise-ai-poc/backend-v2/eval/uat_domain_5x5_run_205ec269.json",
+    "/Users/trianonurhikmat/Documents/Works/cloudera/enterprise-ai-poc/backend-v2/eval/uat_domain_5x5_run_4f43b226.json",
+    "/Users/trianonurhikmat/Documents/Works/cloudera/enterprise-ai-poc/backend-v2/eval/uat_domain_5x5_run_95452e8b.json",
+    "/Users/trianonurhikmat/Documents/Works/cloudera/enterprise-ai-poc/backend-v2/eval/uat_domain_5x5_run_c664448d.json",
+    "/Users/trianonurhikmat/Documents/Works/cloudera/enterprise-ai-poc/backend-v2/eval/uat_domain_5x5_run_d60147d9.json",
+    "/Users/trianonurhikmat/Documents/Works/cloudera/enterprise-ai-poc/backend-v2/eval/uat_domain_5x5_run_ad799a82.json",
+    "/Users/trianonurhikmat/Documents/Works/cloudera/enterprise-ai-poc/backend-v2/eval/uat_domain_5x5_run_b04d0cee.json",
+    "/Users/trianonurhikmat/Documents/Works/cloudera/enterprise-ai-poc/backend-v2/eval/uat_domain_5x5_run_0636963e.json",
+    "/Users/trianonurhikmat/Documents/Works/cloudera/enterprise-ai-poc/backend-v2/eval/uat_domain_5x5_run_c0455841.json",
+    "/Users/trianonurhikmat/Documents/Works/cloudera/enterprise-ai-poc/backend-v2/eval/uat_domain_5x5_run_ffe0d99a.json"
+  ],
+  "passed": 25,
+  "total": 50,
+  "by_domain": [
+    {
+      "domain": "b2b",
+      "passed": 4,
+      "total": 5,
+      "cases": [
+        {
+          "id": "b2b-01-top-dc",
+          "domain": "b2b",
+          "question": "Top 10 DC Alfamart dengan penjualan sell-out tertinggi Q4 2024",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 10,
+          "request_id": "8e79c670-b874-44b2-9777-92349375a2e9",
+          "judge": {
+            "acceptable": true,
+            "score": 9,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The response accurately identifies the top DC rankings for Alfamart B2B sell-out in Q4 2024 with correctly grounded metrics and domain context distinguishing partner sell-out channels."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "b2b-02-casual-cabang",
+          "domain": "b2b",
+          "question": "top penjualan cabang Alfamart?",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 10,
+          "request_id": "beec68e6-4305-417c-bffb-71e632ae2d97",
+          "judge": {
+            "acceptable": true,
+            "score": 9,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The response accurately interprets the casual Alfamart cabang prompt as B2B sell-out DC branches, aligning perfectly with governed data figures and business definitions for management review."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "b2b-03-top-product-sellout",
+          "domain": "b2b",
+          "question": "Top 10 produk sell-out partner dengan nilai tertinggi Q4 2024",
+          "pass": false,
+          "mechanical_pass": true,
+          "note": "judge_unavailable: Model provider request failed",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 10,
+          "request_id": "3482c97e-208a-4356-9b58-f7400648ce2e",
+          "judge": null,
+          "judge_error": "Model provider request failed"
+        },
+        {
+          "id": "b2b-04-typo-penjualn",
+          "domain": "b2b",
+          "question": "mau tau dong top 10 total penjualn berdasarkan cabang di alfamart",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 10,
+          "request_id": "e5f0fedf-d921-4279-ba62-08f10a163d7c",
+          "judge": {
+            "acceptable": true,
+            "score": 10,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The response flawlessly handles the user typo ('penjualn') and appropriately routes to the governed B2B Sell-Out table. The metrics, ranking, and domain context regarding Alfamart distribution centers are accurate, concise, and demo-ready for executive management."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "b2b-05-q4-phrasing",
+          "domain": "b2b",
+          "question": "Top 10 total penjualan berdasarkan cabang di Alfamart Q4 2024",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 10,
+          "request_id": "9fe39d96-d940-4181-93d5-e8f6c94ce067",
+          "judge": {
+            "acceptable": true,
+            "score": 9,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The response accurately identifies Alfamart branches as Distribution Centers (DC), correctly frames the metric as B2B sell-out value for Q4 2024, and faithfully reports the rankings grounded in governed query data."
+          },
+          "judge_error": null
+        }
+      ]
+    },
+    {
+      "domain": "cross_domain",
+      "passed": 3,
+      "total": 5,
+      "cases": [
+        {
+          "id": "cross-01-pareto",
+          "domain": "cross_domain",
+          "question": "Bantu jelaskan pareto penjualan sell-in Q4 2024 top produk Tempo",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 10,
+          "request_id": "04c220ec-b34b-4afa-82d2-8fd54d5ac60c",
+          "judge": {
+            "acceptable": true,
+            "score": 9,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The response provides an accurate and well-grounded Pareto analysis of top Tempo sell-in products for Q4 2024. All calculations, cluster totals, and percentages align directly with the returned dataset, and proper caveats regarding the top 10 boundary are explicitly noted."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "cross-02-sellin-sellout-hint",
+          "domain": "cross_domain",
+          "question": "Halo, apa bedanya sell-in Tempo dan sell-out Alfamart untuk tim manajemen?",
+          "pass": false,
+          "mechanical_pass": false,
+          "note": "judge score=3: Respon tidak layak untuk demo manajemen karena gagal menjawab pertanyaan konseptual mendasar mengena",
+          "status": "CLARIFICATION",
+          "strategy": "clarification",
+          "row_count": 0,
+          "request_id": "8a1e6456-184a-4688-a675-73231c3a354f",
+          "judge": {
+            "acceptable": false,
+            "score": 3,
+            "grounded_in_data": true,
+            "domain_appropriate": false,
+            "follow_up_coherent": null,
+            "issues": [
+              "Asisten tidak menjelaskan perbedaan konseptual antara sell-in Tempo dan sell-out Alfamart yang ditanyakan oleh manajemen.",
+              "Memberikan pesan klarifikasi/penolakan kaku ('Pertanyaan belum terpetakan ke KPI governed') alih-alih memberikan edukasi domain atau panduan konseptual yang diizinkan tanpa query rows."
+            ],
+            "summary": "Respon tidak layak untuk demo manajemen karena gagal menjawab pertanyaan konseptual mendasar mengenai perbedaan sell-in dan sell-out Alfamart, serta hanya memberikan template penolakan sistem yang kaku."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "cross-03-journey-hint",
+          "domain": "cross_domain",
+          "question": "Bagaimana hubungan stok Tempo dan sell-in material FE001 Q4?",
+          "pass": false,
+          "mechanical_pass": false,
+          "note": "judge score=4: The system returned a blank NO_DATA response with a generic message for a cross-domain inquiry on st",
+          "status": "NO_DATA",
+          "strategy": "governed",
+          "row_count": 0,
+          "request_id": "f9a5e135-22ed-4426-8822-cfcb17aac624",
+          "judge": {
+            "acceptable": false,
+            "score": 4,
+            "grounded_in_data": true,
+            "domain_appropriate": false,
+            "follow_up_coherent": null,
+            "issues": [
+              "Response returned generic NO_DATA without addressing the cross-domain relationship between inventory/stock and sell-in.",
+              "Lacks journey guidance or explanation regarding stock vs. sell-in data availability for material FE001 in Q4 2024.",
+              "Not demo-ready for management due to completely uninformative response."
+            ],
+            "summary": "The system returned a blank NO_DATA response with a generic message for a cross-domain inquiry on stock and sell-in correlation. While it avoids fabricating data, it fails to provide journey hints, table explanations, or meaningful business guidance for management."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "cross-04-b2b-sat-stock",
+          "domain": "cross_domain",
+          "question": "DC Alfamart mana stok SAT-nya paling tinggi dan sell-out-nya juga tinggi Q4?",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 1,
+          "request_id": "c61e12c5-0127-4910-9675-997574514809",
+          "judge": {
+            "acceptable": true,
+            "score": 8,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The response accurately reports the consolidated SAT DC stock figure (6,762,825 units) from the governed query and transparently explains that breakdown by DC name and B2B sell-out metric are required to identify specific top DCs, adhering strictly to enterprise commercial definitions without hallucinating data."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "cross-05-capability",
+          "domain": "cross_domain",
+          "question": "Halo, data apa saja yang bisa ditanyakan untuk review manajemen Q4 di sistem ini?",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "SUCCESS",
+          "strategy": "conversational",
+          "row_count": 0,
+          "request_id": "6bf6dd7d-8358-4b27-96a2-96e2dcf75ca8",
+          "judge": {
+            "acceptable": true,
+            "score": 9,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The response provides an accurate, professional overview of the governed commercial domains for Q4 2024 (Sell-In, B2B Sell-Out, Stock Tempo, Stock SAT, SAT OOS, and Service Level) with appropriate example queries and time horizon caveats, making it demo-ready for management."
+          },
+          "judge_error": null
+        }
+      ]
+    },
+    {
+      "domain": "picking",
+      "passed": 1,
+      "total": 5,
+      "cases": [
+        {
+          "id": "picking-01-longest",
+          "domain": "picking",
+          "question": "Sales office mana dengan rata-rata durasi picking terlama Q4 2024?",
+          "pass": false,
+          "mechanical_pass": false,
+          "note": "judge score=3: Respon menangani kegagalan dengan transparan dan tanpa halusinasi metrik, namun query gagal diekseku",
+          "status": "ERROR",
+          "strategy": "unsupported",
+          "row_count": 0,
+          "request_id": "9f758500-e8f4-4b19-ba69-0a143da7727d",
+          "judge": {
+            "acceptable": false,
+            "score": 3,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [
+              "Sistem mengalami kendala teknis (status ERROR / unsupported) dan gagal menyajikan data rata-rata durasi picking per sales office untuk Q4 2024."
+            ],
+            "summary": "Respon menangani kegagalan dengan transparan dan tanpa halusinasi metrik, namun query gagal dieksekusi (status ERROR) sehingga tidak memenuhi kriteria penerimaan demo manajemen."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "picking-02-top10-slow",
+          "domain": "picking",
+          "question": "Top 10 cabang dengan picking time paling lama Q4",
+          "pass": false,
+          "mechanical_pass": false,
+          "note": "judge score=3: The system encountered a technical pipeline error and failed to retrieve picking time data for Q4 20",
+          "status": "ERROR",
+          "strategy": "unsupported",
+          "row_count": 0,
+          "request_id": "4f2a48d8-d3c9-498b-805f-0272ab3d08b4",
+          "judge": {
+            "acceptable": false,
+            "score": 3,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [
+              "System error: query execution failed with status ERROR / unsupported strategy.",
+              "No data returned for Top 10 branches with longest picking time in Q4 2024."
+            ],
+            "summary": "The system encountered a technical pipeline error and failed to retrieve picking time data for Q4 2024 branches. While the response handled the failure gracefully without hallucinating numbers, it cannot be accepted for a management demo as the requested operational metric was not delivered."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "picking-03-fastest",
+          "domain": "picking",
+          "question": "Cabang Tempo mana dengan picking tercepat Q4 2024?",
+          "pass": false,
+          "mechanical_pass": false,
+          "note": "judge score=3: Sistem gagal memproses data picking logistik untuk Q4 2024 karena kendala internal pipeline. Meskipu",
+          "status": "ERROR",
+          "strategy": "unsupported",
+          "row_count": 0,
+          "request_id": "9e432281-9c90-4310-924b-5a9f93493d74",
+          "judge": {
+            "acceptable": false,
+            "score": 3,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [
+              "Sistem mengalami kegagalan teknis (status ERROR/unsupported) sehingga tidak dapat menyajikan peringkat kecepatan picking cabang Q4 2024."
+            ],
+            "summary": "Sistem gagal memproses data picking logistik untuk Q4 2024 karena kendala internal pipeline. Meskipun penanganan error dilakukan secara transparan dan tanpa halusinasi angka, kegagalan penyajian data ini tidak memenuhi syarat untuk demo manajemen."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "picking-04-office-0201",
+          "domain": "picking",
+          "question": "Berapa rata-rata picking minutes sales office 0201 Q4 2024?",
+          "pass": false,
+          "mechanical_pass": false,
+          "note": "judge score=3: The system encountered a technical error and failed to retrieve the picking duration metric for Sale",
+          "status": "ERROR",
+          "strategy": "unsupported",
+          "row_count": 0,
+          "request_id": "bc4f7c97-79ed-4bb6-976d-122e6b0ec282",
+          "judge": {
+            "acceptable": false,
+            "score": 3,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [
+              "Query execution failed with status ERROR / unsupported strategy",
+              "No picking duration data or metrics were returned for Sales Office 0201"
+            ],
+            "summary": "The system encountered a technical error and failed to retrieve the picking duration metric for Sales Office 0201 in Q4 2024. While the error message was handled gracefully without fabricating figures, an unfulfilled query with an error status cannot be accepted for a management demo."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "picking-05-dual-metric-clarify",
+          "domain": "picking",
+          "question": "Analisa data unloading dan picking dan berikan analisa perbandingan dengan industri standard",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "CLARIFICATION",
+          "strategy": "clarification",
+          "row_count": 0,
+          "request_id": "0e2da40a-8663-441b-9440-13d7a43b40cd",
+          "judge": {
+            "acceptable": true,
+            "score": 9,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The model handled the ambiguous dual-metric request appropriately by seeking clarification between picking and unloading. It accurately noted the absence of governed external industry benchmarks without fabricating numbers or comparative standards."
+          },
+          "judge_error": null
+        }
+      ]
+    },
+    {
+      "domain": "promo",
+      "passed": 1,
+      "total": 5,
+      "cases": [
+        {
+          "id": "promo-01-top-uplift",
+          "domain": "promo",
+          "question": "Material mana dengan uplift promo SAT terbaik Q4 2024? Top 10",
+          "pass": false,
+          "mechanical_pass": false,
+          "note": "status want SUCCESS got CLARIFICATION",
+          "status": "CLARIFICATION",
+          "strategy": "clarification",
+          "row_count": 0,
+          "request_id": "788fed3e-402d-4f62-8445-a4fc64bd09d4",
+          "judge": {
+            "acceptable": true,
+            "score": 9,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The assistant appropriately refuses to fabricate promo uplift or financial ROI metrics where structured spend and historical baseline data are lacking for SAT Promo. It clearly explains the data boundary and offers a governed alternative proxy across relevant channels."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "promo-02-roi-clarify",
+          "domain": "promo",
+          "question": "Hitung promo dengan ROI terbaik dan berikan rekomendasi operasional",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "CLARIFICATION",
+          "strategy": "clarification",
+          "row_count": 0,
+          "request_id": "48958bee-0004-4936-976f-799dd5f2b8fd",
+          "judge": {
+            "acceptable": true,
+            "score": 9,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The assistant appropriately halts execution to clarify data limitations regarding ROI, accurately distinguishing between unstructured SAT promo mechanics and available sales proxies without hallucinating promo spend numbers."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "promo-03-count",
+          "domain": "promo",
+          "question": "Berapa jumlah observasi promo SAT Q4 2024 per material? Top 10 material",
+          "pass": false,
+          "mechanical_pass": false,
+          "note": "judge score=3: The model failed to execute a straightforward aggregation query for SAT promo observation counts per",
+          "status": "CLARIFICATION",
+          "strategy": "clarification",
+          "row_count": 0,
+          "request_id": "f6d57b16-0004-40d9-b178-21c0bd741f28",
+          "judge": {
+            "acceptable": false,
+            "score": 3,
+            "grounded_in_data": true,
+            "domain_appropriate": false,
+            "follow_up_coherent": null,
+            "issues": [
+              "User requested a simple count of SAT promo observations per material (Top 10 material), but the assistant mistakenly treated the question as an ROI/cost analysis request.",
+              "Assistant triggered an unnecessary clarification/refusal regarding promo cost and GT sales proxy instead of executing an aggregation/count query on the SAT Promo dataset."
+            ],
+            "summary": "The model failed to execute a straightforward aggregation query for SAT promo observation counts per material, erroneously responding with a pre-canned clarification about promo cost and ROI limitations that the user did not ask for."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "promo-04-mechanism",
+          "domain": "promo",
+          "question": "Mekanisme promo SAT mana yang paling sering dipakai Q4 2024?",
+          "pass": false,
+          "mechanical_pass": false,
+          "note": "judge_unavailable: Model provider request failed",
+          "status": "CLARIFICATION",
+          "strategy": "clarification",
+          "row_count": 0,
+          "request_id": "7b00f5b5-4f2f-49b3-8a7a-56ea817023c6",
+          "judge": null,
+          "judge_error": "Model provider request failed"
+        },
+        {
+          "id": "promo-05-status",
+          "domain": "promo",
+          "question": "Distribusi promo SAT by program status Q4 2024",
+          "pass": false,
+          "mechanical_pass": false,
+          "note": "judge score=4: The response misinterprets the user prompt regarding promo distribution by program status, offering ",
+          "status": "CLARIFICATION",
+          "strategy": "clarification",
+          "row_count": 0,
+          "request_id": "bc4dbc78-e3d6-4a10-b7a7-aff4fe42a17e",
+          "judge": {
+            "acceptable": false,
+            "score": 4,
+            "grounded_in_data": true,
+            "domain_appropriate": false,
+            "follow_up_coherent": null,
+            "issues": [
+              "Question asked for promo SAT distribution by program status, but the assistant responded with an irrelevant clarification about promo cost/ROI and baseline GT sales proxy.",
+              "Did not address whether 'program status' exists or explain data availability regarding program status in SAT promo."
+            ],
+            "summary": "The response misinterprets the user prompt regarding promo distribution by program status, offering an unrelated clarification on promo cost and ROI proxies instead of addressing program status availability."
+          },
+          "judge_error": null
+        }
+      ]
+    },
+    {
+      "domain": "sales",
+      "passed": 3,
+      "total": 5,
+      "cases": [
+        {
+          "id": "sales-01-gross-q4",
+          "domain": "sales",
+          "question": "Berapa total gross billing / sell-in TEMPO untuk Q4 2024?",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 1,
+          "request_id": "cc314a74-75e3-4502-aec3-6d74774d2b80",
+          "judge": {
+            "acceptable": true,
+            "score": 10,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The response accurately reports the TEMPO corporate gross billing (sell-in) for Q4 2024, directly matching the governed query data with appropriate executive formatting and clear caveats."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "sales-02-top-material",
+          "domain": "sales",
+          "question": "Top 10 produk dengan penjualan sell-in terbesar di Tempo Q4 2024",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 10,
+          "request_id": "c2bd3f2e-541c-4082-8f5c-d228f9557c15",
+          "judge": {
+            "acceptable": true,
+            "score": 9,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The response accurately identifies the top sell-in materials for Q4 2024 with figures precisely matching the governed data rows. The executive summary, insights, and caveats are professionally formulated for executive management review."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "sales-03-top-office",
+          "domain": "sales",
+          "question": "Top 10 cabang sales office dengan sell-in terbesar Q4 2024",
+          "pass": false,
+          "mechanical_pass": true,
+          "note": "judge score=4: Meskipun query governed berhasil menarik 10 baris data sales office Tempo yang valid, model narasi g",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 10,
+          "request_id": "f11293e1-8812-43f7-b6a9-5c3f4a177b18",
+          "judge": {
+            "acceptable": false,
+            "score": 4,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [
+              "Model analisis gagal menghasilkan narasi ringkasan (fallback error displayed to user).",
+              "Direct answer dan executive summary tidak menyebutkan ranking top sales office maupun nilai penjualannya.",
+              "Data reference menyatakan 'No query result was used' meskipun sample rows tersedia."
+            ],
+            "summary": "Meskipun query governed berhasil menarik 10 baris data sales office Tempo yang valid, model narasi gagal memproses hasil tersebut sehingga jawaban hanya menyajikan pesan fallback boilerplate tanpa ringkasan ranking atau angka bagi manajemen."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "sales-04-office-material",
+          "domain": "sales",
+          "question": "Top 5 material dengan sell-in terbesar di sales office 0201 Q4 2024",
+          "pass": false,
+          "mechanical_pass": true,
+          "note": "judge score=3: The response failed to address the business question: instead of returning the top 5 materials withi",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 5,
+          "request_id": "da6e5564-690c-4eaf-b339-6493900768c5",
+          "judge": {
+            "acceptable": false,
+            "score": 3,
+            "grounded_in_data": false,
+            "domain_appropriate": false,
+            "follow_up_coherent": null,
+            "issues": [
+              "The query returned top sales offices instead of top materials for sales office 0201.",
+              "Material dimension is completely missing from columns and sample rows.",
+              "No narrative answer or executive summary was generated due to model analysis failure."
+            ],
+            "summary": "The response failed to address the business question: instead of returning the top 5 materials within sales office 0201 for Q4 2024, the governed query aggregated and ranked top sales offices overall without material breakdown. Additionally, the narrative generation failed with fallback messaging, making it unacceptable for a management demo."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "sales-05-billing-qty",
+          "domain": "sales",
+          "question": "Produk mana yang paling banyak terjual (quantity sell-in) di Tempo Q4 2024? Top 10",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 10,
+          "request_id": "682c4f3d-a68d-453e-9319-41247fd04a2c",
+          "judge": {
+            "acceptable": true,
+            "score": 8,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [
+              "Query executed Sell-In Gross Billing Value instead of physical billing quantity as requested, but the discrepancy was transparently disclosed in the direct answer and caveats."
+            ],
+            "summary": "The response accurately reflects the retrieved governed data and maintains commercial domain integrity. Although the user requested sell-in quantity, the system returned billing value, which the assistant transparently highlighted to avoid executive misinterpretation."
+          },
+          "judge_error": null
+        }
+      ]
+    },
+    {
+      "domain": "sat_oos",
+      "passed": 3,
+      "total": 5,
+      "cases": [
+        {
+          "id": "oos-01-worst-material",
+          "domain": "sat_oos",
+          "question": "Material mana dengan tingkat OOS di toko SAT tertinggi Q4 2024? Top 10",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 10,
+          "request_id": "59b0dd3b-a750-4a53-91b6-71e48a83f161",
+          "judge": {
+            "acceptable": true,
+            "score": 9,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The response accurately identifies the top materials with the highest OOS rate at SAT stores for Q4 2024 using governed data. Figures and PLU identifiers match the underlying dataset perfectly, accompanied by sound business insights and appropriate caveats regarding the PLU-level view."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "oos-02-company-oos",
+          "domain": "sat_oos",
+          "question": "Berapa rata-rata OOS rate SAT company-wide Q4 2024?",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 1,
+          "request_id": "f7ba794a-0712-46ca-90f6-d3ef0d0aac21",
+          "judge": {
+            "acceptable": true,
+            "score": 10,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The response accurately reports the company-wide SAT OOS rate of 7.54% for Q4 2024, directly aligned with the governed metric value, properly contextualized in the SAT retail domain, and includes clear, helpful methodology caveats."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "oos-03-plu-oos",
+          "domain": "sat_oos",
+          "question": "Top 5 PLU dengan OOS tertinggi di jaringan SAT Q4",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 5,
+          "request_id": "5ce38ead-6444-4663-a090-56958c7b50f7",
+          "judge": {
+            "acceptable": true,
+            "score": 10,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The response is fully grounded in the returned governed data, providing an accurate top 5 PLU ranking for SAT OOS in Q4 2024 with concise executive narrative and clear methodological caveats suitable for management."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "oos-04-worst-outlet",
+          "domain": "sat_oos",
+          "question": "Toko/outlet SAT mana dengan OOS rate terburuk Q4 2024? Top 10",
+          "pass": false,
+          "mechanical_pass": true,
+          "note": "judge_unavailable: Model provider request failed",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 10,
+          "request_id": "191b2ef2-975b-4b6c-b0df-b5e79f9d8c5b",
+          "judge": null,
+          "judge_error": "Model provider request failed"
+        },
+        {
+          "id": "oos-05-trend-hint",
+          "domain": "sat_oos",
+          "question": "Produk SAP FE001 apakah sering OOS di SAT Q4 2024?",
+          "pass": false,
+          "mechanical_pass": true,
+          "note": "judge_unavailable: Model provider request failed",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 10,
+          "request_id": "8c24ac29-4591-4f65-9c94-faaa4e8181fa",
+          "judge": null,
+          "judge_error": "Model provider request failed"
+        }
+      ]
+    },
+    {
+      "domain": "service_level",
+      "passed": 4,
+      "total": 5,
+      "cases": [
+        {
+          "id": "sl-01-worst-offices",
+          "domain": "service_level",
+          "question": "Hitung service level / fill rate di cabang Tempo dan urutkan yang terjelek Q4 2024",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 10,
+          "request_id": "23fe1819-6065-4759-933c-8f10e5cf5776",
+          "judge": {
+            "acceptable": true,
+            "score": 9,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The response accurately identifies and ranks the lowest service level branches for Q4 2024 using governed sales office data. Key metrics, percentage spreads, and caveats are clearly articulated and suitable for management review."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "sl-02-company-fill",
+          "domain": "service_level",
+          "question": "Berapa company fill rate Tempo Q4 2024?",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 1,
+          "request_id": "38fb2e62-7efe-49ab-9c30-4105e6840f38",
+          "judge": {
+            "acceptable": true,
+            "score": 10,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The response accurately reports the company fill rate for Q4 2024 as 77.68%, fully aligned with the governed data row. The executive summary and caveat provide clear, management-ready context without hallucinations."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "sl-03-material-sl",
+          "domain": "service_level",
+          "question": "Top 10 material dengan fill rate terendah Q4 2024",
+          "pass": false,
+          "mechanical_pass": true,
+          "note": "judge_unavailable: Model provider request failed",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 10,
+          "request_id": "18596195-333a-4928-aa29-eada51ed9e86",
+          "judge": null,
+          "judge_error": "Model provider request failed"
+        },
+        {
+          "id": "sl-04-band-distribution",
+          "domain": "service_level",
+          "question": "Distribusi material per band fill rate Q4 2024",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 3,
+          "request_id": "97acdcf8-8ad1-4a8f-a457-91b32ae27b0f",
+          "judge": {
+            "acceptable": true,
+            "score": 8,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The response accurately reports the service level fill rate per band for Q4 2024 based on the governed semantic model. It appropriately includes a caveat explaining that the returned metric reflects the weighted average fill rate per band rather than a SKU count distribution, ensuring management transparency."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "sl-05-po-do-gap",
+          "domain": "service_level",
+          "question": "Berapa total selisih quantity PO vs DO yang tidak terpenuhi Q4 2024?",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 1,
+          "request_id": "f719d4a4-3d65-48f4-a839-decb90d428ae",
+          "judge": {
+            "acceptable": true,
+            "score": 9,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The response accurately reports the Q4 2024 PO vs DO fulfillment gap directly from governed data (87,372,470 units) with clear executive phrasing and relevant business caveats."
+          },
+          "judge_error": null
+        }
+      ]
+    },
+    {
+      "domain": "stock_sat",
+      "passed": 4,
+      "total": 5,
+      "cases": [
+        {
+          "id": "stock-sat-01-dc-pileup",
+          "domain": "stock_sat",
+          "question": "Tampilkan 10 DC dengan penumpukan stok SAT tertinggi Q4 2024",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 10,
+          "request_id": "cfb58ce4-3aba-4846-a19f-289b0bc17399",
+          "judge": {
+            "acceptable": true,
+            "score": 9,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The response accurately identifies and ranks the top SAT distribution centers by Q4 2024 stock volume based on governed reporting data. Business insights and geographic observations are sound, figures align with the underlying rows, and appropriate caveats regarding monthly accumulation are clearly communicated."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "stock-sat-02-store-stock",
+          "domain": "stock_sat",
+          "question": "Top 10 division dengan store stock SAT terbesar Q4 2024",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 4,
+          "request_id": "c1e68669-1830-4e62-9430-0f7fc568ee55",
+          "judge": {
+            "acceptable": true,
+            "score": 10,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The response perfectly aligns with the returned query results. It transparently explains that only 4 divisions exist in the SAT dataset rather than hallucinating a full top 10, calculates totals and shares accurately, and provides sound business caveats regarding SAT store stock vs DC stock."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "stock-sat-03-dc-vs-store-clarify",
+          "domain": "stock_sat",
+          "question": "Cek stok produk A di toko alfamart dan bandingkan dengan stok di DC",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "CLARIFICATION",
+          "strategy": "clarification",
+          "row_count": 0,
+          "request_id": "859b73c9-cb28-423a-94e4-49e90cd8d636",
+          "judge": {
+            "acceptable": true,
+            "score": 9,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "Assistant appropriately triggered a clarification regarding the differing grain and metrics between DC Stock and Store Stock for Alfamart, preventing data hallucination and guiding the user clearly."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "stock-sat-04-dc-name",
+          "domain": "stock_sat",
+          "question": "Berapa stok SAT di DC Palembang Q4 2024?",
+          "pass": false,
+          "mechanical_pass": true,
+          "note": "judge score=4: Meskipun query governed berhasil mengeksekusi dan mengambil data stok SAT DC Palembang Q4 2024 sebes",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 1,
+          "request_id": "2e355d07-1c18-4608-80bb-d391b38b2305",
+          "judge": {
+            "acceptable": false,
+            "score": 4,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [
+              "Model narasi mengalami kegagalan dan menampilkan pesan fallback teknis tanpa menyebutkan angka stok DC Palembang (6.762.825).",
+              "Direct answer dan executive summary tidak menjawab pertanyaan spesifik user untuk kebutuhan presentasi manajemen."
+            ],
+            "summary": "Meskipun query governed berhasil mengeksekusi dan mengambil data stok SAT DC Palembang Q4 2024 sebesar 6.762.825, teks respons hanya memuat pesan boilerplate fallback kegagalan narasi tanpa memaparkan nilai hasil. Respons ini belum layak disajikan kepada manajemen."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "stock-sat-05-plu-rank",
+          "domain": "stock_sat",
+          "question": "PLU mana dengan stok store SAT tertinggi Q4 2024? Top 10",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 10,
+          "request_id": "f063a1f3-b6c4-4ec7-a62f-d3c7ddbc1224",
+          "judge": {
+            "acceptable": true,
+            "score": 9,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "Jawaban sangat baik dan selaras penuh dengan data hasil query. Metrik ranking dan angka yang disebutkan konsisten dengan tabel rujukan, dilengkapi dengan caveat yang jelas mengenai ketiadaan nama produk serta penjelasan agregasi stok bulanan."
+          },
+          "judge_error": null
+        }
+      ]
+    },
+    {
+      "domain": "stock_tempo",
+      "passed": 2,
+      "total": 5,
+      "cases": [
+        {
+          "id": "stock-tempo-01-cover-days",
+          "domain": "stock_tempo",
+          "question": "Hitung berapa hari stok material 500-21-02 di sales office 0201 bisa cover penjualan Q4 2024",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 1,
+          "request_id": "23b0a66d-34cc-4e76-8604-ef085996e321",
+          "judge": {
+            "acceptable": true,
+            "score": 9,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The response accurately reports the governed metric of 10.77 months (~323–328 days) and proactively provides a transparent caveat explaining that the semantic table only supports national-level aggregation without sales office granularity."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "stock-tempo-02-warehouse-qty",
+          "domain": "stock_tempo",
+          "question": "Top 10 material dengan stok gudang Tempo terbesar snapshot terakhir Q4 2024",
+          "pass": false,
+          "mechanical_pass": true,
+          "note": "judge score=4: Meskipun query governed berhasil menarik 10 baris data stok gudang Tempo, lapisan narasi/ringkasan m",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 10,
+          "request_id": "5c260b98-8e2e-4d3b-9698-ef20230f7713",
+          "judge": {
+            "acceptable": false,
+            "score": 4,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [
+              "Narasi analisis gagal dihasilkan (fallback message: 'model analisis gagal merespons').",
+              "Direct answer dan executive summary tidak menyebutkan ranking atau nama material teratas sama sekali.",
+              "Data reference menyatakan 'No query result was used'."
+            ],
+            "summary": "Meskipun query governed berhasil menarik 10 baris data stok gudang Tempo, lapisan narasi/ringkasan mengalami kegagalan dan menampilkan pesan fallback teknis. Jawaban belum layak untuk demo manajemen karena tidak menyajikan insight maupun rangkuman Top 10 material secara langsung."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "stock-tempo-03-total-stock",
+          "domain": "stock_tempo",
+          "question": "Berapa total quantity stok Tempo per material untuk bulan Desember 2024?",
+          "pass": false,
+          "mechanical_pass": true,
+          "note": "judge_unavailable: Model provider request failed",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 10,
+          "request_id": "c7fa4071-1c02-4d9e-845e-0c197592a16a",
+          "judge": null,
+          "judge_error": "Model provider request failed"
+        },
+        {
+          "id": "stock-tempo-04-low-stock",
+          "domain": "stock_tempo",
+          "question": "Material mana dengan stok Tempo paling rendah di Q4 2024? Top 10",
+          "pass": true,
+          "mechanical_pass": true,
+          "note": "ok",
+          "status": "SUCCESS",
+          "strategy": "governed",
+          "row_count": 10,
+          "request_id": "58cb89ac-8ab4-4b54-9b2b-3b678496e965",
+          "judge": {
+            "acceptable": true,
+            "score": 9,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The response accurately identifies the top materials with the lowest stock based on governed data, matching the sample rows perfectly. It provides professional management-level insights and sensible operational caveats explaining the negative stock values."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "stock-tempo-05-plant",
+          "domain": "stock_tempo",
+          "question": "Tampilkan stok Tempo per plant untuk material FE001 Q4 2024",
+          "pass": false,
+          "mechanical_pass": false,
+          "note": "status want SUCCESS got NO_DATA",
+          "status": "NO_DATA",
+          "strategy": "governed",
+          "row_count": 0,
+          "request_id": "6e595ba6-e840-4c67-a25d-8416f6ef9b3d",
+          "judge": {
+            "acceptable": true,
+            "score": 7,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [],
+            "summary": "The assistant appropriately returned a NO_DATA status without hallucinating any inventory metrics or plants for material FE001 in Q4 2024. While the response is concise, it truthfully reflects query execution results and meets UAT guidelines."
+          },
+          "judge_error": null
+        }
+      ]
+    },
+    {
+      "domain": "unloading",
+      "passed": 0,
+      "total": 5,
+      "cases": [
+        {
+          "id": "unloading-01-longest",
+          "domain": "unloading",
+          "question": "Cabang mana dengan rata-rata unloading terlama Q4 2024?",
+          "pass": false,
+          "mechanical_pass": false,
+          "note": "judge score=3: The system encountered a technical error and failed to retrieve the requested unloading metrics for ",
+          "status": "ERROR",
+          "strategy": "unsupported",
+          "row_count": 0,
+          "request_id": "649bc4b5-4f62-4c47-a8a2-1360808bce23",
+          "judge": {
+            "acceptable": false,
+            "score": 3,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [
+              "Query failed with an internal technical processing error (status: ERROR).",
+              "No data or analysis provided for average branch unloading duration in Q4 2024."
+            ],
+            "summary": "The system encountered a technical error and failed to retrieve the requested unloading metrics for Q4 2024. Although it handled the error gracefully without fabricating data, an error response is not acceptable for a management demo."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "unloading-02-top10",
+          "domain": "unloading",
+          "question": "Top 10 sales office dengan unloading time tertinggi Q4",
+          "pass": false,
+          "mechanical_pass": false,
+          "note": "judge score=3: The system gracefully reported a technical processing failure with a tracking ID rather than halluci",
+          "status": "ERROR",
+          "strategy": "unsupported",
+          "row_count": 0,
+          "request_id": "2112372f-d00a-4525-bae7-15396ff046df",
+          "judge": {
+            "acceptable": false,
+            "score": 3,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [
+              "System encountered a technical error and failed to retrieve or compute the Top 10 sales offices by unloading time.",
+              "No data or analysis provided to answer the management inquiry."
+            ],
+            "summary": "The system gracefully reported a technical processing failure with a tracking ID rather than hallucinating numbers, but failed to deliver the requested Top 10 unloading time ranking for Q4 2024. Consequently, it is not ready for a management demo."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "unloading-03-shortest",
+          "domain": "unloading",
+          "question": "Sales office mana unloading-nya paling efisien (tercepat) Q4 2024?",
+          "pass": false,
+          "mechanical_pass": false,
+          "note": "judge score=3: The system encountered an internal processing error and could not answer the question regarding unlo",
+          "status": "ERROR",
+          "strategy": "unsupported",
+          "row_count": 0,
+          "request_id": "4ea49f81-c33a-413a-b7c7-90754037da51",
+          "judge": {
+            "acceptable": false,
+            "score": 3,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [
+              "Query failed with an internal technical error/unsupported strategy, returning no data for unloading efficiency."
+            ],
+            "summary": "The system encountered an internal processing error and could not answer the question regarding unloading efficiency for Q4 2024. While it handled the failure gracefully without hallucinating data, an error response is not acceptable for a management demo."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "unloading-04-compare-two",
+          "domain": "unloading",
+          "question": "Bandingkan rata-rata unloading sales office 0201 vs 0202 Q4 2024",
+          "pass": false,
+          "mechanical_pass": false,
+          "note": "judge score=3: Respon sistem gagal memproses data karena kendala teknis internal pada pipeline analitik. Meskipun a",
+          "status": "ERROR",
+          "strategy": "unsupported",
+          "row_count": 0,
+          "request_id": "138f6ba2-349f-4c48-bf46-f117ea5c17c2",
+          "judge": {
+            "acceptable": false,
+            "score": 3,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [
+              "Sistem mengalami error internal (status: ERROR, strategy: unsupported) sehingga gagal menyediakan data perbandingan unloading sales office 0201 vs 0202 Q4 2024."
+            ],
+            "summary": "Respon sistem gagal memproses data karena kendala teknis internal pada pipeline analitik. Meskipun asisten tidak melakukan halusinasi angka dan memberikan pesan error yang transparan, ketiadaan data membuat hasil ini tidak siap untuk demo manajemen."
+          },
+          "judge_error": null
+        },
+        {
+          "id": "unloading-05-company-avg",
+          "domain": "unloading",
+          "question": "Berapa rata-rata unloading minutes company-wide Tempo Q4 2024?",
+          "pass": false,
+          "mechanical_pass": false,
+          "note": "judge score=2: The assistant failed to execute the governed query for company-wide unloading minutes in Q4 2024, re",
+          "status": "ERROR",
+          "strategy": "unsupported",
+          "row_count": 0,
+          "request_id": "0e61a721-498a-4b8a-8621-644f0855b9e1",
+          "judge": {
+            "acceptable": false,
+            "score": 2,
+            "grounded_in_data": true,
+            "domain_appropriate": true,
+            "follow_up_coherent": null,
+            "issues": [
+              "Backend error: The system failed to answer a core governed metric question (company-wide average unloading minutes Q4 2024) and returned an unsupported error."
+            ],
+            "summary": "The assistant failed to execute the governed query for company-wide unloading minutes in Q4 2024, returning a backend error instead of data. While it properly avoided hallucinating figures, an unhandled error on standard aggregate metric queries is not acceptable for a management demo."
+          },
+          "judge_error": null
+        }
+      ]
+    }
+  ]
+}

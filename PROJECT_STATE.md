@@ -1,9 +1,55 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 2 Oct 2026 (latest) — UAT branch Service Level / fill-rate ranking now resolves to governed `sales_office_service_fill_rate` on `gold.corr_service_sales_office_material_month` with worst-first ordering (`terjelek` → `ORDER BY ASC`). 145/145 backend-v2 tests pass.
+**Updated**: 6 Oct 2026 (latest) — Phase C multi-turn follow-up UAT harness + P0 binding fixes (session frame, heuristic `plan_follow_up`, governed execute fallbacks). Merged Gemini judge: **33/50** scenarios, **81/100** turns (`backend-v2/eval/uat_domain_5x5_followup_merged_latest.json`). Restart uvicorn after backend changes before UAT.
 
-## Current checkpoint: UAT cabang fill-rate ranking uses governed sales-office view (2 Oct 2026, latest)
+## Current checkpoint: follow-up UAT P0 + OSSIE multi-turn stack (6 Oct 2026, latest)
+
+### Goal
+
+50 follow-up scenarios (5 per domain × 10 domains, 2 turns each, shared `session_id`) scored by **Gemini management judge** plus mechanical HTTP checks. Baseline before this work was ~25/50 scenarios on judge; mechanical-only merge reached ~40/50 before judge strictness.
+
+### What landed (backend-v2)
+
+- **Follow-up pipeline**: `app/services/follow_up.py` (heuristic plan before LLM), `session_context.py` (referential rewrite, rank/compare, plant/material drill), `question_contextualize.py`, `chat.py` turn understanding (lite/clarify/follow_up).
+- **Governed path**: `semantic/context.py` (session metric continuation, extra predicates, OOS worst-first), `graph/workflow.py` (follow-up catalog row fallback, synthetic entity rows, skip false NO_DATA on follow-up context).
+- **Conversational**: `conversational.py` for sell-in vs sell-out concept questions (cross-domain UAT).
+- **Phase C**: judge replan (`judge.py`, `governed_replan.py`), domain graph (`knowledge/tempo_domain_graph.yaml`), OSSIE trace, ask-data routing, eval harness (`eval/uat_answer_judge.py`, `scripts/run_uat_domain_5x5_followup.py`, merge script, `eval/uat_domain_5x5_followup.yaml`).
+- **Frontend-v2**: streaming progress, session list, answer prose/PDF, RTK store, clarification UX aligned with backend `session_frame`.
+
+### UAT status (6 Oct 2026, merged best-of per domain after judge retry)
+
+| Domain | Scenarios pass (judge) |
+|--------|-------------------------|
+| b2b, stock_sat, sat_oos, picking, unloading | 4/5 |
+| sales, stock_tempo, service_level | 3/5 |
+| promo | 3/5 (after retry) |
+| cross_domain | 1/5 |
+
+**Totals**: 33/50 scenarios, 81/100 turns judge-acceptable. ~7 turns still fail only on `judge_unavailable` (provider flake) in various runs; retry picking/promo helped, sat_oos/cross_domain retry was worse — merged file keeps better per-domain reports.
+
+Run: `backend-v2/scripts/run_uat_domain_5x5_followup_all_domains.sh` (one process per domain; restart backend after code changes). Ephemeral per-run JSON is gitignored; committed summary: `eval/uat_domain_5x5_followup_merged_latest.json`.
+
+### P1 still open (real failures, not flake)
+
+- **cross_domain**: `cross-fu-02` conversational scope, `cross-fu-03` clarification loop on turn 2, contribution follow-up on pareto top-3.
+- **promo-fu-05**: clarification assumes ROI/cost instead of distribution continuity.
+- **sales-fu-04**: office compare + turn-2 ERROR; **sales-fu-05** t1 metric framing vs judge rubric.
+- **stock-sat-fu-04**: DC Palembang filter + follow-up continuity.
+- **stock-tempo-fu-04/05** t2: rank/plant binding + analyst hallucination guard.
+- **sl-fu-04/05** t2: service-level domain drift on follow-up.
+- **Analyst flakes**: picking-fu-03 t1 narrative fallback despite 10 rows.
+
+### Tests
+
+New follow-up/judge/routing tests under `backend-v2/tests/test_follow_up*.py`, `test_session_context.py`, etc. Full `pytest backend-v2/tests` on dev machine: **257 passed, 13 failed** (Oct 2026) — failures cluster on workflow UNSUPPORTED→CLARIFICATION semantics, live Gemini provider smoke, and models/readiness API expectations; fix or refresh in a follow-up commit before claiming green CI.
+
+### Ops
+
+- Local stack: `scripts/run-local-stack-governed.sh` or `run-local-stack-ossie-only.sh`.
+- UAT latency ~30–45 s/turn governed (+ judge); frontend abort ~90 s.
+
+## Previous checkpoint: UAT cabang fill-rate ranking uses governed sales-office view (2 Oct 2026)
 
 Live UAT still showed `company_fill_rate` (~77.7%) with text claiming no cabang dimension — that symptom matches **pre-fix** resolver behavior on the deployed CAI app (shortcut knew `fill rate` but not `cabang` as sales-office grain). The gold view and metric already existed (`sales_office_service_fill_rate` → `gold.corr_service_sales_office_material_month`); Irvan’s Local Agent also covers this, but the main Ask Data path should not depend on fallback when OSSIE already publishes the breakdown.
 

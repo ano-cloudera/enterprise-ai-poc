@@ -9,10 +9,14 @@
     "start": "next start -H 0.0.0.0 -p ${PORT:-3000}"
   },
   "dependencies": {
+    "@reduxjs/toolkit": "^2.8.2",
+    "html2canvas": "^1.4.1",
+    "jspdf": "^4.2.1",
     "lucide-react": "^0.500.0",
     "next": "^15.5.0",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
+    "react-redux": "^9.2.0",
     "recharts": "^3.0.0"
   },
   "devDependencies": {

@@ -1,51 +1,121 @@
 'use client'
 
-import { FormEvent, KeyboardEvent, MouseEvent, useEffect, useRef, useState } from 'react'
-import { ArrowUp, BarChart3, ChevronDown, Database, Info, Lightbulb, MessageSquareText, PanelLeftClose, PanelLeftOpen, Plus, Square, Table2, Trash2, UserRound } from 'lucide-react'
+import { MouseEvent, useCallback, useEffect, useRef, useState } from 'react'
+import { BarChart3, ChevronDown, Lightbulb, Table2 } from 'lucide-react'
+import { ChatComposer } from '../components/ChatComposer'
+import { DataNote } from '../components/DataNote'
+import { ResponseFooter } from '../components/ResponseFooter'
+import { StreamingProgress } from '../components/StreamingProgress'
+import { appConfig } from '../config/appConfig'
+import { downloadConversationPdf } from '../lib/chatPdfExport'
+import { clarificationChoices } from '../lib/clarificationPrompts'
+import { answerPresentation, hasGovernedEvidence } from '../lib/governedEvidence'
 import { AnswerChart } from '../components/AnswerChart'
+import { AnswerProse } from '../components/AnswerProse'
 import { DataTable } from '../components/DataTable'
 import { KpiCard } from '../components/KpiCard'
-import { ScanMark } from '../components/ScanMark'
+import {
+  AssistantContent,
+  ConversationInner,
+  USER_BUBBLE_CLASS,
+  USER_MESSAGE_ROW_CLASS,
+} from '../components/ConversationInner'
+import { EmptyStateLogo } from '../components/EmptyStateLogo'
 import { api } from '../lib/api'
-import { createSessionId, deleteSession, loadSessions, saveSession, sessionTitle, type ChatSession, type StoredMessage } from '../lib/chatSessions'
+import { mergeDataNotes, parseDataProvenance } from '../lib/dataProvenance'
+import { createSessionId, deleteSession, loadSessions, saveSession, sessionTitle, type ChatSession, type ProcessSnapshot, type StoredMessage } from '../lib/chatSessions'
 import { useModelSelection } from '../lib/modelSelection'
 import { useChatLayout } from '../layout/AppShell'
+import {
+  DETAILED_PROGRESS_STEPS,
+  mergeProgressStep,
+  type ProgressTraceEntry,
+} from '../lib/streamProgress'
 import type { ChatResponse, SuggestedQuestion } from '../types/api'
 
 const STARTER_QUESTION_COUNT = 3
 
 export function AskDataPage() {
-  const { fullScreenChat, toggleFullScreenChat } = useChatLayout()
+  const { setChatSessionSidebar, setChatPageChrome } = useChatLayout()
   const { selection, select, loading: modelsLoading, error: modelError } = useModelSelection()
   const [input, setInput] = useState('')
   const [sessionId, setSessionId] = useState(createSessionId)
   const [messages, setMessages] = useState<StoredMessage[]>([])
   const [sessions, setSessions] = useState<ChatSession[]>([])
   const [loading, setLoading] = useState(false)
-  const [progress, setProgress] = useState<string | null>(null)
+  const [progressStep, setProgressStep] = useState(0)
+  const [technicalTrace, setTechnicalTrace] = useState<ProgressTraceEntry[]>([])
   const [error, setError] = useState('')
   const [starterQuestions, setStarterQuestions] = useState<SuggestedQuestion[]>([])
+  const [downloadingPdf, setDownloadingPdf] = useState(false)
+  const [pdfExportPreview, setPdfExportPreview] = useState(false)
   const end = useRef<HTMLDivElement>(null)
+  const conversationExportRef = useRef<HTMLDivElement>(null)
   const activeRequest = useRef<AbortController | null>(null)
+  const progressLiveRef = useRef({ step: 0, trace: [] as ProgressTraceEntry[] })
 
   useEffect(() => setSessions(loadSessions()), [])
   useEffect(() => { if (messages.length) { saveSession({ id: sessionId, title: sessionTitle(messages), updatedAt: Date.now(), messages, selection: selection || undefined }); setSessions(loadSessions()) } }, [messages, selection, sessionId])
-  useEffect(() => { end.current?.scrollIntoView?.({ behavior: 'smooth' }) }, [messages, progress])
+  useEffect(() => { end.current?.scrollIntoView?.({ behavior: 'smooth' }) }, [messages, loading, progressStep])
   useEffect(() => () => activeRequest.current?.abort(), [])
   useEffect(() => { api.randomQueries(STARTER_QUESTION_COUNT).then(response => setStarterQuestions(response.questions)).catch(() => setStarterQuestions([])) }, [])
 
   async function submit(question = input) {
     const value = question.trim()
     if (!value || loading || !selection) return
-    setMessages(current => [...current, { role: 'user', content: value }]); setInput(''); setError(''); setLoading(true)
+    setMessages(current => [...current, { role: 'user', content: value }])
+    setInput('')
+    setError('')
+    setLoading(true)
+    setProgressStep(0)
+    setTechnicalTrace([])
+    progressLiveRef.current = { step: 0, trace: [] }
     const controller = new AbortController()
     activeRequest.current = controller
     let timedOut = false
-    const timeout = window.setTimeout(() => { timedOut = true; controller.abort() }, 90_000)
+    const streamTimeoutMs = Number(process.env.NEXT_PUBLIC_CHAT_STREAM_TIMEOUT_MS || 120_000)
+    const timeout = window.setTimeout(() => { timedOut = true; controller.abort() }, streamTimeoutMs)
+    let streamSucceeded = false
     try {
       for await (const event of api.chatStream(value, sessionId, selection, controller.signal)) {
-        if (event.type === 'progress') setProgress(event.label)
-        else setMessages(current => [...current, { role: 'assistant', content: event.response.answer.executive_summary, response: event.response }])
+        if (event.type === 'progress') {
+          setProgressStep(current => {
+            const next = mergeProgressStep(current, event.stage, event.label)
+            progressLiveRef.current.step = next
+            return next
+          })
+          setTechnicalTrace(current => {
+            const entry: ProgressTraceEntry = { stage: event.stage, label: event.label, detail: event.detail }
+            const key = `${entry.stage}|${entry.label}|${entry.detail ?? ''}`
+            const last = current[current.length - 1]
+            const lastKey = last ? `${last.stage}|${last.label}|${last.detail ?? ''}` : ''
+            if (key === lastKey) return current
+            const next = [...current, entry]
+            progressLiveRef.current.trace = next
+            return next
+          })
+          continue
+        }
+        if (event.type === 'done') {
+          streamSucceeded = true
+          const finalStep = Math.max(
+            progressLiveRef.current.step,
+            DETAILED_PROGRESS_STEPS.length - 1,
+          )
+          const processSnapshot: ProcessSnapshot = {
+            activeStepIndex: finalStep,
+            technicalTrace: [...progressLiveRef.current.trace],
+          }
+          setMessages(current => [
+            ...current,
+            {
+              role: 'assistant',
+              content: event.response.answer.executive_summary,
+              response: event.response,
+              processSnapshot,
+            },
+          ])
+        }
       }
     } catch (caught) {
       if (caught instanceof DOMException && caught.name === 'AbortError') {
@@ -56,32 +126,189 @@ export function AskDataPage() {
     } finally {
       window.clearTimeout(timeout)
       if (activeRequest.current === controller) activeRequest.current = null
-      setLoading(false); setProgress(null)
+      setLoading(false)
+      if (!streamSucceeded) {
+        setProgressStep(0)
+        setTechnicalTrace([])
+      }
     }
   }
 
   function stopRequest() { activeRequest.current?.abort() }
 
-  function newChat() { setSessionId(createSessionId()); setMessages([]); setInput(''); setError('') }
-  function openSession(session: ChatSession) { setSessionId(session.id); setMessages(session.messages); setInput(''); if (session.selection) select(session.selection) }
-  function removeSession(event: MouseEvent, id: string) { event.stopPropagation(); deleteSession(id); setSessions(loadSessions()); if (id === sessionId) newChat() }
-  function keyDown(event: KeyboardEvent<HTMLTextAreaElement>) { if (event.key === 'Enter' && !event.shiftKey && input.trim() && !loading) { event.preventDefault(); submit() } }
+  const newChat = useCallback(() => {
+    setSessionId(createSessionId())
+    setMessages([])
+    setInput('')
+    setError('')
+  }, [])
 
-  return <div className="flex h-[calc(100dvh-136px)] min-w-0 flex-col pb-14 lg:pb-0"><div className={`grid min-h-0 flex-1 transition-[grid-template-columns,gap] duration-300 ease-in-out ${fullScreenChat ? 'gap-0 xl:grid-cols-[0_minmax(0,1fr)]' : 'gap-4 xl:grid-cols-[214px_minmax(0,1fr)]'}`}>
-    <aside aria-label="Conversation history sidebar" aria-hidden={fullScreenChat} inert={fullScreenChat} className={`card hidden overflow-hidden transition-[opacity,transform,padding,border-width] duration-300 ease-in-out xl:block ${fullScreenChat ? 'pointer-events-none -translate-x-3 border-0 p-0 opacity-0' : 'translate-x-0 overflow-y-auto p-4 opacity-100'}`}><button className="btn-primary w-full" onClick={newChat}><Plus size={16} />New Chat</button><div className="mt-6 text-sm font-extrabold text-cloudera-navy">Recent conversations</div>{sessions.length ? <div className="mt-3 space-y-2">{sessions.map(session => <div key={session.id} className="group relative rounded-xl border border-transparent hover:bg-slate-50"><button className="w-full p-3 pr-9 text-left text-xs" onClick={() => openSession(session)}><MessageSquareText size={14} className="mr-2 inline" />{session.title}</button><button aria-label="Delete conversation" className="absolute right-2 top-2 text-slate-400" onClick={event => removeSession(event, session.id)}><Trash2 size={13} /></button></div>)}</div> : <div className="mt-3 rounded-xl bg-slate-50 p-3 text-xs text-slate-500">No conversations yet.</div>}</aside>
-    <section className="card flex min-h-0 min-w-0 flex-col overflow-hidden transition-[width] duration-300 ease-in-out"><div className="flex items-center justify-between border-b border-slate-200 px-5 py-4"><div className="flex items-center gap-2"><button type="button" aria-label={fullScreenChat ? 'Exit full screen chat' : 'Enter full screen chat'} aria-pressed={fullScreenChat} onClick={toggleFullScreenChat} className="hidden h-9 w-9 shrink-0 place-items-center rounded-xl border border-slate-200 text-slate-500 transition-colors hover:bg-slate-50 hover:text-cloudera-navy lg:grid">{fullScreenChat ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}</button><div className="text-sm font-extrabold text-cloudera-navy">Scan Intelligence</div></div><div className="chip"><Database size={13} />Ossie · Impala</div></div>
-      <div role="log" aria-label="Conversation" className={`min-h-0 flex-1 overflow-y-auto p-5 ${messages.length ? 'space-y-5' : 'flex'}`}>
-        {!messages.length && <div className="m-auto max-w-2xl text-center"><ScanMark size={56} className="mx-auto" rounded="2xl" /><h1 className="mt-5 text-2xl font-black text-cloudera-navy">Ask your TEMPO commercial data</h1><p className="mt-2 text-sm leading-6 text-slate-500">Get a grounded answer, governed data, and a relevant visualization without Agent Studio orchestration.</p>{starterQuestions.length > 0 && <div className="mt-6 grid gap-2 text-left sm:grid-cols-3">{starterQuestions.map(item => <button key={item.id} type="button" onClick={() => submit(item.question)} disabled={!selection || loading} className="rounded-xl border border-slate-200 bg-white p-3 text-left text-sm leading-5 text-slate-600 transition-colors hover:border-cloudera-orange/40 hover:bg-orange-50/40 disabled:opacity-50">{item.question}</button>)}</div>}</div>}
-        {messages.map((message, index) => message.role === 'user' ? <div key={index} className="ml-auto flex max-w-[80%] justify-end gap-2"><div className="rounded-2xl rounded-tr-md bg-cloudera-navy px-4 py-3 text-sm leading-6 text-white">{message.content}</div><UserRound size={28} className="rounded-full bg-slate-200 p-1.5" /></div> : <div key={index} className="flex gap-3"><ScanMark size={36} /><div className="min-w-0 max-w-[1000px] flex-1 rounded-2xl border border-slate-200 bg-white p-6">{message.response ? <StructuredAnswer response={message.response} /> : message.content}</div></div>)}
-        {loading && <div className="flex items-center gap-3"><ScanMark size={36} className="animate-pulse" /><div className="flex items-center gap-2 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs text-slate-500"><span className="flex gap-1"><span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cloudera-orange [animation-delay:-0.3s]" /><span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cloudera-orange [animation-delay:-0.15s]" /><span className="h-1.5 w-1.5 animate-bounce rounded-full bg-cloudera-orange" /></span><span className="font-medium text-slate-600">{progress || 'AI is analyzing...'}</span></div></div>}
-        {error && <div className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</div>}<div ref={end} />
+  const openSession = useCallback(
+    (session: ChatSession) => {
+      setSessionId(session.id)
+      setMessages(session.messages)
+      setInput('')
+      if (session.selection) select(session.selection)
+    },
+    [select],
+  )
+
+  const removeSession = useCallback(
+    (event: MouseEvent, id: string) => {
+      event.stopPropagation()
+      deleteSession(id)
+      void api.deleteChatSession(id).catch(() => undefined)
+      setSessions(loadSessions())
+      if (id === sessionId) newChat()
+    },
+    [sessionId, newChat],
+  )
+
+  useEffect(() => {
+    setChatSessionSidebar({
+      sessions,
+      activeSessionId: sessionId,
+      onNewChat: newChat,
+      onOpenSession: openSession,
+      onRemoveSession: removeSession,
+    })
+    return () => setChatSessionSidebar(null)
+  }, [sessions, sessionId, newChat, openSession, removeSession, setChatSessionSidebar])
+
+  const downloadChat = useCallback(async () => {
+    const root = conversationExportRef.current
+    if (!messages.length || !root || downloadingPdf) return
+    setDownloadingPdf(true)
+    setError('')
+    setPdfExportPreview(true)
+    await new Promise<void>(resolve => {
+      requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
+    })
+    try {
+      await downloadConversationPdf(root, sessionTitle(messages))
+    } catch {
+      setError('Unable to generate PDF. Please try again.')
+    } finally {
+      setPdfExportPreview(false)
+      setDownloadingPdf(false)
+    }
+  }, [messages, downloadingPdf])
+
+  useEffect(() => {
+    setChatPageChrome({
+      showDownload: messages.length > 0,
+      downloadingPdf,
+      loading,
+      minimalHeader: messages.length === 0 && !loading,
+      onDownloadPdf: () => void downloadChat(),
+    })
+    return () => setChatPageChrome(null)
+  }, [messages.length, downloadingPdf, loading, downloadChat, setChatPageChrome])
+
+  const modelHint =
+    modelsLoading || modelError || !selection
+      ? modelsLoading
+        ? 'Discovering configured models…'
+        : modelError || 'No configured model is available. Open Settings or contact the operator.'
+      : null
+
+  return (
+    <div className="flex h-full min-h-0 flex-1 flex-col pb-14 lg:pb-0">
+      <div
+        role="log"
+        aria-label="Conversation"
+        className={`scrollbar-hidden min-h-0 flex-1 overflow-y-auto py-4 ${messages.length || loading ? '' : 'flex'}`}
+      >
+        <ConversationInner className={messages.length || loading ? 'space-y-6' : 'flex flex-1 flex-col justify-center'}>
+            {!messages.length && (
+              <div className="mx-auto w-full max-w-xl text-center">
+                <EmptyStateLogo />
+                <h1 className="type-app-title mt-5 text-xl">{appConfig.emptyStateTitle}</h1>
+                <p className="type-chat-body mt-2.5 text-slate-500">{appConfig.emptyStateDescription}</p>
+                {starterQuestions.length > 0 && (
+                  <div className="mt-7 grid gap-2 text-left sm:grid-cols-3">
+                    {starterQuestions.map(item => (
+                      <button
+                        key={item.id}
+                        type="button"
+                        onClick={() => submit(item.question)}
+                        disabled={!selection || loading}
+                        className="rounded-xl border border-slate-200 bg-white p-3 text-left text-sm leading-5 text-slate-600 transition-colors hover:border-cloudera-orange/40 hover:bg-orange-50/40 disabled:opacity-50"
+                      >
+                        {item.question}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            )}
+            <div ref={conversationExportRef} className={messages.length ? 'space-y-6' : undefined}>
+              {messages.map((message, index) =>
+                message.role === 'user' ? (
+                  <div key={index} className={USER_MESSAGE_ROW_CLASS}>
+                    <div className={USER_BUBBLE_CLASS}>{message.content}</div>
+                  </div>
+                ) : (
+                  <AssistantContent key={index}>
+                    {message.response ? (
+                      <StructuredAnswer
+                        response={message.response}
+                        processSnapshot={message.processSnapshot}
+                        expandForExport={pdfExportPreview}
+                        onClarificationPick={text => submit(text)}
+                        clarificationDisabled={loading}
+                      />
+                    ) : (
+                      <p className="type-chat-body text-slate-700">{message.content}</p>
+                    )}
+                  </AssistantContent>
+                ),
+              )}
+            </div>
+            {loading && (
+              <StreamingProgress activeStepIndex={progressStep} technicalTrace={technicalTrace} />
+            )}
+            {error && (
+              <AssistantContent>
+                <div className="rounded-xl bg-rose-50 p-3 text-sm text-rose-700">{error}</div>
+              </AssistantContent>
+            )}
+            <div ref={end} />
+        </ConversationInner>
       </div>
-      <form onSubmit={(event: FormEvent) => { event.preventDefault(); submit() }} className="border-t border-slate-200 p-4"><div className="flex items-end gap-2 rounded-2xl border border-slate-200 p-2"><textarea rows={2} value={input} onChange={event => setInput(event.target.value)} onKeyDown={keyDown} placeholder="Ask a commercial question..." className="min-h-[48px] flex-1 resize-none bg-transparent px-2 py-2 text-sm outline-none" />{loading ? <button type="button" aria-label="Stop request" onClick={stopRequest} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-cloudera-orange text-white transition-colors hover:bg-rose-600"><Square size={14} fill="currentColor" /></button> : <button type="submit" aria-label="Send question" disabled={!selection || !input.trim()} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-cloudera-orange text-white disabled:opacity-40"><ArrowUp size={18} /></button>}</div>{(modelsLoading || modelError || !selection) && <div className="mt-2 text-xs text-amber-700">{modelsLoading ? 'Discovering configured models…' : modelError || 'No configured model is available. Open Settings or contact the operator.'}</div>}</form>
-    </section>
-  </div></div>
+
+      <div className="sticky bottom-0 z-10 bg-gradient-to-t from-cloudera-mist from-40% via-cloudera-mist/85 to-transparent pb-1 pt-5 backdrop-blur-[3px]">
+        <ConversationInner>
+          <ChatComposer
+            value={input}
+            loading={loading}
+            disabled={!selection}
+            modelHint={modelHint}
+            onChange={setInput}
+            onSubmit={() => submit()}
+            onStop={stopRequest}
+          />
+        </ConversationInner>
+      </div>
+    </div>
+  )
 }
 
-function StructuredAnswer({ response }: { response: ChatResponse }) {
+function StructuredAnswer({
+  response,
+  processSnapshot,
+  expandForExport = false,
+  onClarificationPick,
+  clarificationDisabled = false,
+}: {
+  response: ChatResponse
+  processSnapshot?: ProcessSnapshot
+  expandForExport?: boolean
+  onClarificationPick?: (text: string) => void
+  clarificationDisabled?: boolean
+}) {
+  const presentation = answerPresentation(response)
+  const missingGovernedEvidence = response.status === 'SUCCESS' && response.strategy === 'governed' && !hasGovernedEvidence(response)
   const kpiField = response.chart_spec?.type === 'kpi' ? response.chart_spec.y || response.data.columns[0] : null
   const kpiValue = kpiField ? response.data.rows[0]?.[kpiField] : undefined
   const visualChartTypes = ['bar', 'line', 'area', 'scatter', 'pie']
@@ -89,71 +316,161 @@ function StructuredAnswer({ response }: { response: ChatResponse }) {
     response.chart_spec && visualChartTypes.includes(response.chart_spec.type) && response.chart_spec.x && response.chart_spec.y && response.data.rows.length > 0
   )
   const [showTable, setShowTable] = useState(!hasVisualChart)
-  const titles: Record<ChatResponse['status'], string> = {
-    SUCCESS: response.strategy === 'conversational' ? 'Welcome' : 'Direct answer',
-    CLARIFICATION: 'A quick clarification',
-    NO_DATA: 'No matching data',
-    UNSUPPORTED: 'Outside the current scope',
-    ERROR: 'Something went wrong',
-  }
-  const statusStyles: Record<ChatResponse['status'], string> = {
+  const showTableDetail = expandForExport || showTable
+  const statusStyles: Record<Exclude<ChatResponse['status'], 'ERROR'>, string> = {
     SUCCESS: 'bg-emerald-50 text-emerald-700',
     CLARIFICATION: 'bg-amber-50 text-amber-700',
     NO_DATA: 'bg-slate-100 text-slate-600',
     UNSUPPORTED: 'bg-slate-100 text-slate-600',
-    ERROR: 'bg-rose-50 text-rose-700',
   }
 
-  const dataReferenceParts = response.answer.data_reference ? splitDataReference(response.answer.data_reference) : null
+  const provenance = parseDataProvenance(response.answer.data_reference)
+  const dataNote = mergeDataNotes(response.answer.caveats, provenance)
+  const omitTablesInProse = response.data.rows.length > 0
 
-  return <div aria-label="AI response" className="space-y-5 text-sm leading-7">
-    <div>
-      <div className="flex items-center justify-between gap-3">
-        <div className="text-xs font-extrabold uppercase tracking-wide text-cloudera-navy">{titles[response.status]}</div>
-        <span className={`rounded-full px-2.5 py-1 text-xs font-bold ${statusStyles[response.status]}`}>{response.status}</span>
+  const implicationGridClass =
+    response.answer.business_implications.length >= 2 ? 'grid gap-3 sm:grid-cols-2' : 'grid gap-3'
+
+  const showEvidenceBlock =
+    response.chart_spec?.type === 'kpi' ||
+    hasVisualChart ||
+    response.data.rows.length > 0
+
+  const provenanceSources = provenance?.sources ?? []
+  const hasDataNoteContent = Boolean(dataNote || provenanceSources.length > 0)
+  /** Welcome / prose-only: tuck note into the main card as a footnote */
+  const dataNoteInNarrative = hasDataNoteContent && !showEvidenceBlock
+
+  return (
+    <div aria-label="AI response" className="flex flex-col gap-4">
+      {/* Narrative: one cohesive “story” card */}
+      <section className="answer-surface space-y-3">
+        <div className="flex items-center justify-between gap-3">
+          <div className="type-answer-kicker">{presentation.title}</div>
+          {presentation.showStatusChip && presentation.statusChip && presentation.statusChip !== 'ERROR' && (
+            <span className={`type-chip rounded-full px-2.5 py-0.5 ${statusStyles[presentation.statusChip]}`}>
+              {presentation.statusChip}
+            </span>
+          )}
+        </div>
+        {missingGovernedEvidence && (
+          <p className="type-chat-meta rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+            Narasi di bawah belum terhubung ke query governed Impala (tidak ada query_id / baris data). Ulangi pertanyaan analitik atau gunakan contoh starter.
+          </p>
+        )}
+        <div className="space-y-2">
+          <AnswerProse text={response.answer.direct_answer} omitTables={omitTablesInProse} emphasis />
+          {response.answer.executive_summary !== response.answer.direct_answer && (
+            <AnswerProse
+              text={response.answer.executive_summary}
+              omitTables={omitTablesInProse}
+              className="text-[15px] text-slate-600"
+            />
+          )}
+        </div>
+        {(() => {
+          const choices = clarificationChoices(response)
+          if (!choices?.length || !onClarificationPick) return null
+          return (
+            <div className="answer-section-divider flex flex-wrap gap-2 !pt-3" role="group" aria-label="Clarification choices">
+              {choices.map(choice => (
+                <button
+                  key={choice.id}
+                  type="button"
+                  disabled={clarificationDisabled}
+                  onClick={() => onClarificationPick(choice.submitText)}
+                  className="rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2 text-left text-xs font-semibold text-amber-950 transition-colors hover:border-cloudera-orange/50 hover:bg-orange-50 disabled:opacity-50"
+                >
+                  {choice.label}
+                </button>
+              ))}
+            </div>
+          )
+        })()}
+
+        {response.answer.insights.length > 0 && (
+          <div className="answer-section-divider space-y-3">
+            <div className="type-section-label flex items-center gap-2">
+              <Lightbulb size={14} className="text-cloudera-orange" aria-hidden />
+              Insights
+            </div>
+            <ul className="type-chat-body space-y-2.5 text-[15px] sm:text-[14px]">
+              {response.answer.insights.map(item => (
+                <li key={item} className="flex gap-2">
+                  <span className="text-cloudera-orange" aria-hidden>
+                    •
+                  </span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {response.answer.business_implications.length > 0 && (
+          <div className="answer-section-divider space-y-3">
+            <div className="type-section-label">Business implications</div>
+            <div className={implicationGridClass}>
+              {response.answer.business_implications.map(item => (
+                <div
+                  key={item}
+                  className="type-chat-body rounded-lg border border-slate-200/90 bg-slate-50/50 p-4 text-[15px] shadow-[inset_3px_0_0_0_rgba(154,140,255,0.55)] sm:text-[14px]"
+                >
+                  {item}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {dataNoteInNarrative && (
+          <div className="answer-section-divider !pt-3">
+            <DataNote note={dataNote} sources={provenanceSources} />
+          </div>
+        )}
+      </section>
+
+      {/* Evidence: chart + table belong together */}
+      {showEvidenceBlock && (
+        <section className="answer-surface space-y-3">
+          {response.chart_spec?.type === 'kpi' && (
+            <div className="max-w-md">
+              <KpiCard label={response.chart_spec.title} value={kpiValue} format="" icon={BarChart3} />
+            </div>
+          )}
+
+          {hasVisualChart && <AnswerChart chart={response.chart_spec} rows={response.data.rows} embedded />}
+
+          {response.data.rows.length > 0 && (
+            <div className={hasVisualChart ? 'answer-section-divider-compact space-y-2 !pb-0' : 'space-y-3'}>
+              {!hasVisualChart && <div className="type-section-label">Data table</div>}
+              {hasVisualChart && !expandForExport && (
+                <button
+                  type="button"
+                  onClick={() => setShowTable(previous => !previous)}
+                  className="-mx-1 flex w-full items-center gap-1.5 rounded-lg px-1 py-1 text-left text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-cloudera-navy"
+                >
+                  <Table2 size={13} className="text-cloudera-orange" aria-hidden />
+                  {showTable ? 'Hide table detail' : 'Show table detail'}
+                  <ChevronDown size={13} className={`ml-auto transition-transform ${showTable ? 'rotate-180' : ''}`} />
+                </button>
+              )}
+              {showTableDetail && (
+                <div className="overflow-hidden rounded-lg border border-slate-200/90 bg-white">
+                  <DataTable columns={response.data.columns} rows={response.data.rows} />
+                </div>
+              )}
+            </div>
+          )}
+        </section>
+      )}
+
+      <div className={`answer-meta-stack ${dataNoteInNarrative ? 'answer-meta-stack-flush' : ''}`}>
+        {hasDataNoteContent && !dataNoteInNarrative && (
+          <DataNote note={dataNote} sources={provenanceSources} />
+        )}
+        <ResponseFooter response={response} processSnapshot={processSnapshot} variant="inline" />
       </div>
-      <p className="mt-3 text-base font-semibold leading-7 text-slate-900">{response.answer.direct_answer}</p>
-      {response.answer.executive_summary !== response.answer.direct_answer && <p className="mt-2 text-slate-600">{response.answer.executive_summary}</p>}
     </div>
-
-    {response.answer.insights.length > 0 && <section className="rounded-xl border border-slate-100 bg-slate-50/70 p-4">
-      <div className="flex items-center gap-2 text-xs font-extrabold text-cloudera-navy"><Lightbulb size={14} />Insights</div>
-      <ul className="mt-2 space-y-2 text-slate-700">{response.answer.insights.map(item => <li key={item} className="flex gap-2"><span className="text-cloudera-orange">•</span><span>{item}</span></li>)}</ul>
-    </section>}
-
-    {response.answer.business_implications.length > 0 && <section>
-      <div className="text-xs font-extrabold text-cloudera-navy">Business implications</div>
-      <div className="mt-2 grid gap-2 sm:grid-cols-2">{response.answer.business_implications.map(item => <div key={item} className="rounded-xl border border-violet-100 bg-violet-50/60 p-3 text-slate-700">{item}</div>)}</div>
-    </section>}
-
-    {response.chart_spec?.type === 'kpi' && <div className="max-w-xs"><KpiCard label={response.chart_spec.title} value={kpiValue} format="" icon={BarChart3} /></div>}
-    <AnswerChart chart={response.chart_spec} rows={response.data.rows} />
-    {response.data.rows.length > 0 && <div>
-      {hasVisualChart && <button type="button" onClick={() => setShowTable(previous => !previous)} className="flex items-center gap-1.5 text-xs font-semibold text-slate-500 transition-colors hover:text-cloudera-navy">
-        <Table2 size={13} />{showTable ? 'Hide table detail' : 'Show table detail'}<ChevronDown size={13} className={`transition-transform ${showTable ? 'rotate-180' : ''}`} />
-      </button>}
-      {showTable && <div className={`overflow-hidden rounded-xl border border-slate-200 ${hasVisualChart ? 'mt-2' : ''}`}><DataTable columns={response.data.columns} rows={response.data.rows} /></div>}
-    </div>}
-
-    {(response.answer.caveats.length > 0 || dataReferenceParts) && <div className="space-y-3 rounded-xl bg-slate-50 p-4 text-sm text-slate-500">
-      {response.answer.caveats.length > 0 && <div className="flex gap-2 leading-6"><Info size={14} className="mt-0.5 shrink-0" /><span>{response.answer.caveats.join(' ')}</span></div>}
-      {dataReferenceParts && <div className="space-y-1.5">
-        <div className="text-xs font-semibold uppercase tracking-wide text-slate-500">Data reference</div>
-        {dataReferenceParts.note && <p className="leading-6 text-slate-500">{dataReferenceParts.note}</p>}
-        {dataReferenceParts.sql && <pre className="overflow-x-auto rounded-lg bg-slate-900 px-3 py-2.5 text-xs leading-5 text-slate-100"><code>{dataReferenceParts.sql}</code></pre>}
-      </div>}
-    </div>}
-
-    <div className="border-t border-slate-100 pt-3 text-xs text-slate-400">{response.provider} · {response.model} · {response.strategy} · {response.timings.total_ms.toFixed(0)} ms</div>
-  </div>
-}
-
-// data_reference arrives as one string, sometimes prose followed by
-// "Query: <sql>" - split them so the SQL can render in a monospace code
-// block instead of wrapping inline with the explanatory sentence.
-function splitDataReference(value: string): { note: string | null; sql: string | null } {
-  const match = value.match(/^(.*?)(?:query:\s*)(select[\s\S]+)$/i)
-  if (!match) return { note: value, sql: null }
-  const [, note, sql] = match
-  return { note: note.trim() || null, sql: sql.trim() }
+  )
 }

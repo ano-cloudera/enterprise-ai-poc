@@ -2,7 +2,9 @@ from __future__ import annotations
 
 from typing import Any, Literal
 
-from pydantic import BaseModel, ConfigDict
+from pydantic import BaseModel, ConfigDict, Field, field_validator
+
+from app.services.text_sanitize import without_em_dash
 
 
 class StrictModel(BaseModel):
@@ -31,7 +33,8 @@ ChartType = Literal["bar", "line", "area", "scatter", "pie", "table", "kpi"]
 
 class ChartSpec(StrictModel):
     type: ChartType
-    title: str
+    # Gemini structured output rejects nested objects missing required keys.
+    title: str = Field(default="Chart")
     x: str | None = None
     y: str | None = None
     series: str | None = None
@@ -56,6 +59,23 @@ class AnalysisOutput(StrictModel):
     caveats: list[str]
     data_reference: str
     chart_spec: ChartSpec | None = None
+
+    @field_validator(
+        "direct_answer",
+        "executive_summary",
+        "data_reference",
+        mode="before",
+    )
+    @classmethod
+    def _strip_em_dash_text(cls, value: object) -> object:
+        return without_em_dash(value) if isinstance(value, str) else value
+
+    @field_validator("insights", "business_implications", "caveats", mode="before")
+    @classmethod
+    def _strip_em_dash_lists(cls, value: object) -> object:
+        if not isinstance(value, list):
+            return value
+        return [without_em_dash(item) if isinstance(item, str) else item for item in value]
 
 
 class AskDataRequest(StrictModel):

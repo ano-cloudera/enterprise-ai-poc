@@ -12,6 +12,7 @@ from app.llm.registry import ProviderSelectionError
 
 router = APIRouter()
 HEARTBEAT_SECONDS = 15
+_SESSION_ID_MAX_LEN = 128
 
 
 def _validate_selection(request: Request, body: AskDataRequest) -> None:
@@ -19,6 +20,15 @@ def _validate_selection(request: Request, body: AskDataRequest) -> None:
         request.app.state.provider_registry.resolve(body.provider, body.model)
     except ProviderSelectionError as exc:
         raise HTTPException(status_code=422, detail=str(exc)) from exc
+
+
+@router.delete("/chat/sessions/{session_id}")
+async def delete_chat_session(request: Request, session_id: str) -> dict[str, int]:
+    cleaned = (session_id or "").strip()
+    if not cleaned or len(cleaned) > _SESSION_ID_MAX_LEN:
+        raise HTTPException(status_code=400, detail="Invalid session id")
+    deleted = request.app.state.chat_service.delete_session_history(cleaned)
+    return {"deleted": deleted}
 
 
 @router.post("/chat", response_model=AskDataResponse)

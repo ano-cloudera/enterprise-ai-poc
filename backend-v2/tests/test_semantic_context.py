@@ -1,7 +1,7 @@
 import pytest
 
 from app.semantic.context import SemanticContextService
-from app.services.chat import contextualize_question
+from tests.test_history import contextualize_question
 
 
 def test_context_is_derived_from_the_actual_tempo_ossie_contract() -> None:
@@ -63,7 +63,7 @@ def test_sell_in_clarification_keeps_top_product_grain(reply: str) -> None:
         "answer": {"direct_answer": "Pilih Sell-In (penjualan Tempo ke customer) atau Sell-Out?"},
     }]
 
-    contextualized = contextualize_question(reply, history)
+    contextualized = contextualize_question(reply, history, clarification_choice="sell-in")
     context = SemanticContextService()
     resolution = context.resolve(contextualized)
     sql = context.compile_governed(resolution["metric"], contextualized, resolution["dimensions"])
@@ -168,11 +168,27 @@ def test_what_else_question_marks_sales_as_excluded_instead_of_focus() -> None:
     assert guidance["metrics"] == []
 
 
+def test_domain_capability_insight_lines_lists_all_governed_domains() -> None:
+    ctx = SemanticContextService()
+    lines = ctx.domain_capability_insight_lines()
+    assert len(lines) == 9
+    assert any(line.startswith("Sales / Sell-In") for line in lines)
+    assert all("Contoh:" in line for line in lines)
+
+
+def test_domain_capability_insight_lines_respects_excluded_focus() -> None:
+    ctx = SemanticContextService()
+    lines = ctx.domain_capability_insight_lines(exclude_focus="sales")
+    assert len(lines) == 8
+    assert not any(line.startswith("Sales / Sell-In") for line in lines)
+
+
 def test_broad_guidance_offers_cross_domain_governed_examples() -> None:
     guidance = SemanticContextService().guidance_context("Halo, bisa bantu apa?")
 
     options = {option["name"]: option for option in guidance["domain_options"]}
     assert len(options) == 9
+    assert len(guidance["domain_capability_lines"]) == 9
     assert options["Stock SAT (Alfamart)"]["metrics"] == [
         "sat_dc_stock_quantity",
         "sat_store_stock_quantity",
@@ -320,6 +336,23 @@ def test_stok_sekarang_still_uses_latest_month_snapshot() -> None:
     assert "d.bln = 'DEC'" in sql
 
 
+def test_two_office_material_compare_raises_row_limit() -> None:
+    context = SemanticContextService()
+    question = (
+        "Q4 2024, bandingkan sales office Tempo (sell-in) 0201 vs 0212: "
+        "tampilkan total nilai sell-in gross billing masing-masing cabang dan "
+        "10 material/produk dengan kontribusi penjualan terbesar per cabang"
+    )
+    resolution = context.resolve(question)
+    sql = context.compile_governed(
+        resolution["metric"],
+        question,
+        resolution.get("dimensions"),
+    )
+    assert "d.sales_office IN ('0201', '0212')" in sql
+    assert "LIMIT 20" in sql
+
+
 def test_b2b_branch_code_in_question_adds_branch_filter() -> None:
     context = SemanticContextService()
     question = "nilai sell-out partner di cabang 0201"
@@ -328,6 +361,15 @@ def test_b2b_branch_code_in_question_adds_branch_filter() -> None:
     assert "d.branch = '0201'" in sql
     assert "LIMIT 1" in sql
     assert "ORDER BY metric_value DESC" not in sql
+
+
+def test_b2b_branch_city_fragment_uses_like_predicate() -> None:
+    context = SemanticContextService()
+    question = "breakdown based on cabang palembang, top 3 produk terbaik based on penjualan"
+    sql = context.compile_governed("b2b_branch_sell_out_value", question, ["branch"])
+
+    assert "UPPER(d.branch) LIKE CONCAT('%', UPPER('palembang'), '%')" in sql
+    assert "d.branch = 'palembang'" not in sql
 
 
 def test_b2b_dc_ranking_question_still_uses_value_ranking() -> None:
@@ -509,17 +551,20 @@ def test_aggregate_oos_question_about_percent_of_stores_stays_dimensionless() ->
     assert resolution.get("dimensions") == []
 
 
+def test_top_products_at_tempo_resolves_sell_in_via_domain_graph() -> None:
+    resolution = SemanticContextService().resolve("Top 10 produk dengan penjualan terbesar di Tempo")
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "material_sell_in_value"
+
+
 @pytest.mark.parametrize("question", [
-    "Top 10 produk dengan penjualan terbesar di Tempo",
     "penjualan terbesar di Tempo",
     "berapa penjualan di Tempo bulan ini",
 ])
 def test_sales_questions_mentioning_tempo_as_a_location_still_ask_sales_stage(question: str) -> None:
-    # The brand name "Tempo" appears in almost every Sell-In-flavored
-    # question and used to be a standalone "di tempo" discriminator that
-    # silently auto-selected Sell-In and skipped the clarification entirely
-    # - any question with "penjualan ... di Tempo" is genuinely ambiguous
-    # (General Trade/Sell-In vs B2B/Sell-Out) and must still ask.
+    # Generic "penjualan di Tempo" without product/top ranking stays ambiguous
+    # (General Trade/Sell-In vs B2B/Sell-Out). B3 Q01 is explicit Top-N produk
+    # and resolves via domain graph governed_intents instead.
     resolution = SemanticContextService().resolve(question)
 
     assert resolution["status"] == "needs_clarification"
@@ -556,6 +601,14 @@ def test_promo_uplift_ranking_defaults_to_top_ten() -> None:
     assert "ORDER BY metric_value DESC" in sql
     assert "LIMIT 10" in sql
     assert "LIMIT 50" not in sql
+
+
+def test_promo_roi_with_operational_recommendation_stays_clarification() -> None:
+    resolution = SemanticContextService().resolve(
+        "Hitung promo dengan ROI terbaik dan berikan rekomendasi operasional"
+    )
+    assert resolution["status"] == "needs_clarification"
+    assert resolution.get("reason") == "promo_roi_proxy_choice"
 
 
 def test_promo_uplift_honours_explicit_top_five() -> None:

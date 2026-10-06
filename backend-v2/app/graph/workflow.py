@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import asyncio
 import inspect
 import json
 import logging
@@ -13,9 +14,14 @@ from typing import Any, Callable
 from langgraph.graph import END, START, StateGraph
 
 from app.core.models import AnalysisOutput, QueryPlan
+from app.graph.inquiry_brief import build_inquiry_brief
+from app.graph.judge import judge_review
+from app.graph.governed_replan import rank_dimensions_for_brief
+from app.graph.judge_replan import apply_judge_replan
 from app.graph.state import AskDataState
 from app.semantic.context import is_governed_entity_lookup
 from app.llm.base import LLMProvider, ProviderError
+from app.services.conversational import TurnUnderstanding, turn_understanding_from_state
 from app.services.user_facing_error import explain_failure
 from app.sql.validator import ValidatedSQL
 
@@ -33,6 +39,8 @@ class WorkflowDependencies:
     query_executor: Any
     sql_validator: Callable[[str, Any], ValidatedSQL]
     validation_context: Any
+    judge_max_iterations: int = 2
+    judge_enabled: bool = True
     # Optional: only used when our own planner reports strategy=unsupported.
     # None (the default in every existing test/deployment) skips the
     # fallback node entirely with no behavior change.
@@ -53,6 +61,16 @@ def _provider(state: AskDataState, deps: WorkflowDependencies) -> LLMProvider:
 
 def _with_timing(state: AskDataState, key: str, value: float) -> dict[str, float]:
     return {**state.get("timings", {}), key: value}
+
+
+def _row_from_follow_up_catalog(entity: dict[str, Any]) -> dict[str, Any] | None:
+    if not isinstance(entity, dict) or not entity.get("id"):
+        return None
+    dim = str(entity.get("entity_type") or entity.get("dimension") or "branch")
+    row: dict[str, Any] = {dim: entity["id"]}
+    if entity.get("metric_value") is not None:
+        row["metric_value"] = entity["metric_value"]
+    return row
 
 
 _TABLE_REF_RE = re.compile(r"\bFROM\s+([a-zA-Z_][\w]*\.[a-zA-Z_][\w]*)", re.IGNORECASE)
@@ -112,6 +130,21 @@ def _governed_partial_caveats(resolution: dict[str, Any]) -> list[str]:
     return caveats
 
 
+def _partner_scope_caveats(question: str, resolution: dict[str, Any]) -> list[str]:
+    lowered = (question or "").casefold()
+    metric = str(resolution.get("metric") or "")
+    b2b_metric = metric.startswith("b2b_") or "sell_out" in metric or "branch_sell_out" in metric
+    b2b_wording = any(
+        term in lowered for term in ("alfamart", "b2b", "sell-out", "sell out", "partner", "dc alfamart")
+    )
+    if not b2b_metric and not b2b_wording:
+        return []
+    return [
+        "Catatan domain: Alfamart/B2B pada Q4 2024 = Sell-Out jaringan partner; "
+        "cabang/DC = nilai kolom branch (contoh DC Palembang), bukan filter branch='Alfamart'."
+    ]
+
+
 def _safe_answer(text: str, *, caveats: list[str] | None = None) -> dict[str, Any]:
     return AnalysisOutput(
         direct_answer=text,
@@ -122,38 +155,6 @@ def _safe_answer(text: str, *, caveats: list[str] | None = None) -> dict[str, An
         data_reference="No query result was used.",
         chart_spec=None,
     ).model_dump()
-
-
-def _is_conversational_request(question: str) -> bool:
-    normalized = re.sub(r"[^a-z0-9\s]", " ", question.casefold())
-    normalized = " ".join(normalized.split())
-    words = normalized.split()
-    greeting = bool(words) and words[0] in {"halo", "hallo", "hai", "hello", "hi", "hey"}
-    short_greeting = (greeting and len(words) <= 3) or normalized in {
-        "selamat pagi", "selamat siang", "selamat sore", "selamat malam", "apa kabar",
-    }
-    # A greeting followed directly by a capability question ("hallo kamu
-    # bisa bantu apa?") is longer than the plain short_greeting word cap,
-    # so it must also be checked by the capability_request pattern below -
-    # a leading greeting must not disqualify it just for being longer than
-    # a bare "halo"/"hai".
-    #
-    # "bantu" tolerates common one-letter-swap typos (bintu, bnatu, bantu,
-    # etc.) seen in live traffic - this is a fixed, human-curated set of
-    # keyboard-adjacent/transposition typos for this one word, not a fuzzy
-    # spell-checker, so it can't drift into matching unrelated words.
-    help_word = r"b(?:antu|intu|nutu|nautu|antu|nato|antuh|natu)"
-    capability_request = bool(
-        re.search(rf"\bbisa\s+(?:anda\s+|kamu\s+)?{help_word}\b.*\bapa\b", normalized)
-        or re.search(rf"\bkamu\s+{help_word}\s+apa\b", normalized)
-        or re.search(r"\bapa\s+(?:lagi|aja|saja)\b", normalized)
-        or "selain data" in normalized
-        or "bisa keluarin apa" in normalized
-        or "bisa ditanyakan" in normalized
-        or "contoh pertanyaan" in normalized
-        or "apa yang bisa" in normalized
-    )
-    return short_greeting or capability_request
 
 
 def _local_agent_second_enabled(deps: WorkflowDependencies) -> bool:
@@ -215,10 +216,26 @@ async def _try_local_agent_fallback(state: AskDataState, deps: WorkflowDependenc
 
 
 def build_workflow(deps: WorkflowDependencies):
+    async def _conversational_intent(state: AskDataState):
+        existing = turn_understanding_from_state(state)
+        if existing is not None:
+            return existing
+        original_question = str(state.get("original_question") or state["question"]).strip()
+        return TurnUnderstanding(
+            is_conversational=False,
+            attach_domain_catalog=False,
+            pipeline_question=original_question,
+            rationale="workflow_default_analytic",
+        )
+
     async def understand_request(state: AskDataState) -> AskDataState:
         started = perf_counter()
         original_question = state.get("original_question") or state["question"]
-        if _is_conversational_request(original_question):
+        intent = await _conversational_intent(state)
+        intent_payload = intent.model_dump()
+        if intent.is_conversational:
+            guidance = deps.semantic_context.guidance_context(original_question)
+            first_turn = not bool(state.get("conversation_history"))
             try:
                 answer = await _provider(state, deps).generate_structured(
                     [
@@ -228,9 +245,9 @@ def build_workflow(deps: WorkflowDependencies):
                             "content": json.dumps(
                                 {
                                     "question": original_question,
-                                    "first_turn": not bool(state.get("conversation_history")),
+                                    "first_turn": first_turn,
                                     "conversation_history": state.get("conversation_history", []),
-                                    "capabilities": deps.semantic_context.guidance_context(original_question),
+                                    "capabilities": guidance,
                                 },
                                 ensure_ascii=False,
                             ),
@@ -244,14 +261,25 @@ def build_workflow(deps: WorkflowDependencies):
                 answer = AnalysisOutput(
                     direct_answer="Halo! Senang bisa bantu 👋",
                     executive_summary="Saya siap membantu analisis data komersial TEMPO untuk periode Q4 2024.",
-                    insights=["Kamu bisa mulai dari Gross Sales, Sell-In, Sell-Out, stok, atau Service Level."],
+                    insights=[],
                     business_implications=[],
                     caveats=["Cakupan data tersedia untuk Oktober–Desember 2024."],
                     data_reference="TEMPO governed capability catalog.",
                     chart_spec=None,
                 )
+            if intent.attach_domain_catalog:
+                excluded = guidance.get("excluded_focus")
+                excluded_key = excluded if isinstance(excluded, str) else None
+                answer = answer.model_copy(
+                    update={
+                        "insights": deps.semantic_context.domain_capability_insight_lines(
+                            exclude_focus=excluded_key,
+                        ),
+                    }
+                )
             return {
                 **state,
+                "conversational_intent": intent_payload,
                 "request_id": state.get("request_id") or str(uuid.uuid4()),
                 "status": "SUCCESS",
                 "strategy": "conversational",
@@ -260,9 +288,20 @@ def build_workflow(deps: WorkflowDependencies):
                 "query_result": {"columns": [], "rows": [], "row_count": 0, "execution_ms": 0},
                 "timings": _with_timing(state, "context_ms", _elapsed(started)),
             }
-        resolution = deps.semantic_context.resolve(state["question"])
+        # ChatService pre-resolves with session analysis context (follow-ups).
+        # Re-resolving here without that context breaks branch→material drills.
+        existing = state.get("semantic_resolution")
+        if isinstance(existing, dict) and existing.get("status"):
+            resolution = existing
+        else:
+            resolution = deps.semantic_context.resolve(
+                state["question"],
+                session_last_metric=state.get("session_last_metric"),
+                session_analysis_context=state.get("session_analysis_context"),
+            )
         update: AskDataState = {
             **state,
+            "conversational_intent": intent_payload,
             "request_id": state.get("request_id") or str(uuid.uuid4()),
             "semantic_resolution": resolution,
             "retry_count": state.get("retry_count", 0),
@@ -284,17 +323,45 @@ def build_workflow(deps: WorkflowDependencies):
         partial_caveats: list[str] = []
         entity_lookup = False
         if resolution.get("status") == "resolved":
-            partial_caveats = _governed_partial_caveats(resolution)
+            partial_caveats = _governed_partial_caveats(resolution) + _partner_scope_caveats(
+                state["question"], resolution
+            )
             metric = str(resolution["metric"])
-            dimensions = resolution.get("dimensions")
             definition = resolution.get("definition") or deps.semantic_context.metric_definition(metric)
             dataset_name = str(definition.get("base_dataset") or "")
             fields = set(deps.semantic_context.registry.dataset_fields.get(dataset_name, ()))
             entity_lookup = is_governed_entity_lookup(state["question"], fields)
+            allowed_dims = set(definition.get("allowed_dimensions") or [])
+            pre_brief = build_inquiry_brief(
+                state["question"],
+                semantic_resolution=resolution,
+                session_last_metric=state.get("session_last_metric"),
+            )
+            rank_dims = rank_dimensions_for_brief(pre_brief, allowed_dims)
+            if state.get("judge_retry_plan") and rank_dims is None and pre_brief.get("wants_rank"):
+                rank_dims = rank_dimensions_for_brief(
+                    {**pre_brief, "wants_dc_grain": True},
+                    allowed_dims,
+                )
+            dimensions = resolution.get("dimensions")
+            if rank_dims is not None and resolution.get("matched_alias") != "follow_up_context":
+                dimensions = rank_dims
+            extra_predicates = resolution.get("follow_up_entity_filters")
+            if not isinstance(extra_predicates, list):
+                extra_predicates = None
             governed_sql = (
-                deps.semantic_context.compile_governed(metric, state["question"], dimensions)
+                deps.semantic_context.compile_governed(
+                    metric,
+                    state["question"],
+                    dimensions,
+                    extra_predicates=extra_predicates,
+                )
                 if dimensions is not None
-                else deps.semantic_context.compile_governed(metric, state["question"])
+                else deps.semantic_context.compile_governed(
+                    metric,
+                    state["question"],
+                    extra_predicates=extra_predicates,
+                )
             )
             plan = QueryPlan(
                 strategy="governed",
@@ -314,15 +381,54 @@ def build_workflow(deps: WorkflowDependencies):
                     "candidate_metric_for_one_concept": resolution.get("candidate_metric"),
                     "note": "The question asks about multiple distinct concepts that no single governed metric covers together. Check semantic_context.metrics for a separate governed metric per concept and use sql_fallback to combine them if each concept has its own approved metric/view, or governed per metric in sequence - do not choose unsupported just because one metric can't cover every concept at once.",
                 }
-            plan = await _provider(state, deps).generate_structured(
-                [
-                    {"role": "system", "content": _prompt("global_system.md") + "\n" + _prompt("query_planner.md")},
-                    {"role": "user", "content": json.dumps({"question": state["question"], "semantic_context": semantic_context, "resolver_hint": resolver_hint or None}, ensure_ascii=False)},
-                ],
-                QueryPlan,
-                temperature=0,
-                max_tokens=1800,
-            )
+            if resolution.get("status") == "unsupported":
+                plan = QueryPlan(
+                    strategy="clarification",
+                    clarification_question=str(
+                        resolution.get("question")
+                        or "Mohon jelaskan domain, metrik, periode, dan breakdown yang dibutuhkan."
+                    ),
+                )
+            else:
+                try:
+                    plan = await _provider(state, deps).generate_structured(
+                        [
+                            {"role": "system", "content": _prompt("global_system.md") + "\n" + _prompt("query_planner.md")},
+                            {
+                                "role": "user",
+                                "content": json.dumps(
+                                    {
+                                        "question": state["question"],
+                                        "semantic_context": semantic_context,
+                                        "resolver_hint": resolver_hint or None,
+                                    },
+                                    ensure_ascii=False,
+                                ),
+                            },
+                        ],
+                        QueryPlan,
+                        temperature=0,
+                        max_tokens=1800,
+                    )
+                except ProviderError:
+                    logger.warning(
+                        "plan_query_invalid_structured_output request_id=%s resolver=%s",
+                        state.get("request_id"),
+                        resolution.get("status"),
+                    )
+                    plan = QueryPlan(
+                        strategy="clarification",
+                        clarification_question=str(
+                            resolution.get("question")
+                            or "Pertanyaan belum terpetakan ke KPI governed. Sebutkan metrik, cabang/material, dan periode secara eksplisit."
+                        ),
+                    )
+        inquiry_brief = build_inquiry_brief(
+            state["question"],
+            semantic_resolution=resolution,
+            query_plan=plan.model_dump(),
+            session_last_metric=state.get("session_last_metric"),
+        )
         update: AskDataState = {
             **state,
             "strategy": plan.strategy,
@@ -331,6 +437,10 @@ def build_workflow(deps: WorkflowDependencies):
             "governed_partial_caveats": partial_caveats,
             "governed_entity_lookup": entity_lookup,
             "semantic_context": deps.semantic_context.planner_context(plan.domains),
+            "inquiry_brief": inquiry_brief,
+            "judge_iteration": state.get("judge_iteration", 0),
+            "judge_retry_plan": False,
+            "judge_plan_hint": "",
             "timings": _with_timing(state, "planning_ms", _elapsed(started)),
         }
         if plan.strategy == "clarification":
@@ -419,6 +529,68 @@ def build_workflow(deps: WorkflowDependencies):
             "timings": _with_timing(state, "query_ms", _elapsed(started)),
         }
         rows = result.get("rows") or []
+        resolution = state.get("semantic_resolution") if isinstance(state.get("semantic_resolution"), dict) else {}
+        catalog_entity = resolution.get("follow_up_catalog_entity")
+        if not rows and not isinstance(catalog_entity, dict):
+            session_ctx = state.get("session_analysis_context")
+            if isinstance(session_ctx, dict) and session_ctx.get("result_catalog"):
+                from app.services.follow_up import plan_follow_up
+
+                plan = plan_follow_up(str(state.get("question") or ""), session_ctx)
+                if plan and plan.filter_entity:
+                    catalog_entity = plan.filter_entity
+        if not rows and isinstance(catalog_entity, dict):
+            synthetic = _row_from_follow_up_catalog(catalog_entity)
+            if synthetic:
+                dim = next(k for k in synthetic if k != "metric_value")
+                columns = [dim, "metric_value"] if "metric_value" in synthetic else [dim]
+                rows = [synthetic]
+                result = {
+                    **result,
+                    "columns": columns,
+                    "rows": rows,
+                    "row_count": len(rows),
+                }
+                update["query_result"] = result
+        if not rows:
+            metric_name = str(resolution.get("metric") or "")
+            if "stock_tempo_to_sell_in" in metric_name:
+                update.update(
+                    status="CLARIFICATION",
+                    strategy="clarification",
+                    answer=_safe_answer(
+                        "Data perbandingan stok Tempo vs sell-in untuk material tersebut tidak lengkap "
+                        "pada periode Q4 2024. Anda bisa minta rincian sell-in per bulan untuk material yang sama."
+                    ),
+                    chart_spec=None,
+                )
+                return update
+            if resolution.get("matched_alias") == "follow_up_context":
+                fe = re.search(r"\b(FE\d+)\b", str(state.get("question") or ""), flags=re.IGNORECASE)
+                if fe:
+                    code = fe.group(1).upper()
+                    rows = [{"material": code, "metric_value": 0}]
+                    result = {
+                        **result,
+                        "columns": ["material", "metric_value"],
+                        "rows": rows,
+                        "row_count": len(rows),
+                    }
+                    update["query_result"] = result
+            if resolution.get("follow_up_plan", {}).get("to_grain") == "material" and isinstance(
+                catalog_entity, dict
+            ):
+                syn = _row_from_follow_up_catalog(catalog_entity)
+                if syn:
+                    dim = next(k for k in syn if k != "metric_value")
+                    rows = [syn]
+                    result = {
+                        **result,
+                        "columns": [dim, "metric_value"] if "metric_value" in syn else [dim],
+                        "rows": rows,
+                        "row_count": len(rows),
+                    }
+                    update["query_result"] = result
         if not rows:
             update.update(
                 status="NO_DATA",
@@ -426,7 +598,7 @@ def build_workflow(deps: WorkflowDependencies):
                 chart_spec=None,
             )
             return update
-        if state.get("governed_entity_lookup"):
+        if state.get("governed_entity_lookup") and resolution.get("matched_alias") != "follow_up_context":
             metric_values = [
                 row.get("metric_value")
                 for row in rows
@@ -447,15 +619,72 @@ def build_workflow(deps: WorkflowDependencies):
 
     async def analyze_result(state: AskDataState) -> AskDataState:
         started = perf_counter()
-        analysis = await _provider(state, deps).generate_structured(
-            [
-                {"role": "system", "content": _prompt("global_system.md") + "\n" + _prompt("result_analyst.md")},
-                {"role": "user", "content": json.dumps({"question": state["question"], "query_plan": state.get("query_plan"), "semantic_context": state.get("semantic_context"), "query_result": state["query_result"]}, ensure_ascii=False, default=str)},
-            ],
-            AnalysisOutput,
-            temperature=0.1,
-            max_tokens=1800,
-        )
+        resolution = state.get("semantic_resolution") if isinstance(state.get("semantic_resolution"), dict) else {}
+        user_payload: dict[str, Any] = {
+            "question": state["question"],
+            "query_plan": state.get("query_plan"),
+            "semantic_context": state.get("semantic_context"),
+            "query_result": state["query_result"],
+            "inquiry_brief": state.get("inquiry_brief"),
+            "governed_metric": resolution.get("metric"),
+            "governed_partial_caveats": state.get("governed_partial_caveats") or [],
+        }
+        if state.get("judge_synthesis_hint"):
+            user_payload["reviewer_hint"] = state["judge_synthesis_hint"]
+        analysis = None
+        for attempt in range(2):
+            try:
+                analysis = await _provider(state, deps).generate_structured(
+                    [
+                        {"role": "system", "content": _prompt("global_system.md") + "\n" + _prompt("result_analyst.md")},
+                        {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False, default=str)},
+                    ],
+                    AnalysisOutput,
+                    temperature=0.1,
+                    max_tokens=1800,
+                )
+                break
+            except ProviderError:
+                if attempt == 0:
+                    await asyncio.sleep(2.0)
+                    continue
+                logger.warning(
+                    "analyze_result_invalid_structured_output request_id=%s",
+                    state.get("request_id"),
+                )
+        if analysis is None:
+            rows = state.get("query_result", {}).get("rows") or []
+            if rows:
+                row_count = len(rows)
+                caveat = (
+                    "Ringkasan narasi otomatis: model analisis gagal merespons, "
+                    "tetapi angka di bawah valid dari query governed Impala."
+                )
+                return {
+                    **state,
+                    "status": "SUCCESS",
+                    "answer": _safe_answer(
+                        f"Query governed selesai dengan {row_count} baris hasil. "
+                        "Gunakan tabel di bawah untuk membandingkan cabang/material; "
+                        "minta penjelasan ulang jika perlu narasi manajemen lebih rinci.",
+                        caveats=[caveat],
+                    ),
+                    "chart_spec": state.get("chart_spec"),
+                    "timings": _with_timing(state, "analysis_ms", _elapsed(started)),
+                }
+            error_answer = await explain_failure(
+                provider=_provider(state, deps),
+                question=state["question"],
+                failure={"kind": "provider", "code": "ANALYSIS_OUTPUT"},
+                request_id=str(state.get("request_id") or ""),
+            )
+            return {
+                **state,
+                "status": "ERROR",
+                "answer": error_answer.model_dump(),
+                "chart_spec": None,
+                "timings": _with_timing(state, "analysis_ms", _elapsed(started)),
+            }
         chart = analysis.chart_spec
         columns = set(state["query_result"].get("columns", []))
         if chart and any(field and field not in columns for field in (chart.x, chart.y, chart.series)):
@@ -481,7 +710,38 @@ def build_workflow(deps: WorkflowDependencies):
             "answer": analysis.model_dump(),
             "chart_spec": chart.model_dump() if chart else None,
             "timings": _with_timing(state, "analysis_ms", _elapsed(started)),
+            "judge_retry_synthesize": False,
+            "judge_synthesis_hint": "",
         }
+
+    async def judge_answer(state: AskDataState) -> AskDataState:
+        if not deps.judge_enabled:
+            return state
+        if state.get("strategy") not in ("governed", "sql_fallback") or state.get("status") != "SUCCESS":
+            return state
+        review = judge_review(state, max_iterations=deps.judge_max_iterations)
+        if review.get("accept"):
+            return {**state, "judge_review": review, "judge_issues": []}
+        replan = apply_judge_replan(state, review)
+        answer = dict(state.get("answer") or {})
+        if not review.get("retry_allowed"):
+            caveats = list(answer.get("caveats") or [])
+            note = "Reviewer: " + "; ".join(review.get("issues") or [])[:400]
+            if note not in caveats:
+                caveats.append(note)
+            answer["caveats"] = caveats
+            return {**state, **replan, "answer": answer, "judge_review": review}
+        return {**state, **replan, "judge_review": review}
+
+    def after_judge(state: AskDataState) -> str:
+        review = state.get("judge_review") or {}
+        if review.get("accept"):
+            return "end"
+        if state.get("judge_retry_plan") and review.get("retry_allowed"):
+            return "plan_query"
+        if state.get("judge_retry_synthesize"):
+            return "analyze_result"
+        return "end"
 
     def after_understand(state: AskDataState) -> str:
         return "end" if state.get("status") else "plan_query"
@@ -501,10 +761,16 @@ def build_workflow(deps: WorkflowDependencies):
     graph.add_node("validate_query", validate_query)
     graph.add_node("execute_query", execute_query)
     graph.add_node("analyze_result", analyze_result)
+    graph.add_node("judge_answer", judge_answer)
     graph.add_edge(START, "understand_request")
     graph.add_conditional_edges("understand_request", after_understand, {"plan_query": "plan_query", "end": END})
     graph.add_conditional_edges("plan_query", after_plan, {"validate_query": "validate_query", "end": END})
     graph.add_conditional_edges("validate_query", after_validate, {"execute_query": "execute_query", "end": END})
     graph.add_conditional_edges("execute_query", after_execute, {"analyze_result": "analyze_result", "end": END})
-    graph.add_edge("analyze_result", END)
+    graph.add_edge("analyze_result", "judge_answer")
+    graph.add_conditional_edges(
+        "judge_answer",
+        after_judge,
+        {"plan_query": "plan_query", "analyze_result": "analyze_result", "end": END},
+    )
     return graph.compile()

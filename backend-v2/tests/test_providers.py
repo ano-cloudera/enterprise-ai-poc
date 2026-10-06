@@ -137,36 +137,34 @@ async def test_openai_compatible_providers_return_validated_structured_output(
 
 @pytest.mark.asyncio
 async def test_gemini_provider_returns_validated_structured_output() -> None:
-    captured: dict = {}
-
-    def handler(request: httpx.Request) -> httpx.Response:
-        captured.update(json.loads(request.content))
-        assert request.headers["x-goog-api-key"] == "gemini-secret"
-        assert "key=" not in str(request.url)
-        return httpx.Response(
-            200,
-            json={"candidates": [{"content": {"parts": [{"text": '{"answer":"grounded"}'}]}}]},
-        )
+    from unittest.mock import AsyncMock, MagicMock, patch
 
     settings = Settings(
         _env_file=None,
-        gemini_base_url="https://gemini.example/v1beta",
         gemini_model="gemini-model",
         gemini_api_key="gemini-secret",
     )
-    provider = GeminiProvider(settings, transport=httpx.MockTransport(handler))
+    provider = GeminiProvider(settings)
+    mock_response = MagicMock()
+    mock_response.text = '{"answer":"grounded"}'
+    mock_aio = MagicMock()
+    mock_aio.models.generate_content = AsyncMock(return_value=mock_response)
+    mock_client = MagicMock()
+    mock_client.aio = mock_aio
 
-    result = await provider.generate_structured(
-        [
-            {"role": "system", "content": "system"},
-            {"role": "user", "content": "question"},
-        ],
-        Result,
-        temperature=0.2,
-        max_tokens=321,
-    )
+    with patch.object(provider, "_client_instance", return_value=mock_client):
+        result = await provider.generate_structured(
+            [
+                {"role": "system", "content": "system"},
+                {"role": "user", "content": "question"},
+            ],
+            Result,
+            temperature=0.2,
+            max_tokens=321,
+        )
 
     assert result == Result(answer="grounded")
+    mock_aio.models.generate_content.assert_awaited_once()
     assert captured["generationConfig"]["temperature"] == 0.2
     assert captured["generationConfig"]["maxOutputTokens"] == 321
     assert captured["systemInstruction"]["parts"] == [{"text": "system"}]

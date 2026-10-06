@@ -37,7 +37,7 @@ def _fallback_answer(failure: dict[str, Any], *, request_id: str) -> AnalysisOut
         ]
     elif code == "IMPALA_QUERY_FAILED":
         direct = (
-            "Query ke data warehouse tidak selesai — kemungkinan karena beban cluster, timeout, "
+            "Query ke data warehouse tidak selesai, kemungkinan karena beban cluster, timeout, "
             "atau filter yang terlalu sempit untuk periode Q4 2024."
         )
         summary = (

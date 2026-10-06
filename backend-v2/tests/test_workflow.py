@@ -36,7 +36,7 @@ class FakeContext:
         base_dataset = (resolution.get("definition") or {}).get("base_dataset", "material_360")
         self.registry = type("Reg", (), {"dataset_fields": {base_dataset: frozenset()}})()
 
-    def resolve(self, question: str):
+    def resolve(self, question: str, session_last_metric=None, session_analysis_context=None):
         return self.resolution
 
     def metric_definition(self, metric: str):
@@ -57,8 +57,15 @@ class FakeContext:
             "examples": ["Berapa stok retail per division?"],
         }
 
-    def compile_governed(self, metric: str, question: str, requested_dimensions=None):
+    def compile_governed(self, metric: str, question: str, requested_dimensions=None, extra_predicates=None):
+        _ = extra_predicates
         return self.sql
+
+    def domain_capability_insight_lines(self, *, exclude_focus: str | None = None):
+        lines = [f"Domain insight {i}" for i in range(9)]
+        if exclude_focus:
+            return [line for line in lines if exclude_focus not in line.casefold()]
+        return lines
 
 
 class FakeExecutor:
@@ -464,11 +471,18 @@ async def test_greeting_is_written_by_selected_llm_without_querying_impala() -> 
     state = await build_workflow(dependencies).ainvoke({
         **AskDataRequest(session_id="s1", question="Halo", provider="qwen", model="qwen-model").model_dump(),
         "conversation_history": [],
+        "turn_understanding": {
+            "is_conversational": True,
+            "attach_domain_catalog": True,
+            "pipeline_question": "Halo",
+            "rationale": "test",
+        },
     })
 
     assert state["status"] == "SUCCESS"
     assert state["strategy"] == "conversational"
     assert state["answer"]["direct_answer"].startswith("Halo!")
+    assert len(state["answer"]["insights"]) == 9
     assert dependencies.query_executor.queries == []
     assert provider.calls == ["AnalysisOutput"]
 
@@ -491,11 +505,18 @@ async def test_capability_conversation_is_guided_by_selected_llm_without_sql(que
         "data_reference": "TEMPO governed capability catalog.",
     }])
     dependencies = deps(FakeContext({"status": "unsupported"}), provider, [])
+    attach_catalog = "stok" not in question.casefold()
 
     state = await build_workflow(dependencies).ainvoke({
         **AskDataRequest(session_id="s1", question=question, provider="qwen", model="qwen-model").model_dump(),
         "original_question": question,
         "conversation_history": [{"question": "sebelumnya", "answer": {"direct_answer": "jawaban"}}],
+        "turn_understanding": {
+            "is_conversational": True,
+            "attach_domain_catalog": attach_catalog,
+            "pipeline_question": question,
+            "rationale": "test",
+        },
     })
 
     assert state["status"] == "SUCCESS"
@@ -505,6 +526,54 @@ async def test_capability_conversation_is_guided_by_selected_llm_without_sql(que
     assert "conversation_history" in payload
     if "stok" in question:
         assert "sat_store_stock_quantity" in payload
+
+
+@pytest.mark.asyncio
+async def test_understand_preserves_precomputed_follow_up_resolution() -> None:
+    """ChatService resolves follow-ups with session context; workflow must not re-resolve without it."""
+    provider = FakeProvider([analysis()])
+    follow_resolution = {
+        "status": "resolved",
+        "metric": "b2b_material_plu_value",
+        "matched_alias": "follow_up_context",
+        "dimensions": ["material"],
+        "dimension_mismatch": ["branch"],
+        "definition": {
+            "base_dataset": "b2b_material_plu",
+            "allowed_dimensions": ["calmonth", "material", "kode_plu"],
+            "expression": "SUM(b2b_material_plu.b2b_bill_val)",
+        },
+    }
+    context = FakeContext(follow_resolution, sql="SELECT d.material FROM gold.corr_b2b_material_plu d LIMIT 3")
+    context.registry = type(
+        "Reg",
+        (),
+        {"dataset_fields": {"b2b_material_plu": frozenset({"material", "calmonth", "b2b_bill_val"})}},
+    )()
+    resolve_calls = {"n": 0}
+    original_resolve = context.resolve
+
+    def counting_resolve(question, session_last_metric=None, session_analysis_context=None):
+        resolve_calls["n"] += 1
+        return original_resolve(question, session_last_metric, session_analysis_context)
+
+    context.resolve = counting_resolve  # type: ignore[method-assign]
+    dependencies = deps(context, provider, [{"material": "500-21-02", "metric_value": 100}])
+    payload = {
+        **AskDataRequest(
+            session_id="s-follow",
+            question="breakdown cabang palembang top 3 produk",
+            provider="qwen",
+            model="qwen-model",
+        ).model_dump(),
+        "semantic_resolution": follow_resolution,
+        "session_last_metric": "b2b_branch_sell_out_value",
+    }
+    state = await build_workflow(dependencies).ainvoke(payload)
+    assert resolve_calls["n"] == 0
+    assert state["status"] == "SUCCESS"
+    assert state["semantic_resolution"]["metric"] == "b2b_material_plu_value"
+    assert "corr_b2b_material_plu" in dependencies.query_executor.queries[0]
 
 
 def test_query_plan_cannot_select_conversational_strategy() -> None:

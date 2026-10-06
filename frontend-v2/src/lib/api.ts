@@ -9,6 +9,12 @@ async function request<T>(path: string): Promise<T> {
 
 
 export const api = {
+  deleteChatSession: async (sessionId: string): Promise<void> => {
+    const response = await fetch(`/api/chat/sessions/${encodeURIComponent(sessionId)}`, { method: 'DELETE' })
+    if (!response.ok && response.status !== 404) {
+      throw new Error(`${response.status} ${response.statusText}`)
+    }
+  },
   models: () => request<{ models: ModelInfo[] }>('/models'),
   randomQueries: (limit = 1) => request<{ questions: SuggestedQuestion[] }>(`/random-queries?limit=${limit}`),
   chatStream: async function* (
@@ -17,7 +23,7 @@ export const api = {
     selection: ModelSelection,
     signal?: AbortSignal,
   ): AsyncGenerator<
-    { type: 'progress'; stage: string; label: string }
+    { type: 'progress'; stage: string; label: string; detail?: string | null }
     | { type: 'done'; response: ChatResponse }
   > {
     const response = await fetch('/api/chat/stream', {

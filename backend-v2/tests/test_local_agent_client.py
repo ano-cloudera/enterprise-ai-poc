@@ -153,3 +153,43 @@ def test_markdown_to_plain_answer_strips_routing_section_and_headings() -> None:
 
 def test_markdown_to_plain_answer_falls_back_to_raw_text_when_no_sections_match() -> None:
     assert markdown_to_plain_answer("Just plain text, no headings at all.") == "Just plain text, no headings at all."
+
+
+@pytest.mark.asyncio
+async def test_ask_data_uses_v3_contract_endpoint() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.url.path == "/v1/ask-data"
+        return httpx.Response(
+            200,
+            json={
+                "request_id": "r1",
+                "session_id": "s1",
+                "status": "SUCCESS",
+                "provider": "openai",
+                "model": "tempo-agent-v3",
+                "strategy": "governed",
+                "answer": {
+                    "direct_answer": "OK",
+                    "executive_summary": "OK",
+                    "insights": [],
+                    "business_implications": [],
+                    "caveats": [],
+                    "data_reference": "ID-02@dcname",
+                    "chart_spec": None,
+                },
+                "data": {"columns": [], "rows": [], "row_count": 0, "execution_ms": 0},
+                "chart_spec": None,
+                "timings": {"total_ms": 1},
+                "retry_count": 0,
+            },
+        )
+
+    client = LocalAgentClient(_settings(local_agent_primary=True), transport=httpx.MockTransport(handler))
+    response = await client.ask_data(
+        "Top DC stok",
+        session_id="s1",
+        provider="openai",
+        model="tempo-agent-v3",
+        request_id="r1",
+    )
+    assert response.strategy == "governed"

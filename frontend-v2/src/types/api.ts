@@ -34,11 +34,27 @@ export type ChatResponse = {
   status: 'SUCCESS' | 'CLARIFICATION' | 'NO_DATA' | 'UNSUPPORTED' | 'ERROR'
   provider: ProviderName
   model: string
-  strategy: 'governed' | 'sql_fallback' | 'clarification' | 'unsupported' | 'conversational'
+  strategy:
+    | 'governed'
+    | 'sql_fallback'
+    | 'clarification'
+    | 'unsupported'
+    | 'conversational'
+    | 'exploratory_local'
+    | 'local_agent_exploratory'
+    | 'error'
   answer: AnalysisOutput
   data: { columns: string[]; rows: Record<string, unknown>[]; row_count: number; execution_ms: number }
   chart_spec: ChartSpec | null
-  timings: { context_ms: number; planning_ms: number; validation_ms: number; query_ms: number; analysis_ms: number; total_ms: number }
+  timings: {
+    context_ms?: number
+    planning_ms?: number
+    validation_ms?: number
+    agent_ms?: number
+    query_ms?: number
+    analysis_ms?: number
+    total_ms: number
+  }
   retry_count: number
 }
 

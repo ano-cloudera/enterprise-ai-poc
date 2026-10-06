@@ -1,13 +1,16 @@
 from __future__ import annotations
 
 import asyncio
+import json
 import logging
 import re
+from collections.abc import AsyncIterator
 from typing import Any
 
 import httpx
 
 from app.core.config import Settings
+from app.core.models import AskDataResponse
 
 
 logger = logging.getLogger(__name__)
@@ -51,6 +54,7 @@ class LocalAgentClient:
         self.base_url = settings.local_agent_base_url.rstrip("/")
         self.timeout = settings.local_agent_timeout_seconds
         self.engine = settings.local_agent_engine
+        self.primary = settings.local_agent_primary
         self.max_attempts = settings.local_agent_max_attempts
         self.retry_delay_seconds = settings.local_agent_retry_delay_seconds
         self.transport = transport
@@ -58,6 +62,29 @@ class LocalAgentClient:
     @property
     def enabled(self) -> bool:
         return bool(self.base_url)
+
+    def _httpx_timeout(self) -> httpx.Timeout:
+        return httpx.Timeout(connect=15.0, read=float(self.timeout), write=30.0, pool=15.0)
+
+    def _ask_data_body(
+        self,
+        question: str,
+        *,
+        session_id: str,
+        provider: str,
+        model: str,
+        request_id: str,
+        answer_language: str = "id",
+    ) -> dict[str, Any]:
+        return {
+            "question": question,
+            "session_id": session_id,
+            "provider": provider,
+            "model": model,
+            "request_id": request_id,
+            "answer_language": answer_language,
+            "engine": self.engine,
+        }
 
     async def query(self, question: str, *, answer_language: str = "id") -> dict[str, Any]:
         if not self.enabled:
@@ -98,10 +125,77 @@ class LocalAgentClient:
             raise last_error
         raise LocalAgentError("REQUEST_FAILED")
 
-    async def _post_query(self, body: dict[str, Any]) -> dict[str, Any]:
+    async def ask_data(
+        self,
+        question: str,
+        *,
+        session_id: str,
+        provider: str,
+        model: str,
+        request_id: str,
+        answer_language: str = "id",
+    ) -> AskDataResponse:
+        body = self._ask_data_body(
+            question,
+            session_id=session_id,
+            provider=provider,
+            model=model,
+            request_id=request_id,
+            answer_language=answer_language,
+        )
+        payload = await self._post_json("/v1/ask-data", body)
+        return AskDataResponse.model_validate(payload)
+
+    async def stream_ask_data(
+        self,
+        question: str,
+        *,
+        session_id: str,
+        provider: str,
+        model: str,
+        request_id: str,
+        answer_language: str = "id",
+    ) -> AsyncIterator[dict[str, Any]]:
+        body = self._ask_data_body(
+            question,
+            session_id=session_id,
+            provider=provider,
+            model=model,
+            request_id=request_id,
+            answer_language=answer_language,
+        )
         try:
-            async with httpx.AsyncClient(timeout=self.timeout, transport=self.transport) as client:
-                response = await client.post(f"{self.base_url}/v1/query", json=body)
+            async with httpx.AsyncClient(timeout=self._httpx_timeout(), transport=self.transport) as client:
+                async with client.stream("POST", f"{self.base_url}/v1/ask-data/stream", json=body) as response:
+                    response.raise_for_status()
+                    buffer = ""
+                    async for chunk in response.aiter_text():
+                        buffer += chunk
+                        while "\n\n" in buffer:
+                            block, buffer = buffer.split("\n\n", 1)
+                            for line in block.splitlines():
+                                if not line.startswith("data:"):
+                                    continue
+                                raw = line[5:].strip()
+                                if not raw:
+                                    continue
+                                try:
+                                    event = json.loads(raw)
+                                except json.JSONDecodeError:
+                                    continue
+                                if isinstance(event, dict):
+                                    yield event
+        except httpx.TimeoutException as exc:
+            raise LocalAgentError("TIMEOUT") from exc
+        except httpx.HTTPStatusError as exc:
+            raise LocalAgentError("HTTP_ERROR", http_status=exc.response.status_code) from exc
+        except (httpx.HTTPError, TypeError, ValueError) as exc:
+            raise LocalAgentError("REQUEST_FAILED") from exc
+
+    async def _post_json(self, path: str, body: dict[str, Any]) -> dict[str, Any]:
+        try:
+            async with httpx.AsyncClient(timeout=self._httpx_timeout(), transport=self.transport) as client:
+                response = await client.post(f"{self.base_url}{path}", json=body)
                 response.raise_for_status()
                 return response.json()
         except httpx.TimeoutException as exc:
@@ -115,6 +209,9 @@ class LocalAgentClient:
             raise LocalAgentError("HTTP_ERROR", http_status=exc.response.status_code) from exc
         except (httpx.HTTPError, TypeError, ValueError) as exc:
             raise LocalAgentError("REQUEST_FAILED") from exc
+
+    async def _post_query(self, body: dict[str, Any]) -> dict[str, Any]:
+        return await self._post_json("/v1/query", body)
 
 
 _HEADING_RE = re.compile(r"^#+\s*", re.MULTILINE)

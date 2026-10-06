@@ -2,24 +2,46 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Bot, Settings } from 'lucide-react'
-import { createContext, useContext, useState, type ReactNode } from 'react'
+import { Bot, Download, PanelLeftClose, PanelLeftOpen, Plus, Settings } from 'lucide-react'
+import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 import { BrandMark } from '../components/BrandMark'
-
+import { ConversationSessionList, type ConversationSessionListProps } from '../components/ConversationSessionList'
+import { appConfig } from '../config/appConfig'
 
 const navigation = [
-  { href: '/', label: 'Ask Data', icon: Bot },
-  { href: '/settings', label: 'Settings', icon: Settings },
+  { href: '/', label: appConfig.navigationAskData, icon: Bot },
+  { href: '/settings', label: appConfig.navigationSettings, icon: Settings },
 ]
 
+export type ChatSessionSidebarState = Omit<ConversationSessionListProps, 'collapsed'> & {
+  onNewChat: () => void
+}
+
+export type ChatPageChromeState = {
+  showDownload: boolean
+  downloadingPdf: boolean
+  loading: boolean
+  onDownloadPdf: () => void
+  /** Hide top header title (e.g. empty Ask Data) so branding stays in the conversation area. */
+  minimalHeader?: boolean
+}
+
 type ChatLayoutState = {
-  fullScreenChat: boolean
-  toggleFullScreenChat: () => void
+  sidebarCollapsed: boolean
+  toggleSidebarCollapsed: () => void
+  chatSessionSidebar: ChatSessionSidebarState | null
+  setChatSessionSidebar: (state: ChatSessionSidebarState | null) => void
+  chatPageChrome: ChatPageChromeState | null
+  setChatPageChrome: (state: ChatPageChromeState | null) => void
 }
 
 const ChatLayoutContext = createContext<ChatLayoutState>({
-  fullScreenChat: false,
-  toggleFullScreenChat: () => undefined,
+  sidebarCollapsed: false,
+  toggleSidebarCollapsed: () => undefined,
+  chatSessionSidebar: null,
+  setChatSessionSidebar: () => undefined,
+  chatPageChrome: null,
+  setChatPageChrome: () => undefined,
 })
 
 export function useChatLayout() {
@@ -28,28 +50,169 @@ export function useChatLayout() {
 
 export function AppShell({ children }: { children: ReactNode }) {
   const pathname = usePathname()
-  const [fullScreenRequested, setFullScreenRequested] = useState(false)
-  const fullScreenChat = pathname === '/' && fullScreenRequested
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
+  const [chatSessionSidebar, setChatSessionSidebarState] = useState<ChatSessionSidebarState | null>(null)
+  const [chatPageChrome, setChatPageChromeState] = useState<ChatPageChromeState | null>(null)
+
+  const toggleSidebarCollapsed = useCallback(() => {
+    setSidebarCollapsed(current => !current)
+  }, [])
+
+  const setChatSessionSidebar = useCallback((state: ChatSessionSidebarState | null) => {
+    setChatSessionSidebarState(state)
+  }, [])
+
+  const setChatPageChrome = useCallback((state: ChatPageChromeState | null) => {
+    setChatPageChromeState(state)
+  }, [])
+
+  const layoutValue = useMemo(
+    () => ({
+      sidebarCollapsed,
+      toggleSidebarCollapsed,
+      chatSessionSidebar,
+      setChatSessionSidebar,
+      chatPageChrome,
+      setChatPageChrome,
+    }),
+    [sidebarCollapsed, toggleSidebarCollapsed, chatSessionSidebar, setChatSessionSidebar, chatPageChrome, setChatPageChrome],
+  )
+
+  const onAskData = pathname === '/'
+  const showChatWorkspace = onAskData && chatSessionSidebar !== null
+  const sidebarExpandedClass = sidebarCollapsed ? 'lg:w-[68px]' : 'lg:w-[240px]'
+  const mainPadClass = sidebarCollapsed ? 'lg:pl-[68px]' : 'lg:pl-[240px]'
+
   return (
-    <ChatLayoutContext.Provider value={{ fullScreenChat, toggleFullScreenChat: () => setFullScreenRequested(current => !current) }}>
-    <div className="min-h-screen bg-cloudera-mist text-cloudera-ink">
-      <aside aria-label="Primary sidebar" aria-hidden={fullScreenChat} inert={fullScreenChat} className={`fixed inset-y-0 left-0 z-30 hidden w-[232px] flex-col border-r border-slate-200 bg-white p-4 transition-transform duration-300 ease-in-out lg:flex ${fullScreenChat ? '-translate-x-full pointer-events-none' : 'translate-x-0'}`}>
-        <BrandMark />
-        <nav aria-label="Primary navigation" className="mt-7 space-y-1">
-          {navigation.map(item => {
-            const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
-            const Icon = item.icon
-            return <Link key={item.href} href={item.href} className={`flex h-11 items-center gap-2.5 rounded-xl px-2 text-sm font-bold ${active ? 'bg-violet-50 text-cloudera-violet' : 'text-slate-600 hover:bg-slate-50'}`}><span className="grid h-8 w-8 place-items-center"><Icon size={19} /></span>{item.label}</Link>
-          })}
+    <ChatLayoutContext.Provider value={layoutValue}>
+      <div className="min-h-screen bg-cloudera-mist text-cloudera-ink">
+        <aside
+          aria-label="Primary sidebar"
+          className={`fixed inset-y-0 left-0 z-30 hidden ${sidebarExpandedClass} flex-col border-r border-slate-200 bg-white transition-[width] duration-300 ease-in-out lg:flex`}
+        >
+          <div
+            className={`flex shrink-0 items-center gap-2 border-b border-slate-100 ${
+              sidebarCollapsed ? 'flex-col justify-center px-2 py-3' : 'justify-between px-3 py-3'
+            }`}
+          >
+            {!sidebarCollapsed ? (
+              <div className="min-w-0 flex-1">
+                <BrandMark />
+              </div>
+            ) : (
+              <img src="/cloudera-logo.png" alt="Cloudera" className="h-9 w-9 shrink-0 rounded-lg shadow-sm" />
+            )}
+            <button
+              type="button"
+              aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+              aria-expanded={!sidebarCollapsed}
+              onClick={toggleSidebarCollapsed}
+              className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-slate-500 transition-colors hover:bg-slate-50 hover:text-cloudera-navy"
+            >
+              {sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
+            </button>
+          </div>
+
+          <div className={`flex min-h-0 flex-1 flex-col ${sidebarCollapsed ? 'items-center px-2 py-3' : 'px-3 py-3'}`}>
+            {showChatWorkspace && (
+              <button
+                type="button"
+                aria-label="New chat"
+                title="New chat"
+                onClick={chatSessionSidebar.onNewChat}
+                className={
+                  sidebarCollapsed
+                    ? 'mb-3 grid h-10 w-10 place-items-center rounded-xl bg-cloudera-orange text-white hover:brightness-95'
+                    : 'btn-primary mb-4 h-11 w-full text-sm'
+                }
+              >
+                <Plus size={sidebarCollapsed ? 18 : 16} />
+                {!sidebarCollapsed && <span>New Chat</span>}
+              </button>
+            )}
+
+            <nav aria-label="Primary navigation" className={`space-y-0.5 ${sidebarCollapsed ? 'w-full' : ''}`}>
+              {!sidebarCollapsed && (
+                <div className="type-sidebar-section mb-2 px-1">Navigation</div>
+              )}
+              {navigation.map(item => {
+                const active = item.href === '/' ? pathname === '/' : pathname.startsWith(item.href)
+                const Icon = item.icon
+                return (
+                  <Link
+                    key={item.href}
+                    href={item.href}
+                    title={item.label}
+                    className={`type-sidebar-nav flex items-center rounded-xl transition-colors ${
+                      sidebarCollapsed ? 'h-10 w-10 justify-center' : 'h-11 gap-2 px-2'
+                    } ${active ? 'bg-violet-50 font-semibold text-cloudera-violet' : 'text-slate-600 hover:bg-slate-50'}`}
+                  >
+                    <span className="grid h-8 w-8 shrink-0 place-items-center">
+                      <Icon size={18} />
+                    </span>
+                    {!sidebarCollapsed && item.label}
+                  </Link>
+                )
+              })}
+            </nav>
+
+            {showChatWorkspace && chatSessionSidebar && (
+              <ConversationSessionList
+                collapsed={sidebarCollapsed}
+                sessions={chatSessionSidebar.sessions}
+                activeSessionId={chatSessionSidebar.activeSessionId}
+                onOpenSession={chatSessionSidebar.onOpenSession}
+                onRemoveSession={chatSessionSidebar.onRemoveSession}
+              />
+            )}
+          </div>
+
+          {!sidebarCollapsed && (
+            <div className="shrink-0 border-t border-slate-100 px-3 py-3">
+              <div className="type-sidebar-brand text-sm">{appConfig.sidebarProductName}</div>
+              <div className="type-chat-meta">{appConfig.sidebarTagline}</div>
+            </div>
+          )}
+        </aside>
+
+        <div className={`flex min-h-screen flex-col transition-[padding-left] duration-300 ease-in-out ${mainPadClass}`} style={{ minHeight: '100dvh' }}>
+          <header className="sticky top-0 z-20 flex h-14 shrink-0 items-center justify-between gap-3 border-b border-slate-200 bg-white/95 px-4 sm:px-5">
+            {onAskData && chatPageChrome?.minimalHeader ? (
+              <div className="min-w-0 flex-1" aria-hidden />
+            ) : (
+              <div className="type-app-title min-w-0 truncate">{appConfig.headerTitle}</div>
+            )}
+            <div className="flex shrink-0 items-center gap-2">
+              <div className="chip py-1">
+                <span className="h-2 w-2 rounded-full bg-emerald-500" />
+                Database
+              </div>
+              {onAskData && chatPageChrome?.showDownload && (
+                <button
+                  type="button"
+                  aria-label="Download conversation as PDF"
+                  disabled={chatPageChrome.downloadingPdf || chatPageChrome.loading}
+                  onClick={chatPageChrome.onDownloadPdf}
+                  className="inline-flex h-8 items-center gap-1 rounded-lg border border-slate-200 px-2 text-xs font-semibold text-slate-600 transition-colors hover:border-cloudera-orange/40 hover:bg-orange-50/50 disabled:opacity-50"
+                >
+                  <Download size={14} />
+                  <span className="hidden md:inline">{chatPageChrome.downloadingPdf ? 'PDF…' : 'PDF'}</span>
+                </button>
+              )}
+            </div>
+          </header>
+          <main className={`min-h-0 flex-1 ${onAskData ? 'flex min-h-0 flex-col' : 'p-4 sm:p-6'}`}>{children}</main>
+        </div>
+
+        <nav aria-label="Mobile navigation" className="fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-slate-200 bg-white p-2 lg:hidden">
+          {navigation.map(item => (
+            <Link key={item.href} href={item.href} className="flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold text-cloudera-navy">
+              <item.icon size={16} />
+              {item.label}
+            </Link>
+          ))}
         </nav>
-        <div className="mt-auto border-t border-slate-100 pt-4"><div className="text-sm font-extrabold text-cloudera-navy">Tempo Scan</div><div className="mt-0.5 text-xs text-slate-500">Commercial Intelligence</div><div className="mt-1.5 text-[11px] text-slate-400">Powered by Cloudera AI</div></div>
-      </aside>
-      <div className={`transition-[padding] duration-300 ease-in-out ${fullScreenChat ? 'lg:pl-0' : 'lg:pl-[232px]'}`}>
-        <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-slate-200 bg-white/95 px-4 sm:px-8"><div className="flex-1 text-center sm:text-left"><div className="text-xl font-black text-cloudera-navy">Tempo Scan Intelligence</div></div><div className="chip"><span className="h-2 w-2 rounded-full bg-emerald-500" />Database</div></header>
-        <main className="p-4 sm:p-6">{children}</main>
       </div>
-      <nav aria-label="Mobile navigation" className="fixed inset-x-0 bottom-0 z-30 flex justify-around border-t border-slate-200 bg-white p-2 lg:hidden">{navigation.map(item => <Link key={item.href} href={item.href} className="flex items-center gap-2 rounded-lg px-4 py-2 text-xs font-bold text-cloudera-navy"><item.icon size={16} />{item.label}</Link>)}</nav>
-    </div>
     </ChatLayoutContext.Provider>
   )
 }

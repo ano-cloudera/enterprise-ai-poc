@@ -157,12 +157,59 @@ class OpenAIProvider(_OpenAICompatibleProvider):
         )
 
 
+def _gemini_json_schema(response_model: type[StructuredT]) -> dict[str, Any]:
+    def scrub(node: Any) -> Any:
+        if isinstance(node, dict):
+            return {
+                key: scrub(value)
+                for key, value in node.items()
+                # Do not strip JSON Schema "title" or "default" keys — they include
+                # ChartSpec.title and field defaults Gemini needs for structured output.
+                if key not in {"additionalProperties", "$schema"}
+            }
+        if isinstance(node, list):
+            return [scrub(item) for item in node]
+        return node
+
+    return scrub(response_model.model_json_schema())
+
+
+def _gemini_messages_to_contents(messages: list[dict[str, str]]):
+    from google.genai import types
+
+    contents: list[types.Content] = []
+    for item in messages:
+        role = item.get("role")
+        if role == "system":
+            continue
+        gemini_role = "model" if role == "assistant" else "user"
+        contents.append(
+            types.Content(
+                role=gemini_role,
+                parts=[types.Part.from_text(text=str(item.get("content") or ""))],
+            )
+        )
+    return contents
+
+
 class GeminiProvider:
+    """Google Gemini via ``google-genai`` SDK (same as backend-v3)."""
+
     provider_name = "gemini"
 
     def __init__(self, settings: Settings, *, transport: httpx.AsyncBaseTransport | None = None) -> None:
         self.settings = settings
         self.transport = transport
+        self._client: Any = None
+
+    def _client_instance(self):
+        if self._client is not None:
+            return self._client
+        from google import genai
+
+        api_key = self.settings.gemini_api_key.get_secret_value()
+        self._client = genai.Client(api_key=api_key) if api_key else genai.Client()
+        return self._client
 
     async def generate_structured(
         self,
@@ -172,51 +219,43 @@ class GeminiProvider:
         temperature: float,
         max_tokens: int,
     ) -> StructuredT:
-        system_parts = [{"text": item["content"]} for item in messages if item["role"] == "system"]
-        contents = [
-            {
-                "role": "model" if item["role"] == "assistant" else "user",
-                "parts": [{"text": item["content"]}],
-            }
-            for item in messages
-            if item["role"] != "system"
-        ]
-        body: dict[str, Any] = {
-            "contents": contents,
-            "generationConfig": {
-                "temperature": temperature,
-                "maxOutputTokens": max_tokens,
-                "responseMimeType": "application/json",
-                "responseSchema": response_model.model_json_schema(),
-            },
-        }
-        if system_parts:
-            body["systemInstruction"] = {"parts": system_parts}
-        url = f"{self.settings.gemini_base_url.rstrip('/')}/models/{self.settings.gemini_model}:generateContent"
+        from google.genai import types
+
+        system_instruction = "\n\n".join(
+            str(item.get("content") or "") for item in messages if item.get("role") == "system"
+        ).strip()
+        contents = _gemini_messages_to_contents(messages)
+        if not contents:
+            contents = [types.Content(role="user", parts=[types.Part.from_text(text="Proceed.")])]
+
+        config = types.GenerateContentConfig(
+            system_instruction=system_instruction or None,
+            temperature=temperature,
+            max_output_tokens=max_tokens,
+            response_mime_type="application/json",
+            response_json_schema=_gemini_json_schema(response_model),
+        )
         try:
-            async with httpx.AsyncClient(
-                timeout=self.settings.llm_request_timeout_seconds,
-                transport=self.transport,
-            ) as client:
-                response = await client.post(
-                    url,
-                    headers={"x-goog-api-key": self.settings.gemini_api_key.get_secret_value()},
-                    json=body,
-                )
-                response.raise_for_status()
-            text = response.json()["candidates"][0]["content"]["parts"][0]["text"]
+            response = await self._client_instance().aio.models.generate_content(
+                model=self.settings.gemini_model,
+                contents=contents,
+                config=config,
+            )
+            text = (response.text or "").strip()
+            if not text:
+                raise ProviderError("PROVIDER_ERROR")
             return response_model.model_validate(_structured_json(text))
         except ProviderError:
             raise
-        except httpx.TimeoutException as exc:
+        except ValidationError as exc:
+            raise ProviderError("INVALID_STRUCTURED_OUTPUT") from exc
+        except TimeoutError as exc:
             raise ProviderError("TIMEOUT") from exc
-        except httpx.HTTPStatusError as exc:
+        except Exception as exc:
             logger.warning(
-                "llm_http_error provider=gemini status=%s error_code=%s endpoint=%s",
-                exc.response.status_code,
-                _http_error_code(exc.response),
-                exc.request.url.path,
+                "llm_sdk_error provider=gemini model=%s error_type=%s detail=%s",
+                self.settings.gemini_model,
+                type(exc).__name__,
+                str(exc)[:500],
             )
-            raise ProviderError("PROVIDER_ERROR") from exc
-        except (httpx.HTTPError, KeyError, IndexError, TypeError, ValueError) as exc:
             raise ProviderError("PROVIDER_ERROR") from exc
