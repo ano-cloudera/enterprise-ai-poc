@@ -236,10 +236,15 @@ def build_workflow(deps: WorkflowDependencies):
         if intent.is_conversational:
             guidance = deps.semantic_context.guidance_context(original_question)
             first_turn = not bool(state.get("conversation_history"))
+            convo_prompt = (
+                "conversational_sell_in_out.md"
+                if intent.rationale == "concept_sell_in_vs_sell_out"
+                else "greeting.md"
+            )
             try:
                 answer = await _provider(state, deps).generate_structured(
                     [
-                        {"role": "system", "content": _prompt("global_system.md") + "\n" + _prompt("greeting.md")},
+                        {"role": "system", "content": _prompt("global_system.md") + "\n" + _prompt(convo_prompt)},
                         {
                             "role": "user",
                             "content": json.dumps(

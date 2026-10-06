@@ -603,6 +603,23 @@ def test_promo_uplift_ranking_defaults_to_top_ten() -> None:
     assert "LIMIT 50" not in sql
 
 
+def test_promo_program_status_distribution_resolves_observation_count() -> None:
+    resolution = SemanticContextService().resolve(
+        "Distribusi promo SAT by program status Q4 2024"
+    )
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "promo_observation_count"
+    assert resolution.get("matched_alias") == "promo_program_status_distribution"
+
+
+def test_material_sell_in_quantity_ranking_route() -> None:
+    resolution = SemanticContextService().resolve(
+        "Produk mana yang paling banyak terjual (quantity sell-in) di Tempo Q4 2024? Top 10"
+    )
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "material_sell_in_quantity"
+
+
 def test_promo_roi_with_operational_recommendation_stays_clarification() -> None:
     resolution = SemanticContextService().resolve(
         "Hitung promo dengan ROI terbaik dan berikan rekomendasi operasional"

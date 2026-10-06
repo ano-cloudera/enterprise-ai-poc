@@ -364,8 +364,20 @@ def plan_follow_up(question: str, ctx: dict[str, Any]) -> FollowUpPlan | None:
     last_metric = str(ctx.get("last_metric") or "")
 
     office_codes = re.findall(r"\b(0\d{3})\b", f"{ctx.get('last_question') or ''} {question}")
+    office_codes = list(dict.fromkeys(office_codes))
     if len(office_codes) >= 2 and any(
-        t in lowered for t in ("lebih lambat", "selisih", "mana yang lebih", "perbedaan")
+        t in lowered
+        for t in (
+            "lebih lambat",
+            "selisih",
+            "mana yang lebih",
+            "perbedaan",
+            "bandingkan",
+            "banding",
+            "compare",
+            " vs ",
+            "versus",
+        )
     ):
         ents: list[dict[str, Any]] = []
         for idx, code in enumerate(office_codes[:2]):
@@ -410,6 +422,17 @@ def plan_follow_up(question: str, ctx: dict[str, Any]) -> FollowUpPlan | None:
             from_grain=str(from_grain) if from_grain else None,
             metric_override=metric_override,
         )
+
+    if catalog and any(t in lowered for t in ("kontribusi", "persen kontribusi", "percent contribution")):
+        if any(t in lowered for t in ("tiga produk", "3 produk", "top 3", "top3", "teratas tadi", "produk teratas")):
+            return FollowUpPlan(
+                intent="relimit",
+                filter_entity=None,
+                to_grain=None,
+                limit=3,
+                domain_id=str(domain_id) if domain_id else None,
+                from_grain=str(from_grain) if from_grain else None,
+            )
 
     relimit = _RELIMIT_RE.search(lowered)
     if relimit:
@@ -576,6 +599,11 @@ def _drill_metric_and_dimensions(plan: FollowUpPlan, ctx: dict[str, Any]) -> tup
             return "average_unloading_minutes", [grain], predicates
         if grain == "sales_office" and "picking" in str(ctx.get("last_metric") or "").casefold():
             return "average_picking_minutes", [grain], predicates
+        if grain in ("sales_office", "sales_off") and any(
+            term in str(ctx.get("last_metric") or last_metric).casefold()
+            for term in ("sell_in", "billing", "sales_office", "material_sell_in")
+        ):
+            return "sales_office_sell_in_value", [grain], predicates
         dims = list(ctx.get("last_dimensions") or [grain])
         return str(ctx.get("last_metric") or last_metric), dims, predicates
 

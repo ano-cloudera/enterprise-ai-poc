@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import logging
+import re
 from enum import Enum
 from pathlib import Path
 from typing import Any, Literal
@@ -149,8 +150,23 @@ def _is_sell_in_vs_sell_out_concept(question: str) -> bool:
     return asks_contrast and mentions_sell_in and mentions_sell_out and not looks_analytic
 
 
+def _is_analytic_escape_from_clarification(question: str) -> bool:
+    """User narrows to a concrete governed ask after a clarification turn."""
+    lowered = question.casefold().replace("–", "-")
+    if any(term in lowered for term in ("cukup", "cukup tampilkan", "just show", "tampilkan saja")):
+        if any(term in lowered for term in ("sell-in", "sell in", "sellin")):
+            return True
+    if re.search(r"\bFE\d+\b", question, flags=re.IGNORECASE) and any(
+        term in lowered for term in ("sell-in", "sell in", "per bulan", "bulanan")
+    ):
+        return True
+    return False
+
+
 def _understanding_mode(session: dict[str, Any], question: str) -> UnderstandingMode:
     if session.get("prior_clarification_pending"):
+        if _is_analytic_escape_from_clarification(question):
+            return UnderstandingMode.SKIP
         return UnderstandingMode.CLARIFY
     if session.get("result_catalog"):
         return UnderstandingMode.FOLLOW_UP
@@ -215,7 +231,7 @@ async def understand_turn(
     if session.get("first_turn") and _is_sell_in_vs_sell_out_concept(q):
         return TurnUnderstanding(
             is_conversational=True,
-            attach_domain_catalog=True,
+            attach_domain_catalog=False,
             pipeline_question=q,
             rationale="concept_sell_in_vs_sell_out",
         )

@@ -281,6 +281,19 @@ class TempoOssieRegistry:
                 "definition": self.metric_definition("promo_observation_count"),
                 "dimension_mismatch": [],
             }
+        requests_promo_status_distribution = (
+            "programstatus" in normalized
+            or "statusprogram" in normalized
+            or ("distribusi" in normalized and "status" in normalized)
+        )
+        if mentions_promo and requests_promo_status_distribution:
+            return {
+                "status": "resolved",
+                "metric": "promo_observation_count",
+                "matched_alias": "promo_program_status_distribution",
+                "definition": self.metric_definition("promo_observation_count"),
+                "dimension_mismatch": [],
+            }
         if mentions_promo and (requests_promo_attribution or requests_unavailable_promo_period):
             return {
                 "status": "needs_clarification",

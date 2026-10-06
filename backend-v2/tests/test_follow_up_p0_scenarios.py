@@ -33,6 +33,41 @@ def test_service_level_worst_office_material_drill() -> None:
     assert "material" in res["dimensions"]
 
 
+def test_sales_office_compare_from_question_office_codes() -> None:
+    ctx = build_analysis_context(
+        metric="sales_office_material_sell_in_value",
+        dimensions=["sales_office", "material"],
+        entity_dimension="sales_office",
+        ranked_entities=[{"rank": 1, "id": "0201", "dimension": "sales_office"}],
+        last_question="Top 5 material sell-in office 0201 Q4 2024",
+    )
+    q = "bandingkan total sell-in office 0201 vs 0280 Q4 untuk konteks yang sama"
+    res = try_follow_up_governed_resolution(q, ctx, understanding=None)
+    assert res is not None
+    assert res["metric"] == "sales_office_sell_in_value"
+    assert "sales_office" in res["dimensions"]
+    filters = " ".join(res.get("follow_up_entity_filters") or [])
+    assert "0201" in filters and "0280" in filters
+
+
+def test_pareto_top3_contribution_relimit() -> None:
+    ctx = build_analysis_context(
+        metric="material_sell_in_value",
+        dimensions=["material"],
+        entity_dimension="material",
+        ranked_entities=[
+            {"rank": 1, "id": "A", "dimension": "material"},
+            {"rank": 2, "id": "B", "dimension": "material"},
+            {"rank": 3, "id": "C", "dimension": "material"},
+        ],
+        last_question="pareto sell-in top produk",
+    )
+    plan = plan_follow_up("tiga produk teratas tadi, berapa persen kontribusi ke total sell-in?", ctx)
+    assert plan is not None
+    assert plan.intent == "relimit"
+    assert plan.limit == 3
+
+
 def test_stock_tempo_fe001_follow_up_metric() -> None:
     ctx = build_analysis_context(
         metric="material_warehouse_stock_quantity",

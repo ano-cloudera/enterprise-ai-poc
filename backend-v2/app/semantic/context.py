@@ -529,6 +529,15 @@ class SemanticContextService:
                 )
 
         if re.search(r"\bFE\d+\b", question, flags=re.IGNORECASE) and any(
+            term in lowered for term in ("sell-in", "sell in", "sellin")
+        ) and any(term in lowered for term in ("per bulan", "bulanan", "tren", "trend", "cukup tampilkan", "cukup")):
+            return resolved(
+                "material_sell_in_value",
+                ["calmonth", "material"],
+                matched_alias="cross_fe001_sell_in_trend",
+            )
+
+        if re.search(r"\bFE\d+\b", question, flags=re.IGNORECASE) and any(
             term in lowered for term in ("stok tempo", "stock tempo", "hubungan stok", "stok gudang tempo")
         ) and any(term in lowered for term in ("sell-in", "sell in", "sellin")):
             return resolved(
@@ -536,6 +545,11 @@ class SemanticContextService:
                 ["calmonth", "material"],
                 matched_alias="cross_stock_sell_in_material",
             )
+
+        if any(term in lowered for term in ("quantity", "kuantitas", "qty", "unit")) and any(
+            term in lowered for term in ("terjual", "sell-in", "sell in", "paling banyak", "terbanyak")
+        ) and any(term in lowered for term in ("top", "produk", "material")):
+            return resolved("material_sell_in_quantity", ["material"], matched_alias="material_sell_in_quantity_rank")
 
         # Shelf-survey OOS language contains generic words such as "stok",
         # "toko", and "kosong". Route this governed audit intent before the
@@ -630,10 +644,14 @@ class SemanticContextService:
 
         office_codes = re.findall(r"\b(0\d{3})\b", question)
         if len(office_codes) >= 2 and any(
-            term in lowered for term in ("bandingkan", "banding", "perbedaan", "membedakan", "compare")
+            term in lowered for term in ("bandingkan", "banding", "perbedaan", "membedakan", "compare", " vs ")
         ):
             if _question_prefers_sell_out(question):
                 return resolved("b2b_branch_sell_out_value", ["branch", "material"])
+            wants_material = any(term in lowered for term in ("material", "produk", "sku"))
+            wants_office_total = any(term in lowered for term in ("total", "office", "sales office", "kantor"))
+            if wants_office_total and not wants_material:
+                return resolved("sales_office_sell_in_value", ["sales_office"])
             return resolved("sales_office_material_sell_in_value", ["sales_office", "material"])
 
         if _question_requests_branch_sales_ranking(question):
