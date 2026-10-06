@@ -36,7 +36,7 @@ class FakeContext:
         base_dataset = (resolution.get("definition") or {}).get("base_dataset", "material_360")
         self.registry = type("Reg", (), {"dataset_fields": {base_dataset: frozenset()}})()
 
-    def resolve(self, question: str, session_last_metric=None, session_analysis_context=None):
+    def resolve(self, question: str, session_last_metric=None, session_analysis_context=None, **kwargs):
         return self.resolution
 
     def metric_definition(self, metric: str):
@@ -102,6 +102,7 @@ def deps(context, provider, rows, validator=lambda sql, context: ValidatedSQL(Tr
         query_executor=FakeExecutor(rows),
         sql_validator=validator,
         validation_context=FakeValidationContext(),
+        judge_enabled=False,
     )
 
 
@@ -149,7 +150,7 @@ async def test_controlled_fallback_uses_exactly_planner_then_analyst() -> None:
         {"strategy": "sql_fallback", "domains": ["sales"], "metrics": [], "dimensions": ["material"], "filters": {}, "analysis_type": "ranking", "sql": "SELECT d.material, d.value FROM gold.allowed d LIMIT 10", "clarification_question": None},
         analysis(),
     ])
-    dependencies = deps(FakeContext({"status": "unsupported"}), provider, [{"material": "A", "value": 10}])
+    dependencies = deps(FakeContext({"status": "fallback", "reason": "no_published_metric_match"}), provider, [{"material": "A", "value": 10}])
 
     state = await build_workflow(dependencies).ainvoke(AskDataRequest(session_id="s1", question="fallback", provider="gemini", model="gemini-model").model_dump())
 
@@ -259,8 +260,13 @@ async def test_clarification_and_unsupported_do_not_execute_query() -> None:
     assert state["answer"]["direct_answer"] == "Sell-In atau Sell-Out?"
     assert clarification.query_executor.queries == []
 
+    semantic_unsupported = deps(FakeContext({"status": "unsupported"}), FakeProvider([]), [])
+    state = await build_workflow(semantic_unsupported).ainvoke(AskDataRequest(session_id="s", question="biaya iklan TV", provider="qwen", model="m").model_dump())
+    assert state["status"] == "CLARIFICATION"
+    assert semantic_unsupported.query_executor.queries == []
+
     unsupported_provider = FakeProvider([{"strategy": "unsupported", "domains": [], "metrics": [], "dimensions": [], "filters": {}, "analysis_type": "unsupported", "sql": None, "clarification_question": None}])
-    unsupported = deps(FakeContext({"status": "unsupported"}), unsupported_provider, [])
+    unsupported = deps(FakeContext({"status": "fallback", "reason": "no_published_metric_match"}), unsupported_provider, [])
     state = await build_workflow(unsupported).ainvoke(AskDataRequest(session_id="s", question="biaya iklan TV", provider="qwen", model="m").model_dump())
     assert state["status"] == "UNSUPPORTED"
     assert unsupported.query_executor.queries == []
@@ -286,7 +292,7 @@ async def test_unsupported_plan_falls_through_unchanged_when_local_agent_disable
     that hasn't opted in) must behave exactly like before this feature was
     added - UNSUPPORTED, no extra calls, no exceptions."""
     provider = FakeProvider([{"strategy": "unsupported", "domains": [], "metrics": [], "dimensions": [], "filters": {}, "analysis_type": "unsupported", "sql": None, "clarification_question": None}])
-    dependencies = deps(FakeContext({"status": "unsupported"}), provider, [])
+    dependencies = deps(FakeContext({"status": "fallback", "reason": "no_published_metric_match"}), provider, [])
     assert dependencies.local_agent_client is None
 
     state = await build_workflow(dependencies).ainvoke(AskDataRequest(session_id="s", question="biaya iklan TV", provider="qwen", model="m").model_dump())
@@ -298,7 +304,7 @@ async def test_unsupported_plan_falls_through_unchanged_when_local_agent_disable
 @pytest.mark.asyncio
 async def test_unsupported_plan_uses_local_agent_fallback_when_it_answers() -> None:
     provider = FakeProvider([{"strategy": "unsupported", "domains": [], "metrics": [], "dimensions": [], "filters": {}, "analysis_type": "unsupported", "sql": None, "clarification_question": None}])
-    dependencies = deps(FakeContext({"status": "unsupported"}), provider, [])
+    dependencies = deps(FakeContext({"status": "fallback", "reason": "no_published_metric_match"}), provider, [])
     dependencies.local_agent_client = FakeLocalAgentClient(payload={
         "resolved_query_ids": ["SI-01@calquarter_material"],
         "final_response_markdown": "## Answer\n\nTop 5 produk dengan sell-in tertinggi...\n\n## Routing\n\n(details omitted)",
@@ -396,7 +402,7 @@ async def test_unsupported_plan_falls_through_unchanged_when_local_agent_errors(
     answer into a request failure - it degrades to the exact same message
     as if the fallback didn't exist."""
     provider = FakeProvider([{"strategy": "unsupported", "domains": [], "metrics": [], "dimensions": [], "filters": {}, "analysis_type": "unsupported", "sql": None, "clarification_question": None}])
-    dependencies = deps(FakeContext({"status": "unsupported"}), provider, [])
+    dependencies = deps(FakeContext({"status": "fallback", "reason": "no_published_metric_match"}), provider, [])
     dependencies.local_agent_client = FakeLocalAgentClient(error=RuntimeError("connection refused"))
 
     state = await build_workflow(dependencies).ainvoke(
@@ -411,7 +417,7 @@ async def test_unsupported_plan_falls_through_unchanged_when_local_agent_errors(
 @pytest.mark.asyncio
 async def test_unsupported_plan_ignores_a_disabled_local_agent_client() -> None:
     provider = FakeProvider([{"strategy": "unsupported", "domains": [], "metrics": [], "dimensions": [], "filters": {}, "analysis_type": "unsupported", "sql": None, "clarification_question": None}])
-    dependencies = deps(FakeContext({"status": "unsupported"}), provider, [])
+    dependencies = deps(FakeContext({"status": "fallback", "reason": "no_published_metric_match"}), provider, [])
     dependencies.local_agent_client = FakeLocalAgentClient(enabled=False, payload={"final_response_markdown": "## Answer\n\nShould never be reached"})
 
     state = await build_workflow(dependencies).ainvoke(
@@ -436,7 +442,7 @@ async def test_invalid_sql_gets_only_one_repair_attempt() -> None:
         attempts += 1
         return ValidatedSQL(attempts > 1, sql=sql if attempts > 1 else None, error=None if attempts > 1 else "DDL/DML statements are not allowed")
 
-    state = await build_workflow(deps(FakeContext({"status": "unsupported"}), provider, [{"value": 1}], validator)).ainvoke(AskDataRequest(session_id="s", question="fallback", provider="openai", model="m").model_dump())
+    state = await build_workflow(deps(FakeContext({"status": "fallback", "reason": "no_published_metric_match"}), provider, [{"value": 1}], validator)).ainvoke(AskDataRequest(session_id="s", question="fallback", provider="openai", model="m").model_dump())
 
     assert state["status"] == "SUCCESS"
     assert state["retry_count"] == 1

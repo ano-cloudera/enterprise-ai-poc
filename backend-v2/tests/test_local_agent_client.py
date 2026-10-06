@@ -3,22 +3,23 @@ from __future__ import annotations
 import httpx
 import pytest
 
-from app.core.config import Settings
 from app.services.local_agent_client import LocalAgentClient, LocalAgentError, markdown_to_plain_answer
 
+from conftest import isolated_settings
 
-def _settings(**overrides) -> Settings:
-    return Settings(_env_file=None, local_agent_base_url="http://local-agent.internal", **overrides)
+
+def _settings(**overrides):
+    return isolated_settings(local_agent_base_url="http://local-agent.internal", **overrides)
 
 
 def test_client_is_disabled_when_base_url_is_empty() -> None:
-    client = LocalAgentClient(Settings(_env_file=None))
+    client = LocalAgentClient(isolated_settings(local_agent_base_url=""))
     assert client.enabled is False
 
 
 @pytest.mark.asyncio
 async def test_disabled_client_raises_without_making_a_request() -> None:
-    client = LocalAgentClient(Settings(_env_file=None))
+    client = LocalAgentClient(isolated_settings(local_agent_base_url=""))
     with pytest.raises(LocalAgentError):
         await client.query("Berapa gross sales?")
 

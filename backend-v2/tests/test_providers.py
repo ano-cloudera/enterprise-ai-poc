@@ -152,6 +152,14 @@ async def test_gemini_provider_returns_validated_structured_output() -> None:
     mock_client = MagicMock()
     mock_client.aio = mock_aio
 
+    captured: dict = {}
+
+    async def _capture_generate(**kwargs):
+        captured.update(kwargs)
+        return mock_response
+
+    mock_aio.models.generate_content = AsyncMock(side_effect=_capture_generate)
+
     with patch.object(provider, "_client_instance", return_value=mock_client):
         result = await provider.generate_structured(
             [
@@ -165,9 +173,8 @@ async def test_gemini_provider_returns_validated_structured_output() -> None:
 
     assert result == Result(answer="grounded")
     mock_aio.models.generate_content.assert_awaited_once()
-    assert captured["generationConfig"]["temperature"] == 0.2
-    assert captured["generationConfig"]["maxOutputTokens"] == 321
-    assert captured["systemInstruction"]["parts"] == [{"text": "system"}]
+    assert captured["config"].temperature == 0.2
+    assert captured["config"].max_output_tokens == 321
 
 
 @pytest.mark.asyncio

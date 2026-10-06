@@ -2,22 +2,17 @@ from fastapi.testclient import TestClient
 import pytest
 from pydantic import SecretStr
 
+from pydantic import SecretStr
+
 from app.core.config import Settings
 from app.llm.registry import ProviderRegistry, ProviderSelectionError
 from app.main import create_app
 
+from conftest import isolated_settings
+
 
 def configured_settings() -> Settings:
-    return Settings(
-        _env_file=None,
-        qwen_base_url="https://qwen.internal/v1",
-        qwen_api_key="configured-token",
-        qwen_model="/models/Qwen3.8-27B-AWQ",
-        gemini_model="gemini-configured",
-        gemini_api_key="",
-        openai_model="gpt-configured",
-        openai_api_key="",
-    )
+    return isolated_settings()
 
 
 def test_health_is_lightweight_and_exact() -> None:
@@ -80,7 +75,7 @@ def test_registry_rejects_unavailable_provider() -> None:
 
 
 def test_qwen_requires_a_credential_by_default() -> None:
-    settings = configured_settings().model_copy(update={"qwen_api_key": SecretStr("")})
+    settings = isolated_settings(qwen_api_key=SecretStr(""))
     response = TestClient(create_app(settings)).get("/models")
 
     qwen = next(model for model in response.json()["models"] if model["provider"] == "qwen")
@@ -89,23 +84,26 @@ def test_qwen_requires_a_credential_by_default() -> None:
 
 
 def test_readiness_endpoint_is_safe_and_component_aware() -> None:
-    settings = configured_settings().model_copy(update={"impala_host": "", "impala_user": ""})
+    settings = isolated_settings(impala_host="", impala_user="")
     response = TestClient(create_app(settings)).get("/health/ready")
 
     assert response.status_code == 503
-    assert response.json() == {
-        "status": "not_ready",
-        "components": {"llm": "ready", "impala": "not_configured", "semantic": "ready"},
-    }
+    body = response.json()
+    assert body["status"] == "not_ready"
+    assert body["components"]["llm"] == "ready"
+    assert body["components"]["impala"] == "not_configured"
+    assert body["components"]["semantic"] == "ready"
+    assert "gemini_model" in body["components"]
+    assert "ask_data_routing" in body["components"]
 
 
 def test_readiness_accepts_gssapi_identity_from_kerberos_ticket() -> None:
-    settings = configured_settings().model_copy(update={
-        "impala_host": "impala.internal",
-        "impala_auth_mechanism": "GSSAPI",
-        "impala_user": "",
-        "impala_kerberos_service_name": "impala",
-    })
+    settings = isolated_settings(
+        impala_host="impala.internal",
+        impala_auth_mechanism="GSSAPI",
+        impala_user="",
+        impala_kerberos_service_name="impala",
+    )
     response = TestClient(create_app(settings)).get("/health/ready")
 
     assert response.status_code == 200

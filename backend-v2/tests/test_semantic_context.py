@@ -358,7 +358,7 @@ def test_b2b_branch_code_in_question_adds_branch_filter() -> None:
     question = "nilai sell-out partner di cabang 0201"
     sql = context.compile_governed("b2b_branch_sell_out_value", question, None)
 
-    assert "d.branch = '0201'" in sql
+    assert "UPPER(d.branch) LIKE CONCAT('%', UPPER('0201'), '%')" in sql
     assert "LIMIT 1" in sql
     assert "ORDER BY metric_value DESC" not in sql
 

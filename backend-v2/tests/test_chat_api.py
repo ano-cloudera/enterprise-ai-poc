@@ -9,12 +9,16 @@ from fastapi.testclient import TestClient
 import pytest
 
 from app.core.config import Settings
-from app.core.models import AnalysisOutput, AskDataResponse, QueryData, Timings
+from app.core.models import AnalysisOutput, AskDataRequest, AskDataResponse, QueryData, Timings
 from app.db.base import DataBackendError
 from app.main import create_app
 from app.api import chat as chat_api
 from app.llm.base import ProviderError
 from app.services.chat import ChatService, ImpalaQueryExecutor
+from app.services.conversational import TurnUnderstanding
+
+from conftest import isolated_settings
+from test_workflow import FakeContext
 
 
 class FakeChatService:
@@ -122,22 +126,29 @@ async def test_chat_reports_impala_auth_failure_without_exposing_driver_details(
     service = object.__new__(ChatService)
     service.workflow = FailedWorkflow()
     service.history = EmptyHistory()
-    service.settings = Settings(_env_file=None)
-    service.dependencies = SimpleNamespace(provider_registry=FakeRegistry())
-    request = SimpleNamespace(
+    service.settings = isolated_settings()
+    service.dependencies = SimpleNamespace(
+        provider_registry=FakeRegistry(),
+        semantic_context=FakeContext({"status": "resolved", "metric": "company_fill_rate", "definition": {"base_dataset": "monthly_executive"}}),
+    )
+
+    async def _turn(_request, _history):
+        return TurnUnderstanding(
+            is_conversational=False,
+            attach_domain_catalog=False,
+            pipeline_question=_request.question,
+        )
+
+    service._understand_turn = _turn  # type: ignore[method-assign]
+
+    request = AskDataRequest(
         session_id="session-1",
         question="Berapa fill rate?",
         provider="qwen",
-        model="qwen-model",
-        model_dump=lambda: {
-            "session_id": "session-1",
-            "question": "Berapa fill rate?",
-            "provider": "qwen",
-            "model": "qwen-model",
-        },
+        model="/models/Qwen3.8-27B-AWQ",
     )
 
-    response = await service.run(request)
+    response = await service.run(request, force_ossie=True)
 
     assert response.status == "ERROR"
     assert "impala" in response.answer.direct_answer.casefold() or "autentikasi" in response.answer.direct_answer.casefold()

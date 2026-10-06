@@ -42,7 +42,7 @@ Run: `backend-v2/scripts/run_uat_domain_5x5_followup_all_domains.sh` (one proces
 
 ### Tests
 
-New follow-up/judge/routing tests under `backend-v2/tests/test_follow_up*.py`, `test_session_context.py`, etc. Full `pytest backend-v2/tests` on dev machine: **257 passed, 13 failed** (Oct 2026) — failures cluster on workflow UNSUPPORTED→CLARIFICATION semantics, live Gemini provider smoke, and models/readiness API expectations; fix or refresh in a follow-up commit before claiming green CI.
+New follow-up/judge/routing tests under `backend-v2/tests/test_follow_up*.py`, `test_session_context.py`, etc. Full `pytest backend-v2/tests`: **270/270** (Oct 2026) — tests aligned with Phase C (semantic `unsupported` → clarification, readiness component fields, env-isolated `isolated_settings()` helper).
 
 ### Ops
 
