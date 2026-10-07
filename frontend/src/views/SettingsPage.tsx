@@ -1,6 +1,6 @@
 'use client'
 
-import { useMemo } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { appConfig } from '../config/appConfig'
 import { PageCenter } from '../components/PageCenter'
 import {
@@ -40,16 +40,43 @@ function ModelOptions({ models, groupByProvider }: { models: ModelInfo[]; groupB
 
 export function SettingsPage() {
   const { models, selection, loading, error, select, retryLoad } = useModelSelection()
+  const [draftValue, setDraftValue] = useState('')
 
   const hasAvailableModel = models.some(model => model.available)
   const groupByProvider = uniqueProviders(models).length > 1
 
+  const committedValue = selection ? `${selection.provider}::${selection.model}` : ''
+
+  useEffect(() => {
+    if (loading) return
+    setDraftValue(committedValue)
+  }, [loading, committedValue])
+
+  const draftSelection = useMemo(() => parseModelSelectionValue(draftValue), [draftValue])
+
   const selectedModel = useMemo(
-    () => models.find(model => model.provider === selection?.provider && model.id === selection?.model) ?? null,
-    [models, selection],
+    () =>
+      models.find(
+        model => model.provider === draftSelection?.provider && model.id === draftSelection?.model,
+      ) ?? null,
+    [models, draftSelection],
   )
 
-  const selectValue = selection ? `${selection.provider}::${selection.model}` : ''
+  const draftDirty = Boolean(draftValue && draftValue !== committedValue)
+  const canSave =
+    draftDirty &&
+    draftSelection &&
+    models.some(
+      model =>
+        model.available &&
+        model.provider === draftSelection.provider &&
+        model.id === draftSelection.model,
+    )
+
+  function saveModel() {
+    if (!draftSelection || !canSave) return
+    select(draftSelection)
+  }
 
   return (
     <PageCenter className="max-w-[760px]">
@@ -92,16 +119,30 @@ export function SettingsPage() {
                 aria-label="AI Model"
                 disabled={!hasAvailableModel}
                 className="input"
-                value={hasAvailableModel ? selectValue : ''}
-                onChange={event => {
-                  const parsed = parseModelSelectionValue(event.target.value)
-                  if (parsed) select(parsed)
-                }}
+                value={hasAvailableModel ? draftValue : ''}
+                onChange={event => setDraftValue(event.target.value)}
               >
                 {!hasAvailableModel && <option value="">No models available</option>}
-                {hasAvailableModel && !selection && <option value="">Select a model</option>}
+                {hasAvailableModel && !draftValue && <option value="">Select a model</option>}
                 <ModelOptions models={models} groupByProvider={groupByProvider} />
               </select>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                className="btn-primary px-4 py-2 text-sm"
+                disabled={!canSave}
+                onClick={saveModel}
+              >
+                Save model
+              </button>
+              {draftDirty && (
+                <p className="type-chat-meta text-slate-500">Unsaved change — applies after Save.</p>
+              )}
+              {!draftDirty && committedValue && (
+                <p className="type-chat-meta text-emerald-700">Saved for new chat messages.</p>
+              )}
             </div>
 
             {selectedModel && (

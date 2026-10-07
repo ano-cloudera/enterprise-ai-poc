@@ -1,0 +1,25 @@
+sequenceDiagram
+  actor User
+  participant FE as Next.js
+  participant API as FastAPI chat/stream
+  participant CS as ChatService
+  participant DB as SQLite history
+  participant LLM as Qwen/Gemini
+  participant LG as LangGraph
+  participant OSSIE as OSSIE compiler
+  participant IMP as Impala
+
+  User->>FE: Question + session_id
+  FE->>API: POST /api/chat/stream
+  API->>CS: stream
+  CS->>DB: load last turns
+  CS->>LLM: understand_turn
+  CS->>LG: governed pipeline
+  LG->>OSSIE: plan metric/dimensions
+  LG->>LG: validate SQL
+  LG->>IMP: SELECT read-only
+  IMP-->>LG: rows
+  LG->>LLM: analyze + chart_spec
+  CS->>DB: append turn
+  CS-->>FE: SSE done
+  FE-->>User: Answer + chart + table

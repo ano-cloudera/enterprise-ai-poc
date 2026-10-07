@@ -1,0 +1,37 @@
+flowchart TB
+  subgraph Client["Browser"]
+    UI["Next.js UI :3000"]
+  end
+
+  subgraph FE["Frontend"]
+    Proxy["Next rewrites /api → BACKEND_API_URL"]
+  end
+
+  subgraph BE["Backend :8000"]
+    API["FastAPI"]
+    Chat["ChatService"]
+    LG["LangGraph workflow"]
+    OSSIE["OSSIE SemanticContextService"]
+    Val["SQL validator"]
+    Hist["SQLite conversation history"]
+  end
+
+  subgraph AI["LLM"]
+    Qwen["Qwen vLLM CAI /v1"]
+    Gem["Gemini optional"]
+  end
+
+  subgraph Data["Data plane"]
+    Impala["Impala CDW — gold.* views"]
+  end
+
+  UI --> Proxy
+  Proxy --> API
+  API --> Chat
+  Chat --> Hist
+  Chat --> LG
+  LG --> OSSIE
+  LG --> Val
+  LG --> Impala
+  Chat --> Qwen
+  Chat --> Gem

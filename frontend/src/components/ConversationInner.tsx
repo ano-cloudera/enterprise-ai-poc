@@ -34,4 +34,4 @@ export function AssistantContent({ children, className }: { children: ReactNode;
 export const USER_MESSAGE_ROW_CLASS = 'flex w-full justify-end'
 
 export const USER_BUBBLE_CLASS =
-  'type-chat-user max-w-[min(58%,18rem)] rounded-[18px] rounded-tr-md bg-cloudera-navy px-[15px] py-2.5 text-white max-sm:max-w-[min(80%,100%)]'
+  'type-chat-user max-w-[min(78%,28rem)] rounded-[18px] rounded-tr-md bg-cloudera-navy px-[15px] py-2.5 text-white max-sm:max-w-[min(88%,100%)]'

@@ -2,6 +2,8 @@
 
 **Snapshot (7 Oct 2026):** Governed OSSIE/Impala Ask AI on `backend/` + Next.js `frontend/` is the default path. Multi-turn follow-up UAT **50/50**, 1×2 domain smoke **10/10**, management-style single-turn UAT **30/30** (merged JSON under `backend/eval/`). OSSIE contract validation passes at **24 datasets / 72 metrics**. Local exploratory SQL sandbox lives in **`backend-test/`** (port 8001). See `PROJECT_STATE.md` for runbooks and CAI deploy pointers in `README.md`.
 
+**Latest (same day):** Cross-domain compare routing (`cross_domain_compare.py`) for multi-turn and single-turn journey metrics (sell-in↔B2B, stock Tempo↔sell-in, DC SAT↔sell-out). Structured conversation **PDF** export; high-level **architecture PNGs** in `docs/diagrams/`. Settings **Save model** (localStorage default); Ask Data user bubble width tuned. Chat history remains SQLite on backend; model choice is FE-only until each `/chat` request.
+
 Foundation architecture updated to v2 after Tempo Scan design review.
 
 Locked:
@@ -52,7 +54,7 @@ Implemented in foundation:
 Remaining customer-specific work:
 - real Tempo Trino/CDW catalog/schema values, separate loader/runtime credentials, live bootstrap, and live parity verification
 - deeper entity resolver/generalized semantic resolution
-- richer multi-dataset/join planning beyond the current single-dataset analytical patterns
+- richer multi-dataset/join planning beyond the current single-dataset analytical patterns (cross-domain **ratio/journey** metrics shipped; dual-query merged columns not yet)
 - production forecast model
 - broader real-history forecast validation, calibrated uncertainty, and Cloudera AI job scheduling
 - external signals

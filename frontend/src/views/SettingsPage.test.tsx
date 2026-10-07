@@ -11,7 +11,11 @@ vi.mock('../lib/api', () => ({ api: { models: vi.fn() } }))
 
 function SelectionProbe() {
   const value = useModelSelection()
-  return <output>{value.selection ? `${value.selection.provider}:${value.selection.model}` : 'none'}</output>
+  return (
+    <span data-testid="committed-model">
+      {value.selection ? `${value.selection.provider}:${value.selection.model}` : 'none'}
+    </span>
+  )
 }
 
 describe('V2 Settings', () => {
@@ -35,7 +39,12 @@ describe('V2 Settings', () => {
     expect(geminiOption.disabled).toBe(true)
 
     fireEvent.change(modelSelect, { target: { value: 'openai::gpt-configured' } })
-    await waitFor(() => screen.getByText('openai:gpt-configured'))
+    expect(screen.getByText(/Unsaved change/i)).toBeTruthy()
+    expect(screen.getByTestId('committed-model').textContent).not.toBe('openai:gpt-configured')
+
+    fireEvent.click(screen.getByRole('button', { name: 'Save model' }))
+    await waitFor(() => expect(screen.getByTestId('committed-model').textContent).toBe('openai:gpt-configured'))
+    expect(screen.getByText(/Saved for new chat/i)).toBeTruthy()
     expect(screen.getByText(/Provider: OpenAI/i)).toBeTruthy()
   })
 })

@@ -1,0 +1,18 @@
+flowchart TB
+  subgraph Stack["Tech stack"]
+    direction LR
+    FE2["Next.js · React · Tailwind · Recharts"]
+    BE2["FastAPI · Pydantic · LangGraph"]
+    SEM["OSSIE YAML — projects/tempo_scan_impala"]
+    DATA2["Impala gold views"]
+    LLM2["Qwen vLLM post-query analysis"]
+  end
+
+  User2([User Ask Data]) --> FE2
+  FE2 --> BE2
+  BE2 --> SEM
+  SEM --> BE2
+  BE2 --> DATA2
+  BE2 --> LLM2
+  LLM2 --> BE2
+  BE2 --> FE2

@@ -14,6 +14,7 @@
 | [`tempo-impala-ossie-runbook.md`](tempo-impala-ossie-runbook.md) | Impala + OSSIE governed mode, validation, rollback |
 | [`data-enhancement-views.md`](data-enhancement-views.md) | Optional Gold views (B2B branch×material, promo B2B uplift, SL cust group) |
 | [`architecture.md`](architecture.md) | LangGraph flow, contracts, guardrails (v2 baseline) |
+| [`architecture-highlevel.md`](architecture-highlevel.md) | High-level diagrams (**PNG** in `diagrams/`) for slides |
 | [`api-contract-v2.md`](api-contract-v2.md) | Chat response shape (`answer`, `data`, `chart_spec`, …) |
 | [`semantic-layer.md`](semantic-layer.md) | OSSIE / governed semantic model (primary path) |
 | [`nl-to-sql.md`](nl-to-sql.md) | Deterministic SQL path + OSSIE governed path |

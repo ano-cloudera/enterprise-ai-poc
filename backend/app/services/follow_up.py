@@ -244,9 +244,40 @@ def _wants_plu_drill_at_dc(question: str) -> bool:
 
 def _wants_sell_out_product_drill(question: str) -> bool:
     lowered = _normalize(question)
-    return any(t in lowered for t in ("sell-out", "sell out", "sellout")) and any(
-        t in lowered for t in _DRILL_MATERIAL_TERMS
+    material_ref = any(t in lowered for t in _DRILL_MATERIAL_TERMS) or any(
+        t in lowered for t in ("produk/material", "material itu", "produk itu")
     )
+    if any(t in lowered for t in ("sell-out", "sell out", "sellout")) and material_ref:
+        return True
+    return any(t in lowered for t in ("b2b", "penjualan b2b")) and material_ref
+
+
+def _wants_b2b_material_crosscheck(question: str) -> bool:
+    """Sell-in material context → check B2B sell-out / sameness (journey metric)."""
+    lowered = _normalize(question)
+    mentions_b2b = any(
+        t in lowered
+        for t in ("b2b", "sell-out", "sell out", "sellout", "alfamart", "partner", "penjualan b2b")
+    )
+    if not mentions_b2b:
+        return False
+    return any(
+        t in lowered
+        for t in (
+            "sama",
+            "bandingkan",
+            "banding",
+            "compare",
+            "perbandingan",
+            " vs ",
+            "versus",
+            "cek juga",
+            "cek di",
+            "apakah",
+            "selaras",
+            "konsisten",
+        )
+    ) or any(t in lowered for t in (*_DRILL_MATERIAL_TERMS, "itu", "tadi", "tersebut"))
 
 
 def _wants_sell_in_crosscheck(question: str) -> bool:
@@ -315,6 +346,19 @@ def _bind_entity_from_catalog(question: str, catalog: list[dict[str, Any]]) -> d
         return catalog[0]
     if any(t in lowered for t in ("terburuk", "paling buruk", "outlet terburuk", "toko terburuk")):
         return catalog[0]
+    if any(
+        t in lowered
+        for t in (
+            "material itu",
+            "produk itu",
+            "produk/material itu",
+            "produk/material",
+            "material tersebut",
+            "produk tersebut",
+            "sku itu",
+        )
+    ):
+        return catalog[0]
     if any(t in lowered for t in ("pertama", "paling atas", "teratas", "rank 1", "urutan 1", "top 1")):
         for item in catalog:
             if item.get("rank") == 1:
@@ -364,6 +408,8 @@ class FollowUpPlan:
     filter_entities: list[dict[str, Any]] | None = None
     breakdown_dimension: str | None = None
     metric_override: str | None = None
+    dimensions_override: list[str] | None = None
+    extra_predicates: list[str] | None = None
 
 
 def _resolve_follow_up_plan(
@@ -706,6 +752,27 @@ def plan_follow_up(question: str, ctx: dict[str, Any]) -> FollowUpPlan | None:
         )
 
     filter_entity = _bind_entity_from_catalog(question, catalog)
+    from app.services.cross_domain_compare import try_resolve_cross_domain
+
+    cross = try_resolve_cross_domain(
+        question,
+        filter_entity=filter_entity,
+        from_grain=str(from_grain) if from_grain else None,
+        allow_implicit_b2b_check=True,
+    )
+    if cross and filter_entity:
+        return FollowUpPlan(
+            intent="filter_entity",
+            filter_entity=filter_entity,
+            to_grain=None,
+            limit=None,
+            domain_id="cross_domain",
+            from_grain=str(from_grain or filter_entity.get("dimension") or "material"),
+            metric_override=cross.metric,
+            dimensions_override=list(cross.dimensions),
+            extra_predicates=list(cross.follow_up_entity_filters),
+        )
+
     if filter_entity and from_grain == "division" and (
         _wants_dc_support_drill(question) or _wants_branch_contribution_drill(question)
     ):
@@ -1109,6 +1176,23 @@ def _drill_metric_and_dimensions(plan: FollowUpPlan, ctx: dict[str, Any]) -> tup
         if ent_dim not in dims and len(dims) == 1 and dims[0] != ent_dim:
             dims = [ent_dim]
         metric = str(plan.metric_override or last_metric or ctx.get("last_metric") or "")
+        if plan.dimensions_override is not None:
+            if ent_dim == "material":
+                pred = _entity_predicate(entity, default_grain="material")
+                if pred:
+                    predicates.append(pred)
+            elif ent_dim in ("branch", "dcname"):
+                pred = _entity_predicate(entity, default_grain=ent_dim, flexible_branch=True)
+                if pred:
+                    predicates.append(pred)
+            if plan.extra_predicates:
+                predicates.extend(plan.extra_predicates)
+            return metric, list(plan.dimensions_override), predicates
+        if metric == "material_sell_out_to_sell_in_value_ratio" and ent_dim == "material":
+            pred = _entity_predicate(entity, default_grain="material")
+            if pred:
+                predicates.append(pred)
+            return metric, ["material"], predicates
         return metric, dims, predicates
 
     return None

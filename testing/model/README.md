@@ -1042,8 +1042,6 @@ Current implementation has successfully validated:
 - public model endpoint
 - Bahasa Indonesia / English
 - reasoning mode
-- Gradio integration
-
 This bundle can now be used as the model-serving foundation for the Tempo Scan Commercial Intelligence PoC.
 
 Next application layer:

@@ -137,8 +137,16 @@ export function AnswerChart({
   )
 
   if (embedded) {
-    return <div className={`${ASSISTANT_CHART_CLASS} ${className}`.trim()}>{body}</div>
+    return (
+      <div className={`${ASSISTANT_CHART_CLASS} ${className}`.trim()} data-pdf-export-chart>
+        {body}
+      </div>
+    )
   }
 
-  return <div className={`answer-surface pb-6 ${ASSISTANT_CHART_CLASS} ${className}`.trim()}>{body}</div>
+  return (
+    <div className={`answer-surface pb-6 ${ASSISTANT_CHART_CLASS} ${className}`.trim()} data-pdf-export-chart>
+      {body}
+    </div>
+  )
 }

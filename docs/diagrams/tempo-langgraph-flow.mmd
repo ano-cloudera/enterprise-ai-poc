@@ -1,0 +1,13 @@
+flowchart LR
+  START([START]) --> UR[understand_request]
+  UR -->|clarify / exit| END1([END])
+  UR --> PQ[plan_query]
+  PQ -->|unsupported| END2([END])
+  PQ --> VQ[validate_query]
+  VQ -->|invalid| END3([END])
+  VQ --> EQ[execute_query]
+  EQ --> AR[analyze_result]
+  AR --> JA[judge_answer]
+  JA -->|re-plan| PQ
+  JA -->|re-synthesize| AR
+  JA -->|ok| END4([END])

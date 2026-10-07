@@ -176,8 +176,8 @@ export function AskDataPage() {
   }, [sessions, sessionId, newChat, openSession, removeSession, setChatSessionSidebar])
 
   const downloadChat = useCallback(async () => {
+    if (!messages.length || downloadingPdf) return
     const root = conversationExportRef.current
-    if (!messages.length || !root || downloadingPdf) return
     setDownloadingPdf(true)
     setError('')
     setPdfExportPreview(true)
@@ -185,7 +185,12 @@ export function AskDataPage() {
       requestAnimationFrame(() => requestAnimationFrame(() => resolve()))
     })
     try {
-      await downloadConversationPdf(root, sessionTitle(messages))
+      await downloadConversationPdf({
+        title: sessionTitle(messages),
+        messages,
+        appName: appConfig.headerTitle,
+        chartRoot: root,
+      })
     } catch {
       setError('Unable to generate PDF. Please try again.')
     } finally {

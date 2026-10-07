@@ -573,6 +573,15 @@ class SemanticContextService:
                 follow["definition"] = self.metric_definition(metric)
                 return follow
 
+        from app.services.cross_domain_compare import resolution_to_payload, try_resolve_cross_domain
+
+        cross = try_resolve_cross_domain(question)
+        if cross:
+            return {
+                **resolution_to_payload(cross),
+                "definition": self.metric_definition(cross.metric),
+            }
+
         if "unloading" in lowered and any(
             term in lowered
             for term in ("company-wide", "company wide", "seluruh perusahaan", "companywide", "nasional")
@@ -818,6 +827,12 @@ class SemanticContextService:
             metric = str(resolution["metric"])
             missing = sorted(concept for concept in concepts if not _metric_covers_concept(metric, concept))
             if len(concepts) >= 2 and missing:
+                cross = try_resolve_cross_domain(question, concepts=concepts)
+                if cross:
+                    return {
+                        **resolution_to_payload(cross),
+                        "definition": self.metric_definition(cross.metric),
+                    }
                 return {
                     "status": "fallback",
                     "reason": "multi_concept_metric_mismatch",

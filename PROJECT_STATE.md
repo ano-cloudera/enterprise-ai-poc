@@ -1,9 +1,24 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 7 Oct 2026 (latest) — **Management UAT 30/30** (`backend/eval/uat_domain_3x1_mgmt_final_merged_latest.json`). OSSIE **24 datasets / 72 metrics**; contract script **PASS**. Exploratory folder renamed **`backend-test`** (was `backend-tes`). FE: chart ↔ table spacing tightened on Ask Data evidence block.
+**Updated**: 7 Oct 2026 (latest) — **Management UAT 30/30**; OSSIE **24 datasets / 72 metrics** PASS. **Cross-domain** follow-up + single-turn routing via `app/services/cross_domain_compare.py` (journey metrics, no runtime SQL joins). FE: structured **PDF** export, Settings **Save model** (`localStorage`), user bubble layout, architecture docs + PNGs in `docs/diagrams/`. Exploratory: **`backend-test`** (8001).
 
-## Current checkpoint: production-ready governed stack + UAT sign-off (7 Oct 2026)
+## Current checkpoint: demo-ready Ask AI + cross-domain chat (7 Oct 2026)
+
+### Cross-domain & multi-turn (7 Oct)
+
+- **`cross_domain_compare.py`**: maps paired domains (sell-in+B2B, stock Tempo+sell-in, DC SAT+sell-out, etc.) to published OSSIE journey metrics; wired in `semantic/context.py` (incl. multi-concept fallback) and `follow_up.py` (entity from ranking → e.g. material sell-in vs B2B ratio).
+- **Tests**: `tests/test_cross_domain_compare.py`, extended `test_follow_up_p0_scenarios.py` (sell-in top material → B2B sameness).
+- **Manual scripts**: see chat in repo history — e.g. top sell-in → *“material itu, bandingkan sell-in vs B2B”*; single-turn *“big picture sell-in vs sell-out Q4”*.
+- **Not yet**: one message → multiple independent governed queries with merged wide table (backend compose); still **one metric/query per turn**.
+
+### Frontend & docs (7 Oct)
+
+- **PDF**: `frontend/src/lib/chatPdfExport.ts` — structured A4 (sections, `jspdf-autotable`), optional chart snapshot via `data-pdf-export-chart`.
+- **Settings**: draft model + **Save model** → Redux + `localStorage` key `tempo-scan-v2.model-selection` (no backend profile API).
+- **UI**: user message bubble max width ~78% / 28rem; `docs/architecture-highlevel.md` + Mermaid sources and PNG exports.
+
+## Previous checkpoint: production-ready governed stack + UAT sign-off (7 Oct 2026)
 
 ### UAT harness (Gemini judge + mechanical checks, backend on `:8000`)
 
@@ -32,7 +47,7 @@ Run: `cd backend && PYTHONPATH=. ../.venv/bin/python scripts/run_uat_domain_5x5_
 - **Archive:** `docs/archive/` holds `handoff/`, `superpowers/`, `uat/`, `qa/`, and legacy checklists; index at `docs/README.md`.
 - **Removed:** Gradio harness (`gradio-test/`, `testing/model/gradio/`) — UI = `frontend/` only.
 
-### Frontend (7 Oct)
+### Frontend (7 Oct, earlier)
 
 - Evidence block: embedded Recharts height/margins + `-mt-2` table toggle so chart and **Hide table detail** sit closer (management demo layout).
 
