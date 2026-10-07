@@ -1,16 +1,30 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 7 Oct 2026 (late PM) — **Cross-domain early in `resolve()`** (before session follow-up): stok Tempo vs sell-in / sell-in vs B2B journey metrics win over service-level material drill after fill-rate turns (`test_stock_tempo_vs_sell_in_wins_over_service_session_follow_up`). **Tempo demo record UAT**: `eval/uat_tempo_demo_record_oct2026.yaml`, `scripts/run_tempo_demo_record_uat.py` (+ `uat_pdf_session_oct2026.yaml` / `run_pdf_session_uat.py`). **Capability follow-up**: session `capability_hint`, `guidance_context(excluded_focus)` for “apa lagi”. FE: session **pin/unpin**, **SingleRowEvidence** / `singleRowPresentation`. Prior: Management UAT 30/30; history-only analysis; bill-to-PO + DC penumpukan routing; stock ranking SQL; PDF v2. Exploratory: **`backend-test`** (8001).
+**Updated**: 8 Oct 2026 — **Bill-to-PO SQL/UX polish** (`b8b9d4d`): positive-ratio `HAVING`, `\d+ material` limit, `_question_wants_billing_value_columns()` so “analisa proses penagihan” on bill-to-PO does not add `sell_in_bill_val`; FE Ask Data default timeout **180 s**. **Latency**: governed path ~**40–60 s**/turn typical (remote Impala + 1–2× structured Gemini analyst; judge retry on “analisa/saran”; SSE shows progress only until `done` — architecture favors governance over ChatGPT-style TTFT). **Ingram ops**: `docs/ingram-gold-audit.md`, `scripts/audit_gold_ingram.py`, `backend/scripts/test_impala_ingram_env.py` (use `.env` profile; keep hardcoded Workbench scripts local/gitignored). Prior (7 Oct): cross-domain early in `resolve()`; Tempo demo record UAT; capability follow-up; FE pin/unpin. Exploratory: **`backend-test`** (8001).
 
-## Current checkpoint: demo-ready Ask AI + history follow-ups (7 Oct 2026)
+## Current checkpoint: demo-ready Ask AI + history follow-ups (8 Oct 2026)
 
-### Governed SQL & bill-to-PO routing (7 Oct, PM)
+### Governed SQL & bill-to-PO routing (7–8 Oct)
 
 - **`stock_tempo_to_sell_in_ratio`** (`compile_governed`): `HAVING SUM(sell_in_bill_qty) > 0` and `ORDER BY … NULLS LAST` so top-N rankings are not dominated by NULL/zero sell-in; zero-movement intent skips the HAVING.
-- **Bill-to-PO** business meaning = **`material_fill_rate`** on `gold.rpt_sap_material_month_semantic` (`service_do_qty` / `service_po_qty`), with contextual `service_po_qty`, `service_do_qty`, `sell_in_bill_val` when penagihan/PO context is asked — not `material_sell_in_value` / `sales_office_material_360`.
+- **Bill-to-PO** business meaning = **`material_fill_rate`** on `gold.rpt_sap_material_month_semantic` (`service_do_qty` / `service_po_qty`), with contextual `service_po_qty`, `service_do_qty`, and **`sell_in_bill_val` only when the question asks billing value** — not `material_sell_in_value` / `sales_office_material_360`.
 - **Routing** (`semantic/context.py`): `_bill_to_po_resolution()` runs **before** Pareto contribution and domain-graph governed intents; “proses penagihan” in analysis text no longer hijacks bill-to-PO questions. **`tempo_domain_graph.yaml`**: `bill_to_po_material_fill_rate` governed intent; dual-metric clarification only when explicit billing-value phrases appear (e.g. “nilai penagihan grosir”), with `unless_terms` for clear ranking questions.
-- **Tests**: `test_semantic_context.py` (bill-to-PO + long management-style prompt, clarification when both PO fulfillment and gross billing are named).
+- **8 Oct SQL polish**: “rasio positif” → `HAVING` on ratio > 0; “10 material” → `LIMIT 10`; penagihan-process wording without billing-value intent → ratio columns only (avoids ~7B IDR `sell_in_bill_val` dominating chart/narrative).
+- **Tests**: `test_semantic_context.py` (`test_bill_to_po_positive_ratio_having_and_limit_ten_material`, bill-to-PO + long management-style prompt, clarification when both PO fulfillment and gross billing are named).
+
+### Response latency & architecture (8 Oct)
+
+- **Why ~40–60 s**: sequential LangGraph — understand (often skip) → governed compile → Impala → optional pareto enrichment → **`analyze_result`** structured LLM (~1800 tokens) → **`judge_answer`** (disabled fast-path when question includes analisa/rekomendasi; may **`retry_synthesize`**).
+- **Per-request breakdown**: API `timings` (`query_ms`, `analysis_ms`, `total_ms`) and UI “View process” / backend log `ask_data … timings=…`.
+- **Not a bug for PoC**: design targets governed SQL + structured `answer + data + chart_spec`; UI streams **stage labels**, not analyst tokens. Faster “feels like chat” would need partial SSE (table/chart after query) and/or ranking fast-path without full analyst — see team notes in chat (8 Oct 2026).
+- **Demo tip**: data-first questions (top-N, bandingkan) per turn; deep “analisa + saran” on follow-up or accept longer waits; optional `JUDGE_ENABLED=false` in dev to drop retry synthesize.
+
+### Ingram Gold audit & Kerberos (8 Oct)
+
+- **Runbook**: `docs/ingram-gold-audit.md` — CAI `GSSError` checklist, OSSIE 24-source audit commands, view sync notes.
+- **Scripts**: `scripts/audit_gold_ingram.py`, `scripts/validate_ingram_gold_views.py`; smoke **`backend/scripts/test_impala_ingram_env.py`** (loads `IMPALA_CREDENTIAL_PROFILE=ingram` from repo `.env`).
+- **Do not commit**: `*_hardcoded.py` Workbench helpers with embedded passwords; sample audit SQL under `datasets/audit/` is OK.
 
 - **DC penumpukan / stok partner:** `_dc_partner_stock_penumpukan_resolution()` runs early (before Pareto sell-in and generic “penagihan”). Routes **DC + penumpukan/stok** → `sat_dc_stock_quantity` (default) or `sat_dc_stock_value` when nilai/rupiah explicit @ **`dcname`** (`rpt_sat_dc_month`), not `material_sell_in_value`. Domain graph `dc_stock_penumpukan_rank` aligned to quantity; analyst prompt labels `dcname` as SAT partner stock vs `sales_office` / `branch`. See `backend/knowledge/README.md` routing guardrails.
 
@@ -103,7 +117,7 @@ New follow-up/judge/routing tests under `backend/tests/test_follow_up*.py`, `tes
 ### Ops
 
 - Local stack: `scripts/run-local-stack-governed.sh` or `run-local-stack-ossie-only.sh`.
-- UAT latency ~30–45 s/turn governed (+ judge); frontend abort ~90 s.
+- UAT latency ~30–60 s/turn governed (+ judge; analisa/saran often upper band); frontend stream abort default **180 s** (Ask Data).
 
 ## Previous checkpoint: UAT cabang fill-rate ranking uses governed sales-office view (2 Oct 2026)
 
