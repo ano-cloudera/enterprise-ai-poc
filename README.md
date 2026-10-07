@@ -197,7 +197,10 @@ The scripts evaluate XGBoost against lag-1 chronologically and promote the bette
 
 ## Key docs
 
+- `docs/README.md` — documentation index (active vs archive vs needs update)
 - `docs/cloudera-ai-deployment.md` — CAI split deploy, env vars, health checks
+- `docs/tempo-impala-ossie-runbook.md` — Impala/OSSIE governed mode
+- `docs/data-enhancement-views.md` — optional Gold views
 - `docs/cai-application-deployment-config.md` — replicate Applications in a new workspace
 - `docs/architecture.md`
 - `docs/api-contract-v2.md`

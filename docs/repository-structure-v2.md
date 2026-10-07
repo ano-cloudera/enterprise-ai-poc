@@ -22,13 +22,13 @@ enterprise-ai-poc/
 │       ├── lib/                # API + shared dashboard state
 │       ├── views/               # page-level components; routes remain in app/
 │       └── types/
+├── backend-test/               # Exploratory DuckDB agent (optional, :8001)
 ├── projects/
-│   ├── tempo_scan/
-│   │   ├── semantic/
-│   │   ├── branding/
-│   │   ├── prompts/
-│   │   └── fixtures/
+│   ├── tempo_scan_impala/      # OSSIE model, Agent Studio tools (primary)
+│   ├── tempo_scan/             # Synthetic DuckDB semantic + fixtures
 │   └── _template/
+├── backend/eval/               # UAT YAML + merged JSON reports
+├── datasets/gold/              # Gold view DDL (Impala)
 ├── model-serving/reference-vllm/  # frozen reference only
 ├── gradio-test/                    # developer test harness
 ├── specs/

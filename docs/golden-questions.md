@@ -1,18 +1,21 @@
-# Tempo Scan Golden Questions
+# Golden questions (governed OSSIE)
 
-The executable project suite is stored in `projects/tempo_scan/semantic/golden_questions.yaml`. Each case defines the question, optional explicit prior context, expected metric, dimensions, filters, period, comparison mode, and analytical pattern.
+The **executable** suite for Impala/OSSIE is:
 
-The ten initial cases cover:
+```text
+backend/projects/tempo_scan_impala/ossie/golden_questions.yaml
+```
 
-1. Jawa Barat period decline.
-2. Modern Trade follow-up with inherited region.
-3. Declining product contributors with inherited region/channel.
-4. Most impacted channel.
-5. Jawa Barat versus Jawa Timur.
-6. Three-month monthly trend.
-7. Jawa Barat sales KPI.
-8. Largest outlet decline.
-9. Growing products.
-10. Filter reset.
+Each entry defines question text, expected status (`supported`, `supported_with_caveat`, `needs_clarification`, `unsupported`, …), target metric/dataset where applicable, and business notes.
 
-Tests intentionally assert semantic resolution and SQL properties rather than exact generated prose.
+**Validation:**
+
+```bash
+.venv/bin/python scripts/validate_tempo_impala_contract.py
+```
+
+**Automated multi-turn UAT** (management judge + mechanical checks) lives under `backend/eval/` — see [`README.md`](README.md).
+
+## Legacy synthetic suite
+
+`projects/tempo_scan/semantic/golden_questions.yaml` covers the original DuckDB/synthetic resolver patterns (regions, channels, Jawa Barat scenarios). Tests may still reference it for foundation milestones; it is **not** the Q4 Impala contract.

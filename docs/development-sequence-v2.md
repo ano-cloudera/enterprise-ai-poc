@@ -1,5 +1,7 @@
 # Development Sequence v2
 
+> **Oct 2026:** Steps 1–8 and Impala OSSIE cutover are largely complete. Use [`PROJECT_STATE.md`](../PROJECT_STATE.md) for current UAT and deploy status; this file remains the original milestone ordering reference.
+
 1. Freeze proven Qwen/vLLM serving and keep its API boundary stable.
 2. Lock semantic YAML schema, relationships, allowed fields, business definitions, and query rules.
 3. Lock v2 chat contract: answer + data + chart_spec + ui_actions + metadata.

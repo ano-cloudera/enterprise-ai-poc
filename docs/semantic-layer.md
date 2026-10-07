@@ -1,16 +1,35 @@
 # Semantic Layer
 
-The semantic project is the source of truth for analytical SQL. Generic backend code does not contain Tempo entity values or business synonyms.
+The semantic layer is the source of truth for **governed** analytical SQL. Generic backend code does not embed Tempo business synonyms or ad-hoc table names.
 
-Each project supplies:
+## Production path (Ask AI + Dashboard governed mode)
 
-- dataset sources, metrics, dimensions, time dimensions, relationships, and query rules;
-- metric and dimension aliases;
-- governed entity values and aliases;
-- named periods, explicit date ranges, and previous-period mappings;
-- comparison expressions, time-grain aliases, and analytical-pattern phrases;
-- project-level golden questions.
+| Item | Location |
+|------|----------|
+| OSSIE model | `backend/projects/tempo_scan_impala/ossie/tempo_core.ossie.yaml` |
+| Governance / ambiguities | `backend/projects/tempo_scan_impala/ossie/tempo_governance.yaml` |
+| Golden questions | `backend/projects/tempo_scan_impala/ossie/golden_questions.yaml` |
+| Resolver + SQL compile | `backend/app/semantic/` (`TempoOssieRegistry`, `SemanticContextService`) |
+| Contract validation | `scripts/validate_tempo_impala_contract.py` |
 
-Configuration is loaded by `app.semantic.loader` and validated into Pydantic models before resolution or SQL compilation. The resolver can only emit canonical semantic names and governed entity values. Normalization rejects unknown metrics, dimensions, filter targets, filter values, periods, and unsupported time grains.
+Default runtime (see `backend/app/core/config.py`):
 
-Tempo-specific configuration is under `projects/tempo_scan/semantic/`. A reusable empty resolution profile remains under `projects/_template/semantic/`.
+```env
+PROJECT_ID=tempo_scan_impala
+DATA_BACKEND=impala
+SEMANTIC_EXECUTION_MODE=ossie
+```
+
+Metrics declare `base_dataset`, allowed dimensions, and Hive-safe expressions. Follow-up and domain graph hints live in `backend/knowledge/tempo_domain_graph.yaml`.
+
+## Legacy / auxiliary profiles
+
+| Profile | Purpose |
+|---------|---------|
+| `projects/tempo_scan/` | Synthetic DuckDB semantic YAML, forecast/weather/market fixtures — **not** the live Impala Ask AI path |
+| `projects/_template/` | Empty customer template |
+| `backend-test/` | Exploratory agent over local DuckDB `silver.*` (port 8001) |
+
+Configuration for legacy YAML is loaded by `app.semantic.loader` where still used (forecast tools, bootstrap). The **live chat governed path** uses OSSIE only.
+
+See also: [`nl-to-sql.md`](nl-to-sql.md), [`tempo-impala-ossie-runbook.md`](tempo-impala-ossie-runbook.md), [`data-enhancement-views.md`](data-enhancement-views.md).

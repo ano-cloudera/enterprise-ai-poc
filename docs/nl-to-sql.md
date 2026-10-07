@@ -1,5 +1,19 @@
 # Controlled Natural-Language-to-SQL
 
+## Governed path (production — Impala/OSSIE)
+
+```text
+Question
+  → SemanticContextService.resolve() (registry + domain graph + follow-up)
+  → compile_governed(metric, dimensions)   # Hive SQL from OSSIE expressions
+  → validate_sql + Impala execute
+  → Qwen analysis (structured) + chart_spec
+```
+
+No LLM-generated SQL on this path. Clarification/unsupported are first-class outcomes.
+
+## Legacy / synthetic path (DuckDB milestones)
+
 ```text
 Question
   → deterministic semantic resolution

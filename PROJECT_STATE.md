@@ -25,6 +25,12 @@ Run: `cd backend && PYTHONPATH=. ../.venv/bin/python scripts/run_uat_domain_5x5_
 - **Governed Ask AI**: `make dev` → UI http://127.0.0.1:3000 , API http://127.0.0.1:8000 (`frontend/.env.local` → `BACKEND_API_URL=8000`).
 - **Exploratory DuckDB**: `backend-test/start.sh` → **8001** (change FE env if switching modes).
 
+### Documentation (7 Oct)
+
+- **Index:** `docs/README.md` — active operator docs vs recommended archive (`handoff/`, `superpowers/`, `uat/`, manual UAT lists).
+- **Updated:** `semantic-layer.md`, `golden-questions.md`, `tempo-impala-ossie-runbook.md`, `repository-structure-v2.md`, OSSIE notes in `architecture.md` / `nl-to-sql.md`.
+- **Pending physical move:** run `git mv` block in `docs/README.md` to consolidate duplicates into `docs/archive/` (partial: `archive/handoff/` exists).
+
 ### Frontend (7 Oct)
 
 - Evidence block: embedded Recharts height/margins + `-mt-2` table toggle so chart and **Hide table detail** sit closer (management demo layout).

@@ -1,5 +1,7 @@
 # Architecture Plan v2
 
+> **Oct 2026:** Ask AI and Dashboard analytics use **OSSIE + Impala** (`PROJECT_ID=tempo_scan_impala`). The flow below is the v2 LangGraph skeleton; governed metrics bypass ad-hoc LLM SQL generation. See [`semantic-layer.md`](semantic-layer.md) and [`PROJECT_STATE.md`](../PROJECT_STATE.md).
+
 ## Locked decisions
 
 - Frontend target: Next.js + TypeScript + Tailwind, production-style Cloudera-inspired UI.

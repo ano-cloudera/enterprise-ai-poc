@@ -1,19 +1,10 @@
 # TEMPO Impala + Apache Ossie Runbook
 
-This runbook deploys the additive real-data profile without replacing the
-existing `tempo_scan` synthetic foundation.
+This runbook covers **governed Ask AI** against TEMPO Q4 Impala Gold views via Apache OSSIE.
 
 ## 1. Safety boundary
 
-Default behavior remains:
-
-```text
-PROJECT_ID=tempo_scan
-DATA_BACKEND=duckdb
-SEMANTIC_EXECUTION_MODE=legacy
-```
-
-Real-data mode is explicitly enabled with:
+**Production/local governed default** (current `backend/app/core/config.py`):
 
 ```text
 PROJECT_ID=tempo_scan_impala
@@ -21,8 +12,16 @@ DATA_BACKEND=impala
 SEMANTIC_EXECUTION_MODE=ossie
 ```
 
-Rollback requires restoring the three default values and restarting the backend.
-No existing tables, fixtures, semantic YAML, or frontend components are deleted.
+**Offline / auxiliary** (forecast, weather, synthetic fixtures only):
+
+```text
+PROJECT_ID=tempo_scan
+DATA_BACKEND=duckdb
+```
+
+Legacy YAML resolver paths are not used for governed chat. Exploratory DuckDB chat: `backend-test/` on port **8001**.
+
+Rollback from Impala: set env back to mock/DuckDB profile and restart backend; OSSIE YAML in repo is not deleted.
 
 ## 2. CAI Workbench prerequisites
 

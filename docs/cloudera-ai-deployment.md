@@ -1,10 +1,10 @@
 # Cloudera AI Deployment Guide
 
 Operational guide for deploying the Tempo Scan Commercial Intelligence
-Assistant to Cloudera AI (CAI). See [cai-deployment.md](cai-deployment.md)
-for the original architecture direction; this document is the copy-paste
-operator runbook for the **current approved architecture: three separate
-CAI Applications.**
+Assistant to Cloudera AI (CAI). Early single-app notes:
+[archive/cai-deployment.md](archive/cai-deployment.md). This document is the
+copy-paste operator runbook for the **current approved architecture: three
+separate CAI Applications.**
 
 ## 1. Architecture
 
