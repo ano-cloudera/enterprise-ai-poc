@@ -2,7 +2,7 @@
 
 **Snapshot (7 Oct 2026):** Governed OSSIE/Impala Ask AI on `backend/` + Next.js `frontend/` is the default path. Multi-turn follow-up UAT **50/50**, 1×2 domain smoke **10/10**, management-style single-turn UAT **30/30** (merged JSON under `backend/eval/`). OSSIE contract validation passes at **24 datasets / 72 metrics**. Local exploratory SQL sandbox lives in **`backend-test/`** (port 8001). See `PROJECT_STATE.md` for runbooks and CAI deploy pointers in `README.md`.
 
-**Latest (7 Oct 2026, PM):** **Bill-to-PO routing** — operational questions resolve to `material_fill_rate` (DO÷PO on `material_360`) before generic “penagihan” → sell-in value; domain graph governed intent + dual-metric clarify only when billing value is explicitly named. **Stock vs sell-in ranking** — `stock_tempo_to_sell_in_ratio` SQL excludes zero sell-in and sorts NULLs last. **History-only follow-up analysis** (`history_only_analysis`) for “kenapa / dibanding yang lain” on prior governed rows. **PDF export** layout v2; demo journey UAT `uat_demo_management_journey.yaml` (14/14). Details: `PROJECT_STATE.md`.
+**Latest (7 Oct 2026, PM):** **DC penumpukan routing** — DC + stok partner → `sat_dc_stock_*` @ `dcname` before top-produk sell-in billing; entity cheat sheet in `knowledge/README.md`. **Bill-to-PO routing** — `material_fill_rate` (DO÷PO) before generic penagihan sell-in. **Stock vs sell-in ranking** — `stock_tempo_to_sell_in_ratio` HAVING + NULLS LAST. **History-only follow-up analysis** (`history_only_analysis`) for “kenapa / dibanding yang lain” on prior governed rows. **PDF export** layout v2; demo journey UAT `uat_demo_management_journey.yaml` (14/14). Details: `PROJECT_STATE.md`.
 
 Foundation architecture updated to v2 after Tempo Scan design review.
 

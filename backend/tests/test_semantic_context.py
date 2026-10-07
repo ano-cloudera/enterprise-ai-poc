@@ -815,6 +815,23 @@ def test_bill_to_po_ratio_resolves_material_fill_rate_proxy() -> None:
     assert "ORDER BY metric_value ASC" in sql
 
 
+def test_dc_penumpukan_stok_not_material_sell_in_billing() -> None:
+    question = (
+        "Tampilkan 10 DC dengan penumpukan stok produk yang tertinggi, "
+        "lalu analisa apakah ada yang bisa kita lakukan untuk memperbaiki situasi tersebut"
+    )
+    resolution = SemanticContextService().resolve(question)
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] in ("sat_dc_stock_quantity", "sat_dc_stock_value")
+    assert resolution["dimensions"] == ["dcname"]
+    assert resolution["metric"] != "material_sell_in_value"
+    sql = SemanticContextService().compile_governed(
+        resolution["metric"], question, resolution["dimensions"]
+    )
+    assert "rpt_sat_dc_month" in sql
+    assert "dcname" in sql.lower()
+
+
 def test_bill_to_po_with_penagihan_process_advice_stays_fill_rate_not_billing() -> None:
     question = (
         "Tampilkan 10 material dengan rasio bill-to-PO terendah di Desember 2024 "

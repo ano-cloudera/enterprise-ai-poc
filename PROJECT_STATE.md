@@ -12,6 +12,8 @@
 - **Routing** (`semantic/context.py`): `_bill_to_po_resolution()` runs **before** Pareto contribution and domain-graph governed intents; “proses penagihan” in analysis text no longer hijacks bill-to-PO questions. **`tempo_domain_graph.yaml`**: `bill_to_po_material_fill_rate` governed intent; dual-metric clarification only when explicit billing-value phrases appear (e.g. “nilai penagihan grosir”), with `unless_terms` for clear ranking questions.
 - **Tests**: `test_semantic_context.py` (bill-to-PO + long management-style prompt, clarification when both PO fulfillment and gross billing are named).
 
+- **DC penumpukan / stok partner:** `_dc_partner_stock_penumpukan_resolution()` runs early (before Pareto sell-in and generic “penagihan”). Routes **DC + penumpukan/stok** → `sat_dc_stock_quantity` (default) or `sat_dc_stock_value` when nilai/rupiah explicit @ **`dcname`** (`rpt_sat_dc_month`), not `material_sell_in_value`. Domain graph `dc_stock_penumpukan_rank` aligned to quantity; analyst prompt labels `dcname` as SAT partner stock vs `sales_office` / `branch`. See `backend/knowledge/README.md` routing guardrails.
+
 ### Cross-domain & multi-turn (7 Oct)
 
 - **`cross_domain_compare.py`**: maps paired domains (sell-in+B2B, stock Tempo+sell-in, DC SAT+sell-out, etc.) to published OSSIE journey metrics; wired in `semantic/context.py` (incl. multi-concept fallback) and `follow_up.py` (entity from ranking → e.g. material sell-in vs B2B ratio).

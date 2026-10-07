@@ -9,6 +9,13 @@ In-process **business context graph** (not a graph database). Used when `BUSINES
 - **partner_scope.alfamart** — B2B Sell-Out + Stock SAT (partition SAT) = Alfamart partner network in Q4 PoC; **not** a SQL `branch='Alfamart'` filter (see OSSIE dataset instructions).
 - **governed_intents** — deterministic OSSIE metric selection before generic `sales_stage` / stock ambiguity (B3 Q01, Q05, Q10, DC penumpukan).
 
+### Routing guardrails (resolver order in `semantic/context.py`)
+
+1. **Bill-to-PO** → `material_fill_rate` (DO÷PO), before generic "penagihan" sell-in.
+2. **DC + penumpukan/stok** → `sat_dc_stock_*` @ `dcname`, before Pareto/top-produk sell-in.
+3. **Clarification chips** (`clarification_intents`) when one question names two governed metrics (e.g. bill-to-PO vs nilai penagihan grosir).
+4. **Entity cheat sheet:** `sales_office` = Tempo sell-in cabang; `branch` = B2B partner DC sell-out; `dcname` = SAT stok DC partner (aligns to `branch` after normalization).
+
 Numbers always execute via OSSIE `compile_governed` + Impala. PuppyGraph (Phase C7) is optional and not required here.
 
 ## B3 dry-run expectations

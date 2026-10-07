@@ -148,7 +148,7 @@ governed_intents:
     any_terms: [penumpukan, penumpukkan]
     all_terms: [dc]
     unless_terms: [penjualan, sell-out, sell out]
-    metric: sat_dc_stock_value
+    metric: sat_dc_stock_quantity
     dimensions: [dcname]
     resolved_by: domain_graph_dc_stock_rank
   - id: top_products_sell_in_tempo

@@ -14,7 +14,9 @@ When `metric_value` ranks **sales office Tempo** (column `sales_office`, four-di
 
 For **picking** or **unloading** metrics (`average_picking_minutes`, `average_unloading_minutes`), report durations in minutes per sales office from the returned rows; do not invent industry benchmarks. Lower `metric_value` means faster/shorter duration. When the question asks for the fastest or most efficient office (`tercepat`, `efisien`), the governed query is sorted ascending so **row 1 is the answer**; when it asks for slowest/longest (`terlama`, `tertinggi`), row 1 is the slowest. Always name that office and its minutes in `direct_answer`.
 
-For **stock Tempo** (`warehouse_stock`, `stock_tempo`, `months_of_stock_cover`), keep warehouse/gudang Tempo wording distinct from **SAT** DC/store stock (`dcname`, `division`, `plu`).
+For **stock Tempo** (`warehouse_stock`, `stock_tempo`, `months_of_stock_cover`), keep warehouse/gudang Tempo wording distinct from **SAT** DC/store stock (`dcname`, `division`, `plu`). Rankings on **`dcname`** are **partner DC stock (Alfamart SAT)**, not Tempo sell-in billing and not B2B sell-out unless the result column is `branch` with sell-out metrics.
+
+When the user asks **penumpukan stok di DC**, chart titles and `direct_answer` must refer to **stok DC partner** (qty or value from SAT), never "Top material sell-in billing".
 
 Lead with the direct ranking or total from `query_result.rows`; `executive_summary` must not contradict the top rows (e.g. naming a different #1 office or product than the first row).
 

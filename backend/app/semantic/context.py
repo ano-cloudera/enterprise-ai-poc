@@ -115,6 +115,44 @@ def _bill_to_po_resolution(question: str) -> tuple[str, list[str], str] | None:
     return ("material_fill_rate", ["material"], "bill_to_po_fill_rate_proxy")
 
 
+def _dc_partner_stock_penumpukan_resolution(question: str) -> tuple[str, list[str], str] | None:
+    """SAT partner DC stock ranking (dcname), not Tempo sell-in billing or B2B sell-out."""
+    lowered = question.casefold()
+    words = set(re.findall(r"[a-z0-9]+", lowered))
+    if "dc" not in words:
+        return None
+    mentions_fill_or_service_level = ("fill" in words and "rate" in words) or (
+        "service" in words and "level" in words
+    ) or ("services" in words and "level" in words) or (
+        "tingkat" in words and "layanan" in words
+    ) or ("tingkat" in words and "pemenuhan" in words) or (
+        "pemenuhan" in words and bool(words & {"cabang", "branch", "office", "sales", "kantor"})
+    )
+    mentions_stock_not_sl = bool(words & {"stok", "stock", "persediaan", "inventory"}) and not (
+        mentions_fill_or_service_level or "fillrate" in lowered.replace(" ", "")
+    )
+    if not mentions_stock_not_sl:
+        return None
+    requests_ranking, _ = _question_requests_ranking(question)
+    stock_rank_intent = any(term in lowered for term in ("penumpukan", "penumpukkan")) or (
+        requests_ranking and any(term in lowered for term in ("tertinggi", "terbesar", "terbanyak"))
+    )
+    if not stock_rank_intent:
+        return None
+    # DC + penjualan/sell-out without stock → B2B sell-out intents, not SAT stock.
+    if any(t in lowered for t in ("sell-out", "sell out", "penjualan", "penjualn")) and not any(
+        term in lowered for term in ("penumpukan", "penumpukkan", "stok", "stock", "persediaan")
+    ):
+        return None
+    wants_value = any(term in lowered for term in ("nilai", "value", "val", "rupiah", " rp", "idr"))
+    wants_qty = any(term in lowered for term in ("quantity", "kuantitas", "qty", "unit", "jumlah"))
+    if wants_value and not wants_qty:
+        metric_name = "sat_dc_stock_value"
+    else:
+        metric_name = "sat_dc_stock_quantity"
+    return (metric_name, ["dcname"], "sat_dc_stock_dc_rank")
+
+
 def _sql_string_literal(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
 
@@ -700,10 +738,16 @@ class SemanticContextService:
             metric, dimensions, alias = bill_to_po
             return resolved(metric, dimensions, matched_alias=alias)
 
+        dc_stock_rank = _dc_partner_stock_penumpukan_resolution(question)
+        if dc_stock_rank:
+            metric, dimensions, alias = dc_stock_rank
+            return resolved(metric, dimensions, matched_alias=alias)
+
         if (
             wants_contribution_analysis(question)
             and not office_compare
             and not _question_mentions_bill_to_po(question)
+            and _dc_partner_stock_penumpukan_resolution(question) is None
             and not any(
                 phrase in lowered
                 for phrase in (
@@ -777,6 +821,7 @@ class SemanticContextService:
         if any(t in lowered for t in ("penagihan grosir", "nilai penagihan", "penagihan sell-in")) or (
             "penagihan" in lowered
             and not _question_mentions_bill_to_po(question)
+            and _dc_partner_stock_penumpukan_resolution(question) is None
             and bool(words & {"material", "produk", "sku", "kontribusi", "pareto", "grosir"})
         ):
             return resolved(
@@ -936,18 +981,10 @@ class SemanticContextService:
         mentions_stock_not_sl = bool(words & {"stok", "stock", "persediaan", "inventory"}) and not (
             mentions_fill_or_service_level or "fillrate" in lowered.replace(" ", "")
         )
-        requests_ranking, _ = _question_requests_ranking(question)
-        if (
-            mentions_stock_not_sl
-            and "dc" in words
-            and (
-                any(term in lowered for term in ("penumpukan", "penumpukkan"))
-                or (requests_ranking and any(term in lowered for term in ("tertinggi", "terbesar", "terbanyak")))
-            )
-        ):
-            wants_qty = any(term in lowered for term in ("quantity", "kuantitas", "qty", "unit", "jumlah"))
-            metric_name = "sat_dc_stock_quantity" if wants_qty else "sat_dc_stock_value"
-            return resolved(metric_name, ["dcname"], matched_alias="sat_dc_stock_dc_rank")
+        dc_stock_rank = _dc_partner_stock_penumpukan_resolution(question)
+        if dc_stock_rank:
+            metric, dimensions, alias = dc_stock_rank
+            return resolved(metric, dimensions, matched_alias=alias)
         if mentions_fill_or_service_level and not mentions_stock_not_sl:
             mentions_cust_group = (
                 "cust_grp3" in lowered
