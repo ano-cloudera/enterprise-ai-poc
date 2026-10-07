@@ -30,7 +30,6 @@ enterprise-ai-poc/
 ├── backend/eval/               # UAT YAML + merged JSON reports
 ├── datasets/gold/              # Gold view DDL (Impala)
 ├── model-serving/reference-vllm/  # frozen reference only
-├── gradio-test/                    # developer test harness
 ├── specs/
 ├── docs/
 └── scripts/

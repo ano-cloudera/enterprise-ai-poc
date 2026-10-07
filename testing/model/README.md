@@ -30,7 +30,7 @@ GPU
 Untuk Cloudera AI Application:
 
 ```text
-Client / Frontend / Gradio
+Client / Next.js Frontend
         ↓
 Cloudera AI Application URL
         ↓
@@ -145,8 +145,7 @@ tempo_llm_vllm_test/
 ├── 05_test_health.py
 ├── 06_test_chat.py
 ├── qwen_vllm_thinking_test.ipynb
-├── vllm/
-└── gradio/
+└── vllm/
 ```
 
 ---
@@ -833,19 +832,11 @@ Untuk production, authentication dan authorization harus ditambahkan sesuai secu
 
 ---
 
-# 27. Gradio Integration
+# 27. Gradio Integration (removed)
 
-Gradio Application dapat menggunakan Qwen CAI Application sebagai endpoint:
+Gradio harness (`gradio-test/`, `testing/model/gradio/`) was removed Oct 2026. Use the **Next.js frontend** (`frontend/`) proxied to the governed FastAPI backend instead.
 
-```text
-Gradio
-   ↓
-https://<qwen-application-url>
-   ↓
-/v1/chat/completions
-```
-
-Test:
+Historical note — Qwen CAI Application endpoint pattern:
 
 ```text
 GET /v1/models
@@ -995,13 +986,9 @@ tempo_llm_vllm_test/
 │
 ├── qwen_vllm_thinking_test.ipynb
 │
-├── vllm/
-│   ├── app.py
-│   ├── proxy.py
-│   └── requirements.txt
-│
-└── gradio/
+└── vllm/
     ├── app.py
+    ├── proxy.py
     └── requirements.txt
 ```
 
@@ -1036,7 +1023,7 @@ Recommended flow untuk deployment:
         ↓
 12. Test public API
         ↓
-13. Connect Gradio / Backend / LangGraph
+13. Connect Next.js frontend / Backend / LangGraph
 ```
 
 ---

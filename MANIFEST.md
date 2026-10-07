@@ -30,7 +30,6 @@
 
 ## Preserved unchanged
 - `model-serving/reference-vllm/`: proven Qwen/vLLM reference snapshot
-- `gradio-test/`: engineering test harness
 
 ## Documentation
 - `docs/architecture.md`
