@@ -74,6 +74,22 @@ def _question_wants_po_fulfillment_context(question: str) -> bool:
     )
 
 
+def _question_wants_billing_value_columns(question: str) -> bool:
+    """Extra BILL_VAL column — not implied by 'proses penagihan' advice text alone."""
+    lowered = question.casefold()
+    return any(
+        phrase in lowered
+        for phrase in (
+            "nilai penagihan",
+            "penagihan grosir",
+            "billing value",
+            "bill_val",
+            "tagihan grosir",
+            "gross billing",
+        )
+    )
+
+
 def _question_mentions_bill_to_po(question: str) -> bool:
     """Operational bill-to-PO (DO qty ÷ PO qty), not sell-in billing value."""
     lowered = question.casefold()
@@ -310,7 +326,7 @@ def _question_requests_ranking(question: str) -> tuple[bool, re.Match[str] | Non
     lowered = question.casefold()
     top = re.search(r"(?:top|teratas)\s+(\d+)", lowered)
     if not top:
-        top = re.search(r"\b(\d+)\s+(?:branch|branches|cabang)\b", lowered)
+        top = re.search(r"\b(\d+)\s+(?:branch|branches|cabang|material|produk|sku)\b", lowered)
     requests_ranking = bool(top) or any(term in lowered for term in _RANKING_TERMS)
     if not requests_ranking and re.search(
         r"\btop\s+(?:penjualan|sales|produk|sku|material|dc|cabang|branch|outlet|toko|gerai)\b",
@@ -1277,7 +1293,7 @@ class SemanticContextService:
                 projections.append("SUM(d.service_po_qty) AS service_po_qty")
             if "service_do_qty" in field_set:
                 projections.append("SUM(d.service_do_qty) AS service_do_qty")
-            if "sell_in_bill_val" in field_set:
+            if _question_wants_billing_value_columns(question) and "sell_in_bill_val" in field_set:
                 projections.append("SUM(d.sell_in_bill_val) AS sell_in_bill_val")
         predicates = []
         for field in definition.get("required_filters", []):
@@ -1400,6 +1416,11 @@ class SemanticContextService:
                 )
             ):
                 having_clauses.append(f"({expression}) < 1")
+            if any(
+                phrase in lowered
+                for phrase in ("rasio positif", "nilai rasio positif", "positive ratio")
+            ):
+                having_clauses.append(f"({expression}) > 0")
         asks_zero_movement = any(
             term in lowered
             for term in (

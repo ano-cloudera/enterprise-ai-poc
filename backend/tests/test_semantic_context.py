@@ -864,6 +864,22 @@ def test_bill_to_po_with_penagihan_process_advice_stays_fill_rate_not_billing() 
     sql = service.compile_governed(resolution["metric"], question, resolution["dimensions"])
     assert "rpt_sap_material_month_semantic" in sql
     assert "sales_office_material" not in sql
+    assert "sell_in_bill_val" not in sql
+
+
+def test_bill_to_po_positive_ratio_having_and_limit_ten_material() -> None:
+    question = (
+        "tampilkan 10 material dengan rasio bill-to-PO terendah di Desember 2024, "
+        "hanya tampilkan produk dengan nilai rasio positif, dan analisa penyebab potensial "
+        "beserta saran perbaikan proses penagihan."
+    )
+    service = SemanticContextService()
+    resolution = service.resolve(question)
+    assert resolution["metric"] == "material_fill_rate"
+    sql = service.compile_governed(resolution["metric"], question, resolution["dimensions"])
+    assert "LIMIT 10" in sql
+    assert "> 0" in sql
+    assert "sell_in_bill_val" not in sql
 
 
 def test_bill_to_po_and_nilai_penagihan_still_prompts_clarification() -> None:

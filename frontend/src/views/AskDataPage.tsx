@@ -85,7 +85,7 @@ export function AskDataPage() {
     const controller = new AbortController()
     activeRequest.current = controller
     let timedOut = false
-    const streamTimeoutMs = Number(process.env.NEXT_PUBLIC_CHAT_STREAM_TIMEOUT_MS || 120_000)
+    const streamTimeoutMs = Number(process.env.NEXT_PUBLIC_CHAT_STREAM_TIMEOUT_MS || 180_000)
     const timeout = window.setTimeout(() => { timedOut = true; controller.abort() }, streamTimeoutMs)
     let streamSucceeded = false
     try {
