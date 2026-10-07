@@ -9,16 +9,27 @@ const A4_WIDTH_MM = 210
 const A4_HEIGHT_MM = 297
 const MARGIN_MM = 16
 const FOOTER_Y_MM = A4_HEIGHT_MM - 10
+/** Last Y coordinate available for body content (above footer rule). */
+const CONTENT_BOTTOM_MM = FOOTER_Y_MM - 6
 const CONTENT_WIDTH_MM = A4_WIDTH_MM - MARGIN_MM * 2
 const MAX_TABLE_ROWS = 35
-const MAX_CELL_CHARS = 48
+const MAX_CELL_CHARS = 42
 const CHART_CAPTURE_WIDTH_PX = 720
+const MAX_CHART_HEIGHT_MM = 95
+const MIN_BLOCK_MM = 14
+
+const GAP_XS = 2
+const GAP_SM = 4
+const GAP_MD = 6
+const GAP_LG = 10
+const GAP_TURN = 12
 
 const INK: [number, number, number] = [18, 0, 94]
 const ORANGE: [number, number, number] = [249, 103, 2]
 const MUTED: [number, number, number] = [100, 116, 139]
 const SLATE: [number, number, number] = [51, 65, 85]
 const LINE: [number, number, number] = [230, 228, 238]
+const USER_FILL: [number, number, number] = [255, 247, 237]
 
 type JsPdfWithAutoTable = jsPDF & { lastAutoTable?: { finalY: number } }
 
@@ -32,7 +43,6 @@ export type ConversationPdfInput = {
   title: string
   messages: StoredMessage[]
   appName?: string
-  /** Live DOM root used to snapshot Recharts blocks (optional). */
   chartRoot?: HTMLElement | null
 }
 
@@ -55,11 +65,40 @@ function formatCellValue(value: unknown): string {
   return `${text.slice(0, MAX_CELL_CHARS - 1)}…`
 }
 
+function humanColumnHeader(col: string): string {
+  return col
+    .replace(/_/g, ' ')
+    .replace(/\b\w/g, ch => ch.toUpperCase())
+}
+
+function formatStrategyLabel(strategy: string): string {
+  const labels: Record<string, string> = {
+    governed: 'Governed query',
+    sql_fallback: 'SQL fallback',
+    history_only_analysis: 'Prior-turn analysis',
+    conversational: 'Conversation',
+    clarification: 'Clarification',
+    unsupported: 'Unsupported',
+    local_agent_exploratory: 'Exploratory',
+  }
+  return labels[strategy] ?? strategy.replace(/_/g, ' ')
+}
+
 function ensureSpace(pdf: jsPDF, cursor: PdfCursor, neededMm: number, drawRunningHeader?: () => void): void {
-  if (cursor.y + neededMm <= FOOTER_Y_MM - 4) return
+  if (cursor.y + neededMm <= CONTENT_BOTTOM_MM) return
   pdf.addPage()
-  cursor.y = MARGIN_MM + 6
+  cursor.y = MARGIN_MM + 4
   drawRunningHeader?.()
+}
+
+/** Prefer starting a new turn on a clean page when little room remains. */
+function ensureTurnStart(pdf: jsPDF, cursor: PdfCursor, drawRunningHeader?: () => void): void {
+  const remaining = CONTENT_BOTTOM_MM - cursor.y
+  if (remaining < 48 && cursor.y > MARGIN_MM + 20) {
+    pdf.addPage()
+    cursor.y = MARGIN_MM + 4
+    drawRunningHeader?.()
+  }
 }
 
 function drawPageFooters(pdf: jsPDF, appName: string): void {
@@ -73,7 +112,7 @@ function drawPageFooters(pdf: jsPDF, appName: string): void {
     pdf.setFontSize(8)
     pdf.setTextColor(...MUTED)
     pdf.text(appName, MARGIN_MM, FOOTER_Y_MM)
-    pdf.text(`Page ${page} of ${total}`, A4_WIDTH_MM - MARGIN_MM, FOOTER_Y_MM, { align: 'right' })
+    pdf.text(`Halaman ${page} / ${total}`, A4_WIDTH_MM - MARGIN_MM, FOOTER_Y_MM, { align: 'right' })
   }
 }
 
@@ -86,47 +125,53 @@ function drawDocumentHeader(
   compact = false,
 ): void {
   const startY = cursor.y
+  pdf.setFillColor(...ORANGE)
+  pdf.rect(MARGIN_MM, startY, CONTENT_WIDTH_MM, 1, 'F')
+  cursor.y = startY + (compact ? 5 : 6)
+
+  pdf.setFont('helvetica', 'bold')
+  pdf.setFontSize(compact ? 9 : 15)
+  pdf.setTextColor(...INK)
+  pdf.text(appName, MARGIN_MM, cursor.y)
+  cursor.y += compact ? 4 : 6
+
   if (!compact) {
-    pdf.setFillColor(...ORANGE)
-    pdf.rect(MARGIN_MM, startY, CONTENT_WIDTH_MM, 1.2, 'F')
-    cursor.y = startY + 5
-    pdf.setFont('helvetica', 'bold')
-    pdf.setFontSize(16)
-    pdf.setTextColor(...INK)
-    pdf.text(appName, MARGIN_MM, cursor.y)
-    cursor.y += 7
     pdf.setFont('helvetica', 'normal')
     pdf.setFontSize(9)
     pdf.setTextColor(...MUTED)
-    pdf.text(`Exported ${formatExportTimestamp(exportedAt)}`, MARGIN_MM, cursor.y)
-    cursor.y += 5
-  } else {
-    pdf.setFont('helvetica', 'bold')
-    pdf.setFontSize(10)
-    pdf.setTextColor(...INK)
-    pdf.text(appName, MARGIN_MM, cursor.y)
+    pdf.text(`Diekspor ${formatExportTimestamp(exportedAt)}`, MARGIN_MM, cursor.y)
     cursor.y += 5
   }
 
   pdf.setFont('helvetica', 'bold')
-  pdf.setFontSize(compact ? 11 : 13)
+  pdf.setFontSize(compact ? 10 : 12)
   pdf.setTextColor(...SLATE)
   const titleLines = pdf.splitTextToSize(title, CONTENT_WIDTH_MM) as string[]
-  pdf.text(titleLines, MARGIN_MM, cursor.y)
-  cursor.y += titleLines.length * 5 + (compact ? 4 : 6)
+  const maxTitleLines = compact ? 1 : 3
+  const clipped = titleLines.slice(0, maxTitleLines)
+  if (titleLines.length > maxTitleLines) {
+    const last = clipped[clipped.length - 1] ?? ''
+    clipped[clipped.length - 1] = `${last.replace(/\s+\S*$/, '')}…`
+  }
+  pdf.text(clipped, MARGIN_MM, cursor.y)
+  cursor.y += clipped.length * (compact ? 4.5 : 5.5) + (compact ? GAP_SM : GAP_MD)
 
   pdf.setDrawColor(...LINE)
-  pdf.setLineWidth(0.3)
+  pdf.setLineWidth(0.25)
   pdf.line(MARGIN_MM, cursor.y, A4_WIDTH_MM - MARGIN_MM, cursor.y)
-  cursor.y += compact ? 6 : 8
+  cursor.y += compact ? GAP_MD : GAP_LG
 }
 
 function drawSectionLabel(pdf: jsPDF, cursor: PdfCursor, label: string): void {
   pdf.setFont('helvetica', 'bold')
-  pdf.setFontSize(9)
+  pdf.setFontSize(8.5)
   pdf.setTextColor(...ORANGE)
   pdf.text(label.toUpperCase(), MARGIN_MM, cursor.y)
-  cursor.y += 5
+  cursor.y += 4.5
+}
+
+function lineHeightForFont(fontSize: number): number {
+  return fontSize * 0.42 + 2
 }
 
 function drawBodyText(
@@ -143,19 +188,27 @@ function drawBodyText(
   pdf.setFontSize(fontSize)
   pdf.setTextColor(...(options.color ?? SLATE))
   const lines = pdf.splitTextToSize(text, width) as string[]
-  const lineHeight = fontSize * 0.45 + 1.8
+  const lineHeight = lineHeightForFont(fontSize)
   for (const line of lines) {
-    ensureSpace(pdf, cursor, lineHeight + 2, drawRunningHeader)
+    ensureSpace(pdf, cursor, lineHeight + 1, drawRunningHeader)
     pdf.text(line, MARGIN_MM + indent, cursor.y)
     cursor.y += lineHeight
   }
-  cursor.y += 2
+  cursor.y += GAP_XS
 }
 
 function drawBulletList(pdf: jsPDF, cursor: PdfCursor, items: string[], drawRunningHeader?: () => void): void {
   for (const item of items) {
-    drawBodyText(pdf, cursor, `• ${item}`, { indent: 2 }, drawRunningHeader)
+    drawBodyText(pdf, cursor, `• ${item}`, { indent: 3, fontSize: 9.5 }, drawRunningHeader)
   }
+}
+
+function drawTurnRule(pdf: jsPDF, cursor: PdfCursor): void {
+  cursor.y += GAP_SM
+  pdf.setDrawColor(...LINE)
+  pdf.setLineWidth(0.15)
+  pdf.line(MARGIN_MM, cursor.y, A4_WIDTH_MM - MARGIN_MM, cursor.y)
+  cursor.y += GAP_TURN
 }
 
 function drawUserTurn(
@@ -165,25 +218,30 @@ function drawUserTurn(
   turnIndex: number,
   drawRunningHeader: () => void,
 ): void {
-  ensureSpace(pdf, cursor, 18, drawRunningHeader)
-  drawSectionLabel(pdf, cursor, `Question ${turnIndex}`)
+  ensureTurnStart(pdf, cursor, drawRunningHeader)
+  ensureSpace(pdf, cursor, MIN_BLOCK_MM, drawRunningHeader)
+  drawSectionLabel(pdf, cursor, `Pertanyaan ${turnIndex}`)
+
   pdf.setFont('helvetica', 'normal')
   pdf.setFontSize(10)
-  const lines = pdf.splitTextToSize(question, CONTENT_WIDTH_MM - 8) as string[]
-  const boxHeight = lines.length * 5 + 8
-  ensureSpace(pdf, cursor, boxHeight + 4, drawRunningHeader)
-  const boxTop = cursor.y - 3
-  pdf.setFillColor(255, 247, 237)
+  const innerWidth = CONTENT_WIDTH_MM - 8
+  const lines = pdf.splitTextToSize(question.trim(), innerWidth) as string[]
+  const lineHeight = 5
+  const boxHeight = lines.length * lineHeight + 8
+  ensureSpace(pdf, cursor, boxHeight + GAP_MD, drawRunningHeader)
+
+  const boxTop = cursor.y
+  pdf.setFillColor(...USER_FILL)
   pdf.setDrawColor(...ORANGE)
-  pdf.setLineWidth(0.25)
-  pdf.roundedRect(MARGIN_MM, boxTop, CONTENT_WIDTH_MM, boxHeight, 2, 2, 'FD')
+  pdf.setLineWidth(0.2)
+  pdf.roundedRect(MARGIN_MM, boxTop, CONTENT_WIDTH_MM, boxHeight, 1.5, 1.5, 'FD')
   pdf.setTextColor(...INK)
-  let textY = cursor.y + 3
+  let textY = boxTop + 5
   for (const line of lines) {
     pdf.text(line, MARGIN_MM + 4, textY)
-    textY += 5
+    textY += lineHeight
   }
-  cursor.y = boxTop + boxHeight + 6
+  cursor.y = boxTop + boxHeight + GAP_MD
 }
 
 function drawProseBlocks(
@@ -201,7 +259,7 @@ function drawProseBlocks(
       cursor,
       paragraph,
       {
-        fontSize: emphasisFirst && index === 0 ? 11 : 10,
+        fontSize: emphasisFirst && index === 0 ? 10.5 : 9.5,
         bold: emphasisFirst && index === 0,
       },
       drawRunningHeader,
@@ -210,13 +268,24 @@ function drawProseBlocks(
 }
 
 function drawMetaLine(pdf: jsPDF, cursor: PdfCursor, response: ChatResponse, drawRunningHeader: () => void): void {
+  const presentation = answerPresentation(response)
   const bits = [
-    answerPresentation(response).title,
+    presentation.title,
     response.status,
-    response.strategy,
-    `${response.data.row_count.toLocaleString('id-ID')} rows`,
+    formatStrategyLabel(response.strategy),
+    `${response.data.row_count.toLocaleString('id-ID')} baris`,
   ].filter(Boolean)
-  drawBodyText(pdf, cursor, bits.join(' · '), { fontSize: 8, color: MUTED }, drawRunningHeader)
+  ensureSpace(pdf, cursor, 8, drawRunningHeader)
+  pdf.setFillColor(248, 250, 252)
+  pdf.setDrawColor(...LINE)
+  pdf.setLineWidth(0.15)
+  const metaH = 6
+  pdf.rect(MARGIN_MM, cursor.y - 3.5, CONTENT_WIDTH_MM, metaH, 'FD')
+  pdf.setFont('helvetica', 'normal')
+  pdf.setFontSize(7.5)
+  pdf.setTextColor(...MUTED)
+  pdf.text(bits.join('  ·  '), MARGIN_MM + 3, cursor.y)
+  cursor.y += GAP_MD
 }
 
 function drawDataTable(
@@ -229,60 +298,73 @@ function drawDataTable(
   if (!columns.length || !rows.length) return
 
   const slice = rows.slice(0, MAX_TABLE_ROWS)
-  const head = [columns.map(col => formatCellValue(col))]
+  const head = [columns.map(col => humanColumnHeader(col))]
   const body = slice.map(row => columns.map(col => formatCellValue(row[col])))
 
-  ensureSpace(pdf, cursor, 14, drawRunningHeader)
-  drawSectionLabel(pdf, cursor, 'Data table')
+  ensureSpace(pdf, cursor, 22, drawRunningHeader)
+  drawSectionLabel(pdf, cursor, 'Tabel data')
   const tableTop = cursor.y
 
   autoTable(pdf, {
     startY: tableTop,
-    margin: { left: MARGIN_MM, right: MARGIN_MM },
+    margin: { left: MARGIN_MM, right: MARGIN_MM, top: MARGIN_MM, bottom: FOOTER_Y_MM - 2 },
     tableWidth: CONTENT_WIDTH_MM,
     head,
     body,
     theme: 'grid',
     styles: {
       font: 'helvetica',
-      fontSize: 8,
-      cellPadding: 2.2,
+      fontSize: 7.5,
+      cellPadding: { top: 2, right: 2.5, bottom: 2, left: 2.5 },
       textColor: SLATE,
       lineColor: LINE,
-      lineWidth: 0.15,
+      lineWidth: 0.12,
       overflow: 'linebreak',
+      valign: 'middle',
     },
     headStyles: {
       fillColor: INK,
       textColor: [255, 255, 255],
       fontStyle: 'bold',
-      fontSize: 8,
+      fontSize: 7.5,
+      cellPadding: { top: 2.5, right: 2.5, bottom: 2.5, left: 2.5 },
     },
-    alternateRowStyles: { fillColor: [248, 250, 252] },
+    alternateRowStyles: { fillColor: [252, 252, 253] },
+    rowPageBreak: 'avoid',
   })
 
   const finalY = (pdf as JsPdfWithAutoTable).lastAutoTable?.finalY ?? tableTop
-  cursor.y = finalY + 4
+  cursor.y = finalY + GAP_SM
 
   if (rows.length > MAX_TABLE_ROWS) {
     drawBodyText(
       pdf,
       cursor,
-      `Showing first ${MAX_TABLE_ROWS} of ${rows.length.toLocaleString('id-ID')} rows.`,
-      { fontSize: 8, color: MUTED },
+      `Menampilkan ${MAX_TABLE_ROWS} dari ${rows.length.toLocaleString('id-ID')} baris.`,
+      { fontSize: 7.5, color: MUTED },
       drawRunningHeader,
     )
   }
 }
 
-function drawKpi(pdf: jsPDF, cursor: PdfCursor, response: ChatResponse, drawRunningHeader: () => void): void {
+function shouldDrawKpi(response: ChatResponse): boolean {
   const spec = response.chart_spec
-  if (!spec || spec.type !== 'kpi') return
+  if (!spec || spec.type !== 'kpi') return false
+  const field = spec.y || response.data.columns[0]
+  const raw = field ? response.data.rows[0]?.[field] : undefined
+  if (raw == null || raw === '') return false
+  if (typeof raw === 'number' && raw === 0 && response.data.rows.length === 1) return false
+  return true
+}
+
+function drawKpi(pdf: jsPDF, cursor: PdfCursor, response: ChatResponse, drawRunningHeader: () => void): void {
+  if (!shouldDrawKpi(response)) return
+  const spec = response.chart_spec!
   const field = spec.y || response.data.columns[0]
   const raw = field ? response.data.rows[0]?.[field] : undefined
   ensureSpace(pdf, cursor, 12, drawRunningHeader)
-  drawSectionLabel(pdf, cursor, 'Key metric')
-  drawBodyText(pdf, cursor, `${spec.title}: ${formatCellValue(raw)}`, { bold: true, fontSize: 11 }, drawRunningHeader)
+  drawSectionLabel(pdf, cursor, 'Metrik utama')
+  drawBodyText(pdf, cursor, `${spec.title}: ${formatCellValue(raw)}`, { bold: true, fontSize: 10 }, drawRunningHeader)
 }
 
 async function drawChartSnapshot(
@@ -301,15 +383,38 @@ async function drawChartSnapshot(
     windowWidth: CHART_CAPTURE_WIDTH_PX,
   })
   const imgData = canvas.toDataURL('image/png')
-  const imgWidthMm = CONTENT_WIDTH_MM
-  const imgHeightMm = (canvas.height * imgWidthMm) / canvas.width
-  ensureSpace(pdf, cursor, imgHeightMm + 8, drawRunningHeader)
-  drawSectionLabel(pdf, cursor, 'Chart')
+  let imgWidthMm = CONTENT_WIDTH_MM
+  let imgHeightMm = (canvas.height * imgWidthMm) / canvas.width
+  if (imgHeightMm > MAX_CHART_HEIGHT_MM) {
+    imgHeightMm = MAX_CHART_HEIGHT_MM
+    imgWidthMm = (canvas.width * imgHeightMm) / canvas.height
+    const xOffset = MARGIN_MM + (CONTENT_WIDTH_MM - imgWidthMm) / 2
+    ensureSpace(pdf, cursor, imgHeightMm + 12, drawRunningHeader)
+    drawSectionLabel(pdf, cursor, 'Grafik')
+    pdf.addImage(imgData, 'PNG', xOffset, cursor.y, imgWidthMm, imgHeightMm)
+    cursor.y += imgHeightMm + GAP_MD
+    return
+  }
+
+  ensureSpace(pdf, cursor, imgHeightMm + 12, drawRunningHeader)
+  drawSectionLabel(pdf, cursor, 'Grafik')
   pdf.addImage(imgData, 'PNG', MARGIN_MM, cursor.y, imgWidthMm, imgHeightMm)
-  cursor.y += imgHeightMm + 6
+  cursor.y += imgHeightMm + GAP_MD
 }
 
-function drawAssistantTurn(
+function drawCaveats(
+  pdf: jsPDF,
+  cursor: PdfCursor,
+  caveats: string[],
+  drawRunningHeader: () => void,
+): void {
+  if (!caveats.length) return
+  ensureSpace(pdf, cursor, MIN_BLOCK_MM, drawRunningHeader)
+  drawSectionLabel(pdf, cursor, 'Catatan data')
+  drawBulletList(pdf, cursor, caveats, drawRunningHeader)
+}
+
+async function drawAssistantTurn(
   pdf: jsPDF,
   cursor: PdfCursor,
   response: ChatResponse,
@@ -318,29 +423,30 @@ function drawAssistantTurn(
   drawRunningHeader: () => void,
   chartNode?: HTMLElement | null,
 ): Promise<void> {
-  ensureSpace(pdf, cursor, 20, drawRunningHeader)
-  drawSectionLabel(pdf, cursor, `Answer ${turnIndex}`)
+  ensureSpace(pdf, cursor, MIN_BLOCK_MM, drawRunningHeader)
+  drawSectionLabel(pdf, cursor, `Jawaban ${turnIndex}`)
   drawMetaLine(pdf, cursor, response, drawRunningHeader)
 
   const omitTables = response.data.rows.length > 0
   const narrative = response.answer.direct_answer.trim() || fallbackText.trim()
   drawProseBlocks(pdf, cursor, narrative, omitTables, drawRunningHeader, true)
 
-  if (
-    response.answer.executive_summary.trim() &&
-    response.answer.executive_summary.trim() !== response.answer.direct_answer.trim()
-  ) {
-    drawSectionLabel(pdf, cursor, 'Summary')
-    drawProseBlocks(pdf, cursor, response.answer.executive_summary, omitTables, drawRunningHeader)
+  const summary = response.answer.executive_summary.trim()
+  if (summary && summary !== response.answer.direct_answer.trim()) {
+    ensureSpace(pdf, cursor, MIN_BLOCK_MM, drawRunningHeader)
+    drawSectionLabel(pdf, cursor, 'Ringkasan')
+    drawProseBlocks(pdf, cursor, summary, omitTables, drawRunningHeader)
   }
 
   if (response.answer.insights.length) {
-    drawSectionLabel(pdf, cursor, 'Insights')
+    ensureSpace(pdf, cursor, MIN_BLOCK_MM, drawRunningHeader)
+    drawSectionLabel(pdf, cursor, 'Insight')
     drawBulletList(pdf, cursor, response.answer.insights, drawRunningHeader)
   }
 
   if (response.answer.business_implications.length) {
-    drawSectionLabel(pdf, cursor, 'Business implications')
+    ensureSpace(pdf, cursor, MIN_BLOCK_MM, drawRunningHeader)
+    drawSectionLabel(pdf, cursor, 'Implikasi bisnis')
     drawBulletList(pdf, cursor, response.answer.business_implications, drawRunningHeader)
   }
 
@@ -356,23 +462,12 @@ function drawAssistantTurn(
   )
 
   if (hasVisualChart && chartNode) {
-    return drawChartSnapshot(pdf, cursor, chartNode, drawRunningHeader).then(() => {
-      drawDataTable(pdf, cursor, response, drawRunningHeader)
-      if (response.answer.caveats.length) {
-        drawSectionLabel(pdf, cursor, 'Data notes')
-        drawBulletList(pdf, cursor, response.answer.caveats, drawRunningHeader)
-      }
-      cursor.y += 4
-    })
+    await drawChartSnapshot(pdf, cursor, chartNode, drawRunningHeader)
   }
 
   drawDataTable(pdf, cursor, response, drawRunningHeader)
-  if (response.answer.caveats.length) {
-    drawSectionLabel(pdf, cursor, 'Data notes')
-    drawBulletList(pdf, cursor, response.answer.caveats, drawRunningHeader)
-  }
-  cursor.y += 4
-  return Promise.resolve()
+  drawCaveats(pdf, cursor, response.answer.caveats, drawRunningHeader)
+  drawTurnRule(pdf, cursor)
 }
 
 function assistantChartNode(
@@ -405,8 +500,8 @@ export async function downloadConversationPdf(input: ConversationPdfInput): Prom
 
   const chartNodes = chartRoot ? [...chartRoot.querySelectorAll<HTMLElement>('[data-pdf-export-chart]')] : []
   let chartNodeIndex = 0
-
   let turnIndex = 0
+
   for (const message of messages) {
     if (message.role === 'user') {
       turnIndex += 1
@@ -427,10 +522,10 @@ export async function downloadConversationPdf(input: ConversationPdfInput): Prom
         chartNode,
       )
     } else {
-      ensureSpace(pdf, cursor, 12, runningHeader)
-      drawSectionLabel(pdf, cursor, `Answer ${turnIndex || 1}`)
+      ensureSpace(pdf, cursor, MIN_BLOCK_MM, runningHeader)
+      drawSectionLabel(pdf, cursor, `Jawaban ${turnIndex || 1}`)
       drawBodyText(pdf, cursor, message.content, {}, runningHeader)
-      cursor.y += 4
+      drawTurnRule(pdf, cursor)
     }
   }
 

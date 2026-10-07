@@ -2,7 +2,7 @@
 
 **Snapshot (7 Oct 2026):** Governed OSSIE/Impala Ask AI on `backend/` + Next.js `frontend/` is the default path. Multi-turn follow-up UAT **50/50**, 1×2 domain smoke **10/10**, management-style single-turn UAT **30/30** (merged JSON under `backend/eval/`). OSSIE contract validation passes at **24 datasets / 72 metrics**. Local exploratory SQL sandbox lives in **`backend-test/`** (port 8001). See `PROJECT_STATE.md` for runbooks and CAI deploy pointers in `README.md`.
 
-**Latest (same day):** Cross-domain compare routing (`cross_domain_compare.py`) for multi-turn and single-turn journey metrics (sell-in↔B2B, stock Tempo↔sell-in, DC SAT↔sell-out). Structured conversation **PDF** export; high-level **architecture PNGs** in `docs/diagrams/`. Settings **Save model** (localStorage default); Ask Data user bubble width tuned. Chat history remains SQLite on backend; model choice is FE-only until each `/chat` request.
+**Latest (7 Oct 2026, PM):** **History-only follow-up analysis** (`history_only_analysis`) for “kenapa / dibanding yang lain” on prior governed rows (no Impala re-query; analyst prompt suggests optional deeper data). Fixes: `dibanding` vs compare routing, pareto→explicit top-N handoff, `Strategy` API enum. **PDF export** layout refined (turn spacing, chart height cap, ID labels, table headers). Demo journey UAT YAML: `backend/eval/uat_demo_management_journey.yaml` (14/14 mechanical live). Earlier same day: cross-domain compare routing, architecture PNGs, Settings model save, structured PDF baseline.
 
 Foundation architecture updated to v2 after Tempo Scan design review.
 

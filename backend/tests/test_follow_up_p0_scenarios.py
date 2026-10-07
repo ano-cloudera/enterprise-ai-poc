@@ -1,4 +1,9 @@
-from app.services.follow_up import build_analysis_context, plan_follow_up, try_follow_up_governed_resolution
+from app.services.follow_up import (
+    build_analysis_context,
+    plan_follow_up,
+    try_follow_up_governed_resolution,
+    try_history_only_analysis_resolution,
+)
 
 
 def test_unloading_compare_follow_up_from_prior_office_codes() -> None:
@@ -324,3 +329,68 @@ def test_service_level_worst_office_unfulfilled_material_drill() -> None:
     assert res["dimensions"] == ["material"]
     filters = " ".join(res.get("follow_up_entity_filters") or [])
     assert "0245" in filters
+
+
+def test_explicit_top10_material_not_follow_up_filter_after_pareto() -> None:
+    ctx = build_analysis_context(
+        metric="material_sell_in_value",
+        dimensions=["material"],
+        entity_dimension="material",
+        ranked_entities=[{"rank": 1, "id": "FE001", "dimension": "material", "metric_value": 1e6}],
+        last_question="Tampilkan pareto penjualan",
+    )
+    q = "Top 10 material dengan nilai sell-in tertinggi Q4 2024"
+    assert plan_follow_up(q, ctx) is None
+
+
+def test_dibanding_does_not_force_fresh_query_for_why_explain() -> None:
+    from app.services.follow_up import _follow_up_requires_fresh_query, plan_follow_up
+
+    ctx = build_analysis_context(
+        metric="material_sell_in_value",
+        dimensions=["material"],
+        entity_dimension="material",
+        ranked_entities=[{"rank": 1, "id": "A", "dimension": "material"}],
+        last_question="Top 10 material sell-in Q4 2024",
+    )
+    q = "Kenapa material urutan 1 bisa paling tinggi dibanding yang lain?"
+    assert _follow_up_requires_fresh_query(q) is False
+    plan = plan_follow_up(q, ctx)
+    assert plan is not None and plan.intent == "explain_prior_result"
+
+
+def test_explain_rank_one_vs_peers_uses_history_not_governed_filter() -> None:
+    ctx = build_analysis_context(
+        metric="material_sell_in_value",
+        dimensions=["material"],
+        entity_dimension="material",
+        ranked_entities=[
+            {"rank": 1, "id": "001-00-03", "dimension": "material", "metric_value": 9_500_000},
+            {"rank": 2, "id": "002-00-01", "dimension": "material", "metric_value": 7_100_000},
+        ],
+        last_question="Top 10 material sell-in Tempo Q4 2024",
+    )
+    q = "Kenapa material urutan 1 bisa paling tinggi dibanding yang lain?"
+    plan = plan_follow_up(q, ctx)
+    assert plan is not None
+    assert plan.intent == "explain_prior_result"
+    assert try_follow_up_governed_resolution(q, ctx, understanding=None) is None
+
+    history = [
+        {
+            "question": ctx["last_question"],
+            "answer": {"direct_answer": "Material 001-00-03 memimpin ranking sell-in.", "data_reference": "v_material_sell_in"},
+            "rows": [
+                {"material": "001-00-03", "metric_value": 9_500_000},
+                {"material": "002-00-01", "metric_value": 7_100_000},
+            ],
+            "strategy": "governed",
+            "status": "SUCCESS",
+            "session_frame": {"last_metric": "material_sell_in_value", "last_dimensions": ["material"]},
+        }
+    ]
+    hist = try_history_only_analysis_resolution(q, ctx, history, understanding=None)
+    assert hist is not None
+    assert hist["status"] == "history_only"
+    assert hist["prior_query_result"]["row_count"] == 2
+    assert hist["focus_entity"]["id"] == "001-00-03"

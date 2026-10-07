@@ -16,7 +16,7 @@ from app.semantic.context import SemanticContextService
 from app.services.history import ConversationStore
 from app.services.ask_data_routing import resolve_ask_data_route, v3_agent_available
 from app.services.conversational import TurnUnderstanding, understand_turn
-from app.services.follow_up import analysis_context_from_history
+from app.services.follow_up import analysis_context_from_history, try_history_only_analysis_resolution
 from app.services.question_contextualize import resolve_question_for_pipeline
 from app.services.session_context import build_session_frame
 from app.services.local_agent_client import LocalAgentClient, LocalAgentError
@@ -115,7 +115,20 @@ class ChatService:
         session_last_metric: str | None = None,
         session_analysis_context: dict[str, Any] | None = None,
         turn_understanding: TurnUnderstanding | None = None,
+        conversation_history: list[dict[str, Any]] | None = None,
     ) -> tuple[str, dict[str, Any]]:
+        if session_analysis_context and conversation_history:
+            history_only = try_history_only_analysis_resolution(
+                question,
+                session_analysis_context,
+                conversation_history,
+                understanding=turn_understanding,
+            )
+            if history_only:
+                route = resolve_ask_data_route(
+                    question, self.settings, semantic_resolution=history_only
+                )
+                return route, history_only
         resolution = self.dependencies.semantic_context.resolve(
             question,
             session_last_metric=session_last_metric,
@@ -405,9 +418,12 @@ class ChatService:
             session_last_metric=session_metric,
             session_analysis_context=session_ctx or None,
             turn_understanding=turn,
+            conversation_history=conversation_history,
         )
         if turn.is_conversational:
             logger.info("ask_data_route=conversational request_id=%s session_id=%s", request_id, request.session_id)
+            force_ossie = True
+        if resolution.get("status") == "history_only":
             force_ossie = True
         if not force_ossie and route == "v3" and v3_agent_available(self.settings):
             client = self._v3_client()
@@ -499,8 +515,9 @@ class ChatService:
             session_last_metric=session_metric,
             session_analysis_context=session_ctx or None,
             turn_understanding=turn,
+            conversation_history=conversation_history,
         )
-        skip_v3 = turn.is_conversational
+        skip_v3 = turn.is_conversational or resolution.get("status") == "history_only"
         if skip_v3:
             logger.info("ask_data_route=conversational stream request_id=%s session_id=%s", request_id, request.session_id)
         client = (

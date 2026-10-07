@@ -339,6 +339,30 @@ def build_workflow(deps: WorkflowDependencies):
                 chart_spec=None,
                 query_result={"columns": [], "rows": [], "row_count": 0, "execution_ms": 0},
             )
+            return update
+        if resolution.get("status") == "history_only":
+            prior = resolution.get("prior_query_result") or {}
+            focus = resolution.get("focus_entity") if isinstance(resolution.get("focus_entity"), dict) else {}
+            prior_turn = resolution.get("prior_turn") if isinstance(resolution.get("prior_turn"), dict) else {}
+            data_ref = str(prior_turn.get("data_reference") or "prior_governed_turn")
+            update.update(
+                skip_query_pipeline=True,
+                strategy="history_only_analysis",
+                query_result=prior,
+                query_plan={"strategy": "history_only", "metrics": [resolution.get("metric")]},
+                validated_sql=data_ref,
+                governed_partial_caveats=[
+                    "Turn ini menganalisis ulang angka governed dari pertanyaan sebelumnya; "
+                    "tidak ada query Impala baru dijalankan."
+                ],
+                inquiry_brief={
+                    "mode": "history_only_analysis",
+                    "prior_turn_question": prior_turn.get("question"),
+                    "focus_entity_id": focus.get("id"),
+                    "focus_rank": focus.get("rank"),
+                    "last_metric": resolution.get("metric"),
+                },
+            )
         return update
 
     async def plan_query(state: AskDataState) -> AskDataState:
@@ -655,12 +679,20 @@ def build_workflow(deps: WorkflowDependencies):
         }
         if state.get("judge_synthesis_hint"):
             user_payload["reviewer_hint"] = state["judge_synthesis_hint"]
+        if state.get("strategy") == "history_only_analysis":
+            user_payload["history_only_analysis"] = True
+            user_payload["prior_turn"] = (resolution or {}).get("prior_turn")
+            user_payload["session_analysis_context"] = state.get("session_analysis_context")
+            user_payload["conversation_history"] = state.get("conversation_history")
+        analyst_prompt = _prompt("result_analyst.md")
+        if state.get("strategy") == "history_only_analysis":
+            analyst_prompt = analyst_prompt + "\n" + _prompt("result_analyst_history_only.md")
         analysis = None
         for attempt in range(2):
             try:
                 analysis = await _provider(state, deps).generate_structured(
                     [
-                        {"role": "system", "content": _prompt("global_system.md") + "\n" + _prompt("result_analyst.md")},
+                        {"role": "system", "content": _prompt("global_system.md") + "\n" + analyst_prompt},
                         {"role": "user", "content": json.dumps(user_payload, ensure_ascii=False, default=str)},
                     ],
                     AnalysisOutput,
@@ -783,6 +815,8 @@ def build_workflow(deps: WorkflowDependencies):
         return "end"
 
     def after_understand(state: AskDataState) -> str:
+        if state.get("skip_query_pipeline"):
+            return "analyze_result"
         return "end" if state.get("status") else "plan_query"
 
     def after_plan(state: AskDataState) -> str:
@@ -802,7 +836,11 @@ def build_workflow(deps: WorkflowDependencies):
     graph.add_node("analyze_result", analyze_result)
     graph.add_node("judge_answer", judge_answer)
     graph.add_edge(START, "understand_request")
-    graph.add_conditional_edges("understand_request", after_understand, {"plan_query": "plan_query", "end": END})
+    graph.add_conditional_edges(
+        "understand_request",
+        after_understand,
+        {"plan_query": "plan_query", "analyze_result": "analyze_result", "end": END},
+    )
     graph.add_conditional_edges("plan_query", after_plan, {"validate_query": "validate_query", "end": END})
     graph.add_conditional_edges("validate_query", after_validate, {"execute_query": "execute_query", "end": END})
     graph.add_conditional_edges("execute_query", after_execute, {"analyze_result": "analyze_result", "end": END})

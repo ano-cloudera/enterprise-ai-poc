@@ -173,6 +173,113 @@ def _wants_material_drill(question: str) -> bool:
     return any(term in lowered for term in _DRILL_MATERIAL_TERMS)
 
 
+def _wants_history_only_explanation(question: str) -> bool:
+    """Explain / why questions on prior ranking without a new governed query."""
+    lowered = _normalize(question)
+    asks_why = any(
+        t in lowered
+        for t in (
+            "kenapa",
+            "mengapa",
+            "why",
+            "explain",
+            "jelaskan",
+            "alasan",
+            "sebab",
+            "what makes",
+            "apa yang membuat",
+        )
+    )
+    if not asks_why:
+        return False
+    vs_peers = any(
+        t in lowered
+        for t in (
+            "dibanding yang lain",
+            "dibandingkan yang lain",
+            "vs yang lain",
+            "versus yang lain",
+            "dari yang lain",
+            "daripada yang lain",
+            "material lain",
+            "produk lain",
+            "ranking tadi",
+            "hasil tadi",
+            "daftar tadi",
+            "top tadi",
+            "dari ranking",
+            "dari daftar",
+            "dibanding rank",
+            "dibanding urutan",
+            "paling tinggi dibanding",
+            "tertinggi dibanding",
+            "lebih tinggi dari yang",
+            "bisa paling tinggi",
+            "compare to others",
+            "compared to others",
+            "rest of the list",
+        )
+    )
+    rank_focus = any(
+        t in lowered
+        for t in (
+            "urutan 1",
+            "rank 1",
+            "ranking 1",
+            "no 1",
+            "no. 1",
+            "pertama",
+            "paling atas",
+            "teratas",
+            "top 1",
+        )
+    )
+    prior_ref = any(t in lowered for t in ("tadi", "tersebut", "di atas", "jawaban", "hasil query"))
+    return vs_peers or (rank_focus and asks_why) or (prior_ref and asks_why and not _wants_material_drill(question))
+
+
+def _asks_explicit_governed_compare(question: str) -> bool:
+    """Compare verbs for new SQL — not Indonesian *dibanding* (vs peers explain)."""
+    lowered = _normalize(question)
+    if any(t in lowered for t in ("bandingkan", "compare", " vs ", "versus")):
+        return True
+    return bool(re.search(r"\bbanding\b", lowered))
+
+
+def _follow_up_requires_fresh_query(question: str) -> bool:
+    """Follow-ups that must hit Impala again (drill, cross-domain, explicit compare SQL)."""
+    if _wants_history_only_explanation(question):
+        return False
+    lowered = _normalize(question)
+    if _wants_material_drill(question):
+        return True
+    if _wants_b2b_material_crosscheck(question):
+        return True
+    if _wants_sell_out_product_drill(question):
+        return True
+    if _wants_unfulfilled_material_drill(question):
+        return True
+    if _wants_branch_contribution_drill(question):
+        return True
+    if _wants_sell_in_crosscheck(question) and (
+        any(t in lowered for t in ("cek", "compare", "samakan")) or _asks_explicit_governed_compare(question)
+    ):
+        return True
+    if _wants_plant_breakdown(question):
+        return True
+    if _wants_dc_support_drill(question) or _wants_plu_drill_at_dc(question):
+        return True
+    if _RELIMIT_RE.search(lowered):
+        return True
+    if _COMPARE_PAIR_RE.search(lowered):
+        return True
+    if len(re.findall(r"\b(0\d{3})\b", question)) >= 2 and _asks_explicit_governed_compare(question):
+        return True
+    if len(_dc_cities_from_text(question)) >= 2 and _asks_explicit_governed_compare(question):
+        return True
+    return False
+
+
 def _parse_rank_index(question: str) -> int | None:
     lowered = _normalize(question)
     match = _RANK_N_RE.search(lowered)
@@ -481,8 +588,35 @@ def plan_from_understanding(u: "TurnUnderstanding", ctx: dict[str, Any]) -> Foll
     )
 
 
+def _is_explicit_new_ranking_question(question: str) -> bool:
+    """Fresh top-N ranking (not a drill on prior entity), e.g. after a pareto turn."""
+    lowered = _normalize(question)
+    if not _TOP_N_RE.search(lowered):
+        return False
+    if not any(t in lowered for t in ("material", "produk", "sku", "plu", "office", "cabang", "dc")):
+        return False
+    return any(
+        t in lowered
+        for t in (
+            "sell-in",
+            "sell in",
+            "sell-out",
+            "sell out",
+            "tertinggi",
+            "terbesar",
+            "terendah",
+            "terkecil",
+            "fill rate",
+            "stok",
+            "stock",
+        )
+    )
+
+
 def plan_follow_up(question: str, ctx: dict[str, Any]) -> FollowUpPlan | None:
     if not ctx.get("last_metric"):
+        return None
+    if _is_explicit_new_ranking_question(question):
         return None
     catalog = list(ctx.get("result_catalog") or [])
     domain_id = ctx.get("domain_id")
@@ -749,6 +883,18 @@ def plan_follow_up(question: str, ctx: dict[str, Any]) -> FollowUpPlan | None:
             from_grain=str(from_grain) if from_grain else None,
             filter_entities=subset,
             breakdown_dimension="plant",
+        )
+
+    if catalog and _wants_history_only_explanation(question) and not _follow_up_requires_fresh_query(question):
+        rank = _parse_rank_index(question)
+        focus = _catalog_by_rank(catalog, rank) if rank is not None else None
+        return FollowUpPlan(
+            intent="explain_prior_result",
+            filter_entity=focus,
+            to_grain=None,
+            limit=None,
+            domain_id=str(domain_id) if domain_id else None,
+            from_grain=str(from_grain) if from_grain else None,
         )
 
     filter_entity = _bind_entity_from_catalog(question, catalog)
@@ -1221,6 +1367,91 @@ def build_follow_up_rewrite(question: str, ctx: dict[str, Any], plan: FollowUpPl
     return " ".join(parts)
 
 
+def _last_success_turn_with_rows(history: list[dict[str, Any]]) -> dict[str, Any] | None:
+    for entry in reversed(history):
+        if str(entry.get("status") or "") != "SUCCESS":
+            continue
+        prior = _prior_turn_query_result(entry)
+        if prior and prior.get("rows"):
+            return entry
+    return None
+
+
+def _prior_turn_query_result(anchor: dict[str, Any]) -> dict[str, Any] | None:
+    rows_raw = anchor.get("rows")
+    if isinstance(rows_raw, list):
+        data_rows = [row for row in rows_raw if isinstance(row, dict)]
+        if data_rows:
+            columns = list(data_rows[0].keys())
+            return {
+                "columns": columns,
+                "rows": data_rows,
+                "row_count": len(data_rows),
+                "execution_ms": 0,
+            }
+    follow_rows = _rows_for_chart_follow_up(anchor)
+    if not follow_rows:
+        return None
+    columns: list[str] = []
+    for row in follow_rows:
+        for key in row:
+            if key not in columns:
+                columns.append(str(key))
+    return {
+        "columns": columns,
+        "rows": follow_rows,
+        "row_count": len(follow_rows),
+        "execution_ms": 0,
+    }
+
+
+def try_history_only_analysis_resolution(
+    question: str,
+    analysis_context: dict[str, Any],
+    history: list[dict[str, Any]],
+    understanding: "TurnUnderstanding | None" = None,
+) -> dict[str, Any] | None:
+    if not analysis_context or not history:
+        return None
+    if not analysis_context.get("last_metric"):
+        return None
+    plan = _resolve_follow_up_plan(question, analysis_context, understanding)
+    if not plan or plan.intent != "explain_prior_result":
+        return None
+    anchor = (
+        _last_governed_chart_turn(history)
+        or _last_governed_success_turn(history)
+        or _last_success_turn_with_rows(history)
+    )
+    if not anchor:
+        return None
+    prior_result = _prior_turn_query_result(anchor)
+    if not prior_result or not prior_result.get("rows"):
+        return None
+    answer = anchor.get("answer") if isinstance(anchor.get("answer"), dict) else {}
+    stored = anchor.get("session_frame") if isinstance(anchor.get("session_frame"), dict) else {}
+    data_ref = ""
+    if isinstance(answer.get("data_reference"), str):
+        data_ref = answer["data_reference"].strip()
+    focus = plan.filter_entity
+    return {
+        "status": "history_only",
+        "metric": analysis_context.get("last_metric"),
+        "matched_alias": "follow_up_history_only",
+        "dimensions": list(analysis_context.get("last_dimensions") or []),
+        "prior_query_result": prior_result,
+        "prior_turn": {
+            "question": str(anchor.get("question") or analysis_context.get("last_question") or ""),
+            "direct_answer": str(answer.get("direct_answer") or "")[:800],
+            "data_reference": data_ref,
+            "strategy": str(anchor.get("strategy") or ""),
+        },
+        "focus_entity": dict(focus) if isinstance(focus, dict) else None,
+        "analysis_context": analysis_context,
+        "session_frame_metric": stored.get("last_metric"),
+    }
+
+
 def try_follow_up_governed_resolution(
     question: str,
     analysis_context: dict[str, Any],
@@ -1230,6 +1461,8 @@ def try_follow_up_governed_resolution(
         return None
     plan = _resolve_follow_up_plan(question, analysis_context, understanding)
     if not plan:
+        return None
+    if plan.intent == "explain_prior_result":
         return None
     routed = _drill_metric_and_dimensions(plan, analysis_context)
     if not routed:

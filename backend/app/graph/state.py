@@ -40,3 +40,4 @@ class AskDataState(TypedDict, total=False):
     judge_plan_hint: str
     conversational_intent: dict[str, Any]
     turn_understanding: dict[str, Any]
+    skip_query_pipeline: bool

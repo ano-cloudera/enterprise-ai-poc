@@ -26,7 +26,13 @@ class ModelList(StrictModel):
 Status = Literal["SUCCESS", "CLARIFICATION", "NO_DATA", "UNSUPPORTED", "ERROR"]
 QueryStrategy = Literal["governed", "sql_fallback", "clarification", "unsupported"]
 Strategy = Literal[
-    "governed", "sql_fallback", "clarification", "unsupported", "conversational", "local_agent_exploratory"
+    "governed",
+    "sql_fallback",
+    "clarification",
+    "unsupported",
+    "conversational",
+    "local_agent_exploratory",
+    "history_only_analysis",
 ]
 ChartType = Literal["bar", "line", "area", "scatter", "pie", "table", "kpi"]
 
