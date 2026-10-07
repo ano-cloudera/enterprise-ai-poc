@@ -74,6 +74,47 @@ def _question_wants_po_fulfillment_context(question: str) -> bool:
     )
 
 
+def _question_mentions_bill_to_po(question: str) -> bool:
+    """Operational bill-to-PO (DO qty ÷ PO qty), not sell-in billing value."""
+    lowered = question.casefold()
+    words = set(re.findall(r"[a-z0-9]+", lowered))
+    return (
+        "bill-to-po" in lowered
+        or "bill to po" in lowered
+        or (
+            bool(words & {"rasio", "ratio"})
+            and "po" in words
+            and any(t in lowered for t in ("bill", "billing", "penagihan", "tagihan", "do"))
+        )
+    )
+
+
+def _question_wants_do_vs_billing_dq(question: str) -> bool:
+    lowered = question.casefold()
+    return any(
+        phrase in lowered
+        for phrase in (
+            "do terhadap billing",
+            "do to bill",
+            "do amount terhadap billing",
+            "kualitas data",
+            "data quality",
+        )
+    )
+
+
+def _bill_to_po_resolution(question: str) -> tuple[str, list[str], str] | None:
+    if not _question_mentions_bill_to_po(question):
+        return None
+    if _question_wants_do_vs_billing_dq(question):
+        return (
+            "material_do_amount_to_billing_value_ratio",
+            ["material"],
+            "bill_to_po_dq_do_billing_ratio",
+        )
+    return ("material_fill_rate", ["material"], "bill_to_po_fill_rate_proxy")
+
+
 def _sql_string_literal(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
 
@@ -654,9 +695,15 @@ class SemanticContextService:
         office_compare = len(office_codes_early) >= 2 and any(
             term in lowered for term in ("bandingkan", " vs ", "versus", "compare", "office", "cabang")
         )
+        bill_to_po = _bill_to_po_resolution(question)
+        if bill_to_po:
+            metric, dimensions, alias = bill_to_po
+            return resolved(metric, dimensions, matched_alias=alias)
+
         if (
             wants_contribution_analysis(question)
             and not office_compare
+            and not _question_mentions_bill_to_po(question)
             and not any(
                 phrase in lowered
                 for phrase in (
@@ -727,41 +774,9 @@ class SemanticContextService:
                 matched_alias="otif_proxy_fill_rate",
             )
 
-        mentions_bill_po = (
-            "bill-to-po" in lowered
-            or "bill to po" in lowered
-            or (
-                bool(words & {"rasio", "ratio"})
-                and "po" in words
-                and any(t in lowered for t in ("bill", "billing", "penagihan", "tagihan", "do"))
-            )
-        )
-        if mentions_bill_po:
-            wants_dq_do_vs_billing = any(
-                phrase in lowered
-                for phrase in (
-                    "do terhadap billing",
-                    "do to bill",
-                    "do amount terhadap billing",
-                    "kualitas data",
-                    "data quality",
-                )
-            )
-            if wants_dq_do_vs_billing:
-                return resolved(
-                    "material_do_amount_to_billing_value_ratio",
-                    ["material"],
-                    matched_alias="bill_to_po_dq_do_billing_ratio",
-                )
-            # Business "bill-to-PO" = sisa pemenuhan PO (DO vs PO), not DO vs billing value.
-            return resolved(
-                "material_fill_rate",
-                ["material"],
-                matched_alias="bill_to_po_fill_rate_proxy",
-            )
-
         if any(t in lowered for t in ("penagihan grosir", "nilai penagihan", "penagihan sell-in")) or (
             "penagihan" in lowered
+            and not _question_mentions_bill_to_po(question)
             and bool(words & {"material", "produk", "sku", "kontribusi", "pareto", "grosir"})
         ):
             return resolved(

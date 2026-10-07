@@ -138,6 +138,12 @@ intent_routes:
 
 # Deterministic OSSIE resolutions before generic sales_stage / stock_scope ambiguity.
 governed_intents:
+  - id: bill_to_po_material_fill_rate
+    any_terms: [bill-to-po, bill to po]
+    unless_terms: [do terhadap billing, do to bill, kualitas data, data quality, do amount terhadap billing]
+    metric: material_fill_rate
+    dimensions: [material]
+    resolved_by: domain_graph_bill_to_po_fill_rate
   - id: dc_stock_penumpukan_rank
     any_terms: [penumpukan, penumpukkan]
     all_terms: [dc]
@@ -270,6 +276,7 @@ clarification_intents:
   - id: bill_to_po_and_penagihan
     all_terms: [bill-to-po]
     any_terms: [nilai penagihan, penagihan grosir, kontribusi penagihan, total penagihan]
+    unless_terms: [rasio bill-to-po, rasio bill to po, bill-to-po terendah, bill to po terendah, pemenuhan po]
     reason: bill_to_po_vs_billing_dual
     question: >
       Pemenuhan PO (bill-to-PO / DO÷PO qty) dan nilai penagihan grosir (sell-in billing)

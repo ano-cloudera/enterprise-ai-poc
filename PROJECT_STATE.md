@@ -1,9 +1,16 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 7 Oct 2026 (latest) — **Management UAT 30/30**; OSSIE **24 datasets / 72 metrics** PASS. **History-only analysis** for explain-on-prior-ranking follow-ups (`history_only_analysis`, no Impala on turn). **Cross-domain** routing via `cross_domain_compare.py`. FE: **PDF** export layout v2; Settings **Save model**. Demo journey UAT: `eval/uat_demo_management_journey.yaml` (14/14 mechanical). Exploratory: **`backend-test`** (8001).
+**Updated**: 7 Oct 2026 (latest) — **Management UAT 30/30**; OSSIE **24 datasets / 72 metrics** PASS. **History-only analysis** for explain-on-prior-ranking follow-ups (`history_only_analysis`, no Impala on turn). **Cross-domain** routing via `cross_domain_compare.py`. **Semantic SQL/routing**: stock→sell-in ranking filter (`stock_tempo_to_sell_in_ratio` HAVING + `NULLS LAST`); **bill-to-PO** → `material_fill_rate` (DO÷PO) wins over generic “penagihan” sell-in. FE: **PDF** export layout v2; Settings **Save model**. Demo journey UAT: `eval/uat_demo_management_journey.yaml` (14/14 mechanical). Exploratory: **`backend-test`** (8001).
 
 ## Current checkpoint: demo-ready Ask AI + history follow-ups (7 Oct 2026)
+
+### Governed SQL & bill-to-PO routing (7 Oct, PM)
+
+- **`stock_tempo_to_sell_in_ratio`** (`compile_governed`): `HAVING SUM(sell_in_bill_qty) > 0` and `ORDER BY … NULLS LAST` so top-N rankings are not dominated by NULL/zero sell-in; zero-movement intent skips the HAVING.
+- **Bill-to-PO** business meaning = **`material_fill_rate`** on `gold.rpt_sap_material_month_semantic` (`service_do_qty` / `service_po_qty`), with contextual `service_po_qty`, `service_do_qty`, `sell_in_bill_val` when penagihan/PO context is asked — not `material_sell_in_value` / `sales_office_material_360`.
+- **Routing** (`semantic/context.py`): `_bill_to_po_resolution()` runs **before** Pareto contribution and domain-graph governed intents; “proses penagihan” in analysis text no longer hijacks bill-to-PO questions. **`tempo_domain_graph.yaml`**: `bill_to_po_material_fill_rate` governed intent; dual-metric clarification only when explicit billing-value phrases appear (e.g. “nilai penagihan grosir”), with `unless_terms` for clear ranking questions.
+- **Tests**: `test_semantic_context.py` (bill-to-PO + long management-style prompt, clarification when both PO fulfillment and gross billing are named).
 
 ### Cross-domain & multi-turn (7 Oct)
 

@@ -815,6 +815,31 @@ def test_bill_to_po_ratio_resolves_material_fill_rate_proxy() -> None:
     assert "ORDER BY metric_value ASC" in sql
 
 
+def test_bill_to_po_with_penagihan_process_advice_stays_fill_rate_not_billing() -> None:
+    question = (
+        "Tampilkan 10 material dengan rasio bill-to-PO terendah di Desember 2024 "
+        "dan analisa penyebab potensial beserta saran perbaikan proses penagihan."
+    )
+    service = SemanticContextService()
+    resolution = service.resolve(question)
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "material_fill_rate"
+    assert resolution.get("matched_alias") == "bill_to_po_fill_rate_proxy"
+    sql = service.compile_governed(resolution["metric"], question, resolution["dimensions"])
+    assert "rpt_sap_material_month_semantic" in sql
+    assert "sales_office_material" not in sql
+
+
+def test_bill_to_po_and_nilai_penagihan_still_prompts_clarification() -> None:
+    from app.semantic.domain_graph import try_clarification_intent
+
+    question = "Bandingkan bill-to-PO dan nilai penagihan grosir per material Desember 2024"
+    assert try_clarification_intent(question) is not None
+    resolution = SemanticContextService().resolve(question)
+    assert resolution["status"] == "needs_clarification"
+
+
 def test_november_penagihan_material_uses_single_month_filter() -> None:
     question = "Nilai penagihan grosir per material November 2024 top 10 kontribusi"
     service = SemanticContextService()
