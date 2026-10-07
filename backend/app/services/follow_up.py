@@ -51,6 +51,7 @@ _FILTER_TERMS = ("based on", "berdasarkan", "untuk", "for", "di ", "cabang", "br
 # metric prefix / name → (domain_id, default grain column)
 _METRIC_DOMAIN_GRAIN: dict[str, tuple[str, str]] = {
     "b2b_branch_sell_out": ("b2b", "branch"),
+    "b2b_branch_material": ("b2b", "branch"),
     "b2b_branch": ("b2b", "branch"),
     "material_sell_out": ("b2b", "material"),
     "b2b_material": ("b2b", "material"),
@@ -254,6 +255,21 @@ def _wants_sell_in_crosscheck(question: str) -> bool:
         t in lowered
         for t in ("sell-in", "sell in", "sell in q4", "penjualan tempo", "billing", "sell-in q4")
     )
+
+
+def _wants_unfulfilled_material_drill(question: str) -> bool:
+    lowered = _normalize(question)
+    return any(
+        t in lowered
+        for t in (
+            "unfulfilled",
+            "belum terpenuhi",
+            "qty unfulfilled",
+            "quantity unfulfilled",
+            "selisih do",
+            "do vs po",
+        )
+    ) and any(t in lowered for t in _DRILL_MATERIAL_TERMS)
 
 
 _DC_CITY_STOP = frozenset({
@@ -718,6 +734,26 @@ def plan_follow_up(question: str, ctx: dict[str, Any]) -> FollowUpPlan | None:
             metric_override="sat_store_stock_quantity",
         )
 
+    if (
+        filter_entity
+        and _wants_unfulfilled_material_drill(question)
+        and (
+            domain_id == "service_level"
+            or "fill_rate" in last_metric.casefold()
+            or "service" in last_metric.casefold()
+        )
+    ):
+        grain = str(filter_entity.get("dimension") or filter_entity.get("entity_type") or "sales_off")
+        return FollowUpPlan(
+            intent="drill_down",
+            filter_entity=filter_entity,
+            to_grain="material",
+            limit=_parse_top_n(question, default=5),
+            domain_id="service_level",
+            from_grain=grain,
+            metric_override="sales_office_service_unfulfilled_quantity",
+        )
+
     if filter_entity and _wants_sell_out_product_drill(question):
         grain = str(filter_entity.get("dimension") or filter_entity.get("entity_type") or "branch")
         if grain in ("dcname", "branch"):
@@ -729,7 +765,7 @@ def plan_follow_up(question: str, ctx: dict[str, Any]) -> FollowUpPlan | None:
                 limit=limit,
                 domain_id="b2b",
                 from_grain=grain,
-                metric_override="material_sell_out_value",
+                metric_override="b2b_branch_material_sell_out_value",
             )
 
     if filter_entity and domain_id == "promo" and any(
@@ -978,13 +1014,22 @@ def _drill_metric_and_dimensions(plan: FollowUpPlan, ctx: dict[str, Any]) -> tup
         return "sales_office_service_fill_rate", ["sales_off"], preds
 
     if plan.to_grain == "material":
-        if "unfulfilled" in str(ctx.get("last_metric") or last_metric).casefold():
-            dims = ["material", "sales_off"]
+        override = str(plan.metric_override or "").casefold()
+        unfulfilled_metric = "unfulfilled" in last_metric.casefold() or "unfulfilled" in override
+        if unfulfilled_metric:
+            dims = ["material"]
             preds = list(predicates)
-            if entity and str(entity.get("entity_type") or "") in ("sales_off", "sales_office"):
+            if entity and str(entity.get("entity_type") or entity.get("dimension") or "") in (
+                "sales_off",
+                "sales_office",
+            ):
                 off = str(entity.get("id") or "")
                 if off:
-                    preds.append(f"d.sales_off = {_sql_string_literal(off)}")
+                    dim_col = str(entity.get("dimension") or entity.get("entity_type") or "sales_off")
+                    col = "sales_off" if dim_col in ("sales_off", "sales_office") else dim_col
+                    if col == "sales_office":
+                        col = "sales_off"
+                    preds.append(f"d.{col} = {_sql_string_literal(off)}")
             return "sales_office_service_unfulfilled_quantity", dims, preds
         if domain == "stock_tempo" or "stock_tempo" in last_metric.casefold() or "warehouse" in last_metric.casefold():
             ent_type = str((entity or {}).get("entity_type") or (entity or {}).get("dimension") or "")
@@ -1039,6 +1084,12 @@ def _drill_metric_and_dimensions(plan: FollowUpPlan, ctx: dict[str, Any]) -> tup
                         _entity_predicate(entity, default_grain="branch", flexible_branch=True) or ""
                     )
                     branch_predicates = [p for p in branch_predicates if p]
+            has_branch_filter = any(
+                "d.branch" in p.casefold() or "upper(d.branch)" in p.casefold()
+                for p in branch_predicates
+            )
+            if has_branch_filter:
+                return "b2b_branch_material_sell_out_value", ["material"], branch_predicates
             return "material_sell_out_value", ["material"], branch_predicates
         if domain == "stock_sat":
             ent_type = str((entity or {}).get("entity_type") or (entity or {}).get("dimension") or "")
@@ -1105,8 +1156,7 @@ def try_follow_up_governed_resolution(
         plan.domain_id == "b2b"
         or "b2b" in str(analysis_context.get("last_metric") or "").casefold()
     ):
-        # No governed branch×material sell-out view in Q4 PoC; rank is company material sell-out.
-        dimension_mismatch = ["branch"]
+        dimension_mismatch = []
     payload: dict[str, Any] = {
         "status": "resolved",
         "metric": metric,

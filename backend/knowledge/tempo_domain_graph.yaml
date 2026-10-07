@@ -198,10 +198,17 @@ governed_intents:
     metric: average_unloading_minutes
     dimensions: [sales_office]
     resolved_by: domain_graph_unloading_rank
+  - id: promo_b2b_sellout_uplift_material
+    all_terms: [promo, uplift]
+    any_terms: [sell-out, sell out, alfamart, b2b]
+    unless_terms: [general trade, sell-in, sellin]
+    metric: promo_b2b_sellout_revenue_uplift
+    dimensions: [material]
+    resolved_by: domain_graph_promo_b2b_sellout_uplift
   - id: promo_uplift_top_material
     all_terms: [promo]
     any_terms: [uplift, terbaik, tertinggi, top, paling]
-    unless_terms: [rekomendasi operasional, roi terbaik dan berikan]
+    unless_terms: [rekomendasi operasional, roi terbaik dan berikan, sell-out, sell out, alfamart, b2b]
     metric: promo_material_revenue_uplift
     dimensions: [material]
     resolved_by: domain_graph_promo_uplift_rank

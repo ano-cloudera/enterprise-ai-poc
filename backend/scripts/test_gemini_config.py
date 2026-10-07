@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Smoke-check Gemini config (same env keys as backend-tes)."""
+"""Smoke-check Gemini config (same env keys as backend-test)."""
 
 from __future__ import annotations
 

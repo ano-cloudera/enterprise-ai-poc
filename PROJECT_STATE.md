@@ -1,9 +1,35 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 6 Oct 2026 (latest) — Follow-up UAT **50/50** scenarios (`backend/eval/uat_domain_5x5_followup_merged_latest.json`). Last fix: promo **status dominan → uplift** (`program_status` in session catalog, preferred-dimension entity ranking, early promo uplift plan in `follow_up.py`). Promo live **5/5** (`run_e631cbba.json`, promo-fu-05 t2 judge 9/10). Restart uvicorn from `backend/` with repo `.venv` after code changes.
+**Updated**: 7 Oct 2026 (latest) — **Management UAT 30/30** (`backend/eval/uat_domain_3x1_mgmt_final_merged_latest.json`). OSSIE **24 datasets / 72 metrics**; contract script **PASS**. Exploratory folder renamed **`backend-test`** (was `backend-tes`). FE: chart ↔ table spacing tightened on Ask Data evidence block.
 
-## Current checkpoint: follow-up UAT P0 + OSSIE multi-turn stack (6 Oct 2026, latest)
+## Current checkpoint: production-ready governed stack + UAT sign-off (7 Oct 2026)
+
+### UAT harness (Gemini judge + mechanical checks, backend on `:8000`)
+
+| Suite | YAML | Merged result (committed) |
+|-------|------|---------------------------|
+| 5×2 follow-up | `uat_domain_5x5_followup.yaml` | **50/50** `uat_domain_5x5_followup_merged_latest.json` |
+| 1×2 smoke / domain | `uat_domain_1x2_followup.yaml` | **10/10** `uat_domain_1x2_followup_merged_latest.json` |
+| 3×1 management (ID) | `uat_domain_3x1_mgmt_final.yaml` | **30/30** `uat_domain_3x1_mgmt_final_merged_latest.json` |
+
+Run: `cd backend && PYTHONPATH=. ../.venv/bin/python scripts/run_uat_domain_5x5_followup.py --yaml=<file>` · merge: `scripts/merge_uat_followup_reports.py`.
+
+### OSSIE + Impala enhancements
+
+- **Gold views** (optional deploy): `gold.corr_b2b_branch_material_month`, `gold.rpt_sat_promo_b2b_sellout_uplift`, `gold.corr_service_sales_office_cust_group_material_month` — `docs/data-enhancement-views.md`, deploy helper `scripts/deploy_gold_enhancement_views.py`.
+- **New governed objects**: `b2b_branch_material_*`, `promo_b2b_sellout_*`, `sales_office_cust_group_service_fill_rate`; B2B branch×material follow-up; promo B2B uplift routing; stock-cover SQL fixes; deterministic ops/unloading workload narrative when analyst LLM flakes.
+
+### Local run
+
+- **Governed Ask AI**: `make dev` → UI http://127.0.0.1:3000 , API http://127.0.0.1:8000 (`frontend/.env.local` → `BACKEND_API_URL=8000`).
+- **Exploratory DuckDB**: `backend-test/start.sh` → **8001** (change FE env if switching modes).
+
+### Frontend (7 Oct)
+
+- Evidence block: embedded Recharts height/margins + `-mt-2` table toggle so chart and **Hide table detail** sit closer (management demo layout).
+
+## Previous checkpoint: follow-up UAT P0 + OSSIE multi-turn stack (6 Oct 2026)
 
 ### Goal
 

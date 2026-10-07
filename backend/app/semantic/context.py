@@ -703,6 +703,18 @@ class SemanticContextService:
                 result["dimension_mismatch"] = ["branch"]
             return result
 
+        mentions_stock_sell_in_ratio = bool(words & {"ratio", "rasio"}) and bool(
+            words & {"stok", "stock"}
+        ) and (("sell" in words and "in" in words) or "sellin" in lowered.replace("-", ""))
+        if mentions_stock_sell_in_ratio or "overstock" in lowered:
+            wants_material = "material" in words or bool(words & {"produk", "sku"})
+            dims = ["calmonth", "material"] if wants_material else ["calmonth"]
+            return resolved(
+                "stock_tempo_to_sell_in_ratio",
+                dims,
+                matched_alias="stock_tempo_sell_in_ratio",
+            )
+
         # These high-frequency Service Level intents have exact published
         # metrics. Resolve their requested grain deterministically instead of
         # leaving synonymous fill-rate metrics to alias-score tie breaking.
@@ -711,8 +723,22 @@ class SemanticContextService:
             "service" in words and "level" in words
         )
         if mentions_fill_or_service_level:
+            mentions_cust_group = (
+                "cust_grp3" in lowered
+                or "customer group" in lowered
+                or "cust grp" in lowered
+                or "grup pelanggan" in lowered
+                or bool(words & {"grp3", "segmentasi"})
+                or ("customer" in words and "group" in words)
+                or ("cust" in words and "group" in words)
+            )
             if mentions_fill_rate_band:
                 return resolved("service_fill_rate", ["fill_rate_band"])
+            if mentions_cust_group:
+                dims = ["sales_off", "cust_grp3"]
+                if "material" in words:
+                    dims.append("material")
+                return resolved("sales_office_cust_group_service_fill_rate", dims)
             if "material" in words:
                 # service_level_material carries sell-in alongside SL PO/DO
                 # for high-runner vs long-tail follow-ups on the same query.
@@ -970,6 +996,12 @@ class SemanticContextService:
         ):
             # Higher OOS rate is worse; do not ASC-sort "terburuk" to near-zero rates.
             ascending = False
+        if "unfulfilled" in metric.casefold() and (
+            any(term in lowered for term in ("terbesar", "terbanyak", "paling besar", "largest", "biggest"))
+            or re.search(r"\btop\s*\d+\b", lowered)
+        ):
+            # "cabang paling jelek … tadi" refers to prior office; material list still wants largest qty DESC.
+            ascending = False
         having_clauses: list[str] = []
         if "fill_rate" in metric and ascending and "service_po_qty" in field_set:
             having_clauses.append("SUM(d.service_po_qty) > 0")
@@ -984,9 +1016,21 @@ class SemanticContextService:
             # Impala cannot resolve a SELECT alias (metric_value) inside
             # HAVING - repeat the actual aggregate expression instead.
             having_clauses.append(f"{expression} = 0")
+        stock_cover_metric = metric == "months_of_stock_cover"
+        if stock_cover_metric and "material" in dimensions and "sell_in_bill_qty" in field_set:
+            having_clauses.append("SUM(d.sell_in_bill_qty) > 0")
         if having_clauses:
             sql.append("HAVING " + " AND ".join(having_clauses))
         requests_ranking, top = _question_requests_ranking(question)
+        sort_stock_cover_by_value = (
+            stock_cover_metric
+            and "material" in dimensions
+            and "warehouse_stock_val" in field_set
+            and any(
+                term in lowered
+                for term in ("nilai stok", "value stok", "paling material", "warehouse stock val")
+            )
+        )
         if trend_time_dimension_inserted and not requests_ranking and not entity_lookup:
             # A pure trend/"per bulan" question (no top-N or superlative
             # ranking intent) should read chronologically, not value-ranked
@@ -997,8 +1041,11 @@ class SemanticContextService:
         elif entity_lookup:
             if dimensions:
                 sql.append("ORDER BY " + ", ".join(f"d.{name} ASC" for name in dimensions))
+        elif sort_stock_cover_by_value:
+            sql.append("ORDER BY SUM(d.warehouse_stock_val) DESC NULLS LAST")
         else:
-            sql.append(f"ORDER BY metric_value {'ASC' if ascending else 'DESC'}")
+            nulls_suffix = " NULLS LAST" if stock_cover_metric else ""
+            sql.append(f"ORDER BY metric_value {'ASC' if ascending else 'DESC'}{nulls_suffix}")
         is_stock_metric = any(
             marker in metric
             for marker in ("stock", "warehouse_stock", "sat_dc", "sat_store")

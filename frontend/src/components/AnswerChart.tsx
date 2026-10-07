@@ -6,7 +6,9 @@ import { ASSISTANT_CHART_CLASS } from './ConversationInner'
 const COLORS = ['#FF5A1F', '#635BFF', '#3EBAA5', '#9A8CFF']
 const tick = { fontSize: 11, fill: '#64748B' }
 const CHART_MARGIN_DENSE_BOTTOM = 88
+const CHART_MARGIN_DENSE_BOTTOM_EMBEDDED = 44
 const CHART_MARGIN_DEFAULT_BOTTOM = 52
+const CHART_MARGIN_DEFAULT_BOTTOM_EMBEDDED = 32
 
 function formatAxisNumber(value: number): string {
   const abs = Math.abs(value)
@@ -63,9 +65,15 @@ export function AnswerChart({
   const categoryCount = data.length
   const denseCategories = chart.type === 'bar' && categoryCount >= 6
   const chartMargin = {
-    top: 12,
+    top: embedded ? 8 : 12,
     right: 16,
-    bottom: denseCategories ? CHART_MARGIN_DENSE_BOTTOM : CHART_MARGIN_DEFAULT_BOTTOM,
+    bottom: denseCategories
+      ? embedded
+        ? CHART_MARGIN_DENSE_BOTTOM_EMBEDDED
+        : CHART_MARGIN_DENSE_BOTTOM
+      : embedded
+        ? CHART_MARGIN_DEFAULT_BOTTOM_EMBEDDED
+        : CHART_MARGIN_DEFAULT_BOTTOM,
     left: 4,
   }
   const xAxis = (
@@ -76,7 +84,7 @@ export function AnswerChart({
       tickLine={false}
       interval={0}
       minTickGap={denseCategories ? 0 : 24}
-      height={denseCategories ? 72 : 48}
+      height={denseCategories ? (embedded ? 44 : 72) : embedded ? 36 : 48}
       angle={denseCategories ? -38 : 0}
       textAnchor={denseCategories ? 'end' : 'middle'}
       tickFormatter={value => truncateAxisLabel(value, denseCategories ? 18 : 24)}
@@ -92,10 +100,16 @@ export function AnswerChart({
     </>
   )
   const keys = visibleSeriesNames.length ? visibleSeriesNames : [yField]
-  const chartHeight = denseCategories ? 'h-[22rem]' : embedded ? 'h-64' : 'h-72'
+  const chartHeight = denseCategories
+    ? embedded
+      ? 'h-[14rem]'
+      : 'h-[22rem]'
+    : embedded
+      ? 'h-52'
+      : 'h-72'
   const body = (
     <>
-      <div className={`text-sm font-semibold text-cloudera-navy ${embedded ? 'mb-3' : 'mb-4'}`}>{chart.title}</div>
+      <div className={`text-sm font-semibold text-cloudera-navy ${embedded ? 'mb-1.5' : 'mb-4'}`}>{chart.title}</div>
       <div className={chartHeight}>
         <ResponsiveContainer width="100%" height="100%">
     {chart.type === 'bar' ? <BarChart data={data} margin={chartMargin}>{axes}{keys.map((key, index) => <Bar key={key} dataKey={key} fill={COLORS[index % COLORS.length]} radius={[6, 6, 0, 0]} maxBarSize={54} />)}</BarChart>

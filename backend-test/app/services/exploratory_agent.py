@@ -30,7 +30,7 @@ def _provider_error_message(code: str) -> str:
     if code in {"credit_balance_exhausted", "insufficient_quota"}:
         return (
             "Saldo/kuota API OpenAI habis (HTTP 429). Isi ulang billing OpenAI atau "
-            "pakai Gemini (GEMINI_API_KEY) / Qwen di backend-tes/.env."
+            "pakai Gemini (GEMINI_API_KEY) / Qwen di backend-test/.env."
         )
     if code in {"API_KEY_INVALID", "PERMISSION_DENIED", "403"}:
         return "API key Gemini/OpenAI ditolak — periksa GEMINI_API_KEY dan model id di .env."

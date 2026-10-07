@@ -1,6 +1,7 @@
 from app.services.conversational import (
     _is_analytic_escape_from_clarification,
     _is_capability_overview,
+    _is_promo_proxy_explain_follow_up,
     _is_sell_in_vs_sell_out_concept,
 )
 
@@ -23,3 +24,16 @@ def test_detects_capability_overview_question() -> None:
 def test_analytic_escape_after_clarification() -> None:
     q = "cukup tampilkan sell-in FE001 per bulan Q4"
     assert _is_analytic_escape_from_clarification(q) is True
+
+
+def test_promo_proxy_phrase_does_not_hijack_ranked_uplift_follow_up() -> None:
+    history = [
+        {
+            "session_frame": {
+                "last_metric": "promo_observation_count",
+                "analysis_context": {"last_metric": "promo_observation_count"},
+            }
+        }
+    ]
+    q = "status dominan dari jawaban tadi, top 3 material by revenue uplift proxy"
+    assert _is_promo_proxy_explain_follow_up(q, history) is False

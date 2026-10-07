@@ -13,7 +13,7 @@ import yaml
 
 
 ROOT = Path(__file__).resolve().parents[1]
-PROJECT_DIR = ROOT / "projects" / "tempo_scan_impala"
+PROJECT_DIR = ROOT / "backend" / "projects" / "tempo_scan_impala"
 MODEL_PATH = PROJECT_DIR / "ossie" / "tempo_core.ossie.yaml"
 GOVERNANCE_PATH = PROJECT_DIR / "ossie" / "tempo_governance.yaml"
 GOLDEN_PATH = PROJECT_DIR / "ossie" / "golden_questions.yaml"
@@ -34,15 +34,16 @@ JOURNEY_SOURCES = {
     "gold.corr_b2b_branch_estore_month",
     "gold.corr_b2b_material_plu",
     "gold.corr_stock_tempo_month_seta",
-    "gold.rpt_sat_idm_dc_month",
+    "gold.rpt_sat_dc_month",
     "gold.rpt_sat_oos_material_month",
     "gold.corr_stock_tempo_sales_material_month",
     "gold.corr_sales_b2b_material_month",
-    "gold.corr_b2b_satidm_branch_month",
-    "gold.corr_satidm_oos_material_month",
+    "gold.corr_b2b_sat_branch_month",
+    "gold.corr_sat_dc_oos_material_month",
 }
 SAT_PROMO_SOURCES = {
     "gold.rpt_sat_promo_material_december_semantic",
+    "gold.rpt_sat_promo_material_uplift",
 }
 # 28 Sep 2026: Sales/Sell-In customer and sales_office breakdown at the
 # material+month grain (previously Sell-In only supported calmonth and
@@ -60,6 +61,10 @@ B2B_CUSTOMER_SOURCES = {
     "gold.corr_b2b_customer_branch_estore_month",
     "gold.corr_b2b_customer_material_plu_month",
 }
+# 7 Oct 2026: branch × material sell-out (datasets/gold/01_corr_b2b_branch_material_month.sql).
+B2B_BRANCH_MATERIAL_SOURCES = {
+    "gold.corr_b2b_branch_material_month",
+}
 # 28 Sep 2026: Service Level sales_office breakdown, extending the
 # existing calmonth+material grain with sales_off. See
 # datasets/gold/26_rpt_service_level_sales_office_semantic.sql. The
@@ -70,13 +75,20 @@ B2B_CUSTOMER_SOURCES = {
 SERVICE_LEVEL_SALES_OFFICE_SOURCES = {
     "gold.corr_service_sales_office_material_month",
 }
+# 7 Oct 2026: optional enhancement views (datasets/gold/02_*, 03_*).
+ENHANCEMENT_SOURCES = {
+    "gold.rpt_sat_promo_b2b_sellout_uplift",
+    "gold.corr_service_sales_office_cust_group_material_month",
+}
 EXPECTED_SOURCES = (
     BASELINE_SOURCES
     | JOURNEY_SOURCES
     | SAT_PROMO_SOURCES
     | SALES_CUSTOMER_OFFICE_SOURCES
     | B2B_CUSTOMER_SOURCES
+    | B2B_BRANCH_MATERIAL_SOURCES
     | SERVICE_LEVEL_SALES_OFFICE_SOURCES
+    | ENHANCEMENT_SOURCES
 )
 
 

@@ -215,6 +215,23 @@ class TempoOssieRegistry:
         # are still present. Check the ROI-proxy option discriminators
         # first, before the generic promo/ROI trigger below.
         roi_proxy_discriminators = {
+            "promo_b2b_sellout_revenue_uplift": (
+                "revenue uplift sell-out",
+                "uplift sell-out",
+                "uplift sellout",
+                "uplift b2b",
+                "uplift alfamart",
+                "penjualan sell-out",
+                "sell-out uplift",
+                "sellout uplift",
+                "partner sell-out",
+            ),
+            "promo_b2b_sellout_volume_uplift": (
+                "volume uplift sell-out",
+                "volume uplift b2b",
+                "qty uplift sell-out",
+                "qty uplift b2b",
+            ),
             "promo_material_revenue_uplift": (
                 "revenue uplift",
                 "penjualan general trade",
@@ -294,6 +311,31 @@ class TempoOssieRegistry:
                 "definition": self.metric_definition("promo_observation_count"),
                 "dimension_mismatch": [],
             }
+        mentions_partner_sellout = any(
+            term in normalized
+            for term in ("sellout", "b2b", "alfamart", "partnersellout", "channelpartner")
+        )
+        if (
+            mentions_promo
+            and requests_promo_attribution
+            and mentions_partner_sellout
+            and "generaltrade" not in normalized
+        ):
+            wants_volume = any(
+                term in normalized for term in ("volume", "qty", "quantity", "kuantitas")
+            )
+            metric = (
+                "promo_b2b_sellout_volume_uplift"
+                if wants_volume
+                else "promo_b2b_sellout_revenue_uplift"
+            )
+            return {
+                "status": "resolved",
+                "metric": metric,
+                "matched_alias": "promo_b2b_sellout_proxy",
+                "definition": self.metric_definition(metric),
+                "dimension_mismatch": [],
+            }
         if mentions_promo and (requests_promo_attribution or requests_unavailable_promo_period):
             return {
                 "status": "needs_clarification",
@@ -303,13 +345,20 @@ class TempoOssieRegistry:
                     "SAT Promo (Alfamart) - data yang tersedia hanya deskripsi "
                     "mekanisme promo (teks bebas), bukan nilai biaya terstruktur, dan "
                     "SAT Promo hanya mencakup Desember 2024 tanpa baseline bulan "
-                    "sebelumnya di channel yang sama. Satu-satunya proxy yang bisa "
-                    "dihitung adalah dampak penjualan General Trade (bukan Alfamart "
-                    "langsung) untuk material yang sama, dibandingkan November "
-                    "(baseline) vs Desember (bulan promo). Metrik mana yang Anda "
-                    "mau?"
+                    "sebelumnya di channel yang sama. Proxy yang bisa dihitung: (1) uplift "
+                    "sell-out B2B/Alfamart Nov vs Des untuk material promo yang sama, atau "
+                    "(2) dampak penjualan General Trade untuk material yang sama. Metrik "
+                    "mana yang Anda mau?"
                 ),
                 "options": [
+                    {
+                        "metric": "promo_b2b_sellout_revenue_uplift",
+                        "label": "Revenue Uplift (Rp, B2B sell-out, proxy)",
+                    },
+                    {
+                        "metric": "promo_b2b_sellout_volume_uplift",
+                        "label": "Volume/Qty Uplift (B2B sell-out, proxy)",
+                    },
                     {
                         "metric": "promo_material_revenue_uplift",
                         "label": "Revenue Uplift (Rp, General Trade, proxy)",

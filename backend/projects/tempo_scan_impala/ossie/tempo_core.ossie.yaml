@@ -477,6 +477,74 @@ datasets:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"domain":"fulfillment","grain":"calmonth+material+sales_off","layer":"semantic_gold","built":"2026-09-28"}'
+- name: service_level_sales_office_cust_group
+  source: gold.corr_service_sales_office_cust_group_material_month
+  primary_key:
+  - calmonth
+  - material
+  - sales_off
+  - cust_grp3
+  description: Service Level fill rate by sales office, material, customer group (0CUST_GRP3), and month.
+  ai_context:
+    instructions: Recompute aggregate Fill Rate from total DO and PO; never average row ratios. cust_grp3 is SAP customer
+      group segmentation (not individual 0CUSTOMER). In Q4 2024 PoC it may be a single constant group — if breakdown by
+      cust_grp3 returns one value, say so explicitly. Prefer service_level_sales_office when cust_grp3 is not requested.
+    synonyms:
+    - fill rate customer group
+    - service level cust grp3
+    - fill rate per customer group
+  fields:
+  - name: calmonth
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: calmonth
+    datatype: Integer
+    dimension:
+      is_time: true
+  - name: material
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: material
+    datatype: String
+    dimension: {}
+  - name: sales_off
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: sales_off
+    datatype: String
+    dimension: {}
+  - name: cust_grp3
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: cust_grp3
+    datatype: String
+    dimension: {}
+    label: Customer Group (0CUST_GRP3)
+  - name: service_do_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: service_do_qty
+    datatype: Decimal
+  - name: service_po_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: service_po_qty
+    datatype: Decimal
+  - name: service_fill_rate
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: service_fill_rate
+    datatype: Decimal
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"domain":"fulfillment","grain":"calmonth+material+sales_off+cust_grp3","layer":"semantic_gold","built":"2026-10-07"}'
 - name: customer_material_360
   source: gold.rpt_sap_customer_material_month_semantic
   primary_key:
@@ -919,6 +987,66 @@ datasets:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"domain":"b2b","grain":"calmonth+material+kode_plu","layer":"semantic_gold","built":"2026-09-24"}'
+- name: b2b_branch_material
+  source: gold.corr_b2b_branch_material_month
+  primary_key:
+  - calmonth
+  - branch
+  - material
+  description: B2B (Sell-Out) monthly aggregate by partner branch/DC and SAP material, October-December 2024.
+  ai_context:
+    instructions: Use for top products sell-out at a specific Alfamart DC/branch. branch and material coexist on the same
+      grain; do not fall back to company-wide material sell-out when the user names a branch from a prior ranking table.
+    synonyms:
+    - b2b branch material
+    - sell-out per cabang per produk
+    - top produk sell-out di dc
+    - produk sell-out cabang alfamart
+  fields:
+  - name: calmonth
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: calmonth
+    datatype: Integer
+    dimension:
+      is_time: true
+  - name: branch
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: branch
+    datatype: String
+    dimension: {}
+    label: Branch/DC
+  - name: material
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: material
+    datatype: String
+    dimension: {}
+  - name: b2b_bill_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: b2b_bill_qty
+    datatype: Decimal
+  - name: b2b_bill_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: b2b_bill_val
+    datatype: Decimal
+  - name: row_count
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: row_count
+    datatype: Integer
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"domain":"b2b","grain":"calmonth+branch+material","layer":"semantic_gold","built":"2026-10-07"}'
 - name: b2b_customer_branch_estore
   source: gold.corr_b2b_customer_branch_estore_month
   primary_key:
@@ -1688,6 +1816,68 @@ datasets:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"domain":"sat_promo_roi_proxy","grain":"material","layer":"semantic_gold","built":"2026-10-01","status_semantics":"cross_channel_proxy_not_causal_attribution"}'
+- name: sat_promo_b2b_sellout_uplift
+  source: gold.rpt_sat_promo_b2b_sellout_uplift
+  primary_key:
+  - material
+  description: B2B/Alfamart partner sell-out uplift proxy for SAT Promo materials — billed value/qty December 2024 minus
+    November 2024 on silver.b2b_oct_dec_2024 for the same SAP material codes as SAT Promo.
+  ai_context:
+    instructions: Same-channel (partner sell-out) companion to sat_promo_material_uplift (General Trade sell-in proxy).
+      Still NOT promo ROI — no structured promo cost field. Label as B2B sell-out uplift for promo SKU list, not causal
+      ROI. Prefer this when the user asks uplift/ROI on Alfamart, B2B, sell-out, or partner channel for promo materials.
+    synonyms:
+    - promo sell-out uplift
+    - uplift sell-out alfamart
+    - promo b2b uplift
+    - roi promo alfamart sell-out
+  fields:
+  - name: material
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: material
+    datatype: String
+    dimension: {}
+  - name: nov_bill_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: nov_bill_val
+    datatype: Decimal
+  - name: dec_bill_val
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: dec_bill_val
+    datatype: Decimal
+  - name: b2b_sellout_revenue_uplift
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: b2b_sellout_revenue_uplift
+    datatype: Decimal
+  - name: nov_bill_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: nov_bill_qty
+    datatype: Decimal
+  - name: dec_bill_qty
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: dec_bill_qty
+    datatype: Decimal
+  - name: b2b_sellout_volume_uplift
+    expression:
+      dialects:
+      - dialect: ANSI_SQL
+        expression: b2b_sellout_volume_uplift
+    datatype: Decimal
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"domain":"sat_promo_roi_proxy","grain":"material","layer":"semantic_gold","built":"2026-10-07","status_semantics":"b2b_sellout_proxy_not_roi"}'
 relationships: []
 metrics:
 - name: gross_billing_value
@@ -2176,6 +2366,23 @@ metrics:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"FL-01-OFFICE","base_dataset":"service_level_sales_office","allowed_dimensions":["calmonth","material","sales_off"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-01","unit_format":"percent"}'
+- name: sales_office_cust_group_service_fill_rate
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(service_level_sales_office_cust_group.service_do_qty) / NULLIF(SUM(service_level_sales_office_cust_group.service_po_qty), 0)
+  datatype: Decimal
+  description: Service Level fill rate by sales office, material, customer group, and month.
+  ai_context:
+    synonyms:
+    - fill rate customer group
+    - service level cust grp3
+    - fill rate per customer group per office
+    instructions: Use when the question names customer group / cust grp3 / segment alongside office or material. Recompute
+      from DO/PO totals; never average row ratios.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"FL-01-CGRP","base_dataset":"service_level_sales_office_cust_group","allowed_dimensions":["calmonth","material","sales_off","cust_grp3"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-01","unit_format":"percent"}'
 - name: sales_office_service_do_quantity
   expression:
     dialects:
@@ -2520,6 +2727,37 @@ metrics:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"B2B-02-BR","base_dataset":"b2b_branch_estore","allowed_dimensions":["calmonth","sales_off","branch","e_store"],"governance_status":"approved_candidate","business_approval_status":"confirmed_by_tempo_meeting_2026_09_28","original_kpi_id":"B02","unit_format":"quantity"}'
+- name: b2b_branch_material_sell_out_value
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(b2b_branch_material.b2b_bill_val)
+  datatype: Decimal
+  description: B2B Sell-Out billing value by partner branch/DC and material.
+  ai_context:
+    synonyms:
+    - sell-out cabang material
+    - top produk sell-out di cabang
+    - produk sell-out dc alfamart
+    - breakdown produk per dc b2b
+    instructions: Prefer this over material_sell_out_value when the question filters or refers to a specific branch/DC from a prior B2B ranking.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"B2B-03-BR-MAT","base_dataset":"b2b_branch_material","allowed_dimensions":["calmonth","branch","material"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"B02","unit_format":"currency_idr"}'
+- name: b2b_branch_material_sell_out_quantity
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(b2b_branch_material.b2b_bill_qty)
+  datatype: Decimal
+  description: B2B Sell-Out billed quantity by partner branch/DC and material.
+  ai_context:
+    synonyms:
+    - qty sell-out cabang material
+    - quantity sell-out per dc per produk
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"B2B-04-BR-MAT","base_dataset":"b2b_branch_material","allowed_dimensions":["calmonth","branch","material"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"B02","unit_format":"quantity"}'
 - name: b2b_material_plu_value
   expression:
     dialects:
@@ -2901,6 +3139,39 @@ metrics:
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"PR-05-PROXY","base_dataset":"sat_promo_material_uplift","allowed_dimensions":["material"],"governance_status":"approved_candidate_with_caveat","business_approval_status":"pending_business_confirmation","original_kpi_id":"PR-05","unit_format":"currency_idr"}'
+- name: promo_b2b_sellout_revenue_uplift
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(sat_promo_b2b_sellout_uplift.b2b_sellout_revenue_uplift)
+  datatype: Decimal
+  description: B2B/Alfamart sell-out revenue uplift (Dec minus Nov 2024) for SAT Promo material codes — partner-channel
+    proxy, not ROI.
+  ai_context:
+    synonyms:
+    - promo sell-out uplift
+    - uplift sell-out alfamart promo
+    - roi promo b2b
+    - promo alfamart sell-out
+    instructions: Prefer over promo_material_revenue_uplift when the user asks Alfamart/B2B/sell-out channel uplift for promo
+      SKUs. Still not ROI without promo cost — state proxy clearly.
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"PR-06-B2B-PROXY","base_dataset":"sat_promo_b2b_sellout_uplift","allowed_dimensions":["material"],"governance_status":"approved_candidate_with_caveat","business_approval_status":"pending_business_confirmation","original_kpi_id":"PR-06","unit_format":"currency_idr"}'
+- name: promo_b2b_sellout_volume_uplift
+  expression:
+    dialects:
+    - dialect: ANSI_SQL
+      expression: SUM(sat_promo_b2b_sellout_uplift.b2b_sellout_volume_uplift)
+  datatype: Decimal
+  description: B2B/Alfamart sell-out quantity uplift (Dec minus Nov 2024) for SAT Promo material codes.
+  ai_context:
+    synonyms:
+    - promo sell-out qty uplift
+    - volume uplift promo b2b
+  custom_extensions:
+  - vendor_name: TEMPO
+    data: '{"metric_id":"PR-07-B2B-PROXY","base_dataset":"sat_promo_b2b_sellout_uplift","allowed_dimensions":["material"],"governance_status":"approved_candidate_with_caveat","business_approval_status":"pending_business_confirmation","original_kpi_id":"PR-07","unit_format":"quantity"}'
 - name: stock_tempo_to_sell_in_ratio
   expression:
     dialects:

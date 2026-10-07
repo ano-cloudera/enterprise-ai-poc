@@ -1,5 +1,7 @@
 # Project Status
 
+**Snapshot (7 Oct 2026):** Governed OSSIE/Impala Ask AI on `backend/` + Next.js `frontend/` is the default path. Multi-turn follow-up UAT **50/50**, 1×2 domain smoke **10/10**, management-style single-turn UAT **30/30** (merged JSON under `backend/eval/`). OSSIE contract validation passes at **24 datasets / 72 metrics**. Local exploratory SQL sandbox lives in **`backend-test/`** (port 8001). See `PROJECT_STATE.md` for runbooks and CAI deploy pointers in `README.md`.
+
 Foundation architecture updated to v2 after Tempo Scan design review.
 
 Locked:

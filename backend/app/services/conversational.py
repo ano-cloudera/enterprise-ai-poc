@@ -164,6 +164,13 @@ def _is_promo_proxy_explain_follow_up(question: str, history: list[dict[str, Any
     lowered = question.casefold()
     if not any(term in lowered for term in ("jelaskan", "explain", "proxy", "nov vs", "november")):
         return False
+    # Governed follow-ups may mention "uplift proxy" without asking for a concept essay.
+    if any(term in lowered for term in ("top ", "top", "ranking", "urutan", "material", "produk")):
+        return False
+    if "status dominan" in lowered or "dominan tadi" in lowered or "dominan dari" in lowered:
+        return False
+    if "tadi" in lowered and any(term in lowered for term in ("uplift", "material", "status")):
+        return False
     if not history:
         return False
     from app.services.follow_up import analysis_context_from_history

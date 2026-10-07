@@ -1,4 +1,4 @@
-"""Shared LLM env resolution (repo .env aliases). Mirrors backend-tes conventions."""
+"""Shared LLM env resolution (repo .env aliases). Mirrors backend-test conventions."""
 
 from __future__ import annotations
 

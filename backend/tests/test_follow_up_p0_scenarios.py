@@ -113,7 +113,7 @@ def test_service_level_po_do_gap_office_material_drill() -> None:
     res = try_follow_up_governed_resolution(q, ctx, understanding=None)
     assert res is not None
     assert res["metric"] == "sales_office_service_unfulfilled_quantity"
-    assert "material" in res["dimensions"] and "sales_off" in res["dimensions"]
+    assert res["dimensions"] == ["material"]
     assert any("0245" in p for p in res.get("follow_up_entity_filters") or [])
 
 
@@ -244,7 +244,7 @@ def test_cross_domain_dc_sell_out_product_drill_follow_up() -> None:
     q = "DC yang muncul di jawaban tadi, top 3 produk sell-out-nya"
     res = try_follow_up_governed_resolution(q, ctx, understanding=None)
     assert res is not None
-    assert res["metric"] == "material_sell_out_value"
+    assert res["metric"] == "b2b_branch_material_sell_out_value"
     assert "material" in res["dimensions"]
     filters = " ".join(res.get("follow_up_entity_filters") or [])
     assert "MAKASSAR" in filters.upper()
@@ -284,3 +284,20 @@ def test_promo_status_dominant_to_uplift_material_follow_up() -> None:
     filters = " ".join(res.get("follow_up_entity_filters") or [])
     assert "program_status" in filters.casefold()
     assert "'Y'" in filters or "Y" in filters
+
+
+def test_service_level_worst_office_unfulfilled_material_drill() -> None:
+    ctx = build_analysis_context(
+        metric="sales_office_service_fill_rate",
+        dimensions=["sales_off"],
+        entity_dimension="sales_off",
+        ranked_entities=[{"rank": 1, "id": "0245", "dimension": "sales_off", "metric_value": 0.42}],
+        last_question="10 sales office dengan fill rate terendah Q4 2024",
+    )
+    q = "cabang paling jelek dari ranking tadi, 5 material dengan unfulfilled quantity terbesar"
+    res = try_follow_up_governed_resolution(q, ctx, understanding=None)
+    assert res is not None
+    assert res["metric"] == "sales_office_service_unfulfilled_quantity"
+    assert res["dimensions"] == ["material"]
+    filters = " ".join(res.get("follow_up_entity_filters") or [])
+    assert "0245" in filters

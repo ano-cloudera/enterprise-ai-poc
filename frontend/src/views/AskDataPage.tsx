@@ -432,17 +432,19 @@ function StructuredAnswer({
 
       {/* Evidence: chart + table belong together */}
       {showEvidenceBlock && (
-        <section className="answer-surface space-y-3">
+        <section className={`answer-surface ${hasVisualChart ? 'space-y-0' : 'space-y-3'}`}>
           {response.chart_spec?.type === 'kpi' && (
             <div className="max-w-md">
               <KpiCard label={response.chart_spec.title} value={kpiValue} format="" icon={BarChart3} />
             </div>
           )}
 
-          {hasVisualChart && <AnswerChart chart={response.chart_spec} rows={response.data.rows} embedded />}
+          {hasVisualChart && (
+            <AnswerChart chart={response.chart_spec} rows={response.data.rows} embedded className="!mb-0" />
+          )}
 
           {response.data.rows.length > 0 && (
-            <div className={hasVisualChart ? 'answer-section-divider-compact space-y-2 !pb-0' : 'space-y-3'}>
+            <div className={hasVisualChart ? 'answer-section-divider-compact -mt-2 space-y-1 !pb-0' : 'space-y-3'}>
               {!hasVisualChart && <div className="type-section-label">Data table</div>}
               {hasVisualChart && !expandForExport && (
                 <button

@@ -67,3 +67,51 @@ def deterministic_ops_duration_answer(
         f"Sales office {office} memiliki rata-rata durasi {label} "
         f"{minutes_f:.2f} menit (baris #1 hasil query, urutan {direction})."
     )
+
+
+def deterministic_ops_workload_answer(
+    question: str,
+    metric: str | None,
+    rows: list[dict[str, Any]],
+) -> str | None:
+    """Event-row counts (unloading/picking workload), not duration minutes."""
+    if not rows or not metric:
+        return None
+    if metric not in ("unloading_event_count", "picking_workload_rows"):
+        return None
+    lowered = (question or "").casefold()
+    if not any(
+        term in lowered
+        for term in (
+            "event",
+            "jumlah",
+            "banyak",
+            "aktivitas",
+            "workload",
+            "terbanyak",
+            "tertinggi",
+            "dokumen",
+            "baris",
+        )
+    ):
+        return None
+    row = rows[0]
+    if not isinstance(row, dict):
+        return None
+    office_col = next((c for c in ("sales_office", "sales_off") if c in row), None)
+    if not office_col:
+        return None
+    office = row.get(office_col)
+    raw = row.get("metric_value")
+    if office is None or raw is None:
+        return None
+    try:
+        count = int(float(raw))
+    except (TypeError, ValueError):
+        return None
+    label = "unloading" if "unloading" in metric else "picking"
+    unit = "event unloading" if "unloading" in metric else "baris picking"
+    return (
+        f"Sales office {office} memiliki aktivitas {label} terbanyak Q4 2024: "
+        f"{count:,} {unit} tercatat (peringkat #1 dari query governed)."
+    )

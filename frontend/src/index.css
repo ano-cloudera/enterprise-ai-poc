@@ -63,7 +63,7 @@ button { cursor: pointer; }
     @apply mt-4 border-t border-slate-100 pt-4;
   }
   .answer-section-divider-compact {
-    @apply mt-2 border-t border-slate-100 pt-3;
+    @apply mt-0 border-t border-slate-100 pt-1.5;
   }
   .type-chat-meta { @apply text-xs leading-snug text-slate-500; }
   .type-chip { @apply text-xs font-medium; }

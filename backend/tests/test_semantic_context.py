@@ -7,8 +7,8 @@ from tests.test_history import contextualize_question
 def test_context_is_derived_from_the_actual_tempo_ossie_contract() -> None:
     context = SemanticContextService()
 
-    assert len(context.datasets) == 21
-    assert len(context.metrics) == 67
+    assert len(context.datasets) == 24
+    assert len(context.metrics) == 72
     material = context.table_policy("gold.rpt_sap_material_month_semantic")
     assert "material" in material.columns
     assert "sell_in_bill_val" in material.columns
@@ -431,6 +431,19 @@ def test_b2b_dc_ranking_question_still_uses_value_ranking() -> None:
     assert "LIMIT 10" in sql
 
 
+def test_stock_cover_material_rank_orders_by_stock_value_and_filters_zero_sell_in() -> None:
+    question = (
+        "Ada concern cash tied in stock — bisa hitung months of stock cover Q4 2024? "
+        "Kalau perlu filter material, ambil yang paling material secara nilai stok."
+    )
+    service = SemanticContextService()
+    resolution = service.resolve(question)
+    assert resolution["metric"] == "months_of_stock_cover"
+    sql = service.compile_governed(resolution["metric"], question, resolution.get("dimensions"))
+    assert "SUM(d.sell_in_bill_qty) > 0" in sql
+    assert "ORDER BY SUM(d.warehouse_stock_val) DESC" in sql
+
+
 def test_stock_cover_at_branch_sets_dimension_mismatch_not_sql_fallback() -> None:
     question = (
         "produk material 500-21-02 di cabang 0201 hitung bisa meng-cover "
@@ -646,6 +659,14 @@ def test_promo_uplift_ranking_defaults_to_top_ten() -> None:
     assert "ORDER BY metric_value DESC" in sql
     assert "LIMIT 10" in sql
     assert "LIMIT 50" not in sql
+
+
+def test_promo_b2b_sellout_uplift_resolves_without_gt_clarification() -> None:
+    resolution = SemanticContextService().resolve(
+        "Uplift sell-out Alfamart untuk material SAT Promo Nov vs Des 2024"
+    )
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "promo_b2b_sellout_revenue_uplift"
 
 
 def test_promo_program_status_distribution_resolves_observation_count() -> None:

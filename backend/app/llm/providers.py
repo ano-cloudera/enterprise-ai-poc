@@ -193,7 +193,7 @@ def _gemini_messages_to_contents(messages: list[dict[str, str]]):
 
 
 class GeminiProvider:
-    """Google Gemini via ``google-genai`` SDK (same as backend-tes)."""
+    """Google Gemini via ``google-genai`` SDK (same as backend-test)."""
 
     provider_name = "gemini"
 

@@ -28,11 +28,12 @@ BASE = "http://127.0.0.1:8000"
 PROVIDER = "gemini"
 SKIP_JUDGE = False
 DOMAIN_FILTER: str | None = None
+YAML_NAME = "uat_domain_5x5_followup.yaml"
 TIMEOUT = 360.0
 
 
 def _parse_argv() -> None:
-    global BASE, PROVIDER, SKIP_JUDGE, DOMAIN_FILTER
+    global BASE, PROVIDER, SKIP_JUDGE, DOMAIN_FILTER, YAML_NAME
     args = [a for a in sys.argv[1:] if a.startswith("-")]
     pos = [a for a in sys.argv[1:] if not a.startswith("-")]
     if "--skip-judge" in args:
@@ -40,6 +41,8 @@ def _parse_argv() -> None:
     for arg in args:
         if arg.startswith("--domain="):
             DOMAIN_FILTER = arg.split("=", 1)[1].strip()
+        if arg.startswith("--yaml="):
+            YAML_NAME = arg.split("=", 1)[1].strip()
     if len(pos) > 0:
         BASE = pos[0]
     if len(pos) > 1:
@@ -70,7 +73,10 @@ def check_turn(body: dict, expect: dict) -> tuple[bool, str]:
 
 async def main() -> int:
     _parse_argv()
-    path = BACKEND / "eval" / "uat_domain_5x5_followup.yaml"
+    path = BACKEND / "eval" / YAML_NAME
+    if not path.is_file():
+        print(f"YAML not found: {path}", file=sys.stderr)
+        return 1
     data = yaml.safe_load(path.read_text(encoding="utf-8"))
     scenarios = list(data.get("scenarios") or [])
     if DOMAIN_FILTER:
@@ -203,8 +209,11 @@ async def main() -> int:
                 {"domain": dom, "scenarios_passed": d_pass, "scenarios_total": len(items), "scenarios": items}
             )
 
-        out = BACKEND / "eval" / f"uat_domain_5x5_followup_run_{uuid.uuid4().hex[:8]}.json"
+        suite_stem = path.stem  # e.g. uat_domain_1x2_followup
+        out = BACKEND / "eval" / f"{suite_stem}_run_{uuid.uuid4().hex[:8]}.json"
         payload = {
+            "suite": suite_stem,
+            "yaml": path.name,
             "base_url": BASE,
             "provider": PROVIDER,
             "judge_enabled": not SKIP_JUDGE,

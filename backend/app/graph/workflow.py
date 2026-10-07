@@ -22,7 +22,11 @@ from app.graph.state import AskDataState
 from app.semantic.context import is_governed_entity_lookup
 from app.llm.base import LLMProvider, ProviderError
 from app.services.conversational import TurnUnderstanding, turn_understanding_from_state
-from app.services.ops_duration_narrative import deterministic_ops_duration_answer
+from app.services.ops_duration_narrative import (
+    deterministic_ops_duration_answer,
+    deterministic_ops_workload_answer,
+)
+from app.services.service_level_narrative import deterministic_service_unfulfilled_material_answer
 from app.services.user_facing_error import explain_failure
 from app.sql.validator import ValidatedSQL
 
@@ -681,21 +685,29 @@ def build_workflow(deps: WorkflowDependencies):
                     "tetapi angka di bawah valid dari query governed Impala."
                 )
                 metric = resolution.get("metric") if isinstance(resolution, dict) else None
-                direct = deterministic_ops_duration_answer(
-                    str(state.get("question") or ""),
-                    str(metric) if metric else None,
-                    rows,
-                )
+                question_text = str(state.get("question") or "")
+                metric_text = str(metric) if metric else None
+                direct = deterministic_ops_duration_answer(question_text, metric_text, rows)
+                deterministic_narrative = direct is not None
+                if not direct:
+                    direct = deterministic_service_unfulfilled_material_answer(
+                        question_text, metric_text, rows
+                    )
+                    deterministic_narrative = direct is not None
+                if not direct:
+                    direct = deterministic_ops_workload_answer(question_text, metric_text, rows)
+                    deterministic_narrative = direct is not None
                 if not direct:
                     direct = (
                         f"Query governed selesai dengan {row_count} baris hasil. "
                         "Gunakan tabel di bawah untuk membandingkan cabang/material; "
                         "minta penjelasan ulang jika perlu narasi manajemen lebih rinci."
                     )
+                answer_caveats = [] if deterministic_narrative else [caveat]
                 return {
                     **state,
                     "status": "SUCCESS",
-                    "answer": _safe_answer(direct, caveats=[caveat]),
+                    "answer": _safe_answer(direct, caveats=answer_caveats),
                     "chart_spec": state.get("chart_spec"),
                     "timings": _with_timing(state, "analysis_ms", _elapsed(started)),
                 }

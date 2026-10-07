@@ -1,11 +1,11 @@
-# backend-tes — TEMPO exploratory local
+# backend-test — TEMPO exploratory local
 
 Agent-driven **read-only SQL** over **DuckDB `silver.*` sample** (9 domains). Same `/chat` and `/chat/stream` contract as backend for **frontend**.
 
 ## Quick start
 
 ```bash
-cd backend-tes
+cd backend-test
 python -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 cp .env.example .env   # GEMINI_API_KEY or GOOGLE_API_KEY (Google AI Studio, google-genai SDK)

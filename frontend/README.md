@@ -7,13 +7,13 @@ Next.js Ask Data client adapted from the proven TEMPO frontend. Dashboard and Mo
 ```bash
 cd frontend
 npm ci
-cp .env.example .env.local   # BACKEND_API_URL=http://127.0.0.1:8001 for backend-tes local
+cp .env.example .env.local   # BACKEND_API_URL=http://127.0.0.1:8001 for backend-test local
 ./start.sh                   # or: npm run dev
 npm test
 npm run build
 ```
 
-Start **backend-tes** on port **8001** before the UI (`backend-tes/./start.sh`). For governed **backend**, set `BACKEND_API_URL=http://127.0.0.1:8000` in `.env.local`.
+Start **backend-test** on port **8001** before the UI (`backend-test/./start.sh`). For governed **backend**, set `BACKEND_API_URL=http://127.0.0.1:8000` in `.env.local`.
 
 The browser always calls same-origin `/api/*`. `next.config.mjs` proxies those calls server-side to `BACKEND_API_URL`, preserving the V1 workaround for CAI cross-origin gateway restrictions. `NEXT_PUBLIC_BACKEND_URL` is consumed by the CAI launcher and copied into server-only `BACKEND_API_URL`; no secret belongs in a `NEXT_PUBLIC_*` variable.
 
