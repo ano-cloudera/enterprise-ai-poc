@@ -239,7 +239,11 @@ def build_workflow(deps: WorkflowDependencies):
         intent = await _conversational_intent(state)
         intent_payload = intent.model_dump()
         if intent.is_conversational:
-            guidance = deps.semantic_context.guidance_context(original_question)
+            guidance = deps.semantic_context.guidance_context(
+                original_question,
+                session_last_metric=state.get("session_last_metric"),
+                session_capability_hint=state.get("session_capability_hint"),
+            )
             first_turn = not bool(state.get("conversation_history"))
             if intent.rationale == "concept_sell_in_vs_sell_out":
                 convo_prompt = "conversational_sell_in_out.md"
@@ -277,8 +281,22 @@ def build_workflow(deps: WorkflowDependencies):
 
                 if intent.rationale == "concept_sell_in_vs_sell_out":
                     answer = AnalysisOutput.model_validate(deterministic_sell_in_vs_sell_out_answer())
-                elif intent.rationale == "capability_overview":
-                    answer = AnalysisOutput.model_validate(deterministic_capability_overview_answer())
+                elif intent.rationale in ("capability_overview", "capability_follow_up"):
+                    from app.services.conversational_fallback import (
+                        deterministic_capability_follow_up_answer,
+                    )
+
+                    excluded = guidance.get("excluded_focus")
+                    hint = guidance.get("session_capability_hint")
+                    if isinstance(hint, dict) and intent.rationale == "capability_follow_up":
+                        answer = AnalysisOutput.model_validate(
+                            deterministic_capability_follow_up_answer(
+                                excluded_focus=excluded if isinstance(excluded, str) else None,
+                                session_hint=hint,
+                            )
+                        )
+                    else:
+                        answer = AnalysisOutput.model_validate(deterministic_capability_overview_answer())
                 elif intent.rationale == "promo_proxy_explain":
                     answer = AnalysisOutput.model_validate(deterministic_promo_uplift_proxy_explain())
                 else:
@@ -292,15 +310,16 @@ def build_workflow(deps: WorkflowDependencies):
                         chart_spec=None,
                     )
             if intent.attach_domain_catalog:
-                excluded = guidance.get("excluded_focus")
-                excluded_key = excluded if isinstance(excluded, str) else None
-                answer = answer.model_copy(
-                    update={
-                        "insights": deps.semantic_context.domain_capability_insight_lines(
-                            exclude_focus=excluded_key,
-                        ),
-                    }
-                )
+                precomputed = guidance.get("domain_capability_lines")
+                if isinstance(precomputed, list) and precomputed:
+                    insight_lines = precomputed
+                else:
+                    excluded = guidance.get("excluded_focus")
+                    excluded_key = excluded if isinstance(excluded, str) else None
+                    insight_lines = deps.semantic_context.domain_capability_insight_lines(
+                        exclude_focus=excluded_key,
+                    )
+                answer = answer.model_copy(update={"insights": insight_lines})
             return {
                 **state,
                 "conversational_intent": intent_payload,

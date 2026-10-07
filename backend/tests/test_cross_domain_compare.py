@@ -54,3 +54,23 @@ def test_follow_up_sell_in_material_to_b2b_check() -> None:
     res = try_follow_up_governed_resolution(q, ctx, understanding=None)
     assert res is not None
     assert res["metric"] == "material_sell_out_to_sell_in_value_ratio"
+
+
+def test_stock_tempo_vs_sell_in_wins_over_service_session_follow_up() -> None:
+    from app.semantic.context import SemanticContextService
+
+    ctx = build_analysis_context(
+        metric="sales_office_service_fill_rate",
+        dimensions=["sales_off"],
+        entity_dimension="sales_off",
+        ranked_entities=[{"rank": 1, "id": "0201", "dimension": "sales_off", "metric_value": 0.5}],
+        last_question="Sales office mana dengan fill rate terendah Q4 2024? Top 10",
+    )
+    svc = SemanticContextService()
+    for q in (
+        "Bandingkan stok gudang Tempo vs sell-in per material Q4 2024",
+        "Bandingkan stok gudang Tempo vs penjualan di tempo per material Q4 2024",
+    ):
+        res = svc.resolve(q, session_analysis_context=ctx)
+        assert res.get("metric") == "stock_tempo_to_sell_in_ratio", q
+        assert res.get("matched_alias") == "cross_domain_stock_tempo_sell_in"

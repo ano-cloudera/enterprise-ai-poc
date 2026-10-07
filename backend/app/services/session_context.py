@@ -270,6 +270,31 @@ def _rows_for_chart_follow_up(entry: dict) -> list[dict[str, Any]]:
     return []
 
 
+def capability_session_hint(history: list[dict]) -> dict[str, Any]:
+    """Compact prior-turn context for conversational capability / “what else?” answers."""
+    if not history:
+        return {}
+    from app.services.follow_up import analysis_context_from_history
+
+    ctx = analysis_context_from_history(history)
+    last = history[-1]
+    answer = last.get("answer") if isinstance(last.get("answer"), dict) else {}
+    metrics_seen: list[str] = []
+    for item in history[-6:]:
+        frame = item.get("session_frame") if isinstance(item.get("session_frame"), dict) else {}
+        metric = frame.get("last_metric")
+        if isinstance(metric, str) and metric and metric not in metrics_seen:
+            metrics_seen.append(metric)
+    return {
+        "last_metric": ctx.get("last_metric"),
+        "last_question": str(last.get("question") or "").strip(),
+        "last_answer_excerpt": _answer_excerpt(last),
+        "active_grain": ctx.get("active_grain"),
+        "metrics_seen_in_session": metrics_seen,
+        "turn_count": len(history),
+    }
+
+
 def session_frame_from_history(history: list[dict]) -> dict[str, Any]:
     """Structured slice of the last turn for governed rewrites (not raw LLM dump)."""
     if not history:

@@ -48,6 +48,33 @@ def deterministic_promo_uplift_proxy_explain() -> dict:
     ).model_dump()
 
 
+def deterministic_capability_follow_up_answer(
+    *,
+    excluded_focus: str | None,
+    session_hint: dict,
+) -> dict:
+    last_q = str(session_hint.get("last_question") or "").strip()
+    last_metric = str(session_hint.get("last_metric") or "").strip()
+    intro = (
+        "Turn sebelumnya sudah membahas analisis governed"
+        + (f" terkait `{last_metric}`" if last_metric else "")
+        + (f' ("{last_q[:80]}…")' if len(last_q) > 80 else (f' ("{last_q}")' if last_q else ""))
+        + ". Berikut area data lain yang masih bisa ditanyakan di Q4 2024:"
+    )
+    return AnalysisOutput(
+        direct_answer=intro,
+        executive_summary=intro,
+        insights=[],
+        business_implications=[],
+        caveats=[
+            "Saran domain di `insights` mengacu katalog OSSIE; tidak ada query baru di turn ini.",
+            "Follow-up analitik di session yang sama tetap memakai riwayat SQLite session_id.",
+        ],
+        data_reference="TEMPO governed capability catalog (session-aware, no query executed).",
+        chart_spec=None,
+    ).model_dump()
+
+
 def deterministic_capability_overview_answer() -> dict:
     text = (
         "Untuk review manajemen Q4 2024 (Oktober–Desember), Anda dapat menanyakan: "

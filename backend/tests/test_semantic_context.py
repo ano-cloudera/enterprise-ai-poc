@@ -213,6 +213,24 @@ def test_what_else_question_marks_sales_as_excluded_instead_of_focus() -> None:
     assert guidance["metrics"] == []
 
 
+def test_what_else_uses_session_last_metric_when_no_selain_phrase() -> None:
+    guidance = SemanticContextService().guidance_context(
+        "Kamu bisa apa lagi ya?",
+        session_last_metric="sat_dc_stock_quantity",
+        session_capability_hint={
+            "last_metric": "sat_dc_stock_quantity",
+            "last_question": "Top 10 DC penumpukan stok",
+            "last_answer_excerpt": "DC X memimpin stok",
+        },
+    )
+
+    assert guidance["excluded_focus"] == "stock_sat"
+    assert guidance["session_capability_hint"]["last_question"].startswith("Top 10")
+    lines = guidance["domain_capability_lines"]
+    assert not any(line.startswith("Stock SAT") for line in lines)
+    assert any(line.startswith("Sales / Sell-In") for line in lines)
+
+
 def test_domain_capability_insight_lines_lists_all_governed_domains() -> None:
     ctx = SemanticContextService()
     lines = ctx.domain_capability_insight_lines()

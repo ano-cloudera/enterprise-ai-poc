@@ -163,6 +163,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 activeSessionId={chatSessionSidebar.activeSessionId}
                 onOpenSession={chatSessionSidebar.onOpenSession}
                 onRemoveSession={chatSessionSidebar.onRemoveSession}
+                onTogglePinSession={chatSessionSidebar.onTogglePinSession}
               />
             )}
           </div>

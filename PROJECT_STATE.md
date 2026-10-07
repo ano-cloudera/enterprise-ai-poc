@@ -1,7 +1,7 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 7 Oct 2026 (latest) — **Management UAT 30/30**; OSSIE **24 datasets / 72 metrics** PASS. **History-only analysis** for explain-on-prior-ranking follow-ups (`history_only_analysis`, no Impala on turn). **Cross-domain** routing via `cross_domain_compare.py`. **Semantic SQL/routing**: stock→sell-in ranking filter (`stock_tempo_to_sell_in_ratio` HAVING + `NULLS LAST`); **bill-to-PO** → `material_fill_rate` (DO÷PO) wins over generic “penagihan” sell-in. FE: **PDF** export layout v2; Settings **Save model**. Demo journey UAT: `eval/uat_demo_management_journey.yaml` (14/14 mechanical). Exploratory: **`backend-test`** (8001).
+**Updated**: 7 Oct 2026 (late PM) — **Cross-domain early in `resolve()`** (before session follow-up): stok Tempo vs sell-in / sell-in vs B2B journey metrics win over service-level material drill after fill-rate turns (`test_stock_tempo_vs_sell_in_wins_over_service_session_follow_up`). **Tempo demo record UAT**: `eval/uat_tempo_demo_record_oct2026.yaml`, `scripts/run_tempo_demo_record_uat.py` (+ `uat_pdf_session_oct2026.yaml` / `run_pdf_session_uat.py`). **Capability follow-up**: session `capability_hint`, `guidance_context(excluded_focus)` for “apa lagi”. FE: session **pin/unpin**, **SingleRowEvidence** / `singleRowPresentation`. Prior: Management UAT 30/30; history-only analysis; bill-to-PO + DC penumpukan routing; stock ranking SQL; PDF v2. Exploratory: **`backend-test`** (8001).
 
 ## Current checkpoint: demo-ready Ask AI + history follow-ups (7 Oct 2026)
 
@@ -16,7 +16,8 @@
 
 ### Cross-domain & multi-turn (7 Oct)
 
-- **`cross_domain_compare.py`**: maps paired domains (sell-in+B2B, stock Tempo+sell-in, DC SAT+sell-out, etc.) to published OSSIE journey metrics; wired in `semantic/context.py` (incl. multi-concept fallback) and `follow_up.py` (entity from ranking → e.g. material sell-in vs B2B ratio).
+- **`cross_domain_compare.py`**: maps paired domains (sell-in+B2B, stock Tempo+sell-in, DC SAT+sell-out, etc.) to published OSSIE journey metrics; wired in `semantic/context.py` (**evaluated before `session_analysis_context` follow-up**, then multi-concept fallback) and `follow_up.py` (entity from ranking → e.g. material sell-in vs B2B ratio).
+- **Tempo recording script**: `eval/uat_tempo_demo_record_oct2026.yaml` — Batch 1 (12-turn journey), Batch 2 (10 management), Batch 3 (10× follow-up); dry-run 42/42 resolver; live Batch 1 **12/12**, Batch 2 **10/10** (Oct 2026).
 - **Tests**: `tests/test_cross_domain_compare.py`, extended `test_follow_up_p0_scenarios.py` (sell-in top material → B2B sameness).
 - **Manual scripts**: see chat in repo history — e.g. top sell-in → *“material itu, bandingkan sell-in vs B2B”*; single-turn *“big picture sell-in vs sell-out Q4”*.
 - **Not yet**: one message → multiple independent governed queries with merged wide table (backend compose); still **one metric/query per turn**.

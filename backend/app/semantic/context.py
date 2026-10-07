@@ -459,9 +459,64 @@ _METRIC_HELP_ID: dict[str, str] = {
 _DOMAIN_NAMES_BY_GUIDANCE_FOCUS: dict[str, frozenset[str]] = {
     "sales": frozenset({"Sales / Sell-In"}),
     "stock": frozenset({"Stock Tempo", "Stock SAT (Alfamart)"}),
+    "stock_tempo": frozenset({"Stock Tempo"}),
+    "stock_sat": frozenset({"Stock SAT (Alfamart)"}),
     "oos": frozenset({"SAT OOS"}),
     "b2b": frozenset({"B2B / Sell-Out"}),
+    "service_level": frozenset({"Service Level"}),
+    "picking": frozenset({"Picking"}),
+    "unloading": frozenset({"Unloading"}),
+    "promo": frozenset({"SAT Promo"}),
 }
+
+
+def _question_implies_capability_elsewhere(question: str) -> bool:
+    lowered = question.casefold().replace("–", "-")
+    return any(
+        term in lowered
+        for term in (
+            "selain",
+            "what else",
+            "besides",
+            "outside of",
+            "apa lagi",
+            "bisa apa lagi",
+            "bantu apa lagi",
+            "kamu bisa apa lagi",
+            "help with besides",
+            "yang lain",
+            "area lain",
+            "topik lain",
+            "data lain",
+        )
+    )
+
+
+def guidance_focus_from_metric(metric: str | None) -> str | None:
+    if not metric:
+        return None
+    m = metric.casefold()
+    if "picking" in m:
+        return "picking"
+    if "unloading" in m:
+        return "unloading"
+    if "promo" in m:
+        return "promo"
+    if "oos" in m:
+        return "oos"
+    if "fill_rate" in m or "service_fill" in m or "unfulfilled" in m:
+        return "service_level"
+    if "sat_dc" in m or "sat_store" in m:
+        return "stock_sat"
+    if "stock_tempo" in m or "warehouse_stock" in m or "months_of_stock" in m:
+        return "stock_tempo"
+    if "sell_out" in m or "b2b_branch" in m or "material_sell_out" in m:
+        return "b2b"
+    if "sell_in" in m or "sales_office" in m or "gross_billing" in m or "material_sell_in" in m:
+        return "sales"
+    if "fill" in m and "rate" in m:
+        return "service_level"
+    return None
 
 _GUIDANCE_DOMAIN_OPTIONS = (
     {"name": "Sales / Sell-In", "metrics": ["gross_billing_value"], "examples": ["Berapa Gross Sales TEMPO selama Q4 2024?"]},
@@ -693,6 +748,17 @@ class SemanticContextService:
             if clarify:
                 return clarify
 
+        from app.services.cross_domain_compare import resolution_to_payload, try_resolve_cross_domain
+
+        # Journey compares (stok Tempo vs sell-in, sell-in vs sell-out, …) must win over
+        # session follow-up, which otherwise keeps service-level grain (e.g. fill rate @ material).
+        cross_early = try_resolve_cross_domain(question)
+        if cross_early:
+            return {
+                **resolution_to_payload(cross_early),
+                "definition": self.metric_definition(cross_early.metric),
+            }
+
         if session_analysis_context:
             from app.services.conversational import TurnUnderstanding
             from app.services.follow_up import try_follow_up_governed_resolution
@@ -712,8 +778,6 @@ class SemanticContextService:
                 metric = str(follow["metric"])
                 follow["definition"] = self.metric_definition(metric)
                 return follow
-
-        from app.services.cross_domain_compare import resolution_to_payload, try_resolve_cross_domain
 
         if any(
             term in lowered
@@ -769,13 +833,6 @@ class SemanticContextService:
                     ["material"],
                     matched_alias="pareto_contribution_sell_in",
                 )
-
-        cross = try_resolve_cross_domain(question)
-        if cross:
-            return {
-                **resolution_to_payload(cross),
-                "definition": self.metric_definition(cross.metric),
-            }
 
         if "unloading" in lowered and any(
             term in lowered
@@ -1501,7 +1558,13 @@ class SemanticContextService:
             lines.append(f"{option['name']}: {helps}. Contoh: {example}")
         return lines
 
-    def guidance_context(self, question: str) -> dict[str, Any]:
+    def guidance_context(
+        self,
+        question: str,
+        *,
+        session_last_metric: str | None = None,
+        session_capability_hint: dict[str, Any] | None = None,
+    ) -> dict[str, Any]:
         normalized = question.casefold().replace("–", "-")
         mentioned_topic = next(
             (
@@ -1515,11 +1578,29 @@ class SemanticContextService:
             ),
             None,
         )
-        excluded_topic = mentioned_topic if "selain" in normalized else None
+        excluded_from_wording = mentioned_topic if "selain" in normalized else None
+        excluded_from_session = None
+        if _question_implies_capability_elsewhere(question):
+            hint_metric = session_last_metric
+            if session_capability_hint and session_capability_hint.get("last_metric"):
+                hint_metric = str(session_capability_hint["last_metric"])
+            excluded_from_session = guidance_focus_from_metric(hint_metric)
+        excluded_topic = excluded_from_wording or excluded_from_session
         topic = None if excluded_topic else mentioned_topic
         context = self.greeting_context()
+        hint = dict(session_capability_hint or {})
         if not topic:
-            return {**context, "focus": None, "excluded_focus": excluded_topic, "metrics": []}
+            lines = self.domain_capability_insight_lines(
+                exclude_focus=excluded_topic,
+            )
+            return {
+                **context,
+                "focus": None,
+                "excluded_focus": excluded_topic,
+                "metrics": [],
+                "session_capability_hint": hint,
+                "domain_capability_lines": lines,
+            }
 
         selected_datasets: set[str] = set()
         for domain in _GUIDANCE_TOPICS[topic]:

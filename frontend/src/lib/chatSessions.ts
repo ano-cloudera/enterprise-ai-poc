@@ -13,7 +13,14 @@ export type StoredMessage = {
   response?: ChatResponse
   processSnapshot?: ProcessSnapshot
 }
-export type ChatSession = { id: string; title: string; updatedAt: number; messages: StoredMessage[]; selection?: ModelSelection }
+export type ChatSession = {
+  id: string
+  title: string
+  updatedAt: number
+  messages: StoredMessage[]
+  selection?: ModelSelection
+  pinned?: boolean
+}
 
 const STORAGE_KEY = 'tempo-scan-v2.ask-data.sessions'
 const MAX_SESSIONS = 20
@@ -28,18 +35,38 @@ export function loadSessions(): ChatSession[] {
     const raw = window.localStorage.getItem(STORAGE_KEY)
     if (!raw) return []
     const parsed = JSON.parse(raw)
-    return Array.isArray(parsed) ? parsed : []
+    return sortSessionsForDisplay(Array.isArray(parsed) ? parsed : [])
   } catch {
     return []
   }
 }
 
+export function sortSessionsForDisplay(sessions: ChatSession[]): ChatSession[] {
+  return [...sessions].sort((a, b) => {
+    const pinDelta = Number(Boolean(b.pinned)) - Number(Boolean(a.pinned))
+    if (pinDelta !== 0) return pinDelta
+    return b.updatedAt - a.updatedAt
+  })
+}
+
+function writeSessions(sessions: ChatSession[]) {
+  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions.slice(0, MAX_SESSIONS)))
+}
+
 export function saveSession(session: ChatSession) {
   if (typeof window === 'undefined' || !session.messages.length) return
   try {
-    const sessions = loadSessions().filter(item => item.id !== session.id)
-    sessions.unshift(session)
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(sessions.slice(0, MAX_SESSIONS)))
+    const prior = loadSessions()
+    const existing = prior.find(item => item.id === session.id)
+    const merged: ChatSession = {
+      ...session,
+      pinned: session.pinned ?? existing?.pinned,
+    }
+    const sessions = sortSessionsForDisplay([
+      merged,
+      ...prior.filter(item => item.id !== session.id),
+    ])
+    writeSessions(sessions)
   } catch {
     // localStorage unavailable (private mode, quota) - session just won't persist across reloads.
   }
@@ -48,9 +75,22 @@ export function saveSession(session: ChatSession) {
 export function deleteSession(id: string) {
   if (typeof window === 'undefined') return
   try {
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(loadSessions().filter(item => item.id !== id)))
+    writeSessions(loadSessions().filter(item => item.id !== id))
   } catch {
     // localStorage unavailable - nothing to clean up.
+  }
+}
+
+export function toggleSessionPinned(id: string): ChatSession[] {
+  if (typeof window === 'undefined') return []
+  try {
+    const sessions = sortSessionsForDisplay(
+      loadSessions().map(item => (item.id === id ? { ...item, pinned: !item.pinned } : item)),
+    )
+    writeSessions(sessions)
+    return sessions
+  } catch {
+    return loadSessions()
   }
 }
 

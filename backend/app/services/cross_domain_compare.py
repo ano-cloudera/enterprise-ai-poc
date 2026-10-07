@@ -65,7 +65,11 @@ def detect_concepts(question: str) -> set[str]:
         found.add("dc_stock")
     if ("stok" in words or "stock" in words) and bool(words & {"toko", "store", "retail"}):
         found.add("store_stock")
+    if ("stok" in words or "stock" in words or "gudang" in words) and "tempo" in lowered:
+        found.add("stock_tempo")
     if "penjualan" in words and "tempo" in lowered:
+        found.add("sell_in")
+    if "sell-in" in lowered or "sell in" in lowered:
         found.add("sell_in")
     return found
 

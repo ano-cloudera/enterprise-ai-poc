@@ -18,7 +18,7 @@ from app.services.ask_data_routing import resolve_ask_data_route, v3_agent_avail
 from app.services.conversational import TurnUnderstanding, understand_turn
 from app.services.follow_up import analysis_context_from_history, try_history_only_analysis_resolution
 from app.services.question_contextualize import resolve_question_for_pipeline
-from app.services.session_context import build_session_frame
+from app.services.session_context import build_session_frame, capability_session_hint
 from app.services.local_agent_client import LocalAgentClient, LocalAgentError
 from app.services.ossie_trace import NODE_LABELS, trace_detail
 from app.services.v3_answer_polish import polish_v3_answer
@@ -281,6 +281,8 @@ class ChatService:
             state["conversational_intent"] = payload
         if session_analysis_context:
             state["session_analysis_context"] = session_analysis_context
+        if conversation_history:
+            state["session_capability_hint"] = capability_session_hint(conversation_history)
         return state
 
     def _response_from_state(

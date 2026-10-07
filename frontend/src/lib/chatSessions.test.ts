@@ -1,6 +1,6 @@
 import { beforeEach, describe, expect, it } from 'vitest'
 
-import { loadSessions, saveSession } from './chatSessions'
+import { loadSessions, saveSession, toggleSessionPinned } from './chatSessions'
 
 describe('chat session persistence', () => {
   beforeEach(() => localStorage.clear())
@@ -13,5 +13,21 @@ describe('chat session persistence', () => {
     })
 
     expect(loadSessions()[0].selection).toEqual({ provider: 'gemini', model: 'gemini-configured' })
+  })
+
+  it('keeps pinned sessions above recent ones', () => {
+    saveSession({
+      id: 'old', title: 'Old', updatedAt: 1,
+      messages: [{ role: 'user', content: 'Old' }],
+    })
+    saveSession({
+      id: 'new', title: 'New', updatedAt: 99,
+      messages: [{ role: 'user', content: 'New' }],
+    })
+    toggleSessionPinned('old')
+    const sessions = loadSessions()
+    expect(sessions[0].id).toBe('old')
+    expect(sessions[0].pinned).toBe(true)
+    expect(sessions[1].id).toBe('new')
   })
 })

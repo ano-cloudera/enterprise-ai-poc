@@ -13,6 +13,8 @@ import { answerPresentation, hasGovernedEvidence } from '../lib/governedEvidence
 import { AnswerChart } from '../components/AnswerChart'
 import { AnswerProse } from '../components/AnswerProse'
 import { DataTable } from '../components/DataTable'
+import { SingleRowEvidence } from '../components/SingleRowEvidence'
+import { compactSingleRowEvidence } from '../lib/singleRowPresentation'
 import { KpiCard } from '../components/KpiCard'
 import {
   AssistantContent,
@@ -23,7 +25,17 @@ import {
 import { EmptyStateLogo } from '../components/EmptyStateLogo'
 import { api } from '../lib/api'
 import { mergeDataNotes, parseDataProvenance } from '../lib/dataProvenance'
-import { createSessionId, deleteSession, loadSessions, saveSession, sessionTitle, type ChatSession, type ProcessSnapshot, type StoredMessage } from '../lib/chatSessions'
+import {
+  createSessionId,
+  deleteSession,
+  loadSessions,
+  saveSession,
+  sessionTitle,
+  toggleSessionPinned,
+  type ChatSession,
+  type ProcessSnapshot,
+  type StoredMessage,
+} from '../lib/chatSessions'
 import { useModelSelection } from '../lib/modelSelection'
 import { useChatLayout } from '../layout/AppShell'
 import {
@@ -164,6 +176,11 @@ export function AskDataPage() {
     [sessionId, newChat],
   )
 
+  const togglePinSession = useCallback((event: MouseEvent, id: string) => {
+    event.stopPropagation()
+    setSessions(toggleSessionPinned(id))
+  }, [])
+
   useEffect(() => {
     setChatSessionSidebar({
       sessions,
@@ -171,9 +188,10 @@ export function AskDataPage() {
       onNewChat: newChat,
       onOpenSession: openSession,
       onRemoveSession: removeSession,
+      onTogglePinSession: togglePinSession,
     })
     return () => setChatSessionSidebar(null)
-  }, [sessions, sessionId, newChat, openSession, removeSession, setChatSessionSidebar])
+  }, [sessions, sessionId, newChat, openSession, removeSession, togglePinSession, setChatSessionSidebar])
 
   const downloadChat = useCallback(async () => {
     if (!messages.length || downloadingPdf) return
@@ -344,6 +362,12 @@ function StructuredAnswer({
   /** Welcome / prose-only: tuck note into the main card as a footnote */
   const dataNoteInNarrative = hasDataNoteContent && !showEvidenceBlock
   const chartFirst = hasVisualChart
+  const compactSingleRow =
+    !hasVisualChart &&
+    response.chart_spec?.type !== 'kpi' &&
+    response.data.rows.length === 1
+      ? compactSingleRowEvidence(response.data.columns, response.data.rows)
+      : null
   const showExecutiveSummary =
     response.answer.executive_summary.trim() !== response.answer.direct_answer.trim()
   const hasAnalysisBody =
@@ -442,7 +466,8 @@ function StructuredAnswer({
 
       {response.data.rows.length > 0 && (
         <div className={hasVisualChart ? 'answer-section-divider-compact -mt-2 space-y-1 !pb-0' : 'space-y-3'}>
-          {!hasVisualChart && <div className="type-section-label">Data table</div>}
+          {!hasVisualChart && !compactSingleRow && <div className="type-section-label">Data table</div>}
+          {!hasVisualChart && compactSingleRow && <div className="type-section-label">Key figure</div>}
           {hasVisualChart && !expandForExport && (
             <button
               type="button"
@@ -454,16 +479,24 @@ function StructuredAnswer({
               <ChevronDown size={13} className={`ml-auto transition-transform ${showTable ? 'rotate-180' : ''}`} />
             </button>
           )}
-          {showTableDetail && (
-            <div className="overflow-hidden rounded-lg border border-slate-200/90 bg-white">
-              <DataTable
-                columns={response.data.columns}
-                rows={response.data.rows}
+          {showTableDetail &&
+            (compactSingleRow && !hasVisualChart ? (
+              <SingleRowEvidence
+                compact={compactSingleRow}
                 metric={response.data.governed_metric ?? undefined}
                 unitFormat={response.data.unit_format ?? undefined}
+                title={response.chart_spec?.title ?? undefined}
               />
-            </div>
-          )}
+            ) : (
+              <div className="overflow-hidden rounded-lg border border-slate-200/90 bg-white">
+                <DataTable
+                  columns={response.data.columns}
+                  rows={response.data.rows}
+                  metric={response.data.governed_metric ?? undefined}
+                  unitFormat={response.data.unit_format ?? undefined}
+                />
+              </div>
+            ))}
         </div>
       )}
     </section>

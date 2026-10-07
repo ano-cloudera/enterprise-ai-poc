@@ -27,6 +27,10 @@ def test_detects_capability_follow_up_after_data_turn() -> None:
     assert _is_capability_meta_question(q) is True
 
 
+def test_detects_kamu_bisa_apa_lagi_ya() -> None:
+    assert _is_capability_meta_question("kamu bisa apa lagi ya") is True
+
+
 def test_analytic_escape_after_clarification() -> None:
     q = "cukup tampilkan sell-in FE001 per bulan Q4"
     assert _is_analytic_escape_from_clarification(q) is True

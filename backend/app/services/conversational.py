@@ -162,11 +162,15 @@ def _is_capability_meta_question(question: str) -> bool:
             "fitur apa",
             "bisa bantu apa",
             "bantu apa lagi",
+            "kamu bisa apa lagi",
+            "bisa apa lagi ya",
+            "apa lagi ya",
             "apa lagi selain",
             "selain data ini",
             "selain data ",
             "what else",
             "help with besides",
+            "kamu bisa apa",
         )
     )
 
