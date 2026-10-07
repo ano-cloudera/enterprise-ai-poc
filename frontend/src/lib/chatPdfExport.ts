@@ -11,6 +11,8 @@ const MARGIN_MM = 16
 const FOOTER_Y_MM = A4_HEIGHT_MM - 10
 /** Last Y coordinate available for body content (above footer rule). */
 const CONTENT_BOTTOM_MM = FOOTER_Y_MM - 6
+/** jspdf-autotable `margin.bottom`: reserved space measured from the page bottom edge. */
+const TABLE_BOTTOM_MARGIN_MM = A4_HEIGHT_MM - CONTENT_BOTTOM_MM
 const CONTENT_WIDTH_MM = A4_WIDTH_MM - MARGIN_MM * 2
 const MAX_TABLE_ROWS = 35
 const MAX_CELL_CHARS = 42
@@ -307,7 +309,7 @@ function drawDataTable(
 
   autoTable(pdf, {
     startY: tableTop,
-    margin: { left: MARGIN_MM, right: MARGIN_MM, top: MARGIN_MM, bottom: FOOTER_Y_MM - 2 },
+    margin: { left: MARGIN_MM, right: MARGIN_MM, bottom: TABLE_BOTTOM_MARGIN_MM },
     tableWidth: CONTENT_WIDTH_MM,
     head,
     body,
@@ -315,7 +317,7 @@ function drawDataTable(
     styles: {
       font: 'helvetica',
       fontSize: 7.5,
-      cellPadding: { top: 2, right: 2.5, bottom: 2, left: 2.5 },
+      cellPadding: 2.2,
       textColor: SLATE,
       lineColor: LINE,
       lineWidth: 0.12,
@@ -327,10 +329,8 @@ function drawDataTable(
       textColor: [255, 255, 255],
       fontStyle: 'bold',
       fontSize: 7.5,
-      cellPadding: { top: 2.5, right: 2.5, bottom: 2.5, left: 2.5 },
     },
     alternateRowStyles: { fillColor: [252, 252, 253] },
-    rowPageBreak: 'avoid',
   })
 
   const finalY = (pdf as JsPdfWithAutoTable).lastAutoTable?.finalY ?? tableTop
@@ -431,10 +431,38 @@ async function drawAssistantTurn(
   const narrative = response.answer.direct_answer.trim() || fallbackText.trim()
   drawProseBlocks(pdf, cursor, narrative, omitTables, drawRunningHeader, true)
 
+  drawKpi(pdf, cursor, response, drawRunningHeader)
+
+  const visualTypes = ['bar', 'line', 'area', 'scatter', 'pie']
+  const hasVisualChart = Boolean(
+    response.chart_spec &&
+      visualTypes.includes(response.chart_spec.type) &&
+      response.chart_spec.x &&
+      response.chart_spec.y &&
+      response.data.rows.length > 0,
+  )
+
+  if (hasVisualChart && chartNode) {
+    try {
+      await drawChartSnapshot(pdf, cursor, chartNode, drawRunningHeader)
+    } catch (err) {
+      console.warn('conversation_pdf_chart_snapshot_skipped', err)
+      drawBodyText(
+        pdf,
+        cursor,
+        'Grafik tidak bisa disertakan dalam PDF; gunakan tabel data di bawah.',
+        { fontSize: 8, color: MUTED },
+        drawRunningHeader,
+      )
+    }
+  }
+
+  drawDataTable(pdf, cursor, response, drawRunningHeader)
+
   const summary = response.answer.executive_summary.trim()
   if (summary && summary !== response.answer.direct_answer.trim()) {
     ensureSpace(pdf, cursor, MIN_BLOCK_MM, drawRunningHeader)
-    drawSectionLabel(pdf, cursor, 'Ringkasan')
+    drawSectionLabel(pdf, cursor, 'Analisa')
     drawProseBlocks(pdf, cursor, summary, omitTables, drawRunningHeader)
   }
 
@@ -449,23 +477,6 @@ async function drawAssistantTurn(
     drawSectionLabel(pdf, cursor, 'Implikasi bisnis')
     drawBulletList(pdf, cursor, response.answer.business_implications, drawRunningHeader)
   }
-
-  drawKpi(pdf, cursor, response, drawRunningHeader)
-
-  const visualTypes = ['bar', 'line', 'area', 'scatter', 'pie']
-  const hasVisualChart = Boolean(
-    response.chart_spec &&
-      visualTypes.includes(response.chart_spec.type) &&
-      response.chart_spec.x &&
-      response.chart_spec.y &&
-      response.data.rows.length > 0,
-  )
-
-  if (hasVisualChart && chartNode) {
-    await drawChartSnapshot(pdf, cursor, chartNode, drawRunningHeader)
-  }
-
-  drawDataTable(pdf, cursor, response, drawRunningHeader)
   drawCaveats(pdf, cursor, response.answer.caveats, drawRunningHeader)
   drawTurnRule(pdf, cursor)
 }

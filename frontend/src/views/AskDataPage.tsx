@@ -191,7 +191,8 @@ export function AskDataPage() {
         appName: appConfig.headerTitle,
         chartRoot: root,
       })
-    } catch {
+    } catch (err) {
+      console.error('conversation_pdf_export_failed', err)
       setError('Unable to generate PDF. Please try again.')
     } finally {
       setPdfExportPreview(false)
@@ -333,9 +334,6 @@ function StructuredAnswer({
   const dataNote = mergeDataNotes(response.answer.caveats, provenance)
   const omitTablesInProse = response.data.rows.length > 0
 
-  const implicationGridClass =
-    response.answer.business_implications.length >= 2 ? 'grid gap-3 sm:grid-cols-2' : 'grid gap-3'
-
   const showEvidenceBlock =
     response.chart_spec?.type === 'kpi' ||
     hasVisualChart ||
@@ -345,128 +343,169 @@ function StructuredAnswer({
   const hasDataNoteContent = Boolean(dataNote || provenanceSources.length > 0)
   /** Welcome / prose-only: tuck note into the main card as a footnote */
   const dataNoteInNarrative = hasDataNoteContent && !showEvidenceBlock
+  const chartFirst = hasVisualChart
+  const showExecutiveSummary =
+    response.answer.executive_summary.trim() !== response.answer.direct_answer.trim()
+  const hasAnalysisBody =
+    showExecutiveSummary ||
+    response.answer.insights.length > 0 ||
+    response.answer.business_implications.length > 0 ||
+    dataNoteInNarrative
+
+  const headerRow = (
+    <div className="flex items-center justify-between gap-3">
+      <div className="type-answer-kicker">{presentation.title}</div>
+      {presentation.showStatusChip && presentation.statusChip && presentation.statusChip !== 'ERROR' && (
+        <span className={`type-chip rounded-full px-2.5 py-0.5 ${statusStyles[presentation.statusChip]}`}>
+          {presentation.statusChip}
+        </span>
+      )}
+    </div>
+  )
+
+  const governedWarning = missingGovernedEvidence ? (
+    <p className="answer-response-metadata rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
+      Narasi di bawah belum terhubung ke query governed Impala (tidak ada query_id / baris data). Ulangi pertanyaan analitik atau gunakan contoh starter.
+    </p>
+  ) : null
+
+  const clarificationBlock = (() => {
+    const choices = clarificationChoices(response)
+    if (!choices?.length || !onClarificationPick) return null
+    return (
+      <div className="answer-section-divider flex flex-wrap gap-2 !pt-3" role="group" aria-label="Clarification choices">
+        {choices.map(choice => (
+          <button
+            key={choice.id}
+            type="button"
+            disabled={clarificationDisabled}
+            onClick={() => onClarificationPick(choice.submitText)}
+            className="rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2 text-left text-xs font-semibold text-amber-950 transition-colors hover:border-cloudera-orange/50 hover:bg-orange-50 disabled:opacity-50"
+          >
+            {choice.label}
+          </button>
+        ))}
+      </div>
+    )
+  })()
+
+  const insightsBlock =
+    response.answer.insights.length > 0 ? (
+      <div className="answer-section-divider space-y-3">
+        <div className="type-section-label flex items-center gap-2">
+          <Lightbulb size={14} className="text-cloudera-orange" aria-hidden />
+          Insights
+        </div>
+        <ul className="answer-prose-secondary space-y-2.5">
+          {response.answer.insights.map(item => (
+            <li key={item} className="flex gap-2">
+              <span className="text-cloudera-orange" aria-hidden>
+                •
+              </span>
+              <span>{item}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    ) : null
+
+  const implicationsBlock =
+    response.answer.business_implications.length > 0 ? (
+      <div className="answer-section-divider space-y-3">
+        <div className="type-section-label">Business implications</div>
+        <div className="rounded-lg border border-slate-200/90 bg-slate-50/50 p-4 shadow-[inset_3px_0_0_0_rgba(154,140,255,0.55)]">
+          <ul className="answer-implication-card space-y-2.5">
+            {response.answer.business_implications.map(item => (
+              <li key={item} className="flex gap-2">
+                <span className="text-cloudera-violet/80 shrink-0" aria-hidden>
+                  •
+                </span>
+                <span>{item}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
+    ) : null
+
+  const evidenceBlock = showEvidenceBlock ? (
+    <section className={`answer-surface ${hasVisualChart ? 'space-y-0' : 'space-y-3'}`}>
+      {response.chart_spec?.type === 'kpi' && (
+        <div className="max-w-md">
+          <KpiCard label={response.chart_spec.title} value={kpiValue} format="" icon={BarChart3} />
+        </div>
+      )}
+
+      {hasVisualChart && (
+        <AnswerChart chart={response.chart_spec} rows={response.data.rows} embedded className="!mb-0" />
+      )}
+
+      {response.data.rows.length > 0 && (
+        <div className={hasVisualChart ? 'answer-section-divider-compact -mt-2 space-y-1 !pb-0' : 'space-y-3'}>
+          {!hasVisualChart && <div className="type-section-label">Data table</div>}
+          {hasVisualChart && !expandForExport && (
+            <button
+              type="button"
+              onClick={() => setShowTable(previous => !previous)}
+              className="answer-table-toggle -mx-1 flex w-full items-center gap-1.5 rounded-lg px-1 py-1 text-left transition-colors hover:bg-slate-50 hover:text-cloudera-navy"
+            >
+              <Table2 size={13} className="text-cloudera-orange" aria-hidden />
+              {showTable ? 'Hide table detail' : 'Show table detail'}
+              <ChevronDown size={13} className={`ml-auto transition-transform ${showTable ? 'rotate-180' : ''}`} />
+            </button>
+          )}
+          {showTableDetail && (
+            <div className="overflow-hidden rounded-lg border border-slate-200/90 bg-white">
+              <DataTable
+                columns={response.data.columns}
+                rows={response.data.rows}
+                metric={response.data.governed_metric ?? undefined}
+                unitFormat={response.data.unit_format ?? undefined}
+              />
+            </div>
+          )}
+        </div>
+      )}
+    </section>
+  ) : null
 
   return (
-    <div aria-label="AI response" className="flex flex-col gap-4">
-      {/* Narrative: one cohesive “story” card */}
+    <div aria-label="AI response" className="chat-response-typography flex flex-col gap-4">
       <section className="answer-surface space-y-3">
-        <div className="flex items-center justify-between gap-3">
-          <div className="type-answer-kicker">{presentation.title}</div>
-          {presentation.showStatusChip && presentation.statusChip && presentation.statusChip !== 'ERROR' && (
-            <span className={`type-chip rounded-full px-2.5 py-0.5 ${statusStyles[presentation.statusChip]}`}>
-              {presentation.statusChip}
-            </span>
-          )}
-        </div>
-        {missingGovernedEvidence && (
-          <p className="type-chat-meta rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-amber-900">
-            Narasi di bawah belum terhubung ke query governed Impala (tidak ada query_id / baris data). Ulangi pertanyaan analitik atau gunakan contoh starter.
-          </p>
-        )}
+        {headerRow}
+        {governedWarning}
         <div className="space-y-2">
-          <AnswerProse text={response.answer.direct_answer} omitTables={omitTablesInProse} emphasis />
-          {response.answer.executive_summary !== response.answer.direct_answer && (
-            <AnswerProse
-              text={response.answer.executive_summary}
-              omitTables={omitTablesInProse}
-              className="text-[15px] text-slate-600"
-            />
+          <AnswerProse text={response.answer.direct_answer} omitTables={omitTablesInProse} variant="main" />
+          {!chartFirst && showExecutiveSummary && (
+            <AnswerProse text={response.answer.executive_summary} omitTables={omitTablesInProse} variant="support" />
           )}
         </div>
-        {(() => {
-          const choices = clarificationChoices(response)
-          if (!choices?.length || !onClarificationPick) return null
-          return (
-            <div className="answer-section-divider flex flex-wrap gap-2 !pt-3" role="group" aria-label="Clarification choices">
-              {choices.map(choice => (
-                <button
-                  key={choice.id}
-                  type="button"
-                  disabled={clarificationDisabled}
-                  onClick={() => onClarificationPick(choice.submitText)}
-                  className="rounded-xl border border-amber-200 bg-amber-50/80 px-3 py-2 text-left text-xs font-semibold text-amber-950 transition-colors hover:border-cloudera-orange/50 hover:bg-orange-50 disabled:opacity-50"
-                >
-                  {choice.label}
-                </button>
-              ))}
-            </div>
-          )
-        })()}
-
-        {response.answer.insights.length > 0 && (
-          <div className="answer-section-divider space-y-3">
-            <div className="type-section-label flex items-center gap-2">
-              <Lightbulb size={14} className="text-cloudera-orange" aria-hidden />
-              Insights
-            </div>
-            <ul className="type-chat-body space-y-2.5 text-[15px] sm:text-[14px]">
-              {response.answer.insights.map(item => (
-                <li key={item} className="flex gap-2">
-                  <span className="text-cloudera-orange" aria-hidden>
-                    •
-                  </span>
-                  <span>{item}</span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-
-        {response.answer.business_implications.length > 0 && (
-          <div className="answer-section-divider space-y-3">
-            <div className="type-section-label">Business implications</div>
-            <div className={implicationGridClass}>
-              {response.answer.business_implications.map(item => (
-                <div
-                  key={item}
-                  className="type-chat-body rounded-lg border border-slate-200/90 bg-slate-50/50 p-4 text-[15px] shadow-[inset_3px_0_0_0_rgba(154,140,255,0.55)] sm:text-[14px]"
-                >
-                  {item}
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {dataNoteInNarrative && (
-          <div className="answer-section-divider !pt-3">
-            <DataNote note={dataNote} sources={provenanceSources} />
-          </div>
+        {clarificationBlock}
+        {!chartFirst && (
+          <>
+            {insightsBlock}
+            {implicationsBlock}
+            {dataNoteInNarrative && (
+              <div className="answer-section-divider !pt-3">
+                <DataNote note={dataNote} sources={provenanceSources} inChatResponse />
+              </div>
+            )}
+          </>
         )}
       </section>
 
-      {/* Evidence: chart + table belong together */}
-      {showEvidenceBlock && (
-        <section className={`answer-surface ${hasVisualChart ? 'space-y-0' : 'space-y-3'}`}>
-          {response.chart_spec?.type === 'kpi' && (
-            <div className="max-w-md">
-              <KpiCard label={response.chart_spec.title} value={kpiValue} format="" icon={BarChart3} />
-            </div>
-          )}
+      {evidenceBlock}
 
-          {hasVisualChart && (
-            <AnswerChart chart={response.chart_spec} rows={response.data.rows} embedded className="!mb-0" />
+      {chartFirst && hasAnalysisBody && (
+        <section className="answer-surface space-y-3">
+          {showExecutiveSummary && (
+            <AnswerProse text={response.answer.executive_summary} omitTables={omitTablesInProse} variant="support" />
           )}
-
-          {response.data.rows.length > 0 && (
-            <div className={hasVisualChart ? 'answer-section-divider-compact -mt-2 space-y-1 !pb-0' : 'space-y-3'}>
-              {!hasVisualChart && <div className="type-section-label">Data table</div>}
-              {hasVisualChart && !expandForExport && (
-                <button
-                  type="button"
-                  onClick={() => setShowTable(previous => !previous)}
-                  className="-mx-1 flex w-full items-center gap-1.5 rounded-lg px-1 py-1 text-left text-xs font-semibold text-slate-600 transition-colors hover:bg-slate-50 hover:text-cloudera-navy"
-                >
-                  <Table2 size={13} className="text-cloudera-orange" aria-hidden />
-                  {showTable ? 'Hide table detail' : 'Show table detail'}
-                  <ChevronDown size={13} className={`ml-auto transition-transform ${showTable ? 'rotate-180' : ''}`} />
-                </button>
-              )}
-              {showTableDetail && (
-                <div className="overflow-hidden rounded-lg border border-slate-200/90 bg-white">
-                  <DataTable columns={response.data.columns} rows={response.data.rows} />
-                </div>
-              )}
+          {insightsBlock}
+          {implicationsBlock}
+          {dataNoteInNarrative && (
+            <div className={showExecutiveSummary || insightsBlock || implicationsBlock ? 'answer-section-divider !pt-3' : ''}>
+              <DataNote note={dataNote} sources={provenanceSources} inChatResponse />
             </div>
           )}
         </section>
@@ -474,9 +513,14 @@ function StructuredAnswer({
 
       <div className={`answer-meta-stack ${dataNoteInNarrative ? 'answer-meta-stack-flush' : ''}`}>
         {hasDataNoteContent && !dataNoteInNarrative && (
-          <DataNote note={dataNote} sources={provenanceSources} />
+          <DataNote note={dataNote} sources={provenanceSources} inChatResponse />
         )}
-        <ResponseFooter response={response} processSnapshot={processSnapshot} variant="inline" />
+        <ResponseFooter
+          response={response}
+          processSnapshot={processSnapshot}
+          variant="inline"
+          metadataClassName="answer-response-metadata"
+        />
       </div>
     </div>
   )

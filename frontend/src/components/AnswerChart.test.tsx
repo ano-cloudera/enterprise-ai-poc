@@ -44,7 +44,7 @@ describe('AnswerChart', () => {
     expect(screen.getAllByTestId('bar')).toHaveLength(1)
     expect(screen.getByTestId('bar').getAttribute('data-key')).toBe('metric_value')
     expect(container.innerHTML).toContain('001 · A')
-    expect(screen.getByTestId('x-axis').getAttribute('data-font-size')).toBe('12')
+    expect(screen.getByTestId('x-axis').getAttribute('data-font-size')).toBe('11')
     expect(screen.getByTestId('bar').getAttribute('data-max-size')).toBe('54')
   })
 
@@ -53,6 +53,6 @@ describe('AnswerChart', () => {
       Array.from({ length: 50 }, (_, index) => ({ material: `very-long-material-label-${index}`, metric_value: 50 - index }))
     } />)
 
-    expect(screen.getByTestId('x-axis').hasAttribute('data-interval')).toBe(false)
+    expect(screen.getByTestId('x-axis').getAttribute('data-interval')).toBe('0')
   })
 })

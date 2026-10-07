@@ -54,6 +54,36 @@ export function clarificationChoices(response: ChatResponse): ClarificationChoic
     ]
   }
 
+  if (text.includes('pemenuhan po') && text.includes('penagihan')) {
+    return [
+      {
+        id: 'fill-po',
+        label: 'Pemenuhan PO (DO÷PO)',
+        submitText: 'Pemenuhan PO per material (DO qty dibagi PO qty)',
+      },
+      {
+        id: 'billing',
+        label: 'Nilai penagihan grosir',
+        submitText: 'Nilai penagihan grosir sell-in per material',
+      },
+    ]
+  }
+
+  if (text.includes('stok dc partner') && text.includes('sell-out')) {
+    return [
+      {
+        id: 'dc-stock',
+        label: 'Nilai stok DC',
+        submitText: 'Nilai stok DC partner Alfamart per dcname',
+      },
+      {
+        id: 'b2b-so',
+        label: 'Sell-out B2B',
+        submitText: 'Sell-out B2B per cabang Alfamart',
+      },
+    ]
+  }
+
   if (text.includes('picking') && text.includes('unloading')) {
     return [
       {

@@ -44,7 +44,14 @@ export type ChatResponse = {
     | 'local_agent_exploratory'
     | 'error'
   answer: AnalysisOutput
-  data: { columns: string[]; rows: Record<string, unknown>[]; row_count: number; execution_ms: number }
+  data: {
+    columns: string[]
+    rows: Record<string, unknown>[]
+    row_count: number
+    execution_ms: number
+    governed_metric?: string | null
+    unit_format?: string | null
+  }
   chart_spec: ChartSpec | null
   timings: {
     context_ms?: number

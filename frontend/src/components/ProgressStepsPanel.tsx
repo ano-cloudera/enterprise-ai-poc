@@ -23,8 +23,18 @@ export type ProgressStepsPanelProps = {
 
 function StepIcon({ state }: { state: 'done' | 'active' | 'pending' }) {
   if (state === 'done') return <span className="text-emerald-600" aria-hidden>✓</span>
-  if (state === 'active') return <span className="text-cloudera-orange" aria-hidden>●</span>
+  if (state === 'active') return <span className="progress-step-dot-active motion-reduce:opacity-100" aria-hidden />
   return <span className="text-slate-300" aria-hidden>○</span>
+}
+
+function ActiveEllipsis() {
+  return (
+    <span className="progress-step-ellipsis ml-0.5 inline-flex w-[1.1em] motion-reduce:opacity-70" aria-hidden>
+      <span>.</span>
+      <span>.</span>
+      <span>.</span>
+    </span>
+  )
 }
 
 function stepState(index: number, activeIndex: number, complete: boolean): 'done' | 'active' | 'pending' {
@@ -54,8 +64,12 @@ export function ProgressStepsPanel({
 
   if (compactOnly) {
     return (
-      <p className="type-chat-meta font-medium text-cloudera-navy">
-        <span className="text-cloudera-orange">●</span> {compactLabel}…
+      <p className="type-chat-meta flex items-center gap-2 font-medium text-cloudera-navy">
+        <span className="progress-step-dot-active motion-reduce:opacity-100" aria-hidden />
+        <span>
+          {compactLabel}
+          <ActiveEllipsis />
+        </span>
       </p>
     )
   }
@@ -70,9 +84,13 @@ export function ProgressStepsPanel({
                 <span className="text-emerald-600">✓</span> {compactLabel}
               </>
             ) : (
-              <>
-                <span className="text-cloudera-orange">●</span> {compactLabel}…
-              </>
+              <span className="inline-flex items-center gap-2">
+                <span className="progress-step-dot-active motion-reduce:opacity-100" aria-hidden />
+                <span>
+                  {compactLabel}
+                  <ActiveEllipsis />
+                </span>
+              </span>
             )}
           </p>
           <button
@@ -93,7 +111,10 @@ export function ProgressStepsPanel({
               return (
                 <li key={phase} className={`flex items-center gap-2 ${state === 'pending' ? 'text-slate-400' : ''}`}>
                   <StepIcon state={state} />
-                  <span className={state === 'active' ? 'font-medium text-slate-700' : ''}>{phase}</span>
+                  <span className={state === 'active' ? 'font-medium text-slate-700' : ''}>
+                    {phase}
+                    {state === 'active' && !complete ? <ActiveEllipsis /> : null}
+                  </span>
                 </li>
               )
             })}
@@ -125,7 +146,10 @@ export function ProgressStepsPanel({
               return (
                 <li key={step} className={`flex items-center gap-2 ${state === 'pending' ? 'text-slate-400' : ''}`}>
                   <StepIcon state={state} />
-                  <span className={state === 'active' ? 'font-medium text-slate-700' : ''}>{step}</span>
+                  <span className={state === 'active' ? 'font-medium text-slate-700' : ''}>
+                    {step}
+                    {state === 'active' && !complete ? <ActiveEllipsis /> : null}
+                  </span>
                 </li>
               )
             })}

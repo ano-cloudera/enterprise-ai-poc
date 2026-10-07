@@ -11,9 +11,10 @@ type ResponseFooterProps = {
   processSnapshot?: ProcessSnapshot
   /** Plain row under footnote (no extra card chrome). */
   variant?: 'card' | 'inline'
+  metadataClassName?: string
 }
 
-export function ResponseFooter({ response, processSnapshot, variant = 'inline' }: ResponseFooterProps) {
+export function ResponseFooter({ response, processSnapshot, variant = 'inline', metadataClassName = 'type-chat-meta' }: ResponseFooterProps) {
   const [processOpen, setProcessOpen] = useState(false)
   const metadata = formatResponseMetadata(response)
 
@@ -21,7 +22,7 @@ export function ResponseFooter({ response, processSnapshot, variant = 'inline' }
 
   return (
     <div className={shellClass}>
-      <div className="type-chat-meta flex flex-wrap items-center gap-x-1.5 gap-y-1">
+      <div className={`${metadataClassName} flex flex-wrap items-center gap-x-1.5 gap-y-1`}>
         <span>{metadata}</span>
         {processSnapshot && (
           <>
