@@ -17,8 +17,8 @@ def test_dc_penumpukan_compiles_group_by_dcname() -> None:
     )
     resolution = ctx.resolve(q)
     assert resolution.get("status") == "resolved"
-    assert resolution.get("metric") == "sat_dc_stock_quantity"
-    sql = ctx.compile_governed("sat_dc_stock_quantity", q, ["dcname"])
+    assert resolution.get("metric") == "sat_dc_stock_value"
+    sql = ctx.compile_governed("sat_dc_stock_value", q, ["dcname"])
     assert "dcname" in sql.lower()
     assert "group by" in sql.lower()
     assert "order by" in sql.lower()

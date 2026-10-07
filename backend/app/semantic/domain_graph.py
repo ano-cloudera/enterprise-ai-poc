@@ -49,7 +49,7 @@ def detect_domain_ids(question: str) -> list[str]:
         "stock_tempo": ("stok tempo", "stock tempo", "gudang tempo"),
         "stock_sat": ("stok dc", "stok store", "stok alfamart", "sat-idm", "sat idm"),
         "sat_oos": ("oos", "out of stock", "kehabisan"),
-        "service_level": ("fill rate", "service level", "fillrate"),
+        "service_level": ("fill rate", "service level", "services level", "fillrate", "tingkat layanan"),
         "picking": ("picking",),
         "unloading": ("unloading",),
         "promo": ("promo", "roi promo", "mekanisme promo"),

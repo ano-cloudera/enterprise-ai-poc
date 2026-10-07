@@ -55,6 +55,23 @@ def test_sales_office_compare_from_question_office_codes() -> None:
     assert "0201" in filters and "0280" in filters
 
 
+def test_sales_office_compare_ignores_unrelated_prior_metric() -> None:
+    """After SAT/DC turns, office penjualan compare must not reuse sat_dc_stock_quantity."""
+    ctx = build_analysis_context(
+        metric="sat_dc_stock_quantity",
+        dimensions=["dcname"],
+        entity_dimension="dcname",
+        ranked_entities=[{"rank": 1, "id": "DC Palembang", "dimension": "dcname"}],
+        last_question="DC SAT mana stoknya paling tinggi Q4 2024?",
+    )
+    q = "Bandingkan total penjualan sales office 0201 vs 0280 Q4 2024"
+    res = try_follow_up_governed_resolution(q, ctx, understanding=None)
+    assert res is not None
+    assert res["metric"] == "sales_office_sell_in_value"
+    filters = " ".join(res.get("follow_up_entity_filters") or [])
+    assert "0201" in filters and "0280" in filters
+
+
 def test_pareto_top3_contribution_relimit() -> None:
     ctx = build_analysis_context(
         metric="material_sell_in_value",

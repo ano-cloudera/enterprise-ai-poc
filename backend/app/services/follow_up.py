@@ -588,10 +588,43 @@ def plan_from_understanding(u: "TurnUnderstanding", ctx: dict[str, Any]) -> Foll
     )
 
 
+def _question_wants_office_sell_in_compare(question: str) -> bool:
+    lowered = _normalize(question)
+    if any(
+        t in lowered
+        for t in (
+            "sell-in",
+            "sell in",
+            "sellin",
+            "penjualan",
+            "billing",
+            "total sell",
+            "gross billing",
+        )
+    ):
+        return True
+    return "total" in lowered and any(t in lowered for t in ("office", "sales office", "kantor", "cabang"))
+
+
 def _is_explicit_new_ranking_question(question: str) -> bool:
     """Fresh top-N ranking (not a drill on prior entity), e.g. after a pareto turn."""
     lowered = _normalize(question)
     if not _TOP_N_RE.search(lowered):
+        return False
+    if any(
+        t in lowered
+        for t in (
+            "tadi",
+            "sebelumnya",
+            "pertanyaan tadi",
+            "dari hasil",
+            "paling jelek",
+            "terjelek",
+            "terburuk",
+            "rank 1",
+            "urutan 1",
+        )
+    ):
         return False
     if not any(t in lowered for t in ("material", "produk", "sku", "plu", "office", "cabang", "dc")):
         return False
@@ -650,6 +683,11 @@ def plan_follow_up(question: str, ctx: dict[str, Any]) -> FollowUpPlan | None:
                     "dimension": "sales_office",
                 }
             )
+        metric_override = (
+            "sales_office_sell_in_value"
+            if _question_wants_office_sell_in_compare(question)
+            else None
+        )
         return FollowUpPlan(
             intent="compare",
             filter_entity=None,
@@ -658,6 +696,7 @@ def plan_follow_up(question: str, ctx: dict[str, Any]) -> FollowUpPlan | None:
             domain_id=str(domain_id) if domain_id else None,
             from_grain="sales_office",
             compare_entities=ents,
+            metric_override=metric_override,
         )
 
     single_office = re.findall(r"\b(0\d{3})\b", question)
@@ -1168,15 +1207,18 @@ def _drill_metric_and_dimensions(plan: FollowUpPlan, ctx: dict[str, Any]) -> tup
         )
         if pred:
             predicates.append(pred)
+        if plan.metric_override:
+            dims = ["sales_office"] if grain in ("sales_office", "sales_off") else [grain]
+            return plan.metric_override, dims, predicates
         if grain == "dcname":
             return "sat_dc_stock_quantity", ["dcname"], predicates
-        if grain == "sales_office" and "unloading" in str(ctx.get("last_metric") or "").casefold():
+        ctx_metric = str(ctx.get("last_metric") or "").casefold()
+        if grain == "sales_office" and "unloading" in ctx_metric:
             return "average_unloading_minutes", [grain], predicates
-        if grain == "sales_office" and "picking" in str(ctx.get("last_metric") or "").casefold():
+        if grain == "sales_office" and "picking" in ctx_metric:
             return "average_picking_minutes", [grain], predicates
         if grain in ("sales_office", "sales_off") and any(
-            term in str(ctx.get("last_metric") or last_metric).casefold()
-            for term in ("sell_in", "billing", "sales_office", "material_sell_in")
+            term in ctx_metric for term in ("sell_in", "billing", "material_sell_in")
         ):
             return "sales_office_sell_in_value", [grain], predicates
         dims = list(ctx.get("last_dimensions") or [grain])

@@ -663,6 +663,32 @@ def build_workflow(deps: WorkflowDependencies):
                     ),
                     chart_spec=None,
                 )
+                return update
+        if rows and isinstance(resolution, dict) and resolution.get("status") == "resolved":
+            from app.services.analysis_enrichment import apply_analysis_enrichment
+
+            enriched = await apply_analysis_enrichment(
+                question=str(state.get("question") or ""),
+                resolution=resolution,
+                result=update.get("query_result") or result,
+                semantic_context=deps.semantic_context,
+                query_executor=deps.query_executor.execute,
+                request_id=str(state.get("request_id") or ""),
+            )
+            if enriched:
+                meta = enriched.pop("analysis_enrichment", None) or {}
+                enriched.pop("analysis_mode", None)
+                partial = list(update.get("governed_partial_caveats") or state.get("governed_partial_caveats") or [])
+                caveat = meta.get("caveat")
+                if isinstance(caveat, str) and caveat and caveat not in partial:
+                    partial.append(caveat)
+                brief = dict(update.get("inquiry_brief") or state.get("inquiry_brief") or {})
+                brief["analysis_mode"] = meta.get("mode") or brief.get("analysis_mode")
+                if meta.get("company_total_metric_value") is not None:
+                    brief["company_total_metric_value"] = meta.get("company_total_metric_value")
+                update["query_result"] = enriched
+                update["governed_partial_caveats"] = partial
+                update["inquiry_brief"] = brief
         return update
 
     async def analyze_result(state: AskDataState) -> AskDataState:

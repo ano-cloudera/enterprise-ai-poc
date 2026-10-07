@@ -7,6 +7,7 @@ from typing import Any
 
 from app.core.config import get_settings
 from app.semantic.domain_graph import build_business_context
+from app.services.analysis_enrichment import detect_analysis_mode
 from app.services.puppygraph_client import PuppyGraphClient
 
 
@@ -22,7 +23,17 @@ def build_inquiry_brief(
     resolution = semantic_resolution or {}
     plan = query_plan or {}
 
-    wants_pareto = "pareto" in lower
+    wants_pareto = "pareto" in lower or any(
+        t in lower
+        for t in (
+            "kontribusi",
+            "kumulatif",
+            "cumulatif",
+            "cumulative",
+            "nilai kumulatif",
+            "persen kontribusi",
+        )
+    )
     wants_rank = bool(
         wants_pareto
         or re.search(r"\b(top\s*\d+|top\s+\d+|tertinggi|terendah|terbesar|terkecil|ranking|peringkat)\b", lower)
@@ -71,10 +82,13 @@ def build_inquiry_brief(
     elif settings.puppygraph_enabled:
         puppygraph = {"enabled": False, "note": "PUPPYGRAPH_BASE_URL not set"}
 
+    analysis_mode = detect_analysis_mode(text, expected_metric)
+
     return {
         "question": text,
         "expected_metric": expected_metric,
         "expected_strategy": "governed" if resolution.get("status") == "resolved" else plan.get("strategy"),
+        "analysis_mode": analysis_mode,
         "wants_pareto": wants_pareto,
         "wants_rank": wants_rank,
         "rank_limit": rank_limit,

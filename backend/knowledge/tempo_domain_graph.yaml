@@ -125,7 +125,7 @@ journeys:
 intent_routes:
   - match_terms: [penumpukan, stok dc, stok gudang tempo]
     primary_domain: stock_sat
-    metric_hint: sat_dc_stock_quantity
+    metric_hint: sat_dc_stock_value
     dimension_hint: dcname
   - match_terms: [fill rate, service level, fillrate]
     primary_domain: service_level
@@ -138,10 +138,17 @@ intent_routes:
 
 # Deterministic OSSIE resolutions before generic sales_stage / stock_scope ambiguity.
 governed_intents:
+  - id: dc_stock_penumpukan_rank
+    any_terms: [penumpukan, penumpukkan]
+    all_terms: [dc]
+    unless_terms: [penjualan, sell-out, sell out]
+    metric: sat_dc_stock_value
+    dimensions: [dcname]
+    resolved_by: domain_graph_dc_stock_rank
   - id: top_products_sell_in_tempo
     all_terms: [produk, top]
     any_terms: [penjualan, sales, terbesar, tertinggi, terbanyak]
-    unless_terms: [sell-out, sell out, b2b, alfamart, partner ke konsumen, di b2b, bandingkan, vs, compare, perbandingan]
+    unless_terms: [sell-out, sell out, b2b, alfamart, partner ke konsumen, di b2b, bandingkan, vs, compare, perbandingan, stok, stock, penumpukan, penumpukkan, persediaan, dc stock, stok dc]
     metric: material_sell_in_value
     dimensions: [material]
     resolved_by: domain_graph_top_products_sell_in
@@ -165,13 +172,6 @@ governed_intents:
     metric: material_sell_in_value
     dimensions: [material]
     resolved_by: domain_graph_pareto_sell_in
-  - id: dc_stock_penumpukan_rank
-    any_terms: [penumpukan, penumpukkan]
-    all_terms: [dc]
-    unless_terms: [penjualan, sell-out, sell out]
-    metric: sat_dc_stock_quantity
-    dimensions: [dcname]
-    resolved_by: domain_graph_dc_stock_rank
   - id: chip_picking_after_dual_clarify
     all_terms: [picking]
     unless_terms: [unloading]
@@ -267,3 +267,29 @@ clarification_intents:
         label: Durasi picking (menit, per sales office)
       - metric: average_unloading_minutes
         label: Durasi unloading (menit, per sales office)
+  - id: bill_to_po_and_penagihan
+    all_terms: [bill-to-po]
+    any_terms: [nilai penagihan, penagihan grosir, kontribusi penagihan, total penagihan]
+    reason: bill_to_po_vs_billing_dual
+    question: >
+      Pemenuhan PO (bill-to-PO / DO÷PO qty) dan nilai penagihan grosir (sell-in billing)
+      adalah dua analisis governed terpisah. Pilih yang ingin ditampilkan dulu; untuk
+      keduanya, gunakan turn kedua setelah ranking material/office dari turn pertama.
+    options:
+      - metric: material_fill_rate
+        label: Pemenuhan PO per material (DO qty ÷ PO qty, %)
+      - metric: material_sell_in_value
+        label: Nilai penagihan grosir per material (IDR)
+  - id: dc_stock_and_sell_out
+    all_terms: [stok, dc]
+    any_terms: [sell-out, sell out, penjualan]
+    unless_terms: [penumpukan, penumpukkan, bandingkan, vs, versus, compare, perbandingan, tertinggi, terbesar]
+    reason: dc_stock_vs_sell_out_dual
+    question: >
+      Stok DC partner (SAT) dan penjualan sell-out B2B adalah domain berbeda. Pilih
+      analisis utama; journey sell-out vs stok DC bisa di turn lanjutan per cabang/DC.
+    options:
+      - metric: sat_dc_stock_value
+        label: Nilai stok DC partner (penumpukan per dcname)
+      - metric: b2b_branch_sell_out_value
+        label: Sell-out B2B per cabang (branch)

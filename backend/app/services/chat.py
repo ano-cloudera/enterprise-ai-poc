@@ -293,7 +293,29 @@ class ChatService:
     ) -> AskDataResponse:
         answer = AnalysisOutput.model_validate(state["answer"])
         chart = ChartSpec.model_validate(state["chart_spec"]) if state.get("chart_spec") else None
-        raw_data = state.get("query_result") or {"columns": [], "rows": [], "row_count": 0, "execution_ms": 0}
+        raw_data = dict(state.get("query_result") or {"columns": [], "rows": [], "row_count": 0, "execution_ms": 0})
+        resolution = state.get("semantic_resolution") if isinstance(state.get("semantic_resolution"), dict) else {}
+        plan = state.get("query_plan") if isinstance(state.get("query_plan"), dict) else {}
+        metrics = plan.get("metrics") if isinstance(plan.get("metrics"), list) else []
+        governed_metric = resolution.get("metric") if resolution.get("status") == "resolved" else None
+        if not governed_metric and metrics:
+            governed_metric = metrics[0]
+        unit_format = None
+        if governed_metric:
+            definition = resolution.get("definition")
+            if isinstance(definition, dict) and definition.get("unit_format"):
+                unit_format = definition.get("unit_format")
+            else:
+                try:
+                    unit_format = self.dependencies.semantic_context.metric_definition(str(governed_metric)).get(
+                        "unit_format"
+                    )
+                except Exception:
+                    unit_format = None
+        if governed_metric:
+            raw_data["governed_metric"] = str(governed_metric)
+        if unit_format:
+            raw_data["unit_format"] = str(unit_format)
         timings = {**state.get("timings", {}), "total_ms": round((perf_counter() - started) * 1000, 3)}
         return AskDataResponse(
             request_id=request_id,
@@ -408,7 +430,7 @@ class ChatService:
     async def run(self, request: AskDataRequest, *, force_ossie: bool = False) -> AskDataResponse:
         request_id = str(uuid.uuid4())
         started = perf_counter()
-        conversation_history = self.history.load(request.session_id, limit=4)
+        conversation_history = self.history.load(request.session_id, limit=8)
         session_metric = _session_last_metric(conversation_history)
         session_ctx = analysis_context_from_history(conversation_history)
         turn = await self._understand_turn(request, conversation_history)
@@ -505,7 +527,7 @@ class ChatService:
 
     async def stream(self, request: AskDataRequest):
         request_id = str(uuid.uuid4())
-        conversation_history = self.history.load(request.session_id, limit=4)
+        conversation_history = self.history.load(request.session_id, limit=8)
         session_metric = _session_last_metric(conversation_history)
         session_ctx = analysis_context_from_history(conversation_history)
         turn = await self._understand_turn(request, conversation_history)

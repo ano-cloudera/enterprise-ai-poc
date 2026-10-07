@@ -325,10 +325,12 @@ datasets:
   - material
   description: Material-month fulfillment performance with optional Sell-In and Stock context.
   ai_context:
-    instructions: Recompute aggregate Fill Rate from total DO and PO; never average row ratios.
+    instructions: Recompute aggregate Fill Rate from total DO and PO; never average row ratios. In Tempo management vocabulary, "service level" / "tingkat layanan" mean the same KPI as Fill Rate (DO/PO).
     synonyms:
     - service level
+    - services level
     - fill rate
+    - tingkat layanan
     - pemenuhan order
   fields:
   - name: calmonth
@@ -431,6 +433,10 @@ datasets:
     instructions: Recompute aggregate Fill Rate from total DO and PO; never average row ratios. sales_off is a working PoC assumption (a branch in a given region), not yet Tempo-confirmed - see service_level_material's counterpart in Sales/B2B. The source data's customer-group dimension (c_0cust_grp3) is confirmed constant for this period and is intentionally not exposed here - it would never produce more than one group. A separate SAP characteristic-group code (0AF_CGR6) exists in the source but its business meaning is unconfirmed by Tempo and is also intentionally excluded.
     synonyms:
     - service level per sales office
+    - service level sales office
+    - service level cabang
+    - tingkat layanan sales office
+    - tingkat layanan cabang
     - fill rate per sales office
     - pemenuhan order per sales office
   fields:
@@ -1938,11 +1944,14 @@ metrics:
   ai_context:
     synonyms:
     - company fill rate
+    - service level
     - service level perusahaan
+    - tingkat layanan perusahaan
     - tingkat pemenuhan perusahaan
     - fill rate
     instructions: Recompute from total DO and PO; never average monthly ratios.
-      When "fill rate" is asked without a material/SKU/office qualifier, this
+      Management often says "service level" or "tingkat layanan" — same KPI as Fill Rate.
+      When "fill rate" or "service level" is asked without a material/SKU/office qualifier, this
       is the intended metric (company-wide aggregate).
   custom_extensions:
   - vendor_name: TEMPO
@@ -2158,7 +2167,20 @@ metrics:
     synonyms:
     - material fill rate
     - service level material
+    - service level per material
+    - tingkat layanan material
     - fill rate
+    - service level
+    - bill-to-po ratio
+    - bill to po ratio
+    - rasio bill to po
+    - rasio bill-to-po
+    - rasio penagihan terhadap po
+    - rasio billing vs po material
+    instructions: >-
+      Fill Rate at material grain (SUM service_do_qty / SUM service_po_qty).
+      Use for business bill-to-PO / pemenuhan PO questions; values below 1.0
+      mean unfulfilled PO quantity remains.
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"FL-01-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_service_level"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-01","unit_format":"percent"}'
@@ -2197,7 +2219,9 @@ metrics:
     synonyms:
     - material sell-out to sell-in ratio
     - rasio sell-out material
-    instructions: Not official sell-through; price bases can differ.
+    - rasio sell-out vs sell-in terendah
+    - rasio sell-out terhadap sell-in terendah
+    instructions: Not official sell-through; price bases can differ. For lowest-ratio rankings, exclude zero sell-out rows (governed HAVING).
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"SO-07-MAT","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in","has_sell_out"],"governance_status":"approved_candidate_with_caveat","business_approval_status":"pending_business_confirmation","original_kpi_id":"SO-07","unit_format":"ratio"}'
@@ -2229,6 +2253,11 @@ metrics:
     - stock cover
     - berapa bulan stok cukup
     - stok bertahan berapa bulan
+    - hari persediaan
+    - days of supply
+    - day of supply
+    - perputaran stok
+    - inventory turnover proxy
     instructions: >-
       Proxy only, not an official inventory-planning KPI (inverse of
       sell_in_quantity_per_stock_unit, SI-16-MAT). Computed over only 3
@@ -2252,6 +2281,12 @@ metrics:
   ai_context:
     synonyms:
     - material do to bill ratio
+    - rasio do terhadap billing
+    - do amount to billing ratio
+    instructions: >-
+      Data-quality metric only: Sales DO amount divided by Sell-In billing value.
+      When users ask bill-to-PO or rasio penagihan vs PO for operational gaps,
+      route to material_fill_rate (DO qty / PO qty), not this ratio.
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"SI-DQ-02","base_dataset":"material_360","allowed_dimensions":["calmonth","material"],"required_filters":["has_sell_in"],"governance_status":"data_quality_metric","business_approval_status":"internal_technical_review","original_kpi_id":"SI-05","unit_format":"ratio"}'
@@ -2266,7 +2301,10 @@ metrics:
     synonyms:
     - fill rate
     - service level
+    - services level
+    - tingkat layanan
     - tingkat pemenuhan
+    - service level material
     - fill rate per band
     - fill rate berdasarkan band
     - kategori fill rate
@@ -2351,18 +2389,29 @@ metrics:
   ai_context:
     synonyms:
     - fill rate per sales office
+    - service level
     - service level per sales office
+    - service level sales office
+    - sales office dengan service level terendah
+    - sales office mana dengan service level terendah
     - sales office dengan fill rate terendah
     - sales office mana dengan fill rate terendah
     - sales office mana dengan fill rate tertinggi
     - service level cabang tempo
+    - tingkat layanan cabang tempo
     - fill rate cabang tempo
     - cabang dengan service level terbaik
     - cabang dengan service level terjelek
     - service level di cabang tempo
     - fill rate di cabang tempo
     - service level per cabang
-    instructions: Recompute aggregate Fill Rate from total DO and PO; never average row ratios. sales_off is a working PoC assumption, not yet Tempo-confirmed. Prefer this metric over the plain service_fill_rate whenever the question asks for a sales-office breakdown/comparison (e.g. "sales office mana...") rather than a company- or material-level answer.
+    - tingkat layanan per cabang
+    - tingkat pemenuhan cabang
+    - tingkat pemenuhan per cabang
+    - otif cabang tempo
+    - otif sales office
+    - on time in full cabang
+    instructions: Recompute aggregate Fill Rate from total DO and PO; never average row ratios. Tempo management uses "service level" / "tingkat layanan" / "tingkat pemenuhan" as synonyms for Fill Rate at sales-office grain. When the user says OTIF or on-time-in-full, treat as a fill-rate proxy (DO/PO) and state that official OTIF is not a separate governed KPI in this catalog. sales_off is a working PoC assumption, not yet Tempo-confirmed. Prefer this metric over the plain service_fill_rate whenever the question asks for a sales-office breakdown/comparison (e.g. "sales office mana...") rather than a company- or material-level answer.
   custom_extensions:
   - vendor_name: TEMPO
     data: '{"metric_id":"FL-01-OFFICE","base_dataset":"service_level_sales_office","allowed_dimensions":["calmonth","material","sales_off"],"governance_status":"approved_candidate","business_approval_status":"pending_business_confirmation","original_kpi_id":"FL-01","unit_format":"percent"}'
@@ -2951,6 +3000,8 @@ metrics:
   ai_context:
     synonyms:
     - nilai stok dc sat-idm
+    - penumpukan stok dc
+    - penumpukan stok produk dc
     - dcstock value
     - dc stock value
     - nilai dcstock

@@ -99,6 +99,8 @@ class QueryData(StrictModel):
     rows: list[dict[str, Any]] = []
     row_count: int = 0
     execution_ms: float = 0
+    governed_metric: str | None = None
+    unit_format: str | None = None
 
 
 class Timings(StrictModel):

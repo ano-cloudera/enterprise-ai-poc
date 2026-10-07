@@ -269,6 +269,27 @@ def test_company_wide_governed_metric_keeps_higher_default_limit() -> None:
     assert "LIMIT 50" in sql
 
 
+def test_stock_tempo_to_sell_in_ratio_ranking_filters_zero_sell_in_and_nulls_last() -> None:
+    context = SemanticContextService()
+    sql = context.compile_governed(
+        "stock_tempo_to_sell_in_ratio",
+        "Produk mana dengan rasio stok Tempo terhadap penjualan sell-in paling tinggi?",
+        ["material"],
+    )
+    assert "HAVING SUM(d.sell_in_bill_qty) > 0" in sql
+    assert "ORDER BY metric_value DESC NULLS LAST" in sql
+
+
+def test_stock_tempo_to_sell_in_ratio_zero_movement_skips_sell_in_having() -> None:
+    context = SemanticContextService()
+    sql = context.compile_governed(
+        "stock_tempo_to_sell_in_ratio",
+        "Material apa yang tidak laku sama sekali di Q4?",
+        ["material"],
+    )
+    assert "SUM(d.sell_in_bill_qty) > 0" not in sql
+
+
 @pytest.mark.parametrize("question", [
     "Produk mana dengan rasio stok Tempo terhadap penjualan sell-in paling tinggi?",
     "Produk mana dengan perbandingan stok Tempo dan sell-in paling tinggi?",
@@ -739,12 +760,89 @@ def test_uat_branch_service_level_ranking_resolves_sales_office_fill_rate() -> N
     assert "LIMIT 10" in sql
 
 
+def test_tingkat_layanan_wording_resolves_sales_office_service_level() -> None:
+    question = "Sales office mana dengan tingkat layanan terendah Q4 2024? Top 10"
+    resolution = SemanticContextService().resolve(question)
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "sales_office_service_fill_rate"
+
+
 @pytest.mark.parametrize("question", [
     "Service level / fill rate cabang Tempo terbaik?",
     "Hitung service level fill rate per sales office dan urutkan terbaik",
+    "Sales office mana dengan service level terendah Q4 2024? Top 10",
 ])
 def test_other_branch_service_level_rankings_remain_governed(question: str) -> None:
     resolution = SemanticContextService().resolve(question)
 
     assert resolution["status"] == "resolved"
     assert resolution["metric"] == "sales_office_service_fill_rate"
+
+
+def test_tingkat_pemenuhan_cabang_resolves_office_fill_rate() -> None:
+    question = "Cabang Tempo mana dengan tingkat pemenuhan terendah November 2024?"
+    service = SemanticContextService()
+    resolution = service.resolve(question)
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "sales_office_service_fill_rate"
+    sql = service.compile_governed(resolution["metric"], question, resolution["dimensions"])
+    assert "d.calmonth = 202411" in sql
+
+
+def test_otif_routes_to_office_fill_rate_proxy() -> None:
+    resolution = SemanticContextService().resolve(
+        "Bagaimana OTIF per sales office Q4 2024? Urutkan terburuk top 10"
+    )
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "sales_office_service_fill_rate"
+    assert resolution.get("matched_alias") == "otif_proxy_fill_rate"
+
+
+def test_bill_to_po_ratio_resolves_material_fill_rate_proxy() -> None:
+    question = "Rasio bill-to-PO per material Desember 2024, terendah top 10"
+    service = SemanticContextService()
+    resolution = service.resolve(question)
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "material_fill_rate"
+    assert resolution.get("matched_alias") == "bill_to_po_fill_rate_proxy"
+    sql = service.compile_governed(resolution["metric"], question, resolution["dimensions"])
+    assert "d.calmonth = 202412" in sql
+    assert "service_do_qty" in sql and "service_po_qty" in sql
+    assert "HAVING" in sql and "< 1" in sql
+    assert "ORDER BY metric_value ASC" in sql
+
+
+def test_november_penagihan_material_uses_single_month_filter() -> None:
+    question = "Nilai penagihan grosir per material November 2024 top 10 kontribusi"
+    service = SemanticContextService()
+    resolution = service.resolve(question)
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "material_sell_in_value"
+    sql = service.compile_governed(resolution["metric"], question, resolution["dimensions"])
+    assert "d.calmonth = 202411" in sql
+
+
+def test_sat_store_stock_october_resolves() -> None:
+    question = "Rata-rata stok toko Alfamart Oktober 2024 per divisi"
+    service = SemanticContextService()
+    resolution = service.resolve(question)
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "sat_store_stock_quantity"
+    sql = service.compile_governed(resolution["metric"], question, resolution["dimensions"])
+    assert "d.thn = 2024" in sql and "d.bln = 'OCT'" in sql
+
+
+def test_days_of_supply_routes_months_of_stock_cover() -> None:
+    question = "Material dengan hari persediaan terpanjang November 2024 top 10"
+    service = SemanticContextService()
+    resolution = service.resolve(question)
+
+    assert resolution["status"] == "resolved"
+    assert resolution["metric"] == "months_of_stock_cover"
+    sql = service.compile_governed(resolution["metric"], question, resolution["dimensions"])
+    assert "d.calmonth = 202411" in sql

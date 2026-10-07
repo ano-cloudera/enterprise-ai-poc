@@ -47,9 +47,12 @@ ambiguities:
       - metric: months_of_stock_cover
         label: Tempo Warehouse Stock Coverage (months of cover)
         discriminators: [berapa bulan stok, bulan stok cukup, months of cover, stock cover, stok bertahan]
+      - metric: sat_dc_stock_value
+        label: Alfamart Partner DC Stock (IDR value)
+        discriminators: [nilai stok dc, penumpukan, penumpukkan, dcstock value, dc stock value, nilai dcstock, nilai stok dc alfamart, stok dc partner nilai]
       - metric: sat_dc_stock_quantity
-        label: Alfamart Partner Distribution Center Stock
-        discriminators: [stok dc partner, stok dc alfamart, nilai stok dc, dc stock, dcstock, idm stock, stock idm, distribution center stock]
+        label: Alfamart Partner Distribution Center Stock (quantity)
+        discriminators: [stok dc partner, stok dc alfamart, dc stock, dcstock, idm stock, stock idm, distribution center stock, qty stok dc, kuantitas stok dc]
       - metric: sat_store_stock_quantity
         label: Alfamart Partner Retail Store Stock
         discriminators: [stok store, stok retail, stok toko retail, stok toko alfamart, nilai stok store, store stock, storestock, nilai storestock, retail stock]

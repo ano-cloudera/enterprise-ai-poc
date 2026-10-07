@@ -63,6 +63,17 @@ def _question_wants_sell_in_volume_context(question: str) -> bool:
     return any(term in lowered for term in _VOLUME_CLASSIFICATION_TERMS)
 
 
+def _question_wants_po_fulfillment_context(question: str) -> bool:
+    lowered = question.casefold()
+    return (
+        "bill-to-po" in lowered
+        or "bill to po" in lowered
+        or ("rasio" in lowered and re.search(r"\bpo\b", lowered))
+        or ("penagihan" in lowered and re.search(r"\bpo\b", lowered))
+        or "pemenuhan po" in lowered
+    )
+
+
 def _sql_string_literal(value: str) -> str:
     return "'" + value.replace("'", "''") + "'"
 
@@ -174,6 +185,48 @@ def _asks_data_snapshot(question: str) -> bool:
     return False
 
 
+def _explicit_calmonth_predicate(question: str) -> str | None:
+    """Narrow Q4 window to a single month when the question names one explicitly."""
+    lowered = question.casefold()
+    if re.search(r"\bq\s*[1-4]\b|\bkuartal\b|\bquarter\b", lowered) and not re.search(
+        r"\b(jan|feb|mar|apr|may|mei|jun|jul|aug|sep|oct|okt|nov|dec|des|januari|februari|"
+        r"maret|april|mei|juni|juli|agustus|september|oktober|november|desember)\b",
+        lowered,
+    ):
+        return None
+    month_codes = (
+        (("januari", "january", " jan "), 202401),
+        (("februari", "february", " feb "), 202402),
+        (("maret", "march", " mar "), 202403),
+        (("april", " apr "), 202404),
+        (("mei", "may"), 202405),
+        (("juni", "june", " jun "), 202406),
+        (("juli", "july", " jul "), 202407),
+        (("agustus", "august", " aug "), 202408),
+        (("september", " sep "), 202409),
+        (("oktober", "october", " okt ", " oct "), 202410),
+        (("november", " nov "), 202411),
+        (("desember", "december", " dec ", " des "), 202412),
+    )
+    for terms, calmonth in month_codes:
+        if any(term in lowered for term in terms):
+            return f"d.calmonth = {calmonth}"
+    return None
+
+
+def _explicit_thn_bln_predicates(question: str) -> list[str] | None:
+    calmonth_sql = _explicit_calmonth_predicate(question)
+    if not calmonth_sql:
+        return None
+    calmonth = int(calmonth_sql.rsplit("=", 1)[1].strip())
+    year = calmonth // 100
+    month_idx = calmonth % 100
+    if not 1 <= month_idx <= 12:
+        return None
+    abbr = ("JAN", "FEB", "MAR", "APR", "MAY", "JUN", "JUL", "AUG", "SEP", "OCT", "NOV", "DEC")[month_idx - 1]
+    return [f"d.thn = {year}", f"d.bln = {_sql_string_literal(abbr)}"]
+
+
 def _question_requests_ranking(question: str) -> tuple[bool, re.Match[str] | None]:
     lowered = question.casefold()
     top = re.search(r"(?:top|teratas)\s+(\d+)", lowered)
@@ -227,6 +280,14 @@ def _extract_entity_predicates(question: str, fields: set[str]) -> list[str]:
             predicates.append(_branch_name_predicate(branch_code))
         elif "e_store" in fields:
             predicates.append(f"d.e_store = {_sql_string_literal(branch_code)}")
+
+    office_codes = re.findall(r"\b(0\d{3})\b", question)
+    if len(office_codes) == 1:
+        code = office_codes[0]
+        if "sales_office" in fields and not any("sales_office" in item for item in predicates):
+            predicates.append(f"d.sales_office = {_sql_string_literal(code)}")
+        elif "sales_off" in fields and not any("sales_off" in item for item in predicates):
+            predicates.append(f"d.sales_off = {_sql_string_literal(code)}")
 
     plu_match = _PLU_ENTITY_RE.search(lowered)
     if plu_match:
@@ -291,7 +352,7 @@ _CONCEPT_PATTERNS = {
     "dc_stock": ("dc stock", "dcstock", "stok dc"),
     "store_stock": ("store stock", "storestock", "stok store"),
     "oos": ("oos", "out of stock"),
-    "service_level": ("service level", "fill rate"),
+    "service_level": ("service level", "services level", "fill rate", "tingkat layanan"),
     "picking": ("picking",),
     "unloading": ("unloading",),
 }
@@ -575,6 +636,49 @@ class SemanticContextService:
 
         from app.services.cross_domain_compare import resolution_to_payload, try_resolve_cross_domain
 
+        if any(
+            term in lowered
+            for term in ("promo", "baseline", "revenue uplift", "uplift promo", "general trade")
+        ):
+            promo_hit = self.registry.resolve_metric(question)
+            if promo_hit.get("status") == "resolved" and "promo" in str(promo_hit.get("metric", "")).casefold():
+                metric = str(promo_hit["metric"])
+                return {
+                    **promo_hit,
+                    "definition": self.metric_definition(metric),
+                }
+
+        from app.services.analysis_enrichment import wants_contribution_analysis
+
+        office_codes_early = re.findall(r"\b(0\d{3})\b", question)
+        office_compare = len(office_codes_early) >= 2 and any(
+            term in lowered for term in ("bandingkan", " vs ", "versus", "compare", "office", "cabang")
+        )
+        if (
+            wants_contribution_analysis(question)
+            and not office_compare
+            and not any(
+                phrase in lowered
+                for phrase in (
+                    "rasio sell-out",
+                    "rasio sell out",
+                    "sell-out vs",
+                    "sell out vs",
+                    "sell-out terhadap",
+                    "sell out terhadap",
+                )
+            )
+            and not (bool(words & {"rasio", "ratio"}) and "vs" in lowered)
+        ):
+            if bool(
+                words & {"material", "produk", "sku", "penagihan", "grosir", "billing", "sell", "penjualan"}
+            ):
+                return resolved(
+                    "material_sell_in_value",
+                    ["material"],
+                    matched_alias="pareto_contribution_sell_in",
+                )
+
         cross = try_resolve_cross_domain(question)
         if cross:
             return {
@@ -616,6 +720,56 @@ class SemanticContextService:
                 matched_alias="cross_stock_sell_in_material",
             )
 
+        if "otif" in lowered or "on time in full" in lowered:
+            return resolved(
+                "sales_office_service_fill_rate",
+                ["sales_off"],
+                matched_alias="otif_proxy_fill_rate",
+            )
+
+        mentions_bill_po = (
+            "bill-to-po" in lowered
+            or "bill to po" in lowered
+            or (
+                bool(words & {"rasio", "ratio"})
+                and "po" in words
+                and any(t in lowered for t in ("bill", "billing", "penagihan", "tagihan", "do"))
+            )
+        )
+        if mentions_bill_po:
+            wants_dq_do_vs_billing = any(
+                phrase in lowered
+                for phrase in (
+                    "do terhadap billing",
+                    "do to bill",
+                    "do amount terhadap billing",
+                    "kualitas data",
+                    "data quality",
+                )
+            )
+            if wants_dq_do_vs_billing:
+                return resolved(
+                    "material_do_amount_to_billing_value_ratio",
+                    ["material"],
+                    matched_alias="bill_to_po_dq_do_billing_ratio",
+                )
+            # Business "bill-to-PO" = sisa pemenuhan PO (DO vs PO), not DO vs billing value.
+            return resolved(
+                "material_fill_rate",
+                ["material"],
+                matched_alias="bill_to_po_fill_rate_proxy",
+            )
+
+        if any(t in lowered for t in ("penagihan grosir", "nilai penagihan", "penagihan sell-in")) or (
+            "penagihan" in lowered
+            and bool(words & {"material", "produk", "sku", "kontribusi", "pareto", "grosir"})
+        ):
+            return resolved(
+                "material_sell_in_value",
+                ["material"],
+                matched_alias="gross_billing_material",
+            )
+
         if _question_prefers_sell_out(question) and bool(
             words & {"produk", "product", "material", "sku", "plu"}
         ):
@@ -628,15 +782,6 @@ class SemanticContextService:
                 )
 
         mentions_sat_dc_stock = ("sat" in words and bool(words & {"stok", "stock"})) or "stok sat" in lowered
-        if mentions_sat_dc_stock and "dc" in words and any(
-            term in lowered for term in ("mana", "tertinggi", "terbesar", "paling tinggi", "paling besar")
-        ):
-            if _question_prefers_sell_out(question) or "sell-out" in lowered or "sell out" in lowered:
-                return resolved(
-                    "sat_dc_stock_quantity",
-                    ["dcname"],
-                    matched_alias="cross_sat_dc_stock_rank",
-                )
 
         if any(term in lowered for term in ("quantity", "kuantitas", "qty", "unit")) and any(
             term in lowered for term in ("terjual", "sell-in", "sell in", "paling banyak", "terbanyak")
@@ -688,6 +833,31 @@ class SemanticContextService:
                 dimensions = ["cust_id", "cust_code"]
             return resolved("sat_oos_rate", dimensions)
 
+        asks_combined_dc_store_total = (
+            ("dc" in words or "distribution" in lowered)
+            and ("toko" in words or "store" in lowered)
+            and any(
+                t in lowered
+                for t in ("jumlah", "total", "gabung", "pipeline", "sama", "dan", "with")
+            )
+        )
+        mentions_sat_store_stock = (
+            "stok toko" in lowered
+            or (bool(words & {"stok", "stock"}) and ("toko" in words or "store" in lowered))
+        ) and not (mentions_sat_dc_stock and "dc" in words)
+        if mentions_sat_store_stock and not asks_combined_dc_store_total:
+            if "divisi" in lowered or "division" in lowered or "unit bisnis" in lowered:
+                store_dims = ["division"]
+            elif bool(words & {"plu", "sku", "produk", "material"}):
+                store_dims = ["plu"]
+            else:
+                store_dims = ["dcname"]
+            return resolved(
+                "sat_store_stock_quantity",
+                store_dims,
+                matched_alias="sat_store_stock_intent",
+            )
+
         # "stok ... cover/bertahan ... (berapa) hari/bulan" is a stock-cover
         # question, even though it often also contains "penjualan" (e.g.
         # "hitung bisa meng-cover penjualan berapa hari dari stok tersebut")
@@ -696,8 +866,18 @@ class SemanticContextService:
         # generic sales_stage ambiguity (registry.resolve_ambiguity, called
         # from resolve_metric below) can intercept it on the word
         # "penjualan" and ask an irrelevant Sell-In-vs-Sell-Out question.
+        mentions_days_of_supply = any(
+            phrase in lowered
+            for phrase in ("hari persediaan", "days of supply", "day of supply", "bulan persediaan")
+        )
+        mentions_stock_turnover = any(
+            phrase in lowered for phrase in ("perputaran stok", "inventory turnover", "turnover stok")
+        ) or ("perputaran" in words and bool(words & {"stok", "stock", "inventory"}))
         mentions_stock_cover = bool(words & {"stok", "stock"}) and (
             "cover" in lowered or bool(words & {"bertahan", "tahan"})
+        ) or mentions_days_of_supply or mentions_stock_turnover or (
+            "persediaan" in words
+            and any(t in lowered for t in ("terpanjang", "terlama", "tertinggi", "cover", "hari"))
         )
         if mentions_stock_cover:
             result = resolved("months_of_stock_cover", ["material"] if "material" in words or words & {"produk", "sku"} else [])
@@ -715,7 +895,10 @@ class SemanticContextService:
         mentions_stock_sell_in_ratio = bool(words & {"ratio", "rasio"}) and bool(
             words & {"stok", "stock"}
         ) and (("sell" in words and "in" in words) or "sellin" in lowered.replace("-", ""))
-        if mentions_stock_sell_in_ratio or "overstock" in lowered:
+        mentions_stock_vs_sell_in = bool(words & {"stok", "stock", "gudang"}) and (
+            "sell-in" in lowered or "sell in" in lowered or ("sell" in words and "in" in words)
+        ) and any(t in lowered for t in ("bandingkan", "banding", "compare", " vs ", "versus", "perbandingan"))
+        if mentions_stock_sell_in_ratio or mentions_stock_vs_sell_in or "overstock" in lowered:
             wants_material = "material" in words or bool(words & {"produk", "sku"})
             dims = ["calmonth", "material"] if wants_material else ["calmonth"]
             return resolved(
@@ -730,8 +913,27 @@ class SemanticContextService:
         mentions_fill_rate_band = "band" in words or "kategori" in lowered
         mentions_fill_or_service_level = ("fill" in words and "rate" in words) or (
             "service" in words and "level" in words
+        ) or ("services" in words and "level" in words) or (
+            "tingkat" in words and "layanan" in words
+        ) or ("tingkat" in words and "pemenuhan" in words) or (
+            "pemenuhan" in words and bool(words & {"cabang", "branch", "office", "sales", "kantor"})
         )
-        if mentions_fill_or_service_level:
+        mentions_stock_not_sl = bool(words & {"stok", "stock", "persediaan", "inventory"}) and not (
+            mentions_fill_or_service_level or "fillrate" in lowered.replace(" ", "")
+        )
+        requests_ranking, _ = _question_requests_ranking(question)
+        if (
+            mentions_stock_not_sl
+            and "dc" in words
+            and (
+                any(term in lowered for term in ("penumpukan", "penumpukkan"))
+                or (requests_ranking and any(term in lowered for term in ("tertinggi", "terbesar", "terbanyak")))
+            )
+        ):
+            wants_qty = any(term in lowered for term in ("quantity", "kuantitas", "qty", "unit", "jumlah"))
+            metric_name = "sat_dc_stock_quantity" if wants_qty else "sat_dc_stock_value"
+            return resolved(metric_name, ["dcname"], matched_alias="sat_dc_stock_dc_rank")
+        if mentions_fill_or_service_level and not mentions_stock_not_sl:
             mentions_cust_group = (
                 "cust_grp3" in lowered
                 or "customer group" in lowered
@@ -774,9 +976,25 @@ class SemanticContextService:
             if _question_prefers_sell_out(question):
                 return resolved("b2b_branch_sell_out_value", ["branch", "material"])
             wants_material = any(term in lowered for term in ("material", "produk", "sku"))
-            wants_office_total = any(term in lowered for term in ("total", "office", "sales office", "kantor"))
+            wants_office_total = any(
+                term in lowered
+                for term in (
+                    "total",
+                    "office",
+                    "sales office",
+                    "kantor",
+                    "penjualan",
+                    "sell-in",
+                    "sell in",
+                    "billing",
+                )
+            )
             if wants_office_total and not wants_material:
-                return resolved("sales_office_sell_in_value", ["sales_office"])
+                return resolved(
+                    "sales_office_sell_in_value",
+                    ["sales_office"],
+                    matched_alias="office_pair_sell_in_compare",
+                )
             return resolved("sales_office_material_sell_in_value", ["sales_office", "material"])
 
         if _question_requests_branch_sales_ranking(question):
@@ -851,6 +1069,8 @@ class SemanticContextService:
         question: str,
         requested_dimensions: list[str] | None = None,
         extra_predicates: list[str] | None = None,
+        *,
+        company_total_aggregate: bool = False,
     ) -> str:
         definition = self.metric_definition(metric)
         dataset_name = definition["base_dataset"]
@@ -874,7 +1094,12 @@ class SemanticContextService:
             "mekanisme": ("mekanisme", "mechanism", "jenis promo", "tipe promo"),
             "program_status": ("program status", "status program", "kode status", "status kode"),
         }
-        dimensions = list(requested_dimensions) if requested_dimensions is not None else [name for name, terms in hints.items() if name in allowed and any(term in lowered for term in terms)]
+        if company_total_aggregate:
+            dimensions: list[str] = []
+        else:
+            dimensions = list(requested_dimensions) if requested_dimensions is not None else [
+                name for name, terms in hints.items() if name in allowed and any(term in lowered for term in terms)
+            ]
         dimensions = _sanitize_office_dimension_hints(question, dimensions, allowed)
         if any(name not in allowed for name in dimensions):
             raise ValueError("Requested dimension is not governed for this metric")
@@ -938,6 +1163,13 @@ class SemanticContextService:
                 projections.append("SUM(d.sell_in_bill_qty) AS sell_in_qty")
             if "sell_in_bill_val" in field_set:
                 projections.append("SUM(d.sell_in_bill_val) AS sell_in_val")
+        if "fill_rate" in metric and _question_wants_po_fulfillment_context(question):
+            if "service_po_qty" in field_set:
+                projections.append("SUM(d.service_po_qty) AS service_po_qty")
+            if "service_do_qty" in field_set:
+                projections.append("SUM(d.service_do_qty) AS service_do_qty")
+            if "sell_in_bill_val" in field_set:
+                projections.append("SUM(d.sell_in_bill_val) AS sell_in_bill_val")
         predicates = []
         for field in definition.get("required_filters", []):
             predicates.append(f"d.{field} = TRUE")
@@ -957,12 +1189,19 @@ class SemanticContextService:
         asks_current_snapshot = _asks_data_snapshot(question)
         asks_latest_available_month = asks_current_snapshot or "bulan lalu" in lowered or "last month" in lowered
         if "calmonth" in fields:
-            predicates.append(
-                "d.calmonth = 202412"
-                if asks_current_snapshot
-                else "d.calmonth BETWEEN 202410 AND 202412"
-            )
-        if {"thn", "bln"} <= set(fields) and asks_current_snapshot:
+            single_month = _explicit_calmonth_predicate(question)
+            if single_month:
+                predicates.append(single_month)
+            else:
+                predicates.append(
+                    "d.calmonth = 202412"
+                    if asks_current_snapshot
+                    else "d.calmonth BETWEEN 202410 AND 202412"
+                )
+        thn_bln_month = _explicit_thn_bln_predicates(question)
+        if thn_bln_month and {"thn", "bln"} <= set(fields):
+            predicates.extend(thn_bln_month)
+        elif {"thn", "bln"} <= set(fields) and asks_current_snapshot:
             predicates.extend(("d.thn = 2024", "d.bln = 'DEC'"))
         if "calmonth_date" in fields and asks_latest_available_month:
             predicates.append("d.calmonth_date = CAST('2024-12-01' AS DATE)")
@@ -976,8 +1215,13 @@ class SemanticContextService:
             for term in (
                 "terendah", "terkecil", "paling kecil", "paling rendah",
                 "paling sedikit", "paling jelek", "terjelek", "terburuk", "lowest", "bottom",
+                "paling buruk",
             )
         )
+        if "fill_rate" in metric.casefold() and any(
+            term in lowered for term in ("otif", "on time in full", "paling buruk", "buruk", "terjelek")
+        ):
+            ascending = True
         duration_metric = "picking" in metric.casefold() or "unloading" in metric.casefold()
         if duration_metric:
             if any(
@@ -1017,22 +1261,59 @@ class SemanticContextService:
         ):
             # "cabang paling jelek … tadi" refers to prior office; material list still wants largest qty DESC.
             ascending = False
+        stock_cover_metric = metric == "months_of_stock_cover"
+        stock_tempo_sell_in_ratio = metric == "stock_tempo_to_sell_in_ratio"
+        if stock_cover_metric and any(
+            t in lowered for t in ("perputaran", "turnover", "putaran stok", "inventory turnover")
+        ):
+            if any(
+                term in lowered
+                for term in ("tertinggi", "terbesar", "paling tinggi", "terbanyak", "tercepat")
+            ):
+                ascending = True
+            elif any(
+                term in lowered
+                for term in ("terendah", "terkecil", "paling rendah", "terlambat")
+            ):
+                ascending = False
         having_clauses: list[str] = []
         if "fill_rate" in metric and ascending and "service_po_qty" in field_set:
             having_clauses.append("SUM(d.service_po_qty) > 0")
-        requests_zero_movement = requested_dimensions is None and any(
+            if any(
+                term in lowered
+                for term in (
+                    "terendah",
+                    "terkecil",
+                    "paling rendah",
+                    "bill-to-po",
+                    "bill to po",
+                    "rasio bill",
+                )
+            ):
+                having_clauses.append(f"({expression}) < 1")
+        asks_zero_movement = any(
             term in lowered
             for term in (
                 "tidak laku", "zero movement", "tidak terjual",
                 "tidak ada penjualan", "sama sekali tidak laku", "belum pernah terjual",
             )
         )
+        requests_zero_movement = requested_dimensions is None and asks_zero_movement
         if requests_zero_movement and dimensions:
             # Impala cannot resolve a SELECT alias (metric_value) inside
             # HAVING - repeat the actual aggregate expression instead.
             having_clauses.append(f"{expression} = 0")
-        stock_cover_metric = metric == "months_of_stock_cover"
+        if ascending and (
+            "sell_out_to_sell_in" in metric or metric == "material_do_amount_to_billing_value_ratio"
+        ):
+            having_clauses.append(f"({expression}) > 0")
         if stock_cover_metric and "material" in dimensions and "sell_in_bill_qty" in field_set:
+            having_clauses.append("SUM(d.sell_in_bill_qty) > 0")
+        if (
+            stock_tempo_sell_in_ratio
+            and not asks_zero_movement
+            and "sell_in_bill_qty" in field_set
+        ):
             having_clauses.append("SUM(d.sell_in_bill_qty) > 0")
         if having_clauses:
             sql.append("HAVING " + " AND ".join(having_clauses))
@@ -1059,7 +1340,7 @@ class SemanticContextService:
         elif sort_stock_cover_by_value:
             sql.append("ORDER BY SUM(d.warehouse_stock_val) DESC NULLS LAST")
         else:
-            nulls_suffix = " NULLS LAST" if stock_cover_metric else ""
+            nulls_suffix = " NULLS LAST" if (stock_cover_metric or stock_tempo_sell_in_ratio) else ""
             sql.append(f"ORDER BY metric_value {'ASC' if ascending else 'DESC'}{nulls_suffix}")
         is_stock_metric = any(
             marker in metric
@@ -1071,7 +1352,9 @@ class SemanticContextService:
         else:
             maximum = 200
         default = 10 if dimensions else 50
-        if entity_lookup:
+        if company_total_aggregate:
+            limit = 1
+        elif entity_lookup:
             limit = 1
         elif top:
             limit = min(int(top.group(1)), maximum)

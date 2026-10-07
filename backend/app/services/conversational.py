@@ -141,9 +141,15 @@ def _session_block(history: list[dict[str, Any]]) -> dict[str, Any]:
     return block
 
 
-def _is_capability_overview(question: str) -> bool:
+def _is_capability_meta_question(question: str) -> bool:
+    """Greeting or mid-thread “what else can you help with?” — no governed SQL."""
     lowered = question.casefold().replace("–", "-")
-    if not any(
+    if any(
+        term in lowered
+        for term in ("top ", "berapa total", "ranking", "hitung", "tampilkan top", "urutkan")
+    ):
+        return False
+    return any(
         term in lowered
         for term in (
             "data apa saja",
@@ -154,10 +160,19 @@ def _is_capability_overview(question: str) -> bool:
             "capability",
             "domain apa",
             "fitur apa",
+            "bisa bantu apa",
+            "bantu apa lagi",
+            "apa lagi selain",
+            "selain data ini",
+            "selain data ",
+            "what else",
+            "help with besides",
         )
-    ):
-        return False
-    return not any(term in lowered for term in ("top ", "berapa total", "ranking", "hitung"))
+    )
+
+
+def _is_capability_overview(question: str) -> bool:
+    return _is_capability_meta_question(question)
 
 
 def _is_promo_proxy_explain_follow_up(question: str, history: list[dict[str, Any]]) -> bool:
@@ -275,12 +290,12 @@ async def understand_turn(
             rationale="concept_sell_in_vs_sell_out",
         )
 
-    if session.get("first_turn") and _is_capability_overview(q):
+    if _is_capability_meta_question(q):
         return TurnUnderstanding(
             is_conversational=True,
             attach_domain_catalog=True,
             pipeline_question=q,
-            rationale="capability_overview",
+            rationale="capability_overview" if session.get("first_turn") else "capability_follow_up",
         )
 
     if _is_promo_proxy_explain_follow_up(q, history):

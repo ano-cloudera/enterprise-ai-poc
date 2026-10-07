@@ -21,7 +21,7 @@ _CONCEPT_PATTERNS: dict[str, tuple[str, ...]] = {
     "dc_stock": ("dc stock", "dcstock", "stok dc", "stok sat", "sat dc", "penumpukan"),
     "store_stock": ("store stock", "storestock", "stok store", "stok toko", "stok retail"),
     "oos": ("oos", "out of stock", "kehabisan stok", "stok kosong"),
-    "service_level": ("service level", "fill rate", "fillrate"),
+    "service_level": ("service level", "services level", "fill rate", "fillrate", "tingkat layanan"),
 }
 
 _COMPARE_TERMS = (
@@ -70,8 +70,41 @@ def detect_concepts(question: str) -> set[str]:
     return found
 
 
+def _wants_pareto_contribution_analysis(question: str) -> bool:
+    lowered = _normalize(question)
+    return any(
+        term in lowered
+        for term in (
+            "kontribusi",
+            "persen kontribusi",
+            "percent contribution",
+            "kumulatif",
+            "cumulatif",
+            "cumulative",
+            "nilai kumulatif",
+            "pareto",
+            "80/20",
+            "80 20",
+            "penagihan grosir",
+            "nilai penagihan",
+        )
+    )
+
+
 def wants_cross_domain_compare(question: str, *, allow_implicit_b2b_check: bool = False) -> bool:
     lowered = _normalize(question)
+    if _wants_pareto_contribution_analysis(question):
+        return False
+    if "sekaligus" in lowered and not any(
+        term in lowered for term in ("bandingkan", " vs ", "versus", "perbandingan", "selisih", "compare")
+    ):
+        if _wants_pareto_contribution_analysis(question):
+            return False
+        if not any(
+            term in lowered
+            for term in ("journey", "stok", "stock", "sell-out", "sell out", "sellout", "dc ")
+        ):
+            return False
     if any(term in lowered for term in _COMPARE_TERMS):
         return True
     if re.search(r"sell[\s-]?in.{0,40}sell[\s-]?out|sell[\s-]?out.{0,40}sell[\s-]?in", lowered):
@@ -124,6 +157,8 @@ def try_resolve_cross_domain(
     allow_implicit_b2b_check: bool = False,
 ) -> CrossDomainResolution | None:
     """Pick a published journey metric when the user asks to compare two domains."""
+    if _wants_pareto_contribution_analysis(question):
+        return None
     lowered = _normalize(question)
     words = set(re.findall(r"[a-z0-9]+", lowered))
     concept_set = concepts or detect_concepts(question)
