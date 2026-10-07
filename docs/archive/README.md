@@ -14,5 +14,8 @@ Material here is **historical** (milestones, handoffs, manual UAT transcripts, p
 | `remaining-work.md` | Pre-demo checklist; largely completed (Impala OSSIE, UAT 30/30 management) |
 | `CHANGELOG-v2.md` | Milestone 1–2 changelog snapshot |
 | `cai-deployment.md` | Early single-app CAI direction; merged into `cloudera-ai-deployment.md` |
+| `superpowers/` | Milestone implementation plans and design specs |
+| `uat/` | Manual GPT-4o / Qwen UAT transcripts (Oct 2026) |
+| `qa/` | Agent Studio nine-domain acceptance matrix |
 
 Do not delete without product owner sign-off — some rows reference external audit dates and Agent Studio IDs.

@@ -9,6 +9,8 @@ const CHART_MARGIN_DENSE_BOTTOM = 88
 const CHART_MARGIN_DENSE_BOTTOM_EMBEDDED = 44
 const CHART_MARGIN_DEFAULT_BOTTOM = 52
 const CHART_MARGIN_DEFAULT_BOTTOM_EMBEDDED = 32
+/** Extra headroom above tallest bar/line so values do not touch the chart top. */
+const Y_AXIS_HEADROOM = 1.2
 
 function formatAxisNumber(value: number): string {
   const abs = Math.abs(value)
@@ -76,6 +78,12 @@ export function AnswerChart({
         : CHART_MARGIN_DEFAULT_BOTTOM,
     left: 4,
   }
+  const keys = visibleSeriesNames.length ? visibleSeriesNames : [yField]
+  const yDomainMax = (dataMax: number) => (dataMax <= 0 ? 1 : dataMax * Y_AXIS_HEADROOM)
+  const yDomain: [number, number | ((max: number) => number)] = scaleRatioToPercent
+    ? [0, (max: number) => Math.min(100, yDomainMax(max))]
+    : [0, yDomainMax]
+
   const xAxis = (
     <XAxis
       dataKey={xKey}
@@ -94,12 +102,18 @@ export function AnswerChart({
     <>
       <CartesianGrid vertical={false} stroke="#E7E8F0" />
       {xAxis}
-      <YAxis tick={tick} axisLine={false} tickLine={false} width={56} tickFormatter={formatAxisNumber} />
+      <YAxis
+        tick={tick}
+        axisLine={false}
+        tickLine={false}
+        width={56}
+        tickFormatter={formatAxisNumber}
+        domain={yDomain}
+      />
       <Tooltip formatter={formatTooltipValue} />
       {visibleSeriesNames.length > 0 && <Legend verticalAlign="bottom" wrapperStyle={{ fontSize: 12, paddingTop: 8 }} />}
     </>
   )
-  const keys = visibleSeriesNames.length ? visibleSeriesNames : [yField]
   const chartHeight = denseCategories
     ? embedded
       ? 'h-[14rem]'

@@ -57,32 +57,11 @@ Merged results: `backend/eval/*_merged_latest.json`.
 
 ---
 
-## Recommended to archive (not deleted yet)
+## Archive (`docs/archive/`)
 
-These are **not** linked from root `README.md` as operator docs. They are audit/history or superseded by OSSIE + `backend/eval/`.
+Historical handoffs, milestone plans, manual UAT transcripts, and pre-OSSIE checklists live under **`archive/`** — see [`archive/README.md`](archive/README.md).
 
-| Path | Verdict | Superseded by |
-|------|---------|----------------|
-| `handoff/` | Archive | `PROJECT_STATE.md` |
-| `superpowers/` | Archive | Implemented code + PROJECT_STATE |
-| `uat/` | Archive | `backend/eval/*.yaml` + judge harness |
-| `qa/2026-09-28-agent-studio-nine-domain-acceptance.md` | Archive | Automated UAT; contract counts stale |
-| `uat-questions-2026-09-29.md` | Archive | 5×5 / 1×2 / 3×1 YAML suites |
-| `uat/2026-10-02-nine-questions-resolver-uat.md` | Archive | pytest + eval harness |
-| `remaining-work.md` | Archive | Management UAT 30/30, OSSIE live |
-| `cai-deployment.md` | Archive | `cloudera-ai-deployment.md` |
-| `diagrams/tempo-agent-studio-workflow.*` | Keep or archive | Agent Studio optional path |
-
-**Partial archive already started:** `archive/handoff/` (duplicate of top-level `handoff/` — consolidate to one location when cleaning).
-
-Suggested one-time cleanup (after you confirm):
-
-```bash
-cd docs
-mkdir -p archive
-git mv handoff superpowers uat qa archive/
-git mv uat-questions-2026-09-29.md remaining-work.md CHANGELOG-v2.md cai-deployment.md archive/
-```
+Active operator docs stay in `docs/` root (table above). Agent Studio workflow diagrams remain in [`diagrams/`](diagrams/) until explicitly retired.
 
 ---
 

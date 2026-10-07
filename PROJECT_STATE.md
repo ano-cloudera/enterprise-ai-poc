@@ -29,7 +29,7 @@ Run: `cd backend && PYTHONPATH=. ../.venv/bin/python scripts/run_uat_domain_5x5_
 
 - **Index:** `docs/README.md` — active operator docs vs recommended archive (`handoff/`, `superpowers/`, `uat/`, manual UAT lists).
 - **Updated:** `semantic-layer.md`, `golden-questions.md`, `tempo-impala-ossie-runbook.md`, `repository-structure-v2.md`, OSSIE notes in `architecture.md` / `nl-to-sql.md`.
-- **Pending physical move:** run `git mv` block in `docs/README.md` to consolidate duplicates into `docs/archive/` (partial: `archive/handoff/` exists).
+- **Archive:** `docs/archive/` holds `handoff/`, `superpowers/`, `uat/`, `qa/`, and legacy checklists; index at `docs/README.md`.
 
 ### Frontend (7 Oct)
 
