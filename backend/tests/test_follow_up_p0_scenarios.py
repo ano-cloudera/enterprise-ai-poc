@@ -413,6 +413,39 @@ def test_explain_rank_one_vs_peers_uses_history_not_governed_filter() -> None:
     assert hist["focus_entity"]["id"] == "001-00-03"
 
 
+def test_explain_november_dip_after_monthly_trend_uses_history_only() -> None:
+    ctx = build_analysis_context(
+        metric="material_sell_in_value",
+        dimensions=["calmonth"],
+        entity_dimension="material",
+        ranked_entities=[],
+        last_question="tren penjualan 001-00-03 perbulan",
+    )
+    q = "kenapa bulan nov itu terlihat paling rendah ya, bisa bantu analisa gak?"
+    plan = plan_follow_up(q, ctx)
+    assert plan is not None and plan.intent == "explain_prior_result"
+    history = [
+        {
+            "question": "tren penjualan 001-00-03 perbulan",
+            "answer": {
+                "direct_answer": "Nov rendah vs Okt/Des.",
+                "data_reference": "gold.rpt_sap_material_month_semantic",
+            },
+            "rows": [
+                {"calmonth": 202410, "material": "001-00-03", "metric_value": 121e9},
+                {"calmonth": 202411, "material": "001-00-03", "metric_value": 17e9},
+                {"calmonth": 202412, "material": "001-00-03", "metric_value": 149e9},
+            ],
+            "strategy": "governed",
+            "status": "SUCCESS",
+        }
+    ]
+    hist = try_history_only_analysis_resolution(q, ctx, history, understanding=None)
+    assert hist is not None
+    assert hist["status"] == "history_only"
+    assert hist["prior_query_result"]["row_count"] == 3
+
+
 def test_bill_to_po_top_ten_after_pareto_is_not_session_drill() -> None:
     ctx = build_analysis_context(
         metric="material_sell_in_value",

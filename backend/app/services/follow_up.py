@@ -388,6 +388,75 @@ def _plan_filtered_entity_time_breakdown(
     )
 
 
+def _session_last_was_time_series(ctx: dict[str, Any]) -> bool:
+    dims = {str(d) for d in (ctx.get("last_dimensions") or [])}
+    return bool(dims & {"calmonth", "reporting_period", "calmonth_date", "bln"})
+
+
+def _wants_prior_time_point_explanation(question: str) -> bool:
+    """Why/analyze a specific month in the chart the user just saw (e.g. Nov dip)."""
+    lowered = _normalize(question)
+    asks_causal = any(
+        t in lowered
+        for t in (
+            "kenapa",
+            "mengapa",
+            "why",
+            "penyebab",
+            "alasan",
+            "sebab",
+        )
+    ) or (
+        "analisa" in lowered
+        and any(t in lowered for t in ("kenapa", "mengapa", "rendah", "tinggi", "turun", "naik"))
+    )
+    if not asks_causal:
+        return False
+    month_named = any(
+        t in lowered
+        for t in (
+            "januari",
+            "februari",
+            "maret",
+            "april",
+            "mei",
+            "juni",
+            "juli",
+            "agustus",
+            "september",
+            "oktober",
+            "okt",
+            "november",
+            "nov",
+            "desember",
+            "des",
+            "bulan 10",
+            "bulan 11",
+            "bulan 12",
+        )
+    )
+    month_context = month_named or ("bulan" in lowered and "itu" in lowered)
+    if not month_context:
+        return False
+    return any(
+        t in lowered
+        for t in (
+            "paling rendah",
+            "paling tinggi",
+            "terendah",
+            "tertinggi",
+            "terlihat rendah",
+            "terlihat tinggi",
+            "rendah",
+            "tinggi",
+            "turun",
+            "naik",
+            "drop",
+            "anomali",
+        )
+    )
+
+
 def _wants_history_only_explanation(question: str) -> bool:
     """Explain / why questions on prior ranking without a new governed query."""
     lowered = _normalize(question)
@@ -405,6 +474,8 @@ def _wants_history_only_explanation(question: str) -> bool:
             "apa yang membuat",
         )
     )
+    if _wants_prior_time_point_explanation(question):
+        return True
     if not asks_why:
         return False
     vs_peers = any(
@@ -1142,7 +1213,11 @@ def plan_follow_up(question: str, ctx: dict[str, Any]) -> FollowUpPlan | None:
             breakdown_dimension="plant",
         )
 
-    if catalog and _wants_history_only_explanation(question) and not _follow_up_requires_fresh_query(question):
+    if (
+        _wants_history_only_explanation(question)
+        and not _follow_up_requires_fresh_query(question)
+        and (catalog or _session_last_was_time_series(ctx))
+    ):
         rank = _parse_rank_index(question)
         focus = _catalog_by_rank(catalog, rank) if rank is not None else None
         return FollowUpPlan(
