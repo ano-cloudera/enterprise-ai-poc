@@ -1,5 +1,10 @@
 Referential follow-up on a prior governed result. JSON only.
 
+**Required `turn_kind` (pick one):**
+- `new_topic` — full new KPI/ranking in the same chat (bill-to-PO top 10, another domain, top-N list) — not drilling one row from the last chart.
+- `continue_session` — drill, filter, tren/per bulan, relimit, compare rows from the last governed result.
+- `explain_prior` — why / analisa / penyebab about data already shown (e.g. why November is lowest) — no new SQL.
+
 Use `result_catalog` (ranked entities) and `last_question` / `last_metric` from session.
 
 Set `referential_follow_up=true` when the user points at prior rows (that branch, rank 1 vs last, drill products, etc.).

@@ -9,6 +9,8 @@ from enum import Enum
 from pathlib import Path
 from typing import Any, Literal
 
+from app.services.session_turn import TurnKind
+
 from pydantic import BaseModel, Field
 
 from app.llm.base import LLMProvider, ProviderError
@@ -39,6 +41,10 @@ class TurnUnderstanding(BaseModel):
         default="",
         description="When user answers a prior clarification chip: sell-in, sell-out, picking, unloading.",
     )
+    turn_kind: TurnKind | None = Field(
+        default=None,
+        description="new_topic | continue_session | explain_prior (when session has prior governed metric).",
+    )
     referential_follow_up: bool = Field(
         default=False,
         description="User refers to prior turn results (that branch, rank 1 vs last, drill products).",
@@ -66,6 +72,7 @@ class _TurnUnderstandingClarify(BaseModel):
 
 class _TurnUnderstandingFollowUp(BaseModel):
     pipeline_question: str
+    turn_kind: TurnKind = "new_topic"
     referential_follow_up: bool = False
     follow_up_entity_id: str | None = None
     follow_up_entity_dimension: str | None = None
@@ -226,11 +233,9 @@ def _understanding_mode(session: dict[str, Any], question: str) -> Understanding
         if _is_analytic_escape_from_clarification(question):
             return UnderstandingMode.SKIP
         return UnderstandingMode.CLARIFY
-    if session.get("result_catalog"):
+    if session.get("result_catalog") or session.get("last_metric"):
         return UnderstandingMode.FOLLOW_UP
     if session.get("first_turn"):
-        return UnderstandingMode.LITE
-    if session.get("last_metric"):
         return UnderstandingMode.LITE
     if len(question.strip()) >= _SKIP_MIN_QUESTION_CHARS:
         return UnderstandingMode.SKIP
@@ -334,11 +339,18 @@ async def understand_turn(
                 response_model=_TurnUnderstandingFollowUp,
                 max_tokens=320,
             )
+            referential = raw.referential_follow_up
+            turn_kind = raw.turn_kind
+            if turn_kind == "continue_session" and not referential:
+                referential = True
+            if turn_kind == "explain_prior":
+                referential = True
             result = TurnUnderstanding(
                 is_conversational=raw.is_conversational,
                 attach_domain_catalog=False,
                 pipeline_question=raw.pipeline_question,
-                referential_follow_up=raw.referential_follow_up,
+                turn_kind=turn_kind,
+                referential_follow_up=referential,
                 follow_up_entity_id=raw.follow_up_entity_id,
                 follow_up_entity_dimension=raw.follow_up_entity_dimension,
                 follow_up_rank=raw.follow_up_rank,

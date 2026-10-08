@@ -842,7 +842,7 @@ def _resolve_follow_up_plan(
 ) -> FollowUpPlan | None:
     if not ctx.get("last_metric"):
         return None
-    if not should_bind_session_follow_up(question, understanding):
+    if not should_bind_session_follow_up(question, understanding, ctx):
         return None
     from app.services.session_context import is_referential_follow_up
 

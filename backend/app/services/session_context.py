@@ -202,20 +202,16 @@ def is_standalone_analytic_question(question: str) -> bool:
 def should_bind_session_follow_up(
     question: str,
     understanding: Any | None = None,
+    analysis_context: dict[str, Any] | None = None,
 ) -> bool:
     """Whether heuristic / LLM follow-up should attach to the prior governed turn."""
-    if is_standalone_analytic_question(question):
-        return False
-    if understanding is not None:
-        rationale = str(getattr(understanding, "rationale", "") or "")
-        if getattr(understanding, "referential_follow_up", False):
-            return True
-        if rationale == "skip_session_has_no_catalog_or_clarify":
-            return True
-        if is_referential_follow_up(question) or is_entity_time_series_follow_up(question):
-            return True
-        return False
-    return True
+    from app.services.session_turn import should_apply_session_follow_up
+
+    return should_apply_session_follow_up(
+        question,
+        understanding=understanding,
+        analysis_context=analysis_context,
+    )
 
 
 def is_referential_follow_up(question: str) -> bool:

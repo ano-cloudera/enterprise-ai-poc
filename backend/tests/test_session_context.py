@@ -53,12 +53,14 @@ def test_standalone_analytic_after_pareto_not_referential() -> None:
 
 def test_relimit_from_prior_list_still_binds_session() -> None:
     q = "tampilkan hanya top 5 saja dari daftar tadi"
+    ctx = {"last_metric": "material_sell_in_value", "last_dimensions": ["material"]}
     assert not is_standalone_analytic_question(q)
-    assert should_bind_session_follow_up(q, understanding=None)
+    assert should_bind_session_follow_up(q, understanding=None, analysis_context=ctx)
 
 
 def test_material_monthly_trend_binds_even_when_llm_says_not_referential() -> None:
     q = "bisa tampilkan tren penjualan untuk produk 001-00-03 perbulan ya"
+    ctx = {"last_metric": "material_sell_in_value", "last_dimensions": ["material"]}
     assert should_bind_session_follow_up(
         q,
         TurnUnderstanding(
@@ -68,11 +70,13 @@ def test_material_monthly_trend_binds_even_when_llm_says_not_referential() -> No
             referential_follow_up=False,
             rationale="explicit_material_code",
         ),
+        analysis_context=ctx,
     )
 
 
 def test_llm_referential_true_still_binds() -> None:
     q = "tren sell-in per bulan untuk material itu"
+    ctx = {"last_metric": "material_sell_in_value", "last_dimensions": ["material"]}
     assert should_bind_session_follow_up(
         q,
         TurnUnderstanding(
@@ -83,6 +87,7 @@ def test_llm_referential_true_still_binds() -> None:
             follow_up_entity_id="001-00-03",
             rationale="entity_ref",
         ),
+        analysis_context=ctx,
     )
 
 

@@ -771,7 +771,27 @@ class SemanticContextService:
                 "dimension_mismatch": [],
             }
 
-        if get_settings().business_graph_enabled:
+        understanding_obj = None
+        if isinstance(turn_understanding, dict):
+            from app.services.conversational import TurnUnderstanding
+
+            try:
+                understanding_obj = TurnUnderstanding.model_validate(turn_understanding)
+            except Exception:
+                understanding_obj = None
+
+        from app.services.session_turn import infer_turn_kind
+
+        turn_kind = infer_turn_kind(
+            question,
+            understanding=understanding_obj,
+            analysis_context=session_analysis_context,
+        )
+
+        if get_settings().business_graph_enabled and turn_kind not in (
+            "continue_session",
+            "explain_prior",
+        ):
             clarify = try_clarification_intent(question)
             if clarify:
                 return clarify
@@ -787,20 +807,13 @@ class SemanticContextService:
                 "definition": self.metric_definition(cross_early.metric),
             }
 
-        if session_analysis_context:
-            from app.services.conversational import TurnUnderstanding
+        if session_analysis_context and turn_kind in ("continue_session", "explain_prior"):
             from app.services.follow_up import try_follow_up_governed_resolution
 
-            understanding = None
-            if isinstance(turn_understanding, dict):
-                try:
-                    understanding = TurnUnderstanding.model_validate(turn_understanding)
-                except Exception:
-                    understanding = None
             follow = try_follow_up_governed_resolution(
-                question, session_analysis_context, understanding
+                question, session_analysis_context, understanding_obj
             )
-            if not follow:
+            if not follow and turn_kind == "continue_session":
                 follow = self._try_session_metric_continuation(question, session_analysis_context)
             if follow and follow.get("status") == "resolved":
                 metric = str(follow["metric"])
