@@ -150,7 +150,7 @@ export function UsagePage() {
                     <XAxis dataKey="label" tick={{ fontSize: 11, fill: '#64748b' }} />
                     <YAxis tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={v => formatCompactTokens(Number(v))} />
                     <Tooltip
-                      formatter={(value: number) => [formatCompactTokens(value), 'Tokens']}
+                      formatter={value => [formatCompactTokens(Number(value ?? 0)), 'Tokens']}
                       labelFormatter={label => String(label)}
                     />
                     <Bar dataKey="tokens" fill="#FF5A1F" radius={[4, 4, 0, 0]} maxBarSize={48} />
