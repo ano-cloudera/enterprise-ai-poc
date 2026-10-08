@@ -22,6 +22,7 @@ sys.path.insert(0, str(BACKEND_ROOT))
 
 from app.core.config import get_settings  # noqa: E402
 from app.core.impala_env import load_impala_profile  # noqa: E402
+from app.core.kerberos_bootstrap import ensure_kerberos_ticket  # noqa: E402
 from app.db.impala_backend import ImpalaBackend, is_impala_configured  # noqa: E402
 
 
@@ -63,8 +64,10 @@ def main() -> int:
     print(f"  configured={is_impala_configured(settings)}")
 
     if settings.impala_auth_mechanism.upper() == "GSSAPI" and not _klist_has_ticket():
+        ensure_kerberos_ticket(settings)
+    if settings.impala_auth_mechanism.upper() == "GSSAPI" and not _klist_has_ticket():
         krb5 = BACKEND_ROOT / "runtime" / "krb5-ingram.conf"
-        print("\nWARN: no Kerberos ticket (klist empty). GSSAPI needs kinit, not IMPALA_PASSWORD.")
+        print("\nWARN: no Kerberos ticket (klist empty). Set KERBEROS_KEYTAB + KERBEROS_PRINCIPAL or kinit manually.")
         if krb5.is_file():
             print(f"  export KRB5_CONFIG={krb5}")
         print("  kinit your-principal@IMID.LOCAL")

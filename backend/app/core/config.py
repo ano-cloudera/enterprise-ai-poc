@@ -5,7 +5,7 @@ from pathlib import Path
 
 from pydantic import AliasChoices, Field, SecretStr
 from pydantic_settings import BaseSettings, SettingsConfigDict
-from app.core.impala_env import load_impala_profile
+from app.core.impala_env import load_impala_profile, load_kerberos_profile
 from app.core.llm_env import gemini_model_from_env_files
 
 
@@ -68,7 +68,13 @@ class Settings(BaseSettings):
     impala_query_timeout_seconds: int = Field(default=60, ge=1, le=600)
     # When set to `aws` or `ingram`, load IMPALA_* from that labeled block in repo `.env`
     # (see ### IMPALA CREDENTIALS … ENV sections). Avoids duplicate-key override bugs.
-    impala_credential_profile: str = "aws"
+    impala_credential_profile: str = "ingram"
+    krb5_config: str = Field(default="", validation_alias="KRB5_CONFIG")
+    kerberos_principal: str = Field(default="", validation_alias="KERBEROS_PRINCIPAL")
+    kerberos_keytab: str = Field(default="", validation_alias="KERBEROS_KEYTAB")
+    kerberos_password: SecretStr = Field(default=SecretStr(""), validation_alias="KERBEROS_PASSWORD")
+    kerberos_kinit_on_start: bool = Field(default=False, validation_alias="KERBEROS_KINIT_ON_START")
+    kerberos_kinit_renew: bool = Field(default=False, validation_alias="KERBEROS_KINIT_RENEW")
     conversation_db_path: Path = BACKEND_ROOT / "runtime" / "conversation_history.sqlite"
     usage_db_path: Path = Field(
         default=BACKEND_ROOT / "runtime" / "llm_usage.sqlite",
@@ -118,7 +124,9 @@ def get_settings() -> Settings:
     updates: dict = {}
     profile = settings.impala_credential_profile.strip().lower()
     if profile:
-        updates.update(load_impala_profile(REPO_ROOT / ".env", profile) or {})
+        env_path = REPO_ROOT / ".env"
+        updates.update(load_impala_profile(env_path, profile) or {})
+        updates.update(load_kerberos_profile(env_path, profile) or {})
     gemini_from_env = gemini_model_from_env_files(backend_root=BACKEND_ROOT, repo_root=REPO_ROOT)
     if gemini_from_env:
         updates["gemini_model"] = gemini_from_env

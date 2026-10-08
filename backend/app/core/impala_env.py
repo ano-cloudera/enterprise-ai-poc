@@ -7,6 +7,16 @@ PROFILE_MARKERS = {
     "ingram": "### IMPALA CREDENTIALS INGRAM ENV",
 }
 
+KERBEROS_KEYS = {
+    "KRB5_CONFIG": "krb5_config",
+    "KERBEROS_PRINCIPAL": "kerberos_principal",
+    "KERBEROS_KEYTAB": "kerberos_keytab",
+    "KERBEROS_PASSWORD": "kerberos_password",
+    "KERBEROS_KINIT_ON_START": "kerberos_kinit_on_start",
+    "KERBEROS_KINIT_RENEW": "kerberos_kinit_renew",
+}
+
+
 IMPALA_KEYS = {
     "IMPALA_HOST": "impala_host",
     "IMPALA_PORT": "impala_port",
@@ -22,7 +32,7 @@ IMPALA_KEYS = {
 }
 
 
-def load_impala_profile(env_path: Path, profile: str) -> dict[str, object]:
+def _load_marked_env_raw(env_path: Path, profile: str) -> dict[str, str]:
     marker = PROFILE_MARKERS.get(profile.strip().lower())
     if not marker or not env_path.is_file():
         return {}
@@ -37,10 +47,30 @@ def load_impala_profile(env_path: Path, profile: str) -> dict[str, object]:
         if not active or not stripped or stripped.startswith("#") or "=" not in stripped:
             continue
         key, value = stripped.split("=", 1)
-        key = key.strip()
-        if key.startswith("IMPALA_"):
-            raw[key] = value.strip().strip('"').strip("'")
+        raw[key.strip()] = value.strip().strip('"').strip("'")
+    return raw
 
+
+def _parse_bool(value: str) -> bool:
+    return value.lower() in {"1", "true", "yes", "on"}
+
+
+def load_kerberos_profile(env_path: Path, profile: str) -> dict[str, object]:
+    raw = _load_marked_env_raw(env_path, profile)
+    parsed: dict[str, object] = {}
+    for env_key, field_name in KERBEROS_KEYS.items():
+        if env_key not in raw:
+            continue
+        value = raw[env_key]
+        if field_name in {"kerberos_kinit_on_start", "kerberos_kinit_renew"}:
+            parsed[field_name] = _parse_bool(value)
+        else:
+            parsed[field_name] = value
+    return parsed
+
+
+def load_impala_profile(env_path: Path, profile: str) -> dict[str, object]:
+    raw = _load_marked_env_raw(env_path, profile)
     parsed: dict[str, object] = {}
     for env_key, field_name in IMPALA_KEYS.items():
         if env_key not in raw:
@@ -49,7 +79,7 @@ def load_impala_profile(env_path: Path, profile: str) -> dict[str, object]:
         if field_name in {"impala_port", "impala_query_timeout_seconds"}:
             parsed[field_name] = int(value)
         elif field_name in {"impala_use_ssl", "impala_use_http_transport"}:
-            parsed[field_name] = value.lower() in {"1", "true", "yes", "on"}
+            parsed[field_name] = _parse_bool(value)
         else:
             parsed[field_name] = value
     return parsed

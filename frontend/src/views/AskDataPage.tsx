@@ -31,6 +31,7 @@ import {
   loadSessions,
   saveSession,
   sessionTitle,
+  renameSession,
   toggleSessionPinned,
   type ChatSession,
   type ProcessSnapshot,
@@ -181,6 +182,10 @@ export function AskDataPage() {
     setSessions(toggleSessionPinned(id))
   }, [])
 
+  const handleRenameSession = useCallback((id: string, title: string) => {
+    setSessions(renameSession(id, title))
+  }, [])
+
   useEffect(() => {
     setChatSessionSidebar({
       sessions,
@@ -189,9 +194,19 @@ export function AskDataPage() {
       onOpenSession: openSession,
       onRemoveSession: removeSession,
       onTogglePinSession: togglePinSession,
+      onRenameSession: handleRenameSession,
     })
     return () => setChatSessionSidebar(null)
-  }, [sessions, sessionId, newChat, openSession, removeSession, togglePinSession, setChatSessionSidebar])
+  }, [
+    sessions,
+    sessionId,
+    newChat,
+    openSession,
+    removeSession,
+    togglePinSession,
+    handleRenameSession,
+    setChatSessionSidebar,
+  ])
 
   const downloadChat = useCallback(async () => {
     if (!messages.length || downloadingPdf) return

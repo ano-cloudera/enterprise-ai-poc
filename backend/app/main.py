@@ -13,6 +13,7 @@ from app.core.config import Settings, get_settings
 from app.llm.registry import ProviderRegistry
 from app.services.chat import ChatService
 from app.services.puppygraph_client import PuppyGraphClient
+from app.core.kerberos_bootstrap import ensure_kerberos_ticket
 from app.db.impala_backend import is_impala_configured
 
 
@@ -21,6 +22,7 @@ logger = logging.getLogger(__name__)
 
 def create_app(settings: Settings | None = None) -> FastAPI:
     configured = settings or get_settings()
+    ensure_kerberos_ticket(configured)
     application = FastAPI(title=configured.app_name, version="2.0.0")
     application.state.settings = configured
     application.state.provider_registry = ProviderRegistry(configured)

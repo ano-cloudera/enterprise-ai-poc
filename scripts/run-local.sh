@@ -2,6 +2,13 @@
 set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
+if [ -f "$ROOT/.env" ]; then
+  set -a
+  # shellcheck disable=SC1091
+  source "$ROOT/.env"
+  set +a
+fi
+export IMPALA_CREDENTIAL_PROFILE="${IMPALA_CREDENTIAL_PROFILE:-ingram}"
 cleanup() { for pid in $(jobs -p); do kill "$pid" 2>/dev/null || true; done; }
 trap cleanup EXIT INT TERM
 bash scripts/run-api.sh &

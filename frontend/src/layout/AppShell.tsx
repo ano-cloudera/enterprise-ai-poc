@@ -207,6 +207,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 onOpenSession={chatSessionSidebar.onOpenSession}
                 onRemoveSession={chatSessionSidebar.onRemoveSession}
                 onTogglePinSession={chatSessionSidebar.onTogglePinSession}
+                onRenameSession={chatSessionSidebar.onRenameSession}
               />
             )}
           </div>

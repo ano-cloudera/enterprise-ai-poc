@@ -20,6 +20,8 @@ export type ChatSession = {
   messages: StoredMessage[]
   selection?: ModelSelection
   pinned?: boolean
+  /** When true, title is kept on save (not replaced by first user message). */
+  titleCustomized?: boolean
 }
 
 const STORAGE_KEY = 'tempo-scan-v2.ask-data.sessions'
@@ -60,6 +62,8 @@ export function saveSession(session: ChatSession) {
     const existing = prior.find(item => item.id === session.id)
     const merged: ChatSession = {
       ...session,
+      title: existing?.titleCustomized ? existing.title : session.title,
+      titleCustomized: existing?.titleCustomized ?? session.titleCustomized,
       pinned: session.pinned ?? existing?.pinned,
     }
     const sessions = sortSessionsForDisplay([
@@ -78,6 +82,26 @@ export function deleteSession(id: string) {
     writeSessions(loadSessions().filter(item => item.id !== id))
   } catch {
     // localStorage unavailable - nothing to clean up.
+  }
+}
+
+const MAX_TITLE_LENGTH = 80
+
+export function renameSession(id: string, title: string): ChatSession[] {
+  if (typeof window === 'undefined') return []
+  const trimmed = title.trim()
+  if (!trimmed) return loadSessions()
+  try {
+    const nextTitle = trimmed.slice(0, MAX_TITLE_LENGTH)
+    const sessions = sortSessionsForDisplay(
+      loadSessions().map(item =>
+        item.id === id ? { ...item, title: nextTitle, titleCustomized: true } : item,
+      ),
+    )
+    writeSessions(sessions)
+    return sessions
+  } catch {
+    return loadSessions()
   }
 }
 
