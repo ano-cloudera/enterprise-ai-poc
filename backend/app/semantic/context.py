@@ -151,7 +151,8 @@ def _dc_partner_stock_penumpukan_resolution(question: str) -> tuple[str, list[st
         return None
     requests_ranking, _ = _question_requests_ranking(question)
     stock_rank_intent = any(term in lowered for term in ("penumpukan", "penumpukkan")) or (
-        requests_ranking and any(term in lowered for term in ("tertinggi", "terbesar", "terbanyak"))
+        requests_ranking
+        and any(term in lowered for term in ("tertinggi", "terbesar", "terbanyak", "terbaik", "terburuk"))
     )
     if not stock_rank_intent:
         return None

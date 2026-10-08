@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import re
 from typing import Any, Literal
 
 from app.services.session_context import (
@@ -13,6 +14,11 @@ from app.services.session_context import (
 )
 
 TurnKind = Literal["new_topic", "continue_session", "explain_prior", "conversational"]
+
+_NEW_TOPIC_PIVOT_RE = re.compile(
+    r"\btop\s*\d+\s+dc\b|\btop\s+dc\b|\b\d+\s+dc\b",
+    re.IGNORECASE,
+)
 
 _LLM_SKIP_RATIONALES = frozenset(
     {
@@ -47,6 +53,18 @@ def infer_turn_kind(
 
     if is_standalone_analytic_question(question):
         return "new_topic"
+
+    if analysis_context and analysis_context.get("last_metric"):
+        last = str(analysis_context.get("last_metric") or "").casefold()
+        lowered = _normalize_question_text(question)
+        if _NEW_TOPIC_PIVOT_RE.search(lowered) and any(
+            token in last for token in ("sell_in", "material", "calmonth", "gross_billing")
+        ):
+            return "new_topic"
+        if any(t in lowered for t in ("sekarang", "ganti topik", "topik lain")) and _NEW_TOPIC_PIVOT_RE.search(
+            lowered
+        ):
+            return "new_topic"
 
     from app.services.follow_up import _wants_history_only_explanation
 

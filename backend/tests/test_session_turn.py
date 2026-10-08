@@ -32,6 +32,12 @@ def test_llm_explain_prior_for_november() -> None:
     assert should_apply_session_follow_up(q, understanding=u, analysis_context=ctx)
 
 
+def test_top_dc_after_sell_in_trend_is_new_topic() -> None:
+    ctx = {"last_metric": "material_sell_in_value", "last_dimensions": ["calmonth"]}
+    q = "sekarang bantu saya kasih informasi mengenai top 10 DC terbaik selama q4 ini"
+    assert infer_turn_kind(q, analysis_context=ctx) == "new_topic"
+
+
 def test_heuristic_fallback_when_llm_skipped() -> None:
     ctx = {"last_metric": "material_sell_in_value", "last_dimensions": ["calmonth"]}
     q = "kenapa bulan nov itu terlihat paling rendah ya, bisa bantu analisa gak?"

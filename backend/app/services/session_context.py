@@ -36,6 +36,8 @@ _RANKING_SUPERLATIVES = (
     "terbesar",
     "terkecil",
     "terbanyak",
+    "terbaik",
+    "terburuk",
     "paling tinggi",
     "paling rendah",
     "paling besar",

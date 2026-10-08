@@ -89,6 +89,14 @@ def test_governed_intent_top_dc_q05() -> None:
     assert hit["metric"] == "b2b_branch_sell_out_value"
 
 
+def test_governed_intent_top_dc_terbaik_q4() -> None:
+    hit = try_governed_intent_route(
+        "sekarang bantu saya kasih informasi mengenai top 10 DC terbaik selama q4 ini"
+    )
+    assert hit is not None
+    assert hit["metric"] == "b2b_branch_sell_out_value"
+
+
 def test_governed_intent_pareto_q10() -> None:
     hit = try_governed_intent_route("Bantu jelaskan pareto penjualan")
     assert hit is not None

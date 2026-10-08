@@ -160,7 +160,7 @@ governed_intents:
     resolved_by: domain_graph_top_products_sell_in
   - id: top_dc_alfamart_sell_out
     all_terms: [dc, top]
-    any_terms: [alfamart, penjualan, penjualn, tertinggi, terbesar, terbanyak]
+    any_terms: [alfamart, penjualan, penjualn, tertinggi, terbesar, terbanyak, terbaik, terburuk]
     unless_terms: [stok, stock, bandingkan, vs, persediaan]
     metric: b2b_branch_sell_out_value
     dimensions: [branch]
