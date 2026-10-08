@@ -1138,7 +1138,16 @@ class SemanticContextService:
             metric, dimensions = _branch_ranking_metric(question, session_last_metric)
             return resolved(metric, dimensions)
 
-        resolution = self.registry.resolve_metric(question)
+        resolution = self.registry.resolve_metric(
+            question,
+            session_last_metric=session_last_metric
+            or (
+                str(session_analysis_context.get("last_metric"))
+                if isinstance(session_analysis_context, dict)
+                and session_analysis_context.get("last_metric")
+                else None
+            ),
+        )
         if resolution.get("status") == "resolved":
             mismatch = list(resolution.get("dimension_mismatch") or [])
             if len(mismatch) == 1:

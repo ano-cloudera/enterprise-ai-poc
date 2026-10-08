@@ -153,6 +153,26 @@ def _continues_prior_ranking(normalized: str) -> bool:
     return any(marker in normalized for marker in _PRIOR_LIST_CONTINUATION)
 
 
+_MATERIAL_ID_RE = re.compile(r"\b\d{3}-\d{2}-\d{2}\b")
+_FE_MATERIAL_RE = re.compile(r"\bFE\d+\b", re.IGNORECASE)
+_TIME_SERIES_TERMS = (
+    "per bulan",
+    "perbulan",
+    "bulanan",
+    "monthly",
+    "tren",
+    "trend",
+)
+
+
+def is_entity_time_series_follow_up(question: str) -> bool:
+    """Monthly/trend ask scoped to one material — usually continues prior sell-in ranking."""
+    normalized = _normalize_question_text(question)
+    if not any(term in normalized for term in _TIME_SERIES_TERMS):
+        return False
+    return bool(_MATERIAL_ID_RE.search(normalized) or _FE_MATERIAL_RE.search(question))
+
+
 def is_standalone_analytic_question(question: str) -> bool:
     """Fresh governed ask in a multi-turn chat — do not bind prior result_catalog."""
     normalized = _normalize_question_text(question)
@@ -190,8 +210,11 @@ def should_bind_session_follow_up(
         rationale = str(getattr(understanding, "rationale", "") or "")
         if getattr(understanding, "referential_follow_up", False):
             return True
-        if rationale != "skip_session_has_no_catalog_or_clarify":
-            return False
+        if rationale == "skip_session_has_no_catalog_or_clarify":
+            return True
+        if is_referential_follow_up(question) or is_entity_time_series_follow_up(question):
+            return True
+        return False
     return True
 
 
@@ -199,6 +222,8 @@ def is_referential_follow_up(question: str) -> bool:
     """True when the user likely refers to the prior turn (not a fresh UAT prompt)."""
     if is_standalone_analytic_question(question):
         return False
+    if is_entity_time_series_follow_up(question):
+        return True
     normalized = _normalize_question_text(question)
     if _TOP_ONE_RE.search(normalized):
         return True

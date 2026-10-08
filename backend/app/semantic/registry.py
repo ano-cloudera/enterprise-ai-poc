@@ -142,7 +142,14 @@ class TempoOssieRegistry:
         values.extend(context.get("synonyms", []) if isinstance(context, dict) else [])
         return [str(value) for value in values if value]
 
-    def resolve_ambiguity(self, question: str) -> dict[str, Any] | None:
+    def resolve_ambiguity(
+        self,
+        question: str,
+        *,
+        session_last_metric: str | None = None,
+    ) -> dict[str, Any] | None:
+        from app.services.session_context import is_entity_time_series_follow_up
+
         normalized = _normalize(question)
         words = set(re.findall(r"[a-z0-9]+", question.casefold()))
 
@@ -530,6 +537,31 @@ class TempoOssieRegistry:
                 term in normalized for term in ("rasio", "ratio", "selisih", "gap", "variance")
             ):
                 continue
+            if ambiguity.get("name") == "sales_stage" and is_entity_time_series_follow_up(question):
+                continue
+            if ambiguity.get("name") == "sales_stage" and session_last_metric:
+                prior = session_last_metric.casefold()
+                mentions_sell_out = any(
+                    _normalize(str(term)) in normalized
+                    for term in (
+                        "sell-out",
+                        "sell out",
+                        "sellout",
+                        "partner ke konsumen",
+                        "b2b",
+                        "alfamart",
+                    )
+                )
+                if not mentions_sell_out and any(
+                    token in prior
+                    for token in (
+                        "sell_in",
+                        "material_sell_in",
+                        "sales_office_sell_in",
+                        "gross_billing",
+                    )
+                ):
+                    continue
             if not any(
                 _normalize(str(term)) in normalized
                 for term in ambiguity.get("trigger_terms", [])
@@ -552,8 +584,13 @@ class TempoOssieRegistry:
             }
         return None
 
-    def resolve_metric(self, question: str) -> dict[str, Any]:
-        ambiguity = self.resolve_ambiguity(question)
+    def resolve_metric(
+        self,
+        question: str,
+        *,
+        session_last_metric: str | None = None,
+    ) -> dict[str, Any]:
+        ambiguity = self.resolve_ambiguity(question, session_last_metric=session_last_metric)
         if ambiguity:
             return ambiguity
 

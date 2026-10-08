@@ -57,6 +57,20 @@ def test_relimit_from_prior_list_still_binds_session() -> None:
     assert should_bind_session_follow_up(q, understanding=None)
 
 
+def test_material_monthly_trend_binds_even_when_llm_says_not_referential() -> None:
+    q = "bisa tampilkan tren penjualan untuk produk 001-00-03 perbulan ya"
+    assert should_bind_session_follow_up(
+        q,
+        TurnUnderstanding(
+            is_conversational=False,
+            attach_domain_catalog=False,
+            pipeline_question=q,
+            referential_follow_up=False,
+            rationale="explicit_material_code",
+        ),
+    )
+
+
 def test_llm_referential_true_still_binds() -> None:
     q = "tren sell-in per bulan untuk material itu"
     assert should_bind_session_follow_up(
