@@ -9,3 +9,12 @@ def test_monthly_breakdown_continues_prior_gross_billing_metric() -> None:
     assert resolution["metric"] == "gross_billing_value"
     assert resolution["matched_alias"] == "session_metric_continuation"
     assert "calmonth" in resolution["dimensions"]
+
+
+def test_standalone_ranking_does_not_continue_prior_sell_in_metric() -> None:
+    ctx = {"last_metric": "material_sell_in_value", "last_dimensions": ["material"]}
+    question = (
+        "Tampilkan 10 material dengan rasio bill-to-PO terendah di Desember 2024 — "
+        "hanya produk dengan nilai rasio positif."
+    )
+    assert SemanticContextService()._try_session_metric_continuation(question, ctx) is None

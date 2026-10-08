@@ -9,7 +9,7 @@ That error is **Kerberos**, not a missing Gold view. The backend reached Impala 
 1. Env Impala **Ingram**: `GSSAPI`, port `21050`, `IMPALA_USE_HTTP_TRANSPORT=false`, host coordinator (e.g. `cbase02.imid.local`).
 2. `requirements-impala.txt` installed in `.venv-cai` including **`kerberos==1.3.1`** (needs `krb5` dev libs on image).
 3. Valid **keytab or Kerberos identity** for the CAI runtime user (same as manual `kinit` on Workbench).
-4. Optional **startup kinit** (Backend V2): when `IMPALA_CREDENTIAL_PROFILE=ingram` and `GSSAPI`, the app runs `kinit` on boot if `KERBEROS_PRINCIPAL` + `KERBEROS_KEYTAB` (preferred) or `KERBEROS_PASSWORD` are set — same labeled block in repo `.env` or CAI Application env vars. Set `KERBEROS_KINIT_RENEW=true` to replace an existing ticket.
+4. Optional **startup kinit** (Backend V2, **opt-in**): set `KERBEROS_KINIT_ON_START=true` plus `KERBEROS_PRINCIPAL` + `KERBEROS_KEYTAB` (preferred) or `KERBEROS_PASSWORD` in CAI Application env (or the Ingram block in repo `.env`). Default is **no** auto-kinit (avoids VPN/keytab surprises). `KERBEROS_KINIT_RENEW=true` forces refresh when a ticket already exists.
 5. Redeploy/restart Application after env changes.
 
 Smoke from Workbench (after `kinit`):

@@ -28,8 +28,15 @@ def test_kinit_skipped_when_not_gssapi() -> None:
         run.assert_not_called()
 
 
-def test_kinit_keytab_when_no_ticket() -> None:
+def test_kinit_skipped_for_ingram_profile_without_opt_in() -> None:
     settings = _gssapi_ingram()
+    with patch("app.core.kerberos_bootstrap.subprocess.run") as run:
+        ensure_kerberos_ticket(settings)
+        run.assert_not_called()
+
+
+def test_kinit_keytab_when_no_ticket() -> None:
+    settings = _gssapi_ingram(kerberos_kinit_on_start=True)
     with patch("app.core.kerberos_bootstrap._klist_has_ticket", return_value=False):
         with patch("app.core.kerberos_bootstrap.Path.is_file", return_value=True):
             with patch("app.core.kerberos_bootstrap.subprocess.run") as run:
@@ -53,7 +60,7 @@ def test_kinit_skipped_when_ticket_exists() -> None:
 
 
 def test_kinit_renew_when_flag_set() -> None:
-    settings = _gssapi_ingram(kerberos_kinit_renew=True)
+    settings = _gssapi_ingram(kerberos_kinit_on_start=True, kerberos_kinit_renew=True)
     with patch("app.core.kerberos_bootstrap._klist_has_ticket", return_value=True):
         with patch("app.core.kerberos_bootstrap.Path.is_file", return_value=True):
             with patch("app.core.kerberos_bootstrap.subprocess.run") as run:

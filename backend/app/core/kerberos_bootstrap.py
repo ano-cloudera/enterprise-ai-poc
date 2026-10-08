@@ -24,13 +24,13 @@ def _klist_has_ticket() -> bool:
 def _should_kinit_on_start(settings: Settings) -> bool:
     if settings.impala_auth_mechanism.upper() != "GSSAPI":
         return False
-    if settings.kerberos_kinit_on_start:
-        return True
-    return settings.impala_credential_profile.strip().lower() == "ingram"
+    # Opt-in only (CAI/prod): avoids surprise kinit/VPN coupling. Set KERBEROS_KINIT_ON_START=true
+    # when keytab + stable cluster network are confirmed.
+    return bool(settings.kerberos_kinit_on_start)
 
 
 def ensure_kerberos_ticket(settings: Settings) -> None:
-    """Obtain a Kerberos TGT for GSSAPI Impala when using the Ingram profile (or explicit opt-in).
+    """Obtain a Kerberos TGT for GSSAPI Impala when ``KERBEROS_KINIT_ON_START=true``.
 
     Prefer ``KERBEROS_KEYTAB`` + ``KERBEROS_PRINCIPAL``. ``KERBEROS_PASSWORD`` is supported for
     non-interactive CAI only when operators accept storing a secret in Application env.
@@ -47,8 +47,7 @@ def ensure_kerberos_ticket(settings: Settings) -> None:
 
     if not principal and not keytab:
         logger.info(
-            "kerberos_kinit skipped profile=%s (set KERBEROS_PRINCIPAL and/or KERBEROS_KEYTAB)",
-            settings.impala_credential_profile,
+            "kerberos_kinit skipped (set KERBEROS_KINIT_ON_START=true plus KERBEROS_PRINCIPAL and/or KERBEROS_KEYTAB)",
         )
         return
 

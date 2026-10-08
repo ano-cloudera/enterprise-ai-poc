@@ -13,6 +13,8 @@ from app.services.session_context import (
     _ranked_entities_from_rows,
     _rows_for_chart_follow_up,
     infer_governed_metric_from_turn,
+    is_standalone_analytic_question,
+    should_bind_session_follow_up,
 )
 
 from app.services.conversational import TurnUnderstanding
@@ -517,8 +519,10 @@ def _parse_rank_index(question: str) -> int | None:
         t in lowered for t in ("cabang", "office", "sales", "fill", "service")
     ):
         return 1
-    if any(t in lowered for t in ("kritis", "paling kritis", "paling rendah", "terendah")) and any(
-        t in lowered for t in ("material", "stok", "stock", "cover")
+    if (
+        not is_standalone_analytic_question(question)
+        and any(t in lowered for t in ("kritis", "paling kritis", "paling rendah", "terendah"))
+        and any(t in lowered for t in ("material", "stok", "stock", "cover"))
     ):
         return 1
     if any(t in lowered for t in ("kelima", "ke lima", "ke-5", "urutan 5")):
@@ -767,6 +771,8 @@ def _resolve_follow_up_plan(
 ) -> FollowUpPlan | None:
     if not ctx.get("last_metric"):
         return None
+    if not should_bind_session_follow_up(question, understanding):
+        return None
     from app.services.session_context import is_referential_follow_up
 
     plan = plan_follow_up(question, ctx)
@@ -855,42 +861,7 @@ def _question_wants_office_sell_in_compare(question: str) -> bool:
 
 def _is_explicit_new_ranking_question(question: str) -> bool:
     """Fresh top-N ranking (not a drill on prior entity), e.g. after a pareto turn."""
-    lowered = _normalize(question)
-    if not _TOP_N_RE.search(lowered):
-        return False
-    if any(
-        t in lowered
-        for t in (
-            "tadi",
-            "sebelumnya",
-            "pertanyaan tadi",
-            "dari hasil",
-            "paling jelek",
-            "terjelek",
-            "terburuk",
-            "rank 1",
-            "urutan 1",
-        )
-    ):
-        return False
-    if not any(t in lowered for t in ("material", "produk", "sku", "plu", "office", "cabang", "dc")):
-        return False
-    return any(
-        t in lowered
-        for t in (
-            "sell-in",
-            "sell in",
-            "sell-out",
-            "sell out",
-            "tertinggi",
-            "terbesar",
-            "terendah",
-            "terkecil",
-            "fill rate",
-            "stok",
-            "stock",
-        )
-    )
+    return is_standalone_analytic_question(question)
 
 
 def plan_follow_up(question: str, ctx: dict[str, Any]) -> FollowUpPlan | None:

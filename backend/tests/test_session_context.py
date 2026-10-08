@@ -1,9 +1,12 @@
+from app.services.conversational import TurnUnderstanding
 from app.services.session_context import (
     build_session_frame,
     is_referential_follow_up,
+    is_standalone_analytic_question,
     last_turn_awaiting_clarification,
     rewrite_referential_analytic_question,
     session_frame_from_history,
+    should_bind_session_follow_up,
 )
 
 
@@ -27,6 +30,46 @@ def test_build_session_frame_captures_ranked_entities() -> None:
 def test_referential_follow_up_detected() -> None:
     assert is_referential_follow_up("kenapa cabang itu jelek?")
     assert not is_referential_follow_up("Top 10 cabang dengan penjualan terbesar di tempo")
+
+
+def test_standalone_analytic_after_pareto_not_referential() -> None:
+    q = (
+        "Tampilkan 10 material dengan rasio bill-to-PO terendah di Desember 2024 — "
+        "hanya produk dengan nilai rasio positif — dan analisa penyebab potensial."
+    )
+    assert is_standalone_analytic_question(q)
+    assert not is_referential_follow_up(q)
+    assert not should_bind_session_follow_up(
+        q,
+        TurnUnderstanding(
+            is_conversational=False,
+            attach_domain_catalog=False,
+            pipeline_question=q,
+            referential_follow_up=False,
+            rationale="new_topic_bill_to_po",
+        ),
+    )
+
+
+def test_relimit_from_prior_list_still_binds_session() -> None:
+    q = "tampilkan hanya top 5 saja dari daftar tadi"
+    assert not is_standalone_analytic_question(q)
+    assert should_bind_session_follow_up(q, understanding=None)
+
+
+def test_llm_referential_true_still_binds() -> None:
+    q = "tren sell-in per bulan untuk material itu"
+    assert should_bind_session_follow_up(
+        q,
+        TurnUnderstanding(
+            is_conversational=False,
+            attach_domain_catalog=False,
+            pipeline_question=q,
+            referential_follow_up=True,
+            follow_up_entity_id="001-00-03",
+            rationale="entity_ref",
+        ),
+    )
 
 
 def test_session_frame_reads_top_row_and_branch_from_answer() -> None:

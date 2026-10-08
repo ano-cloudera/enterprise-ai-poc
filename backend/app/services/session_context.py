@@ -8,6 +8,60 @@ from typing import Any
 _BRANCH_CODE_RE = re.compile(r"\b(0\d{3})\b")
 
 _TOP_ONE_RE = re.compile(r"\btop\s*(?:1|satu)\b", re.IGNORECASE)
+_TOP_N_RE = re.compile(r"\btop\s*(\d+)\b", re.IGNORECASE)
+_TAMPILKAN_N_RE = re.compile(r"\btampilkan\s+(\d+)\b", re.IGNORECASE)
+_COUNT_ENTITY_RE = re.compile(
+    r"\b(\d{1,2})\s+(?:material|produk|sku|plu|cabang|branch|office|dc|sales\s+office)\b",
+    re.IGNORECASE,
+)
+
+_PRIOR_LIST_CONTINUATION = (
+    "dari daftar tadi",
+    "dari hasil",
+    "dari ranking",
+    "dari jawaban",
+    "dari grafik",
+    "dari chart",
+    "dari tabel",
+    "ranking itu",
+    "hasil itu",
+    "data tadi",
+    "list tadi",
+    "daftar tadi",
+)
+
+_RANKING_SUPERLATIVES = (
+    "tertinggi",
+    "terendah",
+    "terbesar",
+    "terkecil",
+    "terbanyak",
+    "paling tinggi",
+    "paling rendah",
+    "paling besar",
+    "paling kecil",
+    "paling banyak",
+)
+
+_ENTITY_GRAINS = (
+    "material",
+    "produk",
+    "sku",
+    "plu",
+    "cabang",
+    "branch",
+    "office",
+    "sales office",
+    "dc",
+)
+
+_BILL_TO_PO_TERMS = (
+    "bill-to-po",
+    "bill to po",
+    "bill2po",
+    "b2p",
+    "rasio bill",
+)
 
 _DRILL_REFERENTIAL_MARKERS = (
     "itu",
@@ -91,9 +145,61 @@ _ENTITY_KEYS = (
 )
 
 
+def _normalize_question_text(question: str) -> str:
+    return " ".join(question.casefold().replace("–", "-").split())
+
+
+def _continues_prior_ranking(normalized: str) -> bool:
+    return any(marker in normalized for marker in _PRIOR_LIST_CONTINUATION)
+
+
+def is_standalone_analytic_question(question: str) -> bool:
+    """Fresh governed ask in a multi-turn chat — do not bind prior result_catalog."""
+    normalized = _normalize_question_text(question)
+    if _continues_prior_ranking(normalized):
+        return False
+    asks_list = bool(
+        _TOP_N_RE.search(normalized)
+        or _TAMPILKAN_N_RE.search(normalized)
+        or _COUNT_ENTITY_RE.search(normalized)
+    )
+    if asks_list and any(
+        marker in normalized
+        for marker in (" tadi", "tadi,", "tadi ", "tersebut", "produk itu", "material itu")
+    ):
+        return False
+    has_superlative = any(term in normalized for term in _RANKING_SUPERLATIVES)
+    has_grain = any(term in normalized for term in _ENTITY_GRAINS)
+    if asks_list and has_superlative and has_grain:
+        return True
+    if asks_list and has_grain and any(term in normalized for term in _BILL_TO_PO_TERMS):
+        return True
+    if _TOP_N_RE.search(normalized) and has_grain and has_superlative:
+        return True
+    return False
+
+
+def should_bind_session_follow_up(
+    question: str,
+    understanding: Any | None = None,
+) -> bool:
+    """Whether heuristic / LLM follow-up should attach to the prior governed turn."""
+    if is_standalone_analytic_question(question):
+        return False
+    if understanding is not None:
+        rationale = str(getattr(understanding, "rationale", "") or "")
+        if getattr(understanding, "referential_follow_up", False):
+            return True
+        if rationale != "skip_session_has_no_catalog_or_clarify":
+            return False
+    return True
+
+
 def is_referential_follow_up(question: str) -> bool:
     """True when the user likely refers to the prior turn (not a fresh UAT prompt)."""
-    normalized = " ".join(question.casefold().replace("–", "-").split())
+    if is_standalone_analytic_question(question):
+        return False
+    normalized = _normalize_question_text(question)
     if _TOP_ONE_RE.search(normalized):
         return True
     if any(marker in normalized for marker in _DRILL_REFERENTIAL_MARKERS):

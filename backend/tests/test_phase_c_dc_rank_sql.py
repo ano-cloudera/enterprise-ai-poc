@@ -8,6 +8,18 @@ from app.core.config import Settings
 from app.semantic.context import SemanticContextService
 
 
+def test_dc_penumpukan_q4_applies_thn_bln_filter() -> None:
+    settings = Settings(_env_file=None)
+    ctx = SemanticContextService(settings.project_root / settings.ossie_project_id)
+    q = "tampilkan 5 DC dengan penumpukan stok produk yang tertinggi Q4 2024"
+    resolution = ctx.resolve(q)
+    assert resolution.get("metric") == "sat_dc_stock_quantity"
+    sql = ctx.compile_governed("sat_dc_stock_quantity", q, ["dcname"])
+    assert "d.thn = 2024" in sql
+    assert "OCT" in sql and "NOV" in sql and "DEC" in sql
+    assert "limit 5" in sql.lower()
+
+
 def test_dc_penumpukan_compiles_group_by_dcname() -> None:
     settings = Settings(_env_file=None)
     ctx = SemanticContextService(settings.project_root / settings.ossie_project_id)

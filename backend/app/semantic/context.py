@@ -322,11 +322,19 @@ def _explicit_thn_bln_predicates(question: str) -> list[str] | None:
     return [f"d.thn = {year}", f"d.bln = {_sql_string_literal(abbr)}"]
 
 
+def _question_in_q4_2024_scope(lowered: str) -> bool:
+    folded = re.sub(r"\s+", "", lowered)
+    return bool(
+        re.search(r"\bq\s*4\b|\bq4\b|kuartal\s*4|quarter\s*4", lowered)
+        or "q42024" in folded
+    )
+
+
 def _question_requests_ranking(question: str) -> tuple[bool, re.Match[str] | None]:
     lowered = question.casefold()
     top = re.search(r"(?:top|teratas)\s+(\d+)", lowered)
     if not top:
-        top = re.search(r"\b(\d+)\s+(?:branch|branches|cabang|material|produk|sku)\b", lowered)
+        top = re.search(r"\b(\d+)\s+(?:branch|branches|cabang|material|produk|sku|dc)\b", lowered)
     requests_ranking = bool(top) or any(term in lowered for term in _RANKING_TERMS)
     if not requests_ranking and re.search(
         r"\btop\s+(?:penjualan|sales|produk|sku|material|dc|cabang|branch|outlet|toko|gerai)\b",
@@ -673,6 +681,10 @@ class SemanticContextService:
         question: str,
         analysis_context: dict[str, Any],
     ) -> dict[str, Any] | None:
+        from app.services.session_context import is_standalone_analytic_question
+
+        if is_standalone_analytic_question(question):
+            return None
         metric = analysis_context.get("last_metric")
         if not isinstance(metric, str) or not metric.strip():
             return None
@@ -1326,8 +1338,11 @@ class SemanticContextService:
         thn_bln_month = _explicit_thn_bln_predicates(question)
         if thn_bln_month and {"thn", "bln"} <= set(fields):
             predicates.extend(thn_bln_month)
-        elif {"thn", "bln"} <= set(fields) and asks_current_snapshot:
-            predicates.extend(("d.thn = 2024", "d.bln = 'DEC'"))
+        elif {"thn", "bln"} <= set(fields):
+            if _question_in_q4_2024_scope(lowered):
+                predicates.extend(("d.thn = 2024", "d.bln IN ('OCT', 'NOV', 'DEC')"))
+            elif asks_current_snapshot:
+                predicates.extend(("d.thn = 2024", "d.bln = 'DEC'"))
         if "calmonth_date" in fields and asks_latest_available_month:
             predicates.append("d.calmonth_date = CAST('2024-12-01' AS DATE)")
         sql = ["SELECT", "  " + ",\n  ".join(projections), f"FROM {dataset['source']} d"]

@@ -411,3 +411,22 @@ def test_explain_rank_one_vs_peers_uses_history_not_governed_filter() -> None:
     assert hist["status"] == "history_only"
     assert hist["prior_query_result"]["row_count"] == 2
     assert hist["focus_entity"]["id"] == "001-00-03"
+
+
+def test_bill_to_po_top_ten_after_pareto_is_not_session_drill() -> None:
+    ctx = build_analysis_context(
+        metric="material_sell_in_value",
+        dimensions=["material"],
+        entity_dimension="material",
+        ranked_entities=[
+            {"rank": 1, "id": "001-00-03", "dimension": "material", "metric_value": 289e9},
+            {"rank": 2, "id": "073-09-03", "dimension": "material", "metric_value": 50e9},
+        ],
+        last_question="bantu tampilkan pareto penjualan",
+    )
+    q = (
+        "Tampilkan 10 material dengan rasio bill-to-PO terendah di Desember 2024 — "
+        "hanya produk dengan nilai rasio positif — dan analisa penyebab potensial."
+    )
+    assert plan_follow_up(q, ctx) is None
+    assert try_follow_up_governed_resolution(q, ctx, understanding=None) is None
