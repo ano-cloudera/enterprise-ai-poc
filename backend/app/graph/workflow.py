@@ -50,6 +50,7 @@ class WorkflowDependencies:
     # None (the default in every existing test/deployment) skips the
     # fallback node entirely with no behavior change.
     local_agent_client: Any = None
+    usage_tracker: Any = None
 
 
 def _elapsed(started: float) -> float:
@@ -61,7 +62,10 @@ def _prompt(name: str) -> str:
 
 
 def _provider(state: AskDataState, deps: WorkflowDependencies) -> LLMProvider:
-    return deps.provider_registry.resolve(state["provider"], state["model"])
+    provider = deps.provider_registry.resolve(state["provider"], state["model"])
+    if deps.usage_tracker is not None:
+        return deps.usage_tracker.wrap(provider, state["request_id"])
+    return provider
 
 
 def _with_timing(state: AskDataState, key: str, value: float) -> dict[str, float]:

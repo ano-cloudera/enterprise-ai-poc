@@ -70,6 +70,16 @@ class Settings(BaseSettings):
     # (see ### IMPALA CREDENTIALS … ENV sections). Avoids duplicate-key override bugs.
     impala_credential_profile: str = "aws"
     conversation_db_path: Path = BACKEND_ROOT / "runtime" / "conversation_history.sqlite"
+    usage_db_path: Path = Field(
+        default=BACKEND_ROOT / "runtime" / "llm_usage.sqlite",
+        validation_alias="USAGE_DB_PATH",
+    )
+    usage_monthly_token_budget: int = Field(
+        default=0,
+        ge=0,
+        validation_alias="USAGE_MONTHLY_TOKEN_BUDGET",
+        description="Optional soft cap for Usage UI (0 = hidden)",
+    )
 
     # Optional fallback: a separately governed sibling system (TEMPO Local
     # Agent) queried only when our own OSSIE-driven planner can't match a

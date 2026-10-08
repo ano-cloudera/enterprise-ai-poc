@@ -88,7 +88,7 @@ describe('V2 Ask Data page', () => {
     expect(navigation.className).toContain('lg:w-[68px]')
 
     fireEvent.click(screen.getByRole('button', { name: 'Expand sidebar' }))
-    expect(navigation.className).toContain('lg:w-[240px]')
+    expect(navigation.className).toContain('lg:w-[272px]')
   })
 
   it('lets the user stop a request that is still loading', async () => {

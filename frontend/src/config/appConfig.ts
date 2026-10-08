@@ -5,16 +5,23 @@ function env(key: string, fallback: string): string {
 }
 
 export const appConfig = {
-  appName: env('NEXT_PUBLIC_APP_NAME', 'Cloudera Data Intelligence'),
+  appName: env('NEXT_PUBLIC_APP_NAME', 'Scan Intelligence'),
   customerName: env('NEXT_PUBLIC_CUSTOMER_NAME', ''),
   assistantName: env('NEXT_PUBLIC_ASSISTANT_NAME', 'Assistant'),
   get headerTitle(): string {
     return [this.customerName, this.appName].filter(Boolean).join(' ') || this.appName
   },
-  get sidebarProductName(): string {
+  /** Primary line in sidebar header (logo row). */
+  get sidebarBrandTitle(): string {
     return this.customerName || this.appName
   },
   sidebarTagline: env('NEXT_PUBLIC_APP_TAGLINE', 'AI Workspace'),
+  sidebarPoweredByLabel: env('NEXT_PUBLIC_SIDEBAR_POWERED_BY', 'Powered by Cloudera'),
+  sidebarFooterCaption: env(
+    'NEXT_PUBLIC_SIDEBAR_FOOTER_CAPTION',
+    'Tempo Scan proof of concept',
+  ),
+  starterQuestionsCaption: env('NEXT_PUBLIC_STARTER_QUESTIONS_CAPTION', 'Start with a question'),
   chatPlaceholder: env('NEXT_PUBLIC_CHAT_PLACEHOLDER', 'Ask a question about your data…'),
   emptyStateTitle: env('NEXT_PUBLIC_EMPTY_STATE_TITLE', 'Ask your data a question'),
   emptyStateDescription: env(
@@ -24,6 +31,7 @@ export const appConfig = {
   settingsSubtitle: 'Choose the AI model used for new conversations.',
   settingsModelHelper: 'Select the model you want this assistant to use.',
   navigationAskData: env('NEXT_PUBLIC_NAV_ASK_DATA', 'Ask Data'),
+  navigationUsage: env('NEXT_PUBLIC_NAV_USAGE', 'Usage'),
   navigationSettings: env('NEXT_PUBLIC_NAV_SETTINGS', 'Settings'),
   branding: {
     /** Served from `public/` (default: repo `assets/Logo.png` copied to public/Logo.png). */

@@ -18,7 +18,9 @@ Set `attach_domain_catalog=true` only when a generic domain bullet list helps (f
 When the user refers to prior results, set `referential_follow_up=true` and fill when inferable from session:
 - `follow_up_entity_id`, `follow_up_entity_dimension` (e.g. branch, sales_office, material)
 - `follow_up_rank` (1-based row in prior table)
-- `follow_up_material_drill` + `follow_up_top_n` when they want product/material breakdown
+- `follow_up_material_drill` + `follow_up_top_n` when they want product/material breakdown **at the same grain** (e.g. top 3 SKUs for that DC).
+
+**Monthly / time trend for one prior row:** when the user asks for **per bulan**, **bulanan**, **tren**, or **trend** for **that** branch / material / office / DC from the last table (rank 1, “paling tinggi”, “produk itu”), set `referential_follow_up=true`, bind `follow_up_entity_id` / `follow_up_rank`, and set **`follow_up_material_drill=false`** — they want a **time axis** for one entity, not another top-N material ranking.
 
 When not referential, set `referential_follow_up=false` and leave follow-up entity fields null.
 

@@ -112,6 +112,13 @@ class Timings(StrictModel):
     total_ms: float = 0
 
 
+class LlmUsage(StrictModel):
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+    llm_calls: int = 0
+
+
 class AskDataResponse(StrictModel):
     request_id: str
     session_id: str
@@ -124,3 +131,4 @@ class AskDataResponse(StrictModel):
     chart_spec: ChartSpec | None
     timings: Timings
     retry_count: int = 0
+    usage: LlmUsage | None = None

@@ -1,4 +1,4 @@
-import type { ChatResponse, ModelInfo, ModelSelection, SuggestedQuestion } from '../types/api'
+import type { ChatResponse, ModelInfo, ModelSelection, SuggestedQuestion, UsageSummary } from '../types/api'
 
 
 async function request<T>(path: string): Promise<T> {
@@ -17,6 +17,16 @@ export const api = {
   },
   models: () => request<{ models: ModelInfo[] }>('/models'),
   randomQueries: (limit = 1) => request<{ questions: SuggestedQuestion[] }>(`/random-queries?limit=${limit}`),
+  usageSummary: (params: { days?: number; mtd?: boolean } = {}) => {
+    const q = new URLSearchParams()
+    if (params.mtd) q.set('mtd', 'true')
+    else if (params.days != null) q.set('days', String(params.days))
+    const suffix = q.toString() ? `?${q}` : ''
+    return request<UsageSummary>(`/usage/summary${suffix}`)
+  },
+  usageEvents: (days = 7, limit = 50) =>
+    request<{ events: import('../types/api').UsageEvent[] }>(`/usage/events?days=${days}&limit=${limit}`),
+  usageExportCsvUrl: (days = 30) => `/api/usage/export.csv?days=${days}`,
   chatStream: async function* (
     question: string,
     sessionId: string,

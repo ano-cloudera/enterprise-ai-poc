@@ -54,6 +54,24 @@ def test_fe001_material_follow_up_after_company_total() -> None:
     assert "FE001" in " ".join(res.get("follow_up_entity_filters") or [])
 
 
+def test_sales_office_unloading_monthly_for_worst_office() -> None:
+    ctx = build_analysis_context(
+        metric="average_unloading_minutes",
+        dimensions=["sales_off"],
+        entity_dimension="sales_off",
+        ranked_entities=[
+            {"rank": 1, "dimension": "sales_off", "id": "SO-JKT", "metric_value": 45.0},
+        ],
+        last_question="sales office dengan unloading terlama Q4",
+    )
+    q = "office itu tampilkan rata-rata unloading per bulan"
+    res = try_follow_up_governed_resolution(q, ctx, understanding=None)
+    assert res is not None
+    assert res["metric"] == "average_unloading_minutes"
+    assert res["dimensions"] == ["reporting_period"]
+    assert any("SO-JKT" in p for p in res.get("follow_up_entity_filters") or [])
+
+
 def test_relimit_top_five_from_prior_ranking() -> None:
     ctx = build_analysis_context(
         metric="b2b_branch_sell_out_value",

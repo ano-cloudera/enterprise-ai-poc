@@ -168,9 +168,222 @@ def _parse_top_n(question: str, default: int = 5) -> int:
     return default
 
 
+_TIME_GRAIN_TERMS = (
+    "per bulan",
+    "perbulan",
+    "perbulannya",
+    "bulanan",
+    "per month",
+    "monthly",
+    "tren",
+    "trend",
+)
+
+
+def _wants_monthly_time_breakdown(question: str) -> bool:
+    lowered = _normalize(question)
+    return any(term in lowered for term in _TIME_GRAIN_TERMS)
+
+
+def _wants_prior_top_entity_focus(question: str) -> bool:
+    lowered = _normalize(question)
+    return any(
+        t in lowered
+        for t in (
+            "paling tinggi",
+            "tertinggi",
+            "terbesar",
+            "terbanyak",
+            "paling atas",
+            "teratas",
+            "rank 1",
+            "urutan 1",
+            "top 1",
+            "material itu",
+            "produk itu",
+            "produk/material itu",
+            "material tersebut",
+            "produk tersebut",
+            "yang tadi",
+            "tadi",
+            "tersebut",
+            "cabang itu",
+            "dc itu",
+            "office itu",
+            "sales office itu",
+            "partner itu",
+            "paling lambat",
+            "paling cepat",
+        )
+    )
+
+
 def _wants_material_drill(question: str) -> bool:
+    if _wants_monthly_time_breakdown(question):
+        return False
     lowered = _normalize(question)
     return any(term in lowered for term in _DRILL_MATERIAL_TERMS)
+
+
+def _time_dimension_for_metric(metric: str) -> str:
+    lowered = metric.casefold()
+    if "sat_oos" in lowered or ("oos" in lowered and "sat" in lowered):
+        return "calmonth_date"
+    if any(token in lowered for token in ("unloading", "picking", "sales_office_sell_in")):
+        return "reporting_period"
+    return "calmonth"
+
+
+def _normalize_entity_dimension(entity_dim: str) -> str:
+    if entity_dim == "material_code":
+        return "material"
+    if entity_dim == "sales_office":
+        return "sales_off"
+    return entity_dim
+
+
+def _entity_supports_time_series(
+    last_metric: str,
+    entity_dim: str,
+    last_dimensions: list[str],
+) -> tuple[str, str] | None:
+    """Map prior ranking metric + entity grain → governed time-series query."""
+    m = last_metric.casefold()
+    ed = _normalize_entity_dimension(entity_dim)
+    time_dim = _time_dimension_for_metric(last_metric)
+    dims = {str(d) for d in last_dimensions}
+
+    if ed == "material":
+        if "unfulfilled" in m:
+            return "sales_office_service_unfulfilled_quantity", time_dim
+        if "fill_rate" in m or "service" in m:
+            return "sales_office_service_fill_rate", time_dim
+        if "sell_out" in m or "b2b" in m:
+            if "branch" in dims:
+                return "b2b_branch_material_sell_out_value", time_dim
+            return "material_sell_out_value", time_dim
+        if "stock_tempo" in m or "warehouse" in m:
+            return "material_warehouse_stock_quantity", time_dim
+        if "promo" in m or "uplift" in m:
+            return "promo_material_revenue_uplift", time_dim
+        if "oos" in m:
+            return "sat_oos_rate", "calmonth_date"
+        if "sales_off" in dims or "sales_office" in dims:
+            return "sales_office_material_sell_in_value", time_dim
+        return "material_sell_in_value", time_dim
+
+    if ed == "branch":
+        if "material" in dims:
+            return "b2b_branch_material_sell_out_value", time_dim
+        return "b2b_branch_sell_out_value", time_dim
+
+    if ed == "sales_off":
+        if "unfulfilled" in m:
+            return "sales_office_service_unfulfilled_quantity", time_dim
+        if "fill_rate" in m or "service" in m:
+            return "sales_office_service_fill_rate", time_dim
+        if "unloading" in m:
+            return "average_unloading_minutes", time_dim
+        if "picking" in m:
+            return "average_picking_minutes", time_dim
+        if "sell_in" in m:
+            return "sales_office_sell_in_value", time_dim
+        return "sales_office_service_fill_rate", time_dim
+
+    if ed == "dcname":
+        if "store" in m or "plu" in dims:
+            return "sat_store_stock_quantity", time_dim
+        return "sat_dc_stock_quantity", time_dim
+
+    if ed == "plant":
+        return "stock_tempo_total_qty", time_dim
+
+    if ed == "plu":
+        return "sat_store_stock_quantity", time_dim
+
+    if ed == "customer":
+        if "sell_out" in m:
+            return "material_sell_out_value", time_dim
+        return "material_sell_in_value", time_dim
+
+    if ed == "e_store":
+        return "b2b_branch_sell_out_value", time_dim
+
+    if time_dim == "calmonth":
+        return last_metric, time_dim
+    return None
+
+
+def _referential_entity_for_time_breakdown(question: str, filter_entity: dict[str, Any]) -> bool:
+    if _wants_prior_top_entity_focus(question):
+        return True
+    if _parse_rank_index(question) is not None:
+        return True
+    if filter_entity.get("rank") is not None:
+        return True
+    from app.services.session_context import is_referential_follow_up
+
+    if is_referential_follow_up(question):
+        return True
+    eid = _normalize(str(filter_entity.get("id") or ""))
+    if eid and eid.casefold() in _normalize(question):
+        return True
+    return False
+
+
+def _append_filter_entity_predicate(
+    entity: dict[str, Any],
+    predicates: list[str],
+    *,
+    default_grain: str,
+) -> None:
+    ent_dim = _normalize_entity_dimension(
+        str(entity.get("entity_type") or entity.get("dimension") or default_grain)
+    )
+    flexible = ent_dim in ("branch", "dcname")
+    payload = {**entity, "entity_type": ent_dim, "dimension": ent_dim}
+    pred = _entity_predicate(payload, default_grain=ent_dim, flexible_branch=flexible)
+    if pred and pred not in predicates:
+        predicates.append(pred)
+
+
+def _plan_filtered_entity_time_breakdown(
+    question: str,
+    ctx: dict[str, Any],
+    filter_entity: dict[str, Any],
+) -> FollowUpPlan | None:
+    if not filter_entity or not _wants_monthly_time_breakdown(question):
+        return None
+    if not _referential_entity_for_time_breakdown(question, filter_entity):
+        return None
+    last_metric = str(ctx.get("last_metric") or "")
+    if not last_metric:
+        return None
+    ent_dim = _normalize_entity_dimension(
+        str(
+            filter_entity.get("entity_type")
+            or filter_entity.get("dimension")
+            or ctx.get("active_grain")
+            or ""
+        )
+    )
+    resolved = _entity_supports_time_series(
+        last_metric, ent_dim, list(ctx.get("last_dimensions") or [])
+    )
+    if not resolved:
+        return None
+    metric, time_dim = resolved
+    metric_override = metric if metric.casefold() != last_metric.casefold() else None
+    return FollowUpPlan(
+        intent="filter_entity",
+        filter_entity=filter_entity,
+        to_grain=None,
+        limit=None,
+        domain_id=str(ctx.get("domain_id")) if ctx.get("domain_id") else None,
+        from_grain=str(ctx.get("active_grain") or ent_dim) or None,
+        metric_override=metric_override,
+        dimensions_override=[time_dim],
+    )
 
 
 def _wants_history_only_explanation(question: str) -> bool:
@@ -253,6 +466,15 @@ def _follow_up_requires_fresh_query(question: str) -> bool:
     lowered = _normalize(question)
     if _wants_material_drill(question):
         return True
+    if _wants_monthly_time_breakdown(question):
+        from app.services.session_context import is_referential_follow_up
+
+        if (
+            _wants_prior_top_entity_focus(question)
+            or _parse_rank_index(question) is not None
+            or is_referential_follow_up(question)
+        ):
+            return True
     if _wants_b2b_material_crosscheck(question):
         return True
     if _wants_sell_out_product_drill(question):
@@ -463,13 +685,32 @@ def _bind_entity_from_catalog(question: str, catalog: list[dict[str, Any]]) -> d
             "material tersebut",
             "produk tersebut",
             "sku itu",
+            "office itu",
+            "cabang itu",
+            "dc itu",
+            "sales office itu",
+            "partner itu",
         )
     ):
         return catalog[0]
-    if any(t in lowered for t in ("pertama", "paling atas", "teratas", "rank 1", "urutan 1", "top 1")):
+    if any(
+        t in lowered
+        for t in (
+            "pertama",
+            "paling atas",
+            "paling tinggi",
+            "tertinggi",
+            "terbesar",
+            "teratas",
+            "rank 1",
+            "urutan 1",
+            "top 1",
+        )
+    ):
         for item in catalog:
             if item.get("rank") == 1:
                 return item
+        return catalog[0]
     if any(t in lowered for t in ("terakhir", "paling bawah")):
         return catalog[-1]
     # Substring match on entity id (e.g. palembang → DC Palembang)
@@ -568,6 +809,12 @@ def plan_from_understanding(u: "TurnUnderstanding", ctx: dict[str, Any]) -> Foll
                 break
         if filter_entity is None and 1 <= int(u.follow_up_rank) <= len(catalog):
             filter_entity = catalog[int(u.follow_up_rank) - 1]
+
+    question = (u.pipeline_question or "").strip()
+    if filter_entity:
+        time_plan = _plan_filtered_entity_time_breakdown(question, ctx, filter_entity)
+        if time_plan:
+            return time_plan
 
     to_grain: str | None = "material" if u.follow_up_material_drill else None
     limit: int | None = u.follow_up_top_n if u.follow_up_material_drill else None
@@ -937,6 +1184,19 @@ def plan_follow_up(question: str, ctx: dict[str, Any]) -> FollowUpPlan | None:
         )
 
     filter_entity = _bind_entity_from_catalog(question, catalog)
+    if (
+        not filter_entity
+        and catalog
+        and _wants_prior_top_entity_focus(question)
+        and any(t in lowered for t in ("paling tinggi", "tertinggi", "terbesar", "terbanyak"))
+    ):
+        filter_entity = _catalog_by_rank(catalog, 1)
+
+    if filter_entity:
+        time_breakdown = _plan_filtered_entity_time_breakdown(question, ctx, filter_entity)
+        if time_breakdown:
+            return time_breakdown
+
     from app.services.cross_domain_compare import try_resolve_cross_domain
 
     cross = try_resolve_cross_domain(
@@ -1365,14 +1625,7 @@ def _drill_metric_and_dimensions(plan: FollowUpPlan, ctx: dict[str, Any]) -> tup
             dims = [ent_dim]
         metric = str(plan.metric_override or last_metric or ctx.get("last_metric") or "")
         if plan.dimensions_override is not None:
-            if ent_dim == "material":
-                pred = _entity_predicate(entity, default_grain="material")
-                if pred:
-                    predicates.append(pred)
-            elif ent_dim in ("branch", "dcname"):
-                pred = _entity_predicate(entity, default_grain=ent_dim, flexible_branch=True)
-                if pred:
-                    predicates.append(pred)
+            _append_filter_entity_predicate(entity, predicates, default_grain=default_grain)
             if plan.extra_predicates:
                 predicates.extend(plan.extra_predicates)
             return metric, list(plan.dimensions_override), predicates
@@ -1381,6 +1634,10 @@ def _drill_metric_and_dimensions(plan: FollowUpPlan, ctx: dict[str, Any]) -> tup
             if pred:
                 predicates.append(pred)
             return metric, ["material"], predicates
+        if ent_dim in ("material", "material_code"):
+            pred = _entity_predicate(entity, default_grain="material")
+            if pred:
+                predicates.append(pred)
         return metric, dims, predicates
 
     return None
@@ -1395,6 +1652,18 @@ def build_follow_up_rewrite(question: str, ctx: dict[str, Any], plan: FollowUpPl
         ent = plan.filter_entity
         parts.append(
             f'Filter {ent.get("entity_type")} = "{ent.get("id")}" (rank {ent.get("rank")} from prior result table).'
+        )
+    if (
+        plan.dimensions_override
+        and len(plan.dimensions_override) == 1
+        and plan.filter_entity
+        and plan.dimensions_override[0] in ("calmonth", "calmonth_date", "reporting_period")
+    ):
+        ent = plan.filter_entity
+        time_dim = plan.dimensions_override[0]
+        parts.append(
+            f"Time series grouped by {time_dim} for {ent.get('entity_type')} "
+            f'"{ent.get("id")}" only — not a new top-N ranking at the prior grain.'
         )
     if plan.to_grain == "material" and plan.limit:
         parts.append(

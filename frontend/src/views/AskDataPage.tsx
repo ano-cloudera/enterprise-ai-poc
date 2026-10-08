@@ -250,7 +250,11 @@ export function AskDataPage() {
                 <h1 className="type-app-title mt-5 text-xl">{appConfig.emptyStateTitle}</h1>
                 <p className="type-chat-body mt-2.5 text-slate-500">{appConfig.emptyStateDescription}</p>
                 {starterQuestions.length > 0 && (
-                  <div className="mt-7 grid gap-2 text-left sm:grid-cols-3">
+                  <div className="mt-7 text-left">
+                    <p className="mb-2.5 text-sm font-medium text-cloudera-navy">
+                      {appConfig.starterQuestionsCaption}
+                    </p>
+                    <div className="grid gap-2 sm:grid-cols-3">
                     {starterQuestions.map(item => (
                       <button
                         key={item.id}
@@ -262,6 +266,7 @@ export function AskDataPage() {
                         {item.question}
                       </button>
                     ))}
+                    </div>
                   </div>
                 )}
               </div>

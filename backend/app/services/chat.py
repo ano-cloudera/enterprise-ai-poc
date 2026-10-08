@@ -7,7 +7,14 @@ from typing import Any
 import uuid
 
 from app.core.config import Settings
-from app.core.models import AnalysisOutput, AskDataRequest, AskDataResponse, ChartSpec, QueryData, Timings
+from app.core.models import AnalysisOutput, AskDataRequest, AskDataResponse, ChartSpec, LlmUsage, QueryData, Timings
+from app.llm.usage_context import (
+    UsageTracker,
+    attach_usage_tracker,
+    finish_request_usage,
+    start_request_usage,
+)
+from app.services.usage_store import UsageStore
 from app.db.base import BackendExecutionContext, DataBackendError
 from app.db.impala_backend import ImpalaBackend
 from app.graph.workflow import WorkflowDependencies, build_workflow
@@ -83,8 +90,11 @@ class ChatService:
         *,
         dependencies: WorkflowDependencies | None = None,
         history: ConversationStore | None = None,
+        usage_store: UsageStore | None = None,
     ) -> None:
         self.settings = settings
+        self.usage_tracker = UsageTracker()
+        attach_usage_tracker(self.usage_tracker)
         context = SemanticContextService(settings.project_root / settings.ossie_project_id)
         self.dependencies = dependencies or WorkflowDependencies(
             semantic_context=context,
@@ -95,9 +105,38 @@ class ChatService:
             local_agent_client=LocalAgentClient(settings),
             judge_max_iterations=settings.judge_max_iterations,
             judge_enabled=settings.judge_enabled,
+            usage_tracker=self.usage_tracker,
         )
         self.workflow = build_workflow(self.dependencies)
         self.history = history or ConversationStore(settings.conversation_db_path)
+        self.usage_store = usage_store or UsageStore(settings.usage_db_path)
+
+    def _resolve_provider(self, request: AskDataRequest, request_id: str):
+        provider = self.dependencies.provider_registry.resolve(request.provider, request.model)
+        return self.usage_tracker.wrap(provider, request_id)
+
+    def _attach_usage(self, request: AskDataRequest, response: AskDataResponse) -> AskDataResponse:
+        acc = finish_request_usage(response.request_id)
+        if acc is None:
+            return response
+        usage = LlmUsage(
+            prompt_tokens=acc.prompt_tokens,
+            completion_tokens=acc.completion_tokens,
+            total_tokens=acc.total_tokens,
+            llm_calls=acc.llm_calls,
+        )
+        self.usage_store.record(
+            request_id=response.request_id,
+            session_id=request.session_id,
+            provider=request.provider,
+            model=request.model,
+            strategy=str(response.strategy),
+            status=str(response.status),
+            prompt_tokens=usage.prompt_tokens,
+            completion_tokens=usage.completion_tokens,
+            llm_calls=usage.llm_calls,
+        )
+        return response.model_copy(update={"usage": usage})
 
     def delete_session_history(self, session_id: str) -> int:
         return self.history.delete_session(session_id)
@@ -242,8 +281,10 @@ class ChatService:
         self,
         request: AskDataRequest,
         conversation_history: list[dict],
+        *,
+        request_id: str,
     ) -> TurnUnderstanding:
-        provider = self.dependencies.provider_registry.resolve(request.provider, request.model)
+        provider = self._resolve_provider(request, request_id)
         return await understand_turn(
             provider=provider,
             question=request.question,
@@ -372,6 +413,7 @@ class ChatService:
             response = self._response_from_state(
                 request, request_id=request_id, state=last_state, started=started
             )
+            response = self._attach_usage(request, response)
             self._persist_turn(request, response, response.chart_spec, workflow_state=last_state)
             yield {"type": "done", "response": response}
         except DataBackendError as exc:
@@ -388,21 +430,19 @@ class ChatService:
                 request_id=request_id,
             )
             elapsed = round((perf_counter() - started) * 1000, 3)
-            yield {
-                "type": "done",
-                "response": AskDataResponse(
-                    request_id=request_id,
-                    session_id=request.session_id,
-                    status="ERROR",
-                    provider=request.provider,
-                    model=request.model,
-                    strategy="unsupported",
-                    answer=answer,
-                    data=QueryData(),
-                    chart_spec=None,
-                    timings=Timings(total_ms=elapsed),
-                ),
-            }
+            err = AskDataResponse(
+                request_id=request_id,
+                session_id=request.session_id,
+                status="ERROR",
+                provider=request.provider,
+                model=request.model,
+                strategy="unsupported",
+                answer=answer,
+                data=QueryData(),
+                chart_spec=None,
+                timings=Timings(total_ms=elapsed),
+            )
+            yield {"type": "done", "response": self._attach_usage(request, err)}
         except Exception:
             logger.exception("ask_data_failed request_id=%s", request_id)
             provider = self.dependencies.provider_registry.resolve(request.provider, request.model)
@@ -413,29 +453,28 @@ class ChatService:
                 request_id=request_id,
             )
             elapsed = round((perf_counter() - started) * 1000, 3)
-            yield {
-                "type": "done",
-                "response": AskDataResponse(
-                    request_id=request_id,
-                    session_id=request.session_id,
-                    status="ERROR",
-                    provider=request.provider,
-                    model=request.model,
-                    strategy="unsupported",
-                    answer=answer,
-                    data=QueryData(),
-                    chart_spec=None,
-                    timings=Timings(total_ms=elapsed),
-                ),
-            }
+            err = AskDataResponse(
+                request_id=request_id,
+                session_id=request.session_id,
+                status="ERROR",
+                provider=request.provider,
+                model=request.model,
+                strategy="unsupported",
+                answer=answer,
+                data=QueryData(),
+                chart_spec=None,
+                timings=Timings(total_ms=elapsed),
+            )
+            yield {"type": "done", "response": self._attach_usage(request, err)}
 
     async def run(self, request: AskDataRequest, *, force_ossie: bool = False) -> AskDataResponse:
         request_id = str(uuid.uuid4())
+        start_request_usage(request_id)
         started = perf_counter()
         conversation_history = self.history.load(request.session_id, limit=8)
         session_metric = _session_last_metric(conversation_history)
         session_ctx = analysis_context_from_history(conversation_history)
-        turn = await self._understand_turn(request, conversation_history)
+        turn = await self._understand_turn(request, conversation_history, request_id=request_id)
         question = resolve_question_for_pipeline(request.question, conversation_history, turn)
         route, resolution = self._route_for_question(
             question,
@@ -474,6 +513,7 @@ class ChatService:
             response = self._response_from_state(
                 request, request_id=request_id, state=state, started=started
             )
+            response = self._attach_usage(request, response)
             self._persist_turn(request, response, response.chart_spec, workflow_state=state)
             logger.info(
                 "ask_data request_id=%s session_id=%s provider=%s model=%s strategy=%s status=%s retry_count=%s timings=%s turn_rationale=%s",
@@ -529,10 +569,11 @@ class ChatService:
 
     async def stream(self, request: AskDataRequest):
         request_id = str(uuid.uuid4())
+        start_request_usage(request_id)
         conversation_history = self.history.load(request.session_id, limit=8)
         session_metric = _session_last_metric(conversation_history)
         session_ctx = analysis_context_from_history(conversation_history)
-        turn = await self._understand_turn(request, conversation_history)
+        turn = await self._understand_turn(request, conversation_history, request_id=request_id)
         question = resolve_question_for_pipeline(request.question, conversation_history, turn)
         route, resolution = self._route_for_question(
             question,
@@ -576,6 +617,7 @@ class ChatService:
                             response = polish_v3_answer(
                                 _normalize_governed_v3_response(AskDataResponse.model_validate(payload))
                             )
+                            response = self._attach_usage(request, response)
                             self._persist_turn(request, response, response.chart_spec)
                             yield {"type": "done", "response": response}
                         else:
@@ -585,6 +627,7 @@ class ChatService:
                         response = polish_v3_answer(
                             _normalize_governed_v3_response(AskDataResponse.model_validate(event))
                         )
+                        response = self._attach_usage(request, response)
                         self._persist_turn(request, response, response.chart_spec)
                         yield {"type": "done", "response": response}
                         return

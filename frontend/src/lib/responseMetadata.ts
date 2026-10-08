@@ -1,4 +1,5 @@
 import type { ChatResponse } from '../types/api'
+import { formatCompactTokens } from './formatTokens'
 
 function titleCaseProvider(provider: string): string {
   const trimmed = provider.trim()
@@ -27,5 +28,7 @@ export function formatResponseMetadata(response: ChatResponse): string {
   if (strategy) parts.push(strategy)
   const duration = formatDurationSeconds(response.timings?.total_ms)
   if (duration) parts.push(duration)
+  const tokens = response.usage?.total_tokens
+  if (tokens && tokens > 0) parts.push(`${formatCompactTokens(tokens)} tok`)
   return parts.join(' · ')
 }

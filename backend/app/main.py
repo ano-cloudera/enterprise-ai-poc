@@ -7,7 +7,8 @@ from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 
-from app.api import chat, models, random_queries
+from app.api import chat, models, random_queries, usage
+from app.services.usage_store import UsageStore
 from app.core.config import Settings, get_settings
 from app.llm.registry import ProviderRegistry
 from app.services.chat import ChatService
@@ -24,6 +25,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.state.settings = configured
     application.state.provider_registry = ProviderRegistry(configured)
     application.state.chat_service = ChatService(configured)
+    application.state.usage_store = UsageStore(configured.usage_db_path)
     application.add_middleware(
         CORSMiddleware,
         allow_origins=configured.cors_origin_list,
@@ -71,6 +73,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     application.include_router(models.router)
     application.include_router(random_queries.router)
     application.include_router(chat.router)
+    application.include_router(usage.router)
     return application
 
 

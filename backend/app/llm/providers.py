@@ -10,6 +10,7 @@ from pydantic import BaseModel, ValidationError
 
 from app.core.config import Settings
 from app.llm.base import ProviderError, StructuredT
+from app.llm.usage_context import record_llm_usage
 
 
 logger = logging.getLogger(__name__)
@@ -96,9 +97,19 @@ class _OpenAICompatibleProvider:
                     verify=self.verify_ssl,
                     transport=self.transport,
                 ) as client:
-                    response = await client.post(f"{self.base_url}/chat/completions", headers=headers, json=body)
-                    response.raise_for_status()
-                content = response.json()["choices"][0]["message"]["content"]
+                    http_response = await client.post(f"{self.base_url}/chat/completions", headers=headers, json=body)
+                    http_response.raise_for_status()
+                    payload = http_response.json()
+                content = payload["choices"][0]["message"]["content"]
+                usage = payload.get("usage") if isinstance(payload, dict) else None
+                if isinstance(usage, dict):
+                    record_llm_usage(
+                        provider=self.provider_name,
+                        prompt_tokens=int(usage.get("prompt_tokens") or 0),
+                        completion_tokens=int(usage.get("completion_tokens") or 0),
+                    )
+                else:
+                    record_llm_usage(provider=self.provider_name, prompt_tokens=0, completion_tokens=0)
             except httpx.TimeoutException as exc:
                 raise ProviderError("TIMEOUT") from exc
             except httpx.HTTPStatusError as exc:
@@ -244,6 +255,16 @@ class GeminiProvider:
             text = (response.text or "").strip()
             if not text:
                 raise ProviderError("PROVIDER_ERROR")
+            meta = getattr(response, "usage_metadata", None)
+            prompt_t = completion_t = 0
+            if meta is not None:
+                prompt_t = int(getattr(meta, "prompt_token_count", 0) or 0)
+                completion_t = int(getattr(meta, "candidates_token_count", 0) or 0)
+                if completion_t <= 0:
+                    total = int(getattr(meta, "total_token_count", 0) or 0)
+                    if total > prompt_t:
+                        completion_t = total - prompt_t
+            record_llm_usage(provider="gemini", prompt_tokens=prompt_t, completion_tokens=completion_t)
             return response_model.model_validate(_structured_json(text))
         except ProviderError:
             raise

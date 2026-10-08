@@ -63,6 +63,44 @@ export type ChatResponse = {
     total_ms: number
   }
   retry_count: number
+  usage?: {
+    prompt_tokens: number
+    completion_tokens: number
+    total_tokens: number
+    llm_calls: number
+  } | null
+}
+
+export type UsageTotals = {
+  prompt_tokens: number
+  completion_tokens: number
+  total_tokens: number
+  llm_calls: number
+  turns: number
+}
+
+export type UsageSummary = {
+  period_days: number | null
+  mtd: boolean
+  totals: UsageTotals
+  mtd_totals: UsageTotals
+  daily: { day: string; tokens: number }[]
+  by_model: { provider: string; model: string; tokens: number; turns: number }[]
+  monthly_token_budget: number
+}
+
+export type UsageEvent = {
+  created_at: string
+  request_id: string
+  session_id: string
+  provider: string
+  model: string
+  strategy: string
+  status: string
+  prompt_tokens: number
+  completion_tokens: number
+  total_tokens: number
+  llm_calls: number
 }
 
 export type SuggestedQuestion = {

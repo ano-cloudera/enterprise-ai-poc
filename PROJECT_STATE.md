@@ -1,9 +1,26 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 8 Oct 2026 — **Bill-to-PO SQL/UX polish** (`b8b9d4d`): positive-ratio `HAVING`, `\d+ material` limit, `_question_wants_billing_value_columns()` so “analisa proses penagihan” on bill-to-PO does not add `sell_in_bill_val`; FE Ask Data default timeout **180 s**. **Latency**: governed path ~**40–60 s**/turn typical (remote Impala + 1–2× structured Gemini analyst; judge retry on “analisa/saran”; SSE shows progress only until `done` — architecture favors governance over ChatGPT-style TTFT). **Ingram ops**: `docs/ingram-gold-audit.md`, `scripts/audit_gold_ingram.py`, `backend/scripts/test_impala_ingram_env.py` (use `.env` profile; keep hardcoded Workbench scripts local/gitignored). Prior (7 Oct): cross-domain early in `resolve()`; Tempo demo record UAT; capability follow-up; FE pin/unpin. Exploratory: **`backend-test`** (8001).
+**Updated**: 8 Oct 2026 (PM) — **Usage tab + Scan Intelligence shell + cross-domain time follow-ups**. **LLM usage**: SQLite `backend/runtime/llm_usage.sqlite`, per-request `UsageTracker` (LangGraph-safe), `/usage/summary|events|export.csv`, FE `/usage` (7d/30d/MTD, chart `maxBarSize`, Recent turns **UTC+7**). **FE branding**: config-driven `BrandMark`, sidebar **272px**, Usage nav, “Start with a question”, footer Powered by Cloudera; token hint in answer footer. **Follow-ups**: referential **per bulan / tren** for prior top entity → governed time grain (`calmonth` / `reporting_period` / `calmonth_date`) per domain, not spurious material drill; `turn_understanding.md` guidance. **Local only (not in git)**: `frontend-dev/` + `backend-dev/` Genie-style report panel experiment (`scripts/run-dev-stack.sh`, `docs/analysis-report-dev.md`). Prior **Bill-to-PO SQL/UX polish** (`b8b9d4d`): positive-ratio `HAVING`, `\d+ material` limit, `_question_wants_billing_value_columns()` so “analisa proses penagihan” on bill-to-PO does not add `sell_in_bill_val`; FE Ask Data default timeout **180 s**. **Latency**: governed path ~**40–60 s**/turn typical (remote Impala + 1–2× structured Gemini analyst; judge retry on “analisa/saran”; SSE shows progress only until `done` — architecture favors governance over ChatGPT-style TTFT). **Ingram ops**: `docs/ingram-gold-audit.md`, `scripts/audit_gold_ingram.py`, `backend/scripts/test_impala_ingram_env.py` (use `.env` profile; keep hardcoded Workbench scripts local/gitignored). Prior (7 Oct): cross-domain early in `resolve()`; Tempo demo record UAT; capability follow-up; FE pin/unpin. Exploratory: **`backend-test`** (8001).
 
 ## Current checkpoint: demo-ready Ask AI + history follow-ups (8 Oct 2026)
+
+### LLM Usage monitoring (8 Oct, PM)
+
+- **Backend**: `usage_store.py` (SQLite), `usage_context.py` + `UsageTracker` keyed by `request_id`; providers record OpenAI-compatible / Gemini `usage_metadata`; `chat.py` attach on SSE `done`; config `USAGE_DB_PATH`, `USAGE_MONTHLY_TOKEN_BUDGET`.
+- **API**: `app/api/usage.py` — summary, events, CSV export.
+- **Frontend**: `UsagePage`, route `/usage`, `formatCompactTokens`, `formatUsageTimestampWib`; nav gated by `NEXT_PUBLIC_NAV_USAGE`.
+- **Verify**: new Ask Data turn after backend reload; Usage empty for turns before fix (no backfill).
+
+### Cross-domain entity time-series follow-ups (8 Oct, PM)
+
+- **`follow_up.py`**: `_plan_filtered_entity_time_breakdown` — material, branch, sales_office (unloading → `reporting_period`), DC SAT, etc.; blocks monthly questions from re-running top-N material drill.
+- **Tests**: `test_plan_follow_up_top_material_monthly_sell_in`, branch monthly, unloading `reporting_period`.
+
+### Frontend shell (Scan Intelligence PoC, 8 Oct)
+
+- **`appConfig` / `BrandMark` / `AppShell`**: white-label titles, collapsed rail icons, Usage link.
+- **Usage chart**: `maxBarSize={48}` on daily bar chart.
 
 ### Governed SQL & bill-to-PO routing (7–8 Oct)
 

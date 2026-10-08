@@ -60,6 +60,56 @@ def test_plan_follow_up_binds_palembang_and_drill_material() -> None:
     assert "Palembang" in str(plan.filter_entity["id"])
 
 
+def test_plan_follow_up_top_material_monthly_sell_in() -> None:
+    ctx = build_analysis_context(
+        metric="material_sell_in_value",
+        dimensions=["material"],
+        entity_dimension="material",
+        ranked_entities=[
+            {"rank": 1, "dimension": "material", "id": "001-00-03", "metric_value": 289e9},
+            {"rank": 2, "dimension": "material", "id": "073-09-03", "metric_value": 100e9},
+        ],
+        last_question="pareto penjualan desember 2024",
+    )
+    q = "coba untuk material paling tinggi itu kamu keluarkan jumlah penjualan perbulannya"
+    plan = plan_follow_up(q, ctx)
+    assert plan is not None
+    assert plan.to_grain is None
+    assert plan.dimensions_override == ["calmonth"]
+    assert plan.filter_entity is not None
+    assert plan.filter_entity["id"] == "001-00-03"
+    u = _understanding_for_question(q, ctx)
+    res = try_follow_up_governed_resolution(q, ctx, u)
+    assert res is not None
+    assert res["metric"] == "material_sell_in_value"
+    assert res["dimensions"] == ["calmonth"]
+    assert any("001-00-03" in p for p in res["follow_up_entity_filters"])
+
+
+def test_plan_follow_up_top_branch_monthly_sell_out() -> None:
+    ctx = build_analysis_context(
+        metric="b2b_branch_sell_out_value",
+        dimensions=["branch"],
+        entity_dimension="branch",
+        ranked_entities=[
+            {"rank": 1, "dimension": "branch", "id": "DC Palembang", "metric_value": 1e10},
+            {"rank": 2, "dimension": "branch", "id": "DC Makassar", "metric_value": 9e9},
+        ],
+        last_question="top 5 dc penjualan b2b Q4",
+    )
+    q = "untuk cabang paling tinggi tadi, tampilkan sell-out per bulannya"
+    plan = plan_follow_up(q, ctx)
+    assert plan is not None
+    assert plan.to_grain is None
+    assert plan.dimensions_override == ["calmonth"]
+    assert plan.filter_entity is not None
+    assert "Palembang" in str(plan.filter_entity["id"])
+    res = try_follow_up_governed_resolution(q, ctx, _understanding_for_question(q, ctx))
+    assert res is not None
+    assert res["metric"] == "b2b_branch_sell_out_value"
+    assert res["dimensions"] == ["calmonth"]
+
+
 def test_follow_up_governed_resolution_b2b_material() -> None:
     ctx = build_analysis_context(
         metric="b2b_branch_sell_out_value",
@@ -74,10 +124,10 @@ def test_follow_up_governed_resolution_b2b_material() -> None:
     res = try_follow_up_governed_resolution(q, ctx, u)
     assert res is not None
     assert res["status"] == "resolved"
-    assert res["metric"] == "material_sell_out_value"
+    assert res["metric"] == "b2b_branch_material_sell_out_value"
     assert res["dimensions"] == ["material"]
     assert res["matched_alias"] == "follow_up_context"
-    assert res.get("dimension_mismatch") == ["branch"]
+    assert res.get("dimension_mismatch") == []
 
 
 def test_rewrite_follow_up_from_history() -> None:

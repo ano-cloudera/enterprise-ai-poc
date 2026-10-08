@@ -2,7 +2,7 @@
 
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { Bot, Download, PanelLeftClose, PanelLeftOpen, Plus, Settings } from 'lucide-react'
+import { BarChart3, Bot, Download, PanelLeftClose, PanelLeftOpen, Plus, Settings } from 'lucide-react'
 import { createContext, useCallback, useContext, useMemo, useState, type ReactNode } from 'react'
 import { BrandMark } from '../components/BrandMark'
 import { ConversationSessionList, type ConversationSessionListProps } from '../components/ConversationSessionList'
@@ -10,8 +10,13 @@ import { appConfig } from '../config/appConfig'
 
 const navigation = [
   { href: '/', label: appConfig.navigationAskData, icon: Bot },
+  { href: '/usage', label: appConfig.navigationUsage, icon: BarChart3 },
   { href: '/settings', label: appConfig.navigationSettings, icon: Settings },
 ]
+
+/** Collapsed sidebar: one footprint for logo, toggle, New Chat, and nav icons. */
+const COLLAPSED_RAIL_ITEM =
+  'grid h-10 w-10 shrink-0 place-items-center rounded-xl transition-colors'
 
 export type ChatSessionSidebarState = Omit<ConversationSessionListProps, 'collapsed'> & {
   onNewChat: () => void
@@ -80,8 +85,8 @@ export function AppShell({ children }: { children: ReactNode }) {
 
   const onAskData = pathname === '/'
   const showChatWorkspace = onAskData && chatSessionSidebar !== null
-  const sidebarExpandedClass = sidebarCollapsed ? 'lg:w-[68px]' : 'lg:w-[240px]'
-  const mainPadClass = sidebarCollapsed ? 'lg:pl-[68px]' : 'lg:pl-[240px]'
+  const sidebarExpandedClass = sidebarCollapsed ? 'lg:w-[68px]' : 'lg:w-[272px]'
+  const mainPadClass = sidebarCollapsed ? 'lg:pl-[68px]' : 'lg:pl-[272px]'
 
   return (
     <ChatLayoutContext.Provider value={layoutValue}>
@@ -91,8 +96,10 @@ export function AppShell({ children }: { children: ReactNode }) {
           className={`fixed inset-y-0 left-0 z-30 hidden ${sidebarExpandedClass} flex-col border-r border-slate-200 bg-white transition-[width] duration-300 ease-in-out lg:flex`}
         >
           <div
-            className={`flex shrink-0 items-center gap-2 border-b border-slate-100 ${
-              sidebarCollapsed ? 'flex-col justify-center px-2 py-3' : 'justify-between px-3 py-3'
+            className={`flex shrink-0 border-b border-slate-100 ${
+              sidebarCollapsed
+                ? 'flex-col items-center gap-2 px-2 py-3'
+                : 'items-center justify-between gap-2 px-3 py-3'
             }`}
           >
             {!sidebarCollapsed ? (
@@ -100,20 +107,37 @@ export function AppShell({ children }: { children: ReactNode }) {
                 <BrandMark />
               </div>
             ) : (
-              <img src="/cloudera-logo.png" alt="Cloudera" className="h-9 w-9 shrink-0 rounded-lg shadow-sm" />
+              <div
+                className={`${COLLAPSED_RAIL_ITEM} border border-slate-100 bg-white shadow-[0_1px_3px_rgba(36,19,95,0.06)]`}
+              >
+                <img
+                  src={appConfig.branding.logo}
+                  alt=""
+                  aria-hidden
+                  className="h-7 w-7 object-contain"
+                />
+              </div>
             )}
             <button
               type="button"
               aria-label={sidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
               aria-expanded={!sidebarCollapsed}
               onClick={toggleSidebarCollapsed}
-              className="grid h-9 w-9 shrink-0 place-items-center rounded-lg text-slate-500 transition-colors hover:bg-slate-50 hover:text-cloudera-navy"
+              className={
+                sidebarCollapsed
+                  ? `${COLLAPSED_RAIL_ITEM} border border-slate-200 text-slate-500 hover:bg-slate-50 hover:text-cloudera-navy`
+                  : `${COLLAPSED_RAIL_ITEM} text-slate-500 hover:bg-slate-50 hover:text-cloudera-navy`
+              }
             >
               {sidebarCollapsed ? <PanelLeftOpen size={18} /> : <PanelLeftClose size={18} />}
             </button>
           </div>
 
-          <div className={`flex min-h-0 flex-1 flex-col ${sidebarCollapsed ? 'items-center px-2 py-3' : 'px-3 py-3'}`}>
+          <div
+            className={`flex min-h-0 flex-1 flex-col ${
+              sidebarCollapsed ? 'items-center gap-1.5 px-2 py-3' : 'px-3 py-3'
+            }`}
+          >
             {showChatWorkspace && (
               <button
                 type="button"
@@ -122,7 +146,7 @@ export function AppShell({ children }: { children: ReactNode }) {
                 onClick={chatSessionSidebar.onNewChat}
                 className={
                   sidebarCollapsed
-                    ? 'mb-3 grid h-10 w-10 place-items-center rounded-xl bg-cloudera-orange text-white hover:brightness-95'
+                    ? `${COLLAPSED_RAIL_ITEM} bg-cloudera-orange text-white hover:brightness-95`
                     : 'btn-primary mb-4 h-11 w-full text-sm'
                 }
               >
@@ -131,7 +155,10 @@ export function AppShell({ children }: { children: ReactNode }) {
               </button>
             )}
 
-            <nav aria-label="Primary navigation" className={`space-y-0.5 ${sidebarCollapsed ? 'w-full' : ''}`}>
+            <nav
+              aria-label="Primary navigation"
+              className={sidebarCollapsed ? 'flex flex-col items-center gap-1.5' : 'space-y-0.5'}
+            >
               {!sidebarCollapsed && (
                 <div className="type-sidebar-section mb-2 px-1">Navigation</div>
               )}
@@ -143,14 +170,30 @@ export function AppShell({ children }: { children: ReactNode }) {
                     key={item.href}
                     href={item.href}
                     title={item.label}
-                    className={`type-sidebar-nav flex items-center rounded-xl transition-colors ${
-                      sidebarCollapsed ? 'h-10 w-10 justify-center' : 'h-11 gap-2 px-2'
-                    } ${active ? 'bg-violet-50 font-semibold text-cloudera-violet' : 'text-slate-600 hover:bg-slate-50'}`}
+                    className={`type-sidebar-nav transition-colors ${
+                      sidebarCollapsed
+                        ? `${COLLAPSED_RAIL_ITEM} ${
+                            active
+                              ? 'bg-violet-50 font-semibold text-cloudera-violet'
+                              : 'text-slate-600 hover:bg-slate-50'
+                          }`
+                        : `flex h-11 items-center gap-2 rounded-xl px-2 ${
+                            active
+                              ? 'bg-violet-50 font-semibold text-cloudera-violet'
+                              : 'text-slate-600 hover:bg-slate-50'
+                          }`
+                    }`}
                   >
-                    <span className="grid h-8 w-8 shrink-0 place-items-center">
+                    {sidebarCollapsed ? (
                       <Icon size={18} />
-                    </span>
-                    {!sidebarCollapsed && item.label}
+                    ) : (
+                      <>
+                        <span className="grid h-8 w-8 shrink-0 place-items-center">
+                          <Icon size={18} />
+                        </span>
+                        {item.label}
+                      </>
+                    )}
                   </Link>
                 )
               })}
@@ -170,8 +213,18 @@ export function AppShell({ children }: { children: ReactNode }) {
 
           {!sidebarCollapsed && (
             <div className="shrink-0 border-t border-slate-100 px-3 py-3">
-              <div className="type-sidebar-brand text-sm">{appConfig.sidebarProductName}</div>
-              <div className="type-chat-meta">{appConfig.sidebarTagline}</div>
+              <div className="flex items-center gap-2">
+                <img
+                  src="/cloudera-logo.png"
+                  alt=""
+                  aria-hidden
+                  className="h-5 w-5 shrink-0 rounded object-contain"
+                />
+                <span className="text-xs font-medium text-slate-600">{appConfig.sidebarPoweredByLabel}</span>
+              </div>
+              {appConfig.sidebarFooterCaption ? (
+                <p className="type-chat-meta mt-1.5 leading-snug">{appConfig.sidebarFooterCaption}</p>
+              ) : null}
             </div>
           )}
         </aside>

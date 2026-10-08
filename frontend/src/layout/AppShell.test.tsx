@@ -13,6 +13,7 @@ describe('V2 application shell', () => {
     render(<AppShell><div>Ask Data content</div></AppShell>)
 
     expect(screen.getAllByText('Ask Data').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('Usage').length).toBeGreaterThan(0)
     expect(screen.getAllByText('Settings').length).toBeGreaterThan(0)
     expect(screen.queryByText('Dashboard')).toBeNull()
     expect(screen.queryByText('AI Monitoring')).toBeNull()
