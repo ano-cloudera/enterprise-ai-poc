@@ -1,8 +1,62 @@
+const CALMONTH_FIELDS = new Set(['calmonth', 'calmonth_date', 'reporting_month', 'reporting_period'])
+
 const labelOverrides: Record<string, string> = {
-  calmonth: 'Calendar Month',
+  calmonth: 'Month',
+  calmonth_date: 'Month',
+  reporting_month: 'Month',
   metric_value: 'Metric Value',
   sales_off: 'Sales Office',
   dcname: 'Distribution Center',
+}
+
+export function isCalmonthField(field: string): boolean {
+  return CALMONTH_FIELDS.has(field.trim().toLowerCase())
+}
+
+/** Parse OSSIE calmonth integers (YYYYMM), including locale-formatted numbers like 202,411. */
+export function parseCalmonth(value: unknown): number | null {
+  if (value === null || value === undefined || value === '') return null
+  if (typeof value === 'number' && Number.isFinite(value)) {
+    const rounded = Math.round(value)
+    if (rounded >= 190_001 && rounded <= 2_999_912) return rounded
+    return null
+  }
+  const normalized = String(value).replace(/,/g, '').trim()
+  if (/^\d{6}$/.test(normalized)) {
+    const parsed = Number.parseInt(normalized, 10)
+    const month = parsed % 100
+    if (month >= 1 && month <= 12) return parsed
+  }
+  return null
+}
+
+export function formatCalmonthDisplay(value: unknown): string | null {
+  const ym = parseCalmonth(value)
+  if (ym !== null) {
+    const year = Math.floor(ym / 100)
+    const month = ym % 100
+    if (month >= 1 && month <= 12) {
+      return new Date(Date.UTC(year, month - 1, 1)).toLocaleDateString('id-ID', {
+        month: 'short',
+        year: 'numeric',
+        timeZone: 'UTC',
+      })
+    }
+  }
+  if (typeof value === 'string') {
+    const iso = value.trim().slice(0, 10)
+    if (/^\d{4}-\d{2}-\d{2}$/.test(iso)) {
+      const date = new Date(`${iso}T00:00:00Z`)
+      if (!Number.isNaN(date.getTime())) {
+        return date.toLocaleDateString('id-ID', { month: 'short', year: 'numeric', timeZone: 'UTC' })
+      }
+    }
+  }
+  return null
+}
+
+export function compareCalmonthValues(a: unknown, b: unknown): number {
+  return (parseCalmonth(a) ?? 0) - (parseCalmonth(b) ?? 0)
 }
 
 export function formatBusinessLabel(value: string): string {
@@ -38,10 +92,15 @@ export function inferColumnUnitFormat(column: string, metric?: string): string |
 
 export function formatBusinessValue(field: string, value: unknown, metric?: string, unitFormat?: string | null): string {
   if (value === null || value === undefined || value === '') return '—'
-  if (typeof value !== 'number') return String(value)
-  if (!Number.isFinite(value)) return 'Unavailable'
 
   const col = field.trim().toLowerCase()
+  if (isCalmonthField(field)) {
+    const monthLabel = formatCalmonthDisplay(value)
+    if (monthLabel) return monthLabel
+  }
+
+  if (typeof value !== 'number') return String(value)
+  if (!Number.isFinite(value)) return 'Unavailable'
   const resolvedUnit = unitFormat ?? (col === 'metric_value' ? inferColumnUnitFormat(field, metric) : inferColumnUnitFormat(field))
 
   if (resolvedUnit === 'percent') {

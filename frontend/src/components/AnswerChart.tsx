@@ -1,6 +1,7 @@
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, Cell, Legend, Line, LineChart, Pie, PieChart, ResponsiveContainer, Scatter, ScatterChart, Tooltip, XAxis, YAxis } from 'recharts'
 import type { ChartSpec } from '../types/api'
 import { truncateAxisLabel } from '../lib/answerFormatting'
+import { compareCalmonthValues, formatCalmonthDisplay, isCalmonthField } from '../lib/businessPresentation'
 import { ASSISTANT_CHART_CLASS } from './ConversationInner'
 
 const COLORS = ['#FF5A1F', '#635BFF', '#3EBAA5', '#9A8CFF']
@@ -53,7 +54,7 @@ export function AnswerChart({
     const numeric = Number(value ?? 0)
     return scaleRatioToPercent ? numeric * 100 : numeric
   }
-  const data = flattenRankingSeries
+  let data = flattenRankingSeries
     ? rows.map(row => ({ ...row, __category: `${String(row[chart.x!] ?? '')} · ${String(row[chart.series!] ?? 'Unknown')}`, [yField]: toDisplayY(row[yField]) }))
     : seriesNames.length
     ? [...rows.reduce((groups, row) => {
@@ -64,6 +65,10 @@ export function AnswerChart({
         return groups
       }, new Map<string, Record<string, unknown>>()).values()]
     : rows.map(row => ({ ...row, [yField]: toDisplayY(row[yField]) }))
+  const timeOnX = isCalmonthField(chart.x ?? '')
+  if (timeOnX && data.length > 1) {
+    data = [...data].sort((left, right) => compareCalmonthValues(left[xKey], right[xKey]))
+  }
   const categoryCount = data.length
   const denseCategories = chart.type === 'bar' && categoryCount >= 6
   const chartMargin = {
@@ -95,7 +100,12 @@ export function AnswerChart({
       height={denseCategories ? (embedded ? 44 : 72) : embedded ? 36 : 48}
       angle={denseCategories ? -38 : 0}
       textAnchor={denseCategories ? 'end' : 'middle'}
-      tickFormatter={value => truncateAxisLabel(value, denseCategories ? 18 : 24)}
+      tickFormatter={value => {
+        if (timeOnX) {
+          return truncateAxisLabel(formatCalmonthDisplay(value) ?? String(value), denseCategories ? 18 : 24)
+        }
+        return truncateAxisLabel(value, denseCategories ? 18 : 24)
+      }}
     />
   )
   const axes = (
