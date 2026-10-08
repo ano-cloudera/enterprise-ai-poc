@@ -410,6 +410,35 @@ def _wants_prior_time_point_explanation(question: str) -> bool:
         "analisa" in lowered
         and any(t in lowered for t in ("kenapa", "mengapa", "rendah", "tinggi", "turun", "naik"))
     )
+    month_named_early = any(
+        t in lowered
+        for t in (
+            "januari",
+            "februari",
+            "maret",
+            "april",
+            "mei",
+            "juni",
+            "juli",
+            "agustus",
+            "september",
+            "oktober",
+            "okt",
+            "november",
+            "nov",
+            "desember",
+            "des",
+            "bulan 10",
+            "bulan 11",
+            "bulan 12",
+        )
+    )
+    if not asks_causal and not (
+        "insight" in lowered and (month_named_early or "bulan" in lowered)
+    ):
+        return False
+    if "insight" in lowered and (month_named_early or "bulan" in lowered):
+        asks_causal = True
     if not asks_causal:
         return False
     month_named = any(
@@ -435,24 +464,33 @@ def _wants_prior_time_point_explanation(question: str) -> bool:
             "bulan 12",
         )
     )
-    month_context = month_named or ("bulan" in lowered and "itu" in lowered)
+    month_context = month_named or (
+        "bulan" in lowered and any(t in lowered for t in ("itu", "ini"))
+    )
     if not month_context:
         return False
     return any(
         t in lowered
         for t in (
             "paling rendah",
+            "paling kecil",
             "paling tinggi",
+            "paling besar",
             "terendah",
+            "terkecil",
             "tertinggi",
+            "terbesar",
             "terlihat rendah",
             "terlihat tinggi",
             "rendah",
             "tinggi",
+            "kecil",
+            "besar",
             "turun",
             "naik",
             "drop",
             "anomali",
+            "insight",
         )
     )
 

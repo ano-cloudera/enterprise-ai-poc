@@ -413,6 +413,33 @@ def test_explain_rank_one_vs_peers_uses_history_not_governed_filter() -> None:
     assert hist["focus_entity"]["id"] == "001-00-03"
 
 
+def test_explain_november_paling_kecil_with_insight_phrasing() -> None:
+    ctx = build_analysis_context(
+        metric="material_sell_in_value",
+        dimensions=["calmonth"],
+        entity_dimension="material",
+        ranked_entities=[],
+        last_question="tren penjualan 001-00-03 perbulan",
+    )
+    q = "kenapa bulan nov ini paling kecil , bisa gak anda kasih insight dalam hal ini ?"
+    assert plan_follow_up(q, ctx) is not None
+    history = [
+        {
+            "question": "tren penjualan 001-00-03 perbulan",
+            "answer": {"direct_answer": "Nov rendah.", "data_reference": "gold.rpt_sap_material_month_semantic"},
+            "rows": [
+                {"calmonth": 202410, "metric_value": 121e9},
+                {"calmonth": 202411, "metric_value": 17e9},
+                {"calmonth": 202412, "metric_value": 149e9},
+            ],
+            "strategy": "governed",
+            "status": "SUCCESS",
+        }
+    ]
+    hist = try_history_only_analysis_resolution(q, ctx, history, understanding=None)
+    assert hist is not None and hist["status"] == "history_only"
+
+
 def test_explain_november_dip_after_monthly_trend_uses_history_only() -> None:
     ctx = build_analysis_context(
         metric="material_sell_in_value",
