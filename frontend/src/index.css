@@ -172,6 +172,13 @@ button { cursor: pointer; }
     @apply text-[14px] font-normal leading-[1.65] text-slate-600;
   }
 
+  .workspace-sql-block {
+    @apply bg-[#1e1e1e] font-mono;
+  }
+  .workspace-sql-block .hljs {
+    @apply bg-transparent text-[13px] leading-relaxed;
+  }
+
   @keyframes progress-dot-pulse {
     0%, 100% { opacity: 1; transform: scale(1); }
     50% { opacity: 0.55; transform: scale(0.88); }

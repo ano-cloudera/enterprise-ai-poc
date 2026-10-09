@@ -14,7 +14,7 @@
 | Chat entry | `ReportArtifactCard.tsx`, `lib/reportDocument.ts` |
 | Split resize | `AnalysisSplitHandle.tsx`, `lib/useReportSplitPane.ts`, CSS `split-pane-*` + `scrollbar-pane` |
 | Table tab | `WorkspaceDataTable.tsx`, `lib/workspaceTableLabels.ts`, `lib/exportTableCsv.ts` |
-| Query tab | `WorkspaceQueryView.tsx` — governed SQL copy/wrap; lineage link if `NEXT_PUBLIC_LINEAGE_VIEW_URL` set |
+| Query tab | `WorkspaceQueryView.tsx` + `WorkspaceSqlBlock.tsx` (highlight.js / VS2015 dark SQL); copy/wrap; lineage if `NEXT_PUBLIC_LINEAGE_VIEW_URL` set |
 | Config | `appConfig.ts`: `analysisReportPanel`, `reportDocumentLabel`, `viewLineageBaseUrl`, … |
 | API | `frontend/src/types/api.ts` + `backend/app/core/models.py` → `governed_sql` |
 

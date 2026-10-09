@@ -6,6 +6,7 @@ import { appConfig } from '../../config/appConfig'
 import { mergeDataNotes, parseDataProvenance } from '../../lib/dataProvenance'
 import type { ChatResponse } from '../../types/api'
 import { CollapsibleDataNote } from './CollapsibleDataNote'
+import { WorkspaceSqlBlock } from './WorkspaceSqlBlock'
 import { WorkspaceSection, WorkspaceSectionContent, WorkspaceSectionHeader } from './WorkspaceSectionParts'
 
 function resolveSources(dataReference: string, provenanceSources: string[]): string[] {
@@ -75,13 +76,7 @@ export function WorkspaceQueryView({ response }: Props) {
               </button>
             </div>
           </div>
-          <pre
-            className={`max-h-80 overflow-auto rounded-xl border border-slate-800 bg-slate-900 p-4 text-[13px] leading-relaxed text-slate-100 ${
-              wrapLines ? 'whitespace-pre-wrap break-words' : 'whitespace-pre'
-            }`}
-          >
-            {sql}
-          </pre>
+          <WorkspaceSqlBlock sql={sql} wrapLines={wrapLines} />
         </div>
       ) : (
         <p className="text-sm text-slate-500 sm:ml-[calc(3rem+1rem)]">SQL text was not returned for this turn.</p>
