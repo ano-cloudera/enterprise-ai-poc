@@ -38,4 +38,12 @@ export const appConfig = {
     logo: env('NEXT_PUBLIC_APP_LOGO', '/Logo.png'),
     emptyStateLogo: env('NEXT_PUBLIC_EMPTY_STATE_LOGO', '/Logo.png'),
   },
+  analysisReportPanel: env('NEXT_PUBLIC_ANALYSIS_REPORT_PANEL', 'true') !== 'false',
+  reportDocumentLabel: env('NEXT_PUBLIC_REPORT_DOCUMENT_LABEL', 'Analysis Workspace'),
+  reportWorkspaceSubtitle: env(
+    'NEXT_PUBLIC_REPORT_WORKSPACE_SUBTITLE',
+    'Analisis dari percakapan ini',
+  ),
+  reportDatabaseStatusLabel: env('NEXT_PUBLIC_REPORT_DB_STATUS', 'Database connected'),
+  viewLineageBaseUrl: env('NEXT_PUBLIC_LINEAGE_VIEW_URL', ''),
 } as const
