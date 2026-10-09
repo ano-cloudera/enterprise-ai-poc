@@ -11,6 +11,12 @@ Sidecar application for **business ontology** (not the main chat backend).
 neo4j-cai/app_cai_neo4j.py
 ```
 
+In **Workbench**, do not paste `main()` into a notebook — `__file__` is unset and the repo may not be `cwd`. Either:
+
+- Create an **Application** with Script = `neo4j-cai/app_cai_neo4j.py`, or
+- From project root: `python neo4j-cai/app_cai_neo4j.py`, or
+- `export TEMPO_REPO_ROOT=/home/cdsw/enterprise-ai-poc` (your checkout path) then run the script.
+
 ## Required env (Application settings)
 
 | Variable | Purpose |

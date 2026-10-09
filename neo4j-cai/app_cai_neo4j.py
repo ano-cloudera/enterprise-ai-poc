@@ -15,19 +15,56 @@ import sys
 import time
 
 
+def _is_repo_root(base: Path) -> bool:
+    return (base / "backend" / "app" / "main.py").is_file() and (
+        base / "neo4j-cai" / "app_cai_neo4j.py"
+    ).is_file()
+
+
 def resolve_repo_root() -> Path:
+    """Locate repo root on CAI (same defensive pattern as backend/app_cai_backend.py)."""
+    override = (os.getenv("TEMPO_REPO_ROOT") or os.getenv("REPO_ROOT") or "").strip()
+    if override:
+        root = Path(override).expanduser().resolve()
+        if _is_repo_root(root):
+            return root
+
     candidates: list[Path] = []
     project_dir = os.getenv("CDSW_PROJECT_DIR")
     if project_dir:
-        candidates.append(Path(project_dir))
-    candidates.append(Path.cwd())
+        base = Path(project_dir)
+        candidates.append(base)
+        if base.is_dir():
+            candidates.extend(path for path in base.iterdir() if path.is_dir())
+    cwd = Path.cwd()
+    candidates.append(cwd)
+    if cwd.is_dir():
+        candidates.extend(path for path in cwd.iterdir() if path.is_dir())
     script_file = globals().get("__file__")
     if script_file:
-        candidates.append(Path(script_file).resolve().parent.parent)
+        script_path = Path(script_file).resolve()
+        candidates.append(script_path.parent.parent)  # neo4j-cai/.. = repo root
+        candidates.append(script_path.parent)  # if layout differs
+
+    seen: set[Path] = set()
     for base in candidates:
-        if (base / "backend" / "app" / "main.py").is_file():
-            return base.resolve()
-    raise RuntimeError("Could not locate repo root (need backend/app/main.py)")
+        for root in (base, base.parent):
+            try:
+                resolved = root.resolve()
+            except OSError:
+                continue
+            if resolved in seen:
+                continue
+            seen.add(resolved)
+            if _is_repo_root(resolved):
+                return resolved
+
+    hint = (
+        "Set TEMPO_REPO_ROOT to the git checkout (directory containing backend/ and neo4j-cai/), "
+        "or run this file as the CAI Application Script (not pasted notebook cells — __file__ is missing there). "
+        f"CDSW_PROJECT_DIR={project_dir!r} cwd={cwd!r}"
+    )
+    raise RuntimeError(f"Could not locate repo root (need backend/app/main.py). {hint}")
 
 
 def ensure_venv(repo_root: Path) -> Path:
