@@ -4,9 +4,20 @@ from app.semantic.context import SemanticContextService
 from app.services.analysis_enrichment import (
     detect_analysis_mode,
     enrich_pareto_rows,
+    should_suppress_chart_for_narrative,
     wants_contribution_analysis,
 )
 from app.services.cross_domain_compare import try_resolve_cross_domain
+
+
+def test_narrative_analysis_suppresses_chart() -> None:
+    q = (
+        "Tampilkan 10 material dengan rasio bill-to-PO terendah di Desember 2024 "
+        "dan analisa penyebab potensial beserta saran perbaikan proses penagihan."
+    )
+    assert should_suppress_chart_for_narrative(q) is True
+    assert should_suppress_chart_for_narrative("Top 10 DC dengan stok tertinggi Q4 2024") is False
+    assert should_suppress_chart_for_narrative("Tren sell-in material per bulan Q4") is False
 
 
 def test_wants_contribution_detects_kumulatif_and_kontribusi() -> None:

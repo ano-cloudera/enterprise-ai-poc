@@ -57,6 +57,8 @@ Frontend and Tempo Scan Backend. The Qwen application already exists — do
 not redeploy or modify it. There is no fourth application for the Mock
 Market API; it runs as an internal process inside the Backend Application.
 
+**Optional — Tempo Scan Neo4j Ontology** (business intent graph seed/health; Bolt DB is external Aura/VM/Docker): entrypoint `neo4j-cai/app_cai_neo4j.py`. See [cloudera-ai-neo4j-application.md](cloudera-ai-neo4j-application.md). Backend CAI sets the same `NEO4J_URI` + `NEO4J_ENABLED=true`.
+
 **Optional fourth application — Tempo Scan LiteLLM Router**: when
 `LITELLM_BASE_URL` is set on the Backend Application, the Backend calls
 this router (`litellm/config.yaml`, entrypoint

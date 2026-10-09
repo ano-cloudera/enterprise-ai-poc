@@ -52,3 +52,7 @@ artifacts/forecasting/
 # workflow exports) - never commit. Has been found to contain live-looking
 # credentials (Neo4j/Qdrant/Impala hosts, a CDSW API key) in demo_config.py.
 reference/
+
+# Local Workbench Impala helpers with embedded credentials — use test_impala_ingram_env.py
+**/*hardcoded*.py
+backend/scripts/workbench_impala_select_star.py

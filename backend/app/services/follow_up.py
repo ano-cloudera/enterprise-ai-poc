@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import re
 from dataclasses import dataclass
+from difflib import SequenceMatcher
 from typing import Any
 
 from app.semantic.domain_graph import classify_cabang_grain
@@ -689,9 +690,24 @@ def _wants_sell_out_product_drill(question: str) -> bool:
     material_ref = any(t in lowered for t in _DRILL_MATERIAL_TERMS) or any(
         t in lowered for t in ("produk/material", "material itu", "produk itu")
     )
-    if any(t in lowered for t in ("sell-out", "sell out", "sellout")) and material_ref:
+    if not material_ref:
+        return False
+    sell_through = (
+        "sell-out",
+        "sell out",
+        "sellout",
+        "paling laku",
+        "terlaris",
+        "produk laku",
+        "yang laku",
+        "laku",
+        "terjual",
+        "penjualan",
+        "volume jual",
+    )
+    if any(t in lowered for t in sell_through):
         return True
-    return any(t in lowered for t in ("b2b", "penjualan b2b")) and material_ref
+    return any(t in lowered for t in ("b2b", "penjualan b2b"))
 
 
 def _wants_b2b_material_crosscheck(question: str) -> bool:
@@ -761,6 +777,28 @@ def _dc_cities_from_text(text: str) -> list[str]:
         if label not in cities:
             cities.append(label)
     return cities
+
+
+def _catalog_by_dc_city_hint(catalog: list[dict[str, Any]], city: str) -> dict[str, Any] | None:
+    """Match a DC label from free text (allows minor spelling drift vs catalog ids)."""
+    if not catalog or not city:
+        return None
+    city_norm = _normalize(city)
+    if len(city_norm) < 4:
+        return None
+    for item in catalog:
+        eid = _normalize(str(item.get("id") or ""))
+        if city_norm in eid:
+            return item
+        for token in re.split(r"[\s_/\-]+", eid):
+            if len(token) < 4:
+                continue
+            if token == city_norm or city_norm in token or token in city_norm:
+                return item
+            if len(token) >= 6 and len(city_norm) >= 6:
+                if SequenceMatcher(None, token, city_norm).ratio() >= 0.875:
+                    return item
+    return None
 
 
 def _bind_entity_from_catalog(question: str, catalog: list[dict[str, Any]]) -> dict[str, Any] | None:
@@ -1268,6 +1306,19 @@ def plan_follow_up(question: str, ctx: dict[str, Any]) -> FollowUpPlan | None:
         )
 
     filter_entity = _bind_entity_from_catalog(question, catalog)
+    if not filter_entity and _wants_sell_out_product_drill(question):
+        combined = f"{ctx.get('last_question') or ''} {question}"
+        dc_cities = _dc_cities_from_text(combined)
+        if len(dc_cities) == 1:
+            filter_entity = _catalog_by_dc_city_hint(catalog, dc_cities[0])
+            if filter_entity is None:
+                city = dc_cities[0].upper()
+                filter_entity = {
+                    "rank": None,
+                    "id": f"DC {city}",
+                    "entity_type": "dcname",
+                    "dimension": "dcname",
+                }
     if (
         not filter_entity
         and catalog

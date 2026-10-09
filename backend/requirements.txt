@@ -12,3 +12,4 @@ orjson==3.11.3
 pytest==8.4.2
 pytest-asyncio==1.1.0
 pytest-timeout==2.4.0
+neo4j==5.28.1

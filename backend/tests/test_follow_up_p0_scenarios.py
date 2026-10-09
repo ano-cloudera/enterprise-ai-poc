@@ -220,6 +220,28 @@ def test_unloading_company_avg_follow_up_aggregate() -> None:
     assert plan.intent == "aggregate"
 
 
+def test_stock_sat_dc_palembang_top3_produk_paling_laku_follow_up() -> None:
+    ctx = build_analysis_context(
+        metric="sat_dc_stock_quantity",
+        dimensions=["dcname"],
+        entity_dimension="dcname",
+        ranked_entities=[
+            {"rank": 1, "id": "DC MAKASSAR", "dimension": "dcname", "metric_value": 412_585},
+            {"rank": 2, "id": "DC BALARAJA", "dimension": "dcname", "metric_value": 378_255},
+            {"rank": 3, "id": "DC PALEMBANG", "dimension": "dcname", "metric_value": 339_267},
+        ],
+        last_question="Top 10 DC Partner Alfamart berdasarkan stok Q4 2024",
+    )
+    q = "untuk DC pelembang, apakah bisa bantu buat tampilkan top 3 produk apa yang paling laku"
+    res = try_follow_up_governed_resolution(q, ctx, understanding=None)
+    assert res is not None
+    assert res["status"] == "resolved"
+    assert res["metric"] == "b2b_branch_material_sell_out_value"
+    assert res["dimensions"] == ["material"]
+    filters = " ".join(res.get("follow_up_entity_filters") or [])
+    assert "PALEMBANG" in filters.upper()
+
+
 def test_stock_sat_dc_rank1_plu_drill_follow_up() -> None:
     ctx = build_analysis_context(
         metric="sat_dc_stock_quantity",

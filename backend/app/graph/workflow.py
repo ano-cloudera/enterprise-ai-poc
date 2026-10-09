@@ -810,6 +810,11 @@ def build_workflow(deps: WorkflowDependencies):
         if chart and any(field and field not in columns for field in (chart.x, chart.y, chart.series)):
             chart = None
             analysis = analysis.model_copy(update={"chart_spec": None})
+        from app.services.analysis_enrichment import should_suppress_chart_for_narrative
+
+        if chart and should_suppress_chart_for_narrative(str(state.get("question") or "")):
+            chart = None
+            analysis = analysis.model_copy(update={"chart_spec": None})
         # Always override data_reference with just the view name(s) parsed
         # from the executed SQL - never trust the model to keep the raw
         # SQL text out of a field meant to be a plain-language citation,

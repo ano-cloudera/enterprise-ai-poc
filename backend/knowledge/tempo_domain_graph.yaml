@@ -178,6 +178,13 @@ governed_intents:
     metric: material_sell_in_value
     dimensions: [material]
     resolved_by: domain_graph_pareto_sell_in
+  - id: cabang_kontribusi_sell_in_rank
+    all_terms: [top, cabang]
+    any_terms: [kontribusi, kumulatif, pareto, terbesar]
+    unless_terms: [sell-out, sell out, b2b, alfamart, partner, bill-to-po, bill to po, picking, unloading]
+    metric: sales_office_sell_in_value
+    dimensions: [sales_office]
+    resolved_by: domain_graph_cabang_kontribusi_sell_in
   - id: chip_picking_after_dual_clarify
     all_terms: [picking]
     unless_terms: [unloading]
@@ -224,6 +231,18 @@ governed_intents:
     metric: promo_observation_count
     dimensions: [material_code]
     resolved_by: domain_graph_promo_observation_rank
+
+# Session follow-ups (Neo4j IntentRule phase=follow_up; mirrored in follow_up.py until fully graph-driven).
+follow_up_intents:
+  - id: fu_dc_top_products_sell_through
+    session_domain: stock_sat
+    priority: 200
+    all_terms: [produk]
+    any_terms: [paling laku, laku, terlaris, penjualan, sell-out, sell out, terjual, top]
+    unless_terms: [stok retail]
+    metric: b2b_branch_material_sell_out_value
+    dimensions: [material]
+    resolved_by: domain_graph_fu_dc_sell_through
 
 # Follow-up drill paths (context + entity bind → grain/metric; see app/services/follow_up.py).
 drill_paths:
@@ -275,8 +294,8 @@ clarification_intents:
         label: Durasi unloading (menit, per sales office)
   - id: bill_to_po_and_penagihan
     all_terms: [bill-to-po]
-    any_terms: [nilai penagihan, penagihan grosir, kontribusi penagihan, total penagihan]
-    unless_terms: [rasio bill-to-po, rasio bill to po, bill-to-po terendah, bill to po terendah, pemenuhan po]
+    any_terms: [nilai penagihan, penagihan grosir, kontribusi penagihan, total penagihan, penagihan]
+    unless_terms: [pemenuhan po saja, hanya bill-to-po]
     reason: bill_to_po_vs_billing_dual
     question: >
       Pemenuhan PO (bill-to-PO / DO÷PO qty) dan nilai penagihan grosir (sell-in billing)

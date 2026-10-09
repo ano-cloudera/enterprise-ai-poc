@@ -42,6 +42,30 @@ def wants_contribution_analysis(question: str) -> bool:
     return any(term in lowered for term in _CONTRIBUTION_TERMS)
 
 
+def should_suppress_chart_for_narrative(question: str) -> bool:
+    """Omit bar/line charts when the user wants diagnosis/recommendations, not a visual ranking."""
+    lowered = " ".join((question or "").casefold().replace("–", "-").split())
+    if any(term in lowered for term in ("grafik", "chart", "visualisasi", "visualisasi", "plot")):
+        return False
+    if any(term in lowered for term in ("tren", "trend", "per bulan", "bulanan", "time series")):
+        return False
+    deep_narrative = (
+        "penyebab potensial" in lowered
+        or "saran perbaikan" in lowered
+        or "rekomendasi operasional" in lowered
+        or "hipotesis operasional" in lowered
+        or (
+            any(t in lowered for t in ("analisa", "analisis", "evaluasi"))
+            and any(t in lowered for t in ("penyebab", "saran", "rekomendasi", "perbaikan", "proses"))
+        )
+    )
+    if deep_narrative:
+        return True
+    if any(t in lowered for t in ("kenapa", "mengapa", "jelaskan")) and "top" not in lowered and "ranking" not in lowered:
+        return True
+    return False
+
+
 def detect_analysis_mode(question: str, metric: str | None) -> str | None:
     if not metric or not wants_contribution_analysis(question):
         return None

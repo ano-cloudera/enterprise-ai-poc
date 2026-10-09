@@ -12,6 +12,7 @@ from app.services.usage_store import UsageStore
 from app.core.config import Settings, get_settings
 from app.llm.registry import ProviderRegistry
 from app.services.chat import ChatService
+from app.services.neo4j_client import Neo4jKnowledgeClient
 from app.services.puppygraph_client import PuppyGraphClient
 from app.core.kerberos_bootstrap import ensure_kerberos_ticket
 from app.db.impala_backend import is_impala_configured
@@ -58,6 +59,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "ask_data_routing": configured.ask_data_routing,
             "local_agent_base_url": configured.local_agent_base_url or None,
             "business_graph": "enabled" if configured.business_graph_enabled else "disabled",
+            "neo4j": Neo4jKnowledgeClient(configured).schema_summary(),
             "puppygraph": PuppyGraphClient(configured).schema_summary(),
         }
         ready = llm_ready and impala_ready

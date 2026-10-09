@@ -2,12 +2,15 @@
 
 from __future__ import annotations
 
+import logging
 import re
 from functools import lru_cache
 from pathlib import Path
 from typing import Any, Literal
 
 import yaml
+
+logger = logging.getLogger(__name__)
 
 CabangGrain = Literal["sales_office", "branch", "ambiguous"]
 
@@ -116,6 +119,53 @@ def _terms_match(lowered: str, terms: list[str], *, mode: str) -> bool:
     return any(str(term).casefold() in lowered for term in terms)
 
 
+def _governed_intents_catalog() -> list[dict[str, Any]]:
+    graph = load_domain_graph()
+    return [item for item in (graph.get("governed_intents") or []) if isinstance(item, dict)]
+
+
+def _clarification_intents_catalog() -> list[dict[str, Any]]:
+    graph = load_domain_graph()
+    return [item for item in (graph.get("clarification_intents") or []) if isinstance(item, dict)]
+
+
+def _neo4j_intent_catalog(loader: str) -> list[dict[str, Any]] | None:
+    try:
+        from app.core.config import get_settings
+        from app.services.neo4j_client import Neo4jKnowledgeClient
+
+        settings = get_settings()
+        if not settings.neo4j_enabled:
+            return None
+        client = Neo4jKnowledgeClient(settings)
+        if not client.ping():
+            return None
+        if loader == "governed":
+            items = client.list_governed_intents()
+        elif loader == "clarify":
+            items = client.list_clarification_intents()
+        else:
+            return None
+        return items if items else None
+    except Exception:
+        logger.debug("neo4j_intent_catalog_unavailable loader=%s", loader, exc_info=True)
+        return None
+
+
+def governed_intents_for_routing() -> list[dict[str, Any]]:
+    from_neo4j = _neo4j_intent_catalog("governed")
+    if from_neo4j is not None:
+        return from_neo4j
+    return _governed_intents_catalog()
+
+
+def clarification_intents_for_routing() -> list[dict[str, Any]]:
+    from_neo4j = _neo4j_intent_catalog("clarify")
+    if from_neo4j is not None:
+        return from_neo4j
+    return _clarification_intents_catalog()
+
+
 def _clarification_match_text(question: str) -> str:
     """After a chip reply, match dual-metric rules on the choice line only."""
     lowered = _normalized_terms(question)
@@ -127,10 +177,9 @@ def _clarification_match_text(question: str) -> str:
 
 def try_clarification_intent(question: str) -> dict[str, Any] | None:
     """Return needs_clarification when domain graph detects dual-metric questions."""
-    graph = load_domain_graph()
     lowered = _normalized_terms(question)
     match_text = _clarification_match_text(question)
-    for intent in graph.get("clarification_intents") or []:
+    for intent in clarification_intents_for_routing():
         if not isinstance(intent, dict):
             continue
         all_terms = intent.get("all_terms") or []
@@ -162,7 +211,6 @@ def try_governed_intent_route(
     session_last_metric: str | None = None,
 ) -> dict[str, Any] | None:
     """Return OSSIE metric/dimensions when domain graph intent rules match."""
-    graph = load_domain_graph()
     lowered = _normalized_terms(question)
     eval_text = _clarification_match_text(question) if "klarifikasi pengguna:" in lowered else lowered
     if session_last_metric:
@@ -172,7 +220,7 @@ def try_governed_intent_route(
         elif "sell_in" in metric or "sales_office" in metric or "material_sell_in" in metric:
             eval_text = f"{eval_text} sell-in"
 
-    for intent in graph.get("governed_intents") or []:
+    for intent in governed_intents_for_routing():
         if not isinstance(intent, dict):
             continue
         unless = intent.get("unless_terms") or []

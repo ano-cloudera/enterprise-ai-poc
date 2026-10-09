@@ -18,6 +18,28 @@ In-process **business context graph** (not a graph database). Used when `BUSINES
 
 Numbers always execute via OSSIE `compile_governed` + Impala. PuppyGraph (Phase C7) is optional and not required here.
 
+## Neo4j (local ontology mirror)
+
+YAML remains the git source of truth; Neo4j is an optional runtime mirror for intent routing and exploration.
+
+```bash
+# From repo root
+bash scripts/run-neo4j-local.sh
+# Or: docker compose -f docker-compose.neo4j.yml up -d
+#     cd backend && ../.venv/bin/python scripts/seed_neo4j_domain_graph.py --clear
+```
+
+Enable in `backend/.env` or repo `.env`:
+
+```env
+NEO4J_ENABLED=true
+NEO4J_URI=bolt://localhost:7687
+NEO4J_USER=neo4j
+NEO4J_PASSWORD=tempo-graph-local
+```
+
+`/health/ready` includes `components.neo4j`. When enabled and reachable, `try_governed_intent_route` reads `IntentRule` nodes from Neo4j; otherwise YAML.
+
 ## B3 dry-run expectations
 
 | ID | Expected resolver |

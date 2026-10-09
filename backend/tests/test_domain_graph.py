@@ -103,6 +103,25 @@ def test_governed_intent_pareto_q10() -> None:
     assert hit["metric"] == "material_sell_in_value"
 
 
+def test_cabang_kontribusi_terbesar_resolves_sell_in_office() -> None:
+    hit = try_governed_intent_route("Top 10 cabang dengan kontribusi terbesar Q4 2024")
+    assert hit is not None
+    assert hit["metric"] == "sales_office_sell_in_value"
+    assert hit["dimensions"] == ["sales_office"]
+
+
+def test_bill_to_po_plus_penagihan_clarifies() -> None:
+    q = (
+        "Material mana dengan rasio bill-to-PO terendah dan kontribusi nilai "
+        "penagihan grosir tertinggi Q4 2024?"
+    )
+    hit = try_clarification_intent(q)
+    assert hit is not None
+    assert hit.get("reason") == "bill_to_po_vs_billing_dual"
+    resolution = SemanticContextService().resolve(q)
+    assert resolution["status"] == "needs_clarification"
+
+
 def test_q09_picking_unloading_clarification() -> None:
     q = (
         "Analisa data unloading dan picking dan berikan Analisa dan perbandingan "

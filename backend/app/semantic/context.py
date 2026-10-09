@@ -789,10 +789,9 @@ class SemanticContextService:
             analysis_context=session_analysis_context,
         )
 
-        if get_settings().business_graph_enabled and turn_kind not in (
-            "continue_session",
-            "explain_prior",
-        ):
+        # Dual-metric clarification (picking+unloading, stok vs sell-out, bill-to-PO vs penagihan)
+        # must win even mid-session — otherwise follow-up routing can return the wrong KPI.
+        if get_settings().business_graph_enabled:
             clarify = try_clarification_intent(question)
             if clarify:
                 return clarify
@@ -841,8 +840,20 @@ class SemanticContextService:
         )
         bill_to_po = _bill_to_po_resolution(question)
         if bill_to_po:
-            metric, dimensions, alias = bill_to_po
-            return resolved(metric, dimensions, matched_alias=alias)
+            lowered_bp = question.casefold()
+            dual_billing = _question_mentions_bill_to_po(question) and any(
+                t in lowered_bp
+                for t in (
+                    "penagihan grosir",
+                    "nilai penagihan",
+                    "kontribusi penagihan",
+                    "total penagihan",
+                    "penagihan",
+                )
+            ) and any(t in lowered_bp for t in ("terendah", "tertinggi", "terbesar", "kontribusi", "dan "))
+            if not dual_billing:
+                metric, dimensions, alias = bill_to_po
+                return resolved(metric, dimensions, matched_alias=alias)
 
         dc_stock_rank = _dc_partner_stock_penumpukan_resolution(question)
         if dc_stock_rank:

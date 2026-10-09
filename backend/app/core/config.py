@@ -113,6 +113,12 @@ class Settings(BaseSettings):
     puppygraph_enabled: bool = Field(default=False, validation_alias="PUPPYGRAPH_ENABLED")
     puppygraph_base_url: str = Field(default="", validation_alias="PUPPYGRAPH_BASE_URL")
 
+    # Business ontology in Neo4j (seed from tempo_domain_graph.yaml; YAML fallback when off/unreachable)
+    neo4j_enabled: bool = Field(default=False, validation_alias="NEO4J_ENABLED")
+    neo4j_uri: str = Field(default="", validation_alias="NEO4J_URI")
+    neo4j_user: str = Field(default="neo4j", validation_alias="NEO4J_USER")
+    neo4j_password: SecretStr = Field(default=SecretStr(""), validation_alias="NEO4J_PASSWORD")
+
     @property
     def cors_origin_list(self) -> list[str]:
         return [value.strip() for value in self.cors_origins.split(",") if value.strip()]
