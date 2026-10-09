@@ -20,6 +20,10 @@
 
 **Verify prod UI:** `make dev` → ask a governed question with chart/table → artifact card → panel Summary/Table/Query. **`npm run build`** in `frontend/` was green after merge.
 
+**UI polish (9 Oct, PM):** Summary section separators use symmetric spacing — `WorkspaceSection` in `frontend/` and `frontend-dev/` (`mt-10 pt-10` above/below each divider; first section unchanged).
+
+**CAI Impala (operator):** GSSAPI env (`IMPALA_*` on 21050) is correct for Ingram; `GSSError` usually means missing/expired Kerberos for the **Application process** — set `KERBEROS_KINIT_ON_START` + keytab/principal on `tempo-backend-v2`, restart app (`docs/ingram-gold-audit.md`). `IMPALA_USER`/`PASSWORD` ignored for GSSAPI.
+
 ### Run modes (handoff)
 
 | Mode | Command | UI | API |

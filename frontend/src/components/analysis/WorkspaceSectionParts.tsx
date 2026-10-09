@@ -40,7 +40,7 @@ export function WorkspaceSectionHeader({ icon: Icon, tone, title, action }: Sect
 export function WorkspaceSection({ children, className = '' }: { children: ReactNode; className?: string }) {
   return (
     <section
-      className={`border-t border-slate-200/70 pt-7 first:border-t-0 first:pt-0 ${className}`}
+      className={`border-t border-slate-200/70 mt-10 pt-10 first:mt-0 first:border-t-0 first:pt-0 ${className}`}
     >
       {children}
     </section>
