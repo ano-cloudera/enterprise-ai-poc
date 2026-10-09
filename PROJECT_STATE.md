@@ -20,7 +20,7 @@
 
 **Verify prod UI:** `make dev` → ask a governed question with chart/table → artifact card → panel Summary/Table/Query. **`npm run build`** in `frontend/` was green after merge.
 
-**UI polish (9 Oct, PM):** Summary section separators use symmetric spacing — `WorkspaceSection` in `frontend/` and `frontend-dev/` (`mt-10 pt-10` above/below each divider; first section unchanged).
+**UI polish (9 Oct, PM):** Summary section separators use symmetric spacing — `WorkspaceSection` (`mt-10 pt-10`; first section unchanged). Chart → Business implications: tighter divider lead (`!mt-5`), `pt-9` under line, chart content `pb-4`, business block `pb-8` (`ReportDocumentSection.tsx` in `frontend/` + `frontend-dev/`).
 
 **CAI Impala (operator):** GSSAPI env (`IMPALA_*` on 21050) is correct for Ingram; `GSSError` usually means missing/expired Kerberos for the **Application process** — set `KERBEROS_KINIT_ON_START` + keytab/principal on `tempo-backend-v2`, restart app (`docs/ingram-gold-audit.md`). `IMPALA_USER`/`PASSWORD` ignored for GSSAPI.
 

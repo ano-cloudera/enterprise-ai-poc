@@ -143,7 +143,7 @@ export function ReportDocumentSection({ response }: Props) {
                   ) : null
                 }
               />
-              <WorkspaceSectionContent>
+              <WorkspaceSectionContent className="pb-4">
                 {response.chart_spec?.type === 'kpi' && (
                   <div className="max-w-sm">
                     <KpiCard label={response.chart_spec.title} value={kpiValue} format="" icon={BarChart3} />
@@ -164,7 +164,7 @@ export function ReportDocumentSection({ response }: Props) {
           )}
 
           {response.answer.business_implications.length > 0 && (
-            <WorkspaceSection>
+            <WorkspaceSection className="!mt-5 !pt-9 pb-8">
               <WorkspaceSectionHeader icon={Briefcase} tone="violet" title="Business implications" />
               <WorkspaceSectionContent>
                 <ul className="workspace-section-body space-y-2.5">

@@ -48,9 +48,19 @@ export function WorkspaceSection({ children, className = '' }: { children: React
 }
 
 /** Content aligned with title text (indented past icon column on sm+). */
-export function WorkspaceSectionContent({ children }: { children: ReactNode }) {
+export function WorkspaceSectionContent({
+  children,
+  className = '',
+}: {
+  children: ReactNode
+  className?: string
+}) {
   return (
-    <div className="workspace-section-body sm:ml-[calc(3rem+1rem)] lg:ml-[calc(3rem+1.125rem)]">{children}</div>
+    <div
+      className={`workspace-section-body sm:ml-[calc(3rem+1rem)] lg:ml-[calc(3rem+1.125rem)] ${className}`}
+    >
+      {children}
+    </div>
   )
 }
 
