@@ -56,7 +56,8 @@ The frontend executes these actions. The LLM never emits code to control the bro
 | Path | Role |
 |------|------|
 | `backend/` | FastAPI + LangGraph Ask AI, OSSIE semantic layer, Impala execution |
-| `frontend/` | Next.js chat UI (proxies `/api/*` to the backend) |
+| `frontend/` | Next.js chat UI (proxies `/api/*` to the backend); **Analysis Workspace** split panel |
+| `backend-dev/` / `frontend-dev/` | Optional pilot mirror for workspace UX on **8001 / 3001** (`scripts/run-dev-stack.sh`) |
 | `scripts/` | Local dev, CAI shell helpers, UAT/eval runners |
 | `docs/` | Architecture, API contract, **Cloudera AI deployment** |
 | `projects/tempo_scan_impala/` | OSSIE YAML, golden questions, Agent Studio assets |
@@ -80,6 +81,8 @@ bash scripts/setup-local.sh
 ```bash
 make dev
 ```
+
+**Analysis Workspace** (Summary | Table | Query beside chat) is enabled in production frontend by default; see `docs/analysis-report-dev.md`. Optional pilot on ports 3001/8001: `./scripts/run-dev-stack.sh`.
 
 Or run separately:
 

@@ -1,9 +1,50 @@
 # Tempo Scan Commercial Intelligence — Project State
 
 **Repo**: `enterprise-ai-poc` (github.com/ano-cloudera/enterprise-ai-poc), branch `main`
-**Updated**: 9 Oct 2026 — **Neo4j ontology mirror (optional) + matrix routing & narrative UX**. **Neo4j**: `Neo4jKnowledgeClient`, seed `backend/scripts/seed_neo4j_domain_graph.py` + `app/knowledge/neo4j_seed.py`; governed/clarify intents read from Bolt when `NEO4J_ENABLED=true` else YAML; `/health/ready` → `components.neo4j`; third CAI app `neo4j-cai/app_cai_neo4j.py` (`docs/cloudera-ai-neo4j-application.md`, `scripts/run-neo4j-local.sh`). **Routing**: clarify wins mid-session (`context.py`); `cabang_kontribusi_sell_in_rank`; bill-to-PO + penagihan dual clarify; `follow_up.py` sell-through drill (DC city + typo bind → `b2b_branch_material_sell_out_value` × material). **Analyst UX**: suppress bar/line chart when question is penyebab/saran/rekomendasi (`analysis_enrichment.py`, `workflow.py`, `result_analyst.md`). **Tests**: domain graph, follow-up Palembang scenario, `test_neo4j_knowledge.py`. **Do not commit**: `*_hardcoded*.py` Impala Workbench scripts (gitignored). Prior (8 Oct PM): **Usage tab + Scan Intelligence shell + cross-domain time follow-ups**. **LLM usage**: SQLite `backend/runtime/llm_usage.sqlite`, per-request `UsageTracker` (LangGraph-safe), `/usage/summary|events|export.csv`, FE `/usage` (7d/30d/MTD, chart `maxBarSize`, Recent turns **UTC+7**). **FE branding**: config-driven `BrandMark`, sidebar **272px**, Usage nav, “Start with a question”, footer Powered by Cloudera; token hint in answer footer. **Follow-ups**: referential **per bulan / tren** for prior top entity → governed time grain (`calmonth` / `reporting_period` / `calmonth_date`) per domain, not spurious material drill; `turn_understanding.md` guidance. **Local only (not in git)**: `frontend-dev/` + `backend-dev/` Genie-style report panel experiment (`scripts/run-dev-stack.sh`, `docs/analysis-report-dev.md`). Prior **Bill-to-PO SQL/UX polish** (`b8b9d4d`): positive-ratio `HAVING`, `\d+ material` limit, `_question_wants_billing_value_columns()` so “analisa proses penagihan” on bill-to-PO does not add `sell_in_bill_val`; FE Ask Data default timeout **180 s**. **Latency**: governed path ~**40–60 s**/turn typical (remote Impala + 1–2× structured Gemini analyst; judge retry on “analisa/saran”; SSE shows progress only until `done` — architecture favors governance over ChatGPT-style TTFT). **Ingram ops**: `docs/ingram-gold-audit.md`, `scripts/audit_gold_ingram.py`, `backend/scripts/test_impala_ingram_env.py` (use `.env` profile; keep hardcoded Workbench scripts local/gitignored). Prior (7 Oct): cross-domain early in `resolve()`; Tempo demo record UAT; capability follow-up; FE pin/unpin. Exploratory: **`backend-test`** (8001).
+**Updated**: 9 Oct 2026 (PM) — **Analysis Workspace (Genie-style) merged to production** (`a213b52`, pushed `origin/main`). **Production FE** (`frontend/`): split-pane **Analysis Workspace** beside chat — tabs **Summary | Table | Query**, draggable split (`useReportSplitPane.ts`, `AnalysisSplitHandle.tsx`), artifact card opens panel (`ReportArtifactCard.tsx`); Summary sections use shared typography (`workspace-section-title` / `workspace-body-text` in `index.css`); workspace charts **+15% height**, duplicate chart title suppressed (`AnswerChart` `hideTitle`); Query tab shows **SQL + data note + Source only** (removed Read-only/Impala/ms/rows chips and METRIC pill block). **Production BE**: `AskDataResponse.governed_sql` populated from validated SQL in `chat.py` for Query tab. **Pilot trees in git**: `frontend-dev/` + `backend-dev/` (same UX/features for isolated iteration); **`scripts/run-dev-stack.sh`** → http://127.0.0.1:3001 + :8001, Ingram Impala preflight. **Docs**: `docs/analysis-report-dev.md`, `docs/reusable-fe-capabilities.md`. **Do not commit**: local PDF exports under `frontend/` / `frontend-dev/`; `*_hardcoded*.py` Workbench scripts (gitignored). **Port clash**: `backend-test/` and `run-dev-stack.sh` both target **8001** — run one at a time. **Same-day earlier**: Neo4j ontology mirror (optional), matrix routing & narrative chart suppress, Usage tab — sections below unchanged in substance.
 
-## Current checkpoint: demo-ready Ask AI + history follow-ups (9 Oct 2026)
+## Current checkpoint: Analysis Workspace in production (9 Oct 2026, PM)
+
+### Shipped (commit `a213b52`)
+
+| Area | Paths / notes |
+|------|----------------|
+| Panel shell | `frontend/src/components/AnalysisReportPanel.tsx`, `AskDataPage.tsx`, `AppShell.tsx` |
+| Document body | `ReportDocumentSection.tsx`, `analysis/Workspace*.tsx`, `analysis/CollapsibleDataNote.tsx` |
+| Chat entry | `ReportArtifactCard.tsx`, `lib/reportDocument.ts` |
+| Split resize | `AnalysisSplitHandle.tsx`, `lib/useReportSplitPane.ts`, CSS `split-pane-*` + `scrollbar-pane` |
+| Table tab | `WorkspaceDataTable.tsx`, `lib/workspaceTableLabels.ts`, `lib/exportTableCsv.ts` |
+| Query tab | `WorkspaceQueryView.tsx` — governed SQL copy/wrap; lineage link if `NEXT_PUBLIC_LINEAGE_VIEW_URL` set |
+| Config | `appConfig.ts`: `analysisReportPanel`, `reportDocumentLabel`, `viewLineageBaseUrl`, … |
+| API | `frontend/src/types/api.ts` + `backend/app/core/models.py` → `governed_sql` |
+
+**Verify prod UI:** `make dev` → ask a governed question with chart/table → artifact card → panel Summary/Table/Query. **`npm run build`** in `frontend/` was green after merge.
+
+### Run modes (handoff)
+
+| Mode | Command | UI | API |
+|------|---------|-----|-----|
+| **Production** | `make dev` | :3000 | :8000 |
+| **Pilot stack** | `./scripts/run-dev-stack.sh` | :3001 | :8001 (`backend-dev`) |
+| **DuckDB sandbox** | `backend-test/start.sh` | (point FE env) | :8001 — **conflicts with pilot** |
+
+Pilot stack: repo `.env`, `IMPALA_CREDENTIAL_PROFILE=ingram` (override `DEV_IMPALA_PROFILE`), Kerberos `kinit` as needed; `DEV_SKIP_IMPALA_SMOKE=1` for UI-only.
+
+### Feature flags (frontend)
+
+| Env | Default | Meaning |
+|-----|---------|---------|
+| `NEXT_PUBLIC_ANALYSIS_REPORT_PANEL` | `true` | Set `false` to disable split workspace |
+| `NEXT_PUBLIC_LINEAGE_VIEW_URL` | empty | Optional base URL for “View lineage” on Query sources |
+| `NEXT_PUBLIC_REPORT_DOCUMENT_LABEL` | `Analysis Workspace` | Panel breadcrumb label |
+
+### Not done / optional next
+
+- Wire **`docs/slides/`** (untracked HTML deck) if management wants updated screenshots.
+- **`backend-dev` vs `backend/`**: routing/UAT fixes should usually land in `backend/` first; dev tree is a mirror for faster FE iteration — re-sync or cherry-pick when diverging.
+- Streaming TTFT / partial SSE (table before analyst) still not implemented — latency ~40–60 s unchanged.
+
+## Previous checkpoint: demo-ready Ask AI + history follow-ups (9 Oct 2026, AM)
 
 ### Neo4j business ontology mirror (9 Oct)
 
