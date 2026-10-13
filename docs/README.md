@@ -1,9 +1,37 @@
-# Documentation index (Tempo Scan · enterprise-ai-poc)
+# Documentation index (enterprise-ai-poc)
 
-**Last reviewed:** 7 Oct 2026  
-**Source of truth for “where we are now”:** [`PROJECT_STATE.md`](../PROJECT_STATE.md), [`PROJECT_STATUS.md`](../PROJECT_STATUS.md)
+**Last reviewed:** 13 Oct 2026  
+**Source of truth:** [`PROJECT_STATE.md`](../PROJECT_STATE.md) (Cloudera AI Accelerator)
 
 ---
+
+## Cloudera AI Accelerator (M0 — architecture & audit)
+
+| Doc | Purpose |
+|-----|---------|
+| [`product/PRODUCT_SCOPE.md`](product/PRODUCT_SCOPE.md) | Product scope & PoC boundary |
+| [`product/ROADMAP.md`](product/ROADMAP.md) | Milestones M0–M6 |
+| [`product/MIGRATION_PLAN.md`](product/MIGRATION_PLAN.md) | Tempo → accelerator migration |
+| [`architecture/ARCHITECTURE_V1.md`](architecture/ARCHITECTURE_V1.md) | Target architecture |
+| [`architecture/CODEBASE_AUDIT.md`](architecture/CODEBASE_AUDIT.md) | KEEP / REFACTOR / DEPRECATE |
+| [`architecture/DEPLOYMENT.md`](architecture/DEPLOYMENT.md) | Pilot deployment |
+| [`architecture/SECURITY.md`](architecture/SECURITY.md) | Security baseline |
+| [`backend/API_CONTRACT.md`](backend/API_CONTRACT.md) | REST + SSE contracts |
+| [`backend/DATA_MODEL.md`](backend/DATA_MODEL.md) | PostgreSQL model (proposed) |
+| [`backend/RAG_DESIGN.md`](backend/RAG_DESIGN.md) | Document intelligence |
+| [`backend/CONNECTOR_DESIGN.md`](backend/CONNECTOR_DESIGN.md) | Connectors |
+| [`backend/PROMPT_DESIGN.md`](backend/PROMPT_DESIGN.md) | Prompt hierarchy |
+| [`backend/SKILL_DESIGN.md`](backend/SKILL_DESIGN.md) | Skills |
+| [`decisions/ADR-008-STATE-STORE-AND-REDIS.md`](decisions/ADR-008-STATE-STORE-AND-REDIS.md) | `STATE_STORE`, Redis optional, RQ opt-in |
+| [`decisions/ADR-007-PILOT-DEFAULTS.md`](decisions/ADR-007-PILOT-DEFAULTS.md) | Pilot defaults (workspace, DB, Qdrant, Impala/Trino, FE, Neo4j) |
+| [`decisions/ADR-001-MODULAR-MONOLITH.md`](decisions/ADR-001-MODULAR-MONOLITH.md) | ADRs 001–007 in `decisions/` |
+| [`local-governed-dev.md`](local-governed-dev.md) | DuckDB local Ask Data |
+
+**Tempo Scan legacy project state:** [`archive/PROJECT_STATE_TEMPO_LEGACY.md`](archive/PROJECT_STATE_TEMPO_LEGACY.md)
+
+---
+
+## Tempo Scan / governed Ask Data (reference use case)
 
 ## Use these first (active)
 

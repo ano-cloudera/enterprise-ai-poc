@@ -15,6 +15,7 @@ from app.services.chat import ChatService
 from app.services.neo4j_client import Neo4jKnowledgeClient
 from app.services.puppygraph_client import PuppyGraphClient
 from app.core.kerberos_bootstrap import ensure_kerberos_ticket
+from app.db.duckdb_governed_backend import is_duckdb_governed_configured
 from app.db.impala_backend import is_impala_configured
 
 
@@ -44,7 +45,8 @@ def create_app(settings: Settings | None = None) -> FastAPI:
     @application.get("/health/ready")
     def readiness() -> JSONResponse:
         llm_ready = any(model.available for model in application.state.provider_registry.list_models())
-        impala_ready = is_impala_configured(configured)
+        use_duckdb = configured.data_backend.strip().lower() == "duckdb"
+        impala_ready = is_duckdb_governed_configured(configured) if use_duckdb else is_impala_configured(configured)
         gemini = next(
             (m for m in application.state.provider_registry.list_models() if m.provider == "gemini"),
             None,
@@ -55,6 +57,7 @@ def create_app(settings: Settings | None = None) -> FastAPI:
             "gemini_available": bool(gemini and gemini.available),
             "default_llm_provider": configured.default_llm_provider,
             "impala": "ready" if impala_ready else "not_configured",
+            "data_backend": configured.data_backend.strip().lower(),
             "semantic": "ready",
             "ask_data_routing": configured.ask_data_routing,
             "local_agent_base_url": configured.local_agent_base_url or None,

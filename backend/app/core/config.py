@@ -55,6 +55,11 @@ class Settings(BaseSettings):
     project_root: Path = BACKEND_ROOT / "projects"
     ossie_project_id: str = "tempo_scan_impala"
     sql_max_rows: int = Field(default=200, ge=1, le=1000)
+    data_backend: str = Field(default="impala", validation_alias="DATA_BACKEND")
+    duckdb_path: Path = Field(
+        default=BACKEND_ROOT / "runtime" / "tempo_gold_local.duckdb",
+        validation_alias="DUCKDB_PATH",
+    )
     impala_host: str = "localhost"
     impala_port: int = 21050
     impala_database: str = "gold"
@@ -128,6 +133,9 @@ class Settings(BaseSettings):
 def get_settings() -> Settings:
     settings = Settings()
     updates: dict = {}
+    duck_path = Path(settings.duckdb_path)
+    if not duck_path.is_absolute():
+        updates["duckdb_path"] = (BACKEND_ROOT / duck_path).resolve()
     profile = settings.impala_credential_profile.strip().lower()
     if profile:
         env_path = REPO_ROOT / ".env"

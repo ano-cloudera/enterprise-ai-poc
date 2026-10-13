@@ -16,6 +16,7 @@ from app.llm.usage_context import (
 )
 from app.services.usage_store import UsageStore
 from app.db.base import BackendExecutionContext, DataBackendError
+from app.db.duckdb_governed_backend import DuckDBGovernedBackend
 from app.db.impala_backend import ImpalaBackend
 from app.graph.workflow import WorkflowDependencies, build_workflow
 from app.llm.registry import ProviderRegistry
@@ -83,6 +84,30 @@ class ImpalaQueryExecutor:
         }
 
 
+class DuckDBQueryExecutor:
+    def __init__(self, settings: Settings) -> None:
+        self.backend = DuckDBGovernedBackend(settings)
+
+    async def execute(self, sql: str, request_id: str) -> dict:
+        result = await asyncio.to_thread(
+            self.backend.execute,
+            sql,
+            BackendExecutionContext(trace_id=request_id, purpose="ask_data_v2"),
+        )
+        return {
+            "columns": [column.name for column in result.columns],
+            "rows": result.records(),
+            "row_count": result.row_count,
+            "execution_ms": result.telemetry.query_latency_ms,
+        }
+
+
+def build_query_executor(settings: Settings) -> ImpalaQueryExecutor | DuckDBQueryExecutor:
+    if settings.data_backend.strip().lower() == "duckdb":
+        return DuckDBQueryExecutor(settings)
+    return ImpalaQueryExecutor(settings)
+
+
 class ChatService:
     def __init__(
         self,
@@ -99,7 +124,7 @@ class ChatService:
         self.dependencies = dependencies or WorkflowDependencies(
             semantic_context=context,
             provider_registry=ProviderRegistry(settings),
-            query_executor=ImpalaQueryExecutor(settings),
+            query_executor=build_query_executor(settings),
             sql_validator=lambda sql, validation_context: validate_sql(sql, validation_context, max_rows=settings.sql_max_rows),
             validation_context=context,
             local_agent_client=LocalAgentClient(settings),

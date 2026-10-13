@@ -4,8 +4,17 @@ function env(key: string, fallback: string): string {
   return value || fallback
 }
 
+function envBool(key: string, fallback: boolean): boolean {
+  const value = process.env[key]?.trim().toLowerCase()
+  if (value === 'true' || value === '1') return true
+  if (value === 'false' || value === '0') return false
+  return fallback
+}
+
 export const appConfig = {
   appName: env('NEXT_PUBLIC_APP_NAME', 'Scan Intelligence'),
+  appSubtitle: env('NEXT_PUBLIC_APP_SUBTITLE', 'AI Workspace'),
+  projectName: env('NEXT_PUBLIC_PROJECT_NAME', 'Tempo Scan'),
   customerName: env('NEXT_PUBLIC_CUSTOMER_NAME', ''),
   assistantName: env('NEXT_PUBLIC_ASSISTANT_NAME', 'Assistant'),
   get headerTitle(): string {
@@ -15,12 +24,25 @@ export const appConfig = {
   get sidebarBrandTitle(): string {
     return this.customerName || this.appName
   },
-  sidebarTagline: env('NEXT_PUBLIC_APP_TAGLINE', 'AI Workspace'),
+  get sidebarTagline(): string {
+    return env('NEXT_PUBLIC_APP_TAGLINE', this.appSubtitle)
+  },
   sidebarPoweredByLabel: env('NEXT_PUBLIC_SIDEBAR_POWERED_BY', 'Powered by Cloudera'),
-  sidebarFooterCaption: env(
-    'NEXT_PUBLIC_SIDEBAR_FOOTER_CAPTION',
-    'Tempo Scan proof of concept',
-  ),
+  get sidebarFooterCaption(): string {
+    const explicit = process.env.NEXT_PUBLIC_SIDEBAR_FOOTER_CAPTION?.trim()
+    if (explicit) return explicit
+    const project = env('NEXT_PUBLIC_PROJECT_NAME', 'Tempo Scan')
+    return `${project} proof of concept`
+  },
+  features: {
+    askData: envBool('NEXT_PUBLIC_FEATURE_ASK_DATA', true),
+    usage: envBool('NEXT_PUBLIC_FEATURE_USAGE', true),
+    settings: envBool('NEXT_PUBLIC_FEATURE_SETTINGS', true),
+    documents: envBool('NEXT_PUBLIC_FEATURE_DOCUMENTS', false),
+    connectors: envBool('NEXT_PUBLIC_FEATURE_CONNECTORS', false),
+    prompts: envBool('NEXT_PUBLIC_FEATURE_PROMPTS', false),
+    skills: envBool('NEXT_PUBLIC_FEATURE_SKILLS', false),
+  },
   starterQuestionsCaption: env('NEXT_PUBLIC_STARTER_QUESTIONS_CAPTION', 'Start with a question'),
   chatPlaceholder: env('NEXT_PUBLIC_CHAT_PLACEHOLDER', 'Ask a question about your data…'),
   emptyStateTitle: env('NEXT_PUBLIC_EMPTY_STATE_TITLE', 'Ask your data a question'),

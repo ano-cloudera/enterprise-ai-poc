@@ -8,11 +8,19 @@ import { BrandMark } from '../components/BrandMark'
 import { ConversationSessionList, type ConversationSessionListProps } from '../components/ConversationSessionList'
 import { appConfig } from '../config/appConfig'
 
-const navigation = [
-  { href: '/', label: appConfig.navigationAskData, icon: Bot },
-  { href: '/usage', label: appConfig.navigationUsage, icon: BarChart3 },
-  { href: '/settings', label: appConfig.navigationSettings, icon: Settings },
-]
+function buildPrimaryNavigation() {
+  const items: { href: string; label: string; icon: typeof Bot }[] = []
+  if (appConfig.features.askData) {
+    items.push({ href: '/', label: appConfig.navigationAskData, icon: Bot })
+  }
+  if (appConfig.features.usage) {
+    items.push({ href: '/usage', label: appConfig.navigationUsage, icon: BarChart3 })
+  }
+  if (appConfig.features.settings) {
+    items.push({ href: '/settings', label: appConfig.navigationSettings, icon: Settings })
+  }
+  return items
+}
 
 /** Collapsed sidebar: one footprint for logo, toggle, New Chat, and nav icons. */
 const COLLAPSED_RAIL_ITEM =
@@ -70,6 +78,8 @@ export function AppShell({ children }: { children: ReactNode }) {
   const setChatPageChrome = useCallback((state: ChatPageChromeState | null) => {
     setChatPageChromeState(state)
   }, [])
+
+  const navigation = useMemo(() => buildPrimaryNavigation(), [])
 
   const layoutValue = useMemo(
     () => ({

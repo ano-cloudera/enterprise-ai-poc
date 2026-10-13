@@ -14,13 +14,15 @@ from app.llm.usage_context import (
     finish_request_usage,
     start_request_usage,
 )
-from app.services.usage_store import UsageStore
+from app.stores.factory import build_conversation_store, build_usage_store
+from app.stores.protocols import ConversationStoreProtocol, UsageStoreProtocol
+from app.projects.resolver import resolve_ossie_project_dir
 from app.db.base import BackendExecutionContext, DataBackendError
+from app.db.duckdb_governed_backend import DuckDBGovernedBackend
 from app.db.impala_backend import ImpalaBackend
 from app.graph.workflow import WorkflowDependencies, build_workflow
 from app.llm.registry import ProviderRegistry
 from app.semantic.context import SemanticContextService
-from app.services.history import ConversationStore
 from app.services.ask_data_routing import resolve_ask_data_route, v3_agent_available
 from app.services.conversational import TurnUnderstanding, understand_turn
 from app.services.follow_up import analysis_context_from_history, try_history_only_analysis_resolution
@@ -83,23 +85,47 @@ class ImpalaQueryExecutor:
         }
 
 
+class DuckDBQueryExecutor:
+    def __init__(self, settings: Settings) -> None:
+        self.backend = DuckDBGovernedBackend(settings)
+
+    async def execute(self, sql: str, request_id: str) -> dict:
+        result = await asyncio.to_thread(
+            self.backend.execute,
+            sql,
+            BackendExecutionContext(trace_id=request_id, purpose="ask_data_v2"),
+        )
+        return {
+            "columns": [column.name for column in result.columns],
+            "rows": result.records(),
+            "row_count": result.row_count,
+            "execution_ms": result.telemetry.query_latency_ms,
+        }
+
+
+def build_query_executor(settings: Settings) -> ImpalaQueryExecutor | DuckDBQueryExecutor:
+    if settings.data_backend.strip().lower() == "duckdb":
+        return DuckDBQueryExecutor(settings)
+    return ImpalaQueryExecutor(settings)
+
+
 class ChatService:
     def __init__(
         self,
         settings: Settings,
         *,
         dependencies: WorkflowDependencies | None = None,
-        history: ConversationStore | None = None,
-        usage_store: UsageStore | None = None,
+        history: ConversationStoreProtocol | None = None,
+        usage_store: UsageStoreProtocol | None = None,
     ) -> None:
         self.settings = settings
         self.usage_tracker = UsageTracker()
         attach_usage_tracker(self.usage_tracker)
-        context = SemanticContextService(settings.project_root / settings.ossie_project_id)
+        context = SemanticContextService(resolve_ossie_project_dir(settings))
         self.dependencies = dependencies or WorkflowDependencies(
             semantic_context=context,
             provider_registry=ProviderRegistry(settings),
-            query_executor=ImpalaQueryExecutor(settings),
+            query_executor=build_query_executor(settings),
             sql_validator=lambda sql, validation_context: validate_sql(sql, validation_context, max_rows=settings.sql_max_rows),
             validation_context=context,
             local_agent_client=LocalAgentClient(settings),
@@ -108,8 +134,8 @@ class ChatService:
             usage_tracker=self.usage_tracker,
         )
         self.workflow = build_workflow(self.dependencies)
-        self.history = history or ConversationStore(settings.conversation_db_path)
-        self.usage_store = usage_store or UsageStore(settings.usage_db_path)
+        self.history = history or build_conversation_store(settings)
+        self.usage_store = usage_store or build_usage_store(settings)
 
     def _resolve_provider(self, request: AskDataRequest, request_id: str):
         provider = self.dependencies.provider_registry.resolve(request.provider, request.model)

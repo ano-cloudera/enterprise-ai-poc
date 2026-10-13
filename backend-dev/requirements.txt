@@ -8,7 +8,11 @@ google-genai>=1.30.0
 langgraph==0.6.7
 langchain-core==0.3.76
 sqlglot==27.12.0
+duckdb==1.2.2
 orjson==3.11.3
 pytest==8.4.2
 pytest-asyncio==1.1.0
 pytest-timeout==2.4.0
+sqlalchemy==2.0.43
+alembic==1.16.4
+psycopg[binary]==3.2.9
